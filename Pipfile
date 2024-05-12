@@ -1,0 +1,16 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+requests = "*"
+fastapi = "*"
+gunicorn = "*"
+
+[dev-packages]
+pytest = "*"
+requests-mock = "*"
+
+[requires]
+python_version = "3.12.3"
