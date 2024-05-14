@@ -1,17 +1,22 @@
+from fastapi import Depends, FastAPI, Query
+from pydantic import HttpUrl
+
+from auth import Auth
+from config import Config
 from web_fetcher import WebFetcher
 
 
-DEFAULT_URL = "https://httpbin.org/get"
+config = Config()
+Auth.config = config
+app = FastAPI()
 
-def input_or_def(prompt: str, default: str) -> str:
-    user_input = input(prompt).strip()
-    return user_input if user_input != "" else default
+@app.get("/health")
+def health(): return { "status": "ok" }
 
-def main():
-    print("Running the URL fetcher...")
-    url = input_or_def(f"What is the expected URL? [↩ {DEFAULT_URL}] ", DEFAULT_URL)
-    fetcher = WebFetcher(url, auto_fetch = True, verbose = True)
-    print(f"Fetch result: {fetcher.html}")
-
-if __name__ == "__main__":
-    main()
+@app.get("/web-fetcher")
+def web_fetcher(
+    url: HttpUrl = Query(...),
+    _ = Depends(Auth.get_api_key),
+):
+    fetcher = WebFetcher(url, config, auto_fetch = True)
+    return { "url": url, "html": fetcher.html }

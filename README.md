@@ -6,19 +6,47 @@ This is the complete source code of The Agent, our intelligent virtual assistant
 
 This project uses `pipenv`.
 
-Using `pipenv`, you can run `pipenv install` in the root directory to set up your dependencies correctly. After the dependencies have been installed, you can run `pipenv shell` to get a new shell fork in which the environment will be set up to easily run everything.
+Using `pipenv`, you can run `pipenv install` in the root directory to set up your dependencies correctly.
 
-Once the environment has been configured, you can run the main code with:
-
-```console
-$ python src/main.py
-```
-
-You can run all tests in verbose mode (`-v`) with:
+For running the production server:
 
 ```console
-$ pytest -v
+$ pipenv install
 ```
+
+For running on development systems, e.g. for testing purposes:
+
+```console
+$ pipenv install --dev
+```
+
+After the dependencies have been installed, you can run `pipenv shell` to get a new shell fork in which the environment will be set up to easily run everything.
+
+Once the environment has been configured, you can run the main code.
+
+#### Scripts
+
+You can use the pre-built scripts located in the `tools` directory – those are easy-to-use single-shot Shell executables that require no developer setup.
+
+Production server:
+
+```console
+$ ./tools/run_main.sh
+```
+
+Development server:
+
+```console
+$ ./tools/run_dev.sh
+```
+
+All tests:
+
+```console
+$ ./tools/run_tests.sh
+```
+
+To emulate this behavior on Windows, you would need to inspect the scripts individually and mimic their behavior in the DOS environment.
 
 ### License
 
