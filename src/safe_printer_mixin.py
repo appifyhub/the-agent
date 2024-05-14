@@ -1,8 +1,8 @@
 class SafePrinterMixin:
-    verbose: bool = False
+    __verbose: bool = False
 
     def __init__(self, verbose: bool = False):
-        self.verbose = verbose
+        self.__verbose = verbose
 
     def sprint(self, content: str):
         """
@@ -11,5 +11,5 @@ class SafePrinterMixin:
         Parameters:
         content (str): The content to be printed.
         """
-        if self.verbose:
+        if self.__verbose:
             print(content)
