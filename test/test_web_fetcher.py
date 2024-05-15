@@ -18,15 +18,15 @@ class WebFetcherTest(unittest.TestCase):
     )
 
     @requests_mock.Mocker()
-    def test_auto_fetch_disabled(self, m: Mocker):
+    def test_auto_fetch_html_disabled(self, m: Mocker):
         m.get(DEFAULT_URL, text = "data", status_code = 200)
         fetcher = WebFetcher(DEFAULT_URL, self.__config)
         self.assertEqual(fetcher.html, None)
 
     @requests_mock.Mocker()
-    def test_auto_fetch_enabled(self, m: Mocker):
+    def test_auto_fetch_html_enabled(self, m: Mocker):
         m.get(DEFAULT_URL, text = "data", status_code = 200)
-        fetcher = WebFetcher(DEFAULT_URL, self.__config, auto_fetch = True)
+        fetcher = WebFetcher(DEFAULT_URL, self.__config, auto_fetch_html = True)
         self.assertEqual(fetcher.html, "data")
 
     @requests_mock.Mocker()
@@ -39,5 +39,33 @@ class WebFetcherTest(unittest.TestCase):
     @requests_mock.Mocker()
     def test_fetch_html_error(self, m: Mocker):
         m.get(DEFAULT_URL, status_code = 404)
-        fetcher = WebFetcher(DEFAULT_URL, self.__config, auto_fetch = True)
+        fetcher = WebFetcher(DEFAULT_URL, self.__config, auto_fetch_html = True)
         self.assertEqual(fetcher.html, None)
+
+    @requests_mock.Mocker()
+    def test_auto_fetch_json_disabled(self, m: Mocker):
+        stub = { "value": "data" }
+        m.get(DEFAULT_URL, json = stub, status_code = 200)
+        fetcher = WebFetcher(DEFAULT_URL, self.__config)
+        self.assertEqual(fetcher.json, None)
+
+    @requests_mock.Mocker()
+    def test_auto_fetch_json_enabled(self, m: Mocker):
+        stub = { "value": "data" }
+        m.get(DEFAULT_URL, json = stub, status_code = 200)
+        fetcher = WebFetcher(DEFAULT_URL, self.__config, auto_fetch_json = True)
+        self.assertEqual(fetcher.json, stub)
+
+    @requests_mock.Mocker()
+    def test_fetch_json_ok(self, m: Mocker):
+        stub = { "value": "data" }
+        m.get(DEFAULT_URL, json = stub, status_code = 200)
+        fetcher = WebFetcher(DEFAULT_URL, self.__config)
+        self.assertEqual(fetcher.fetch_json(), stub)
+        self.assertEqual(fetcher.json, stub)
+
+    @requests_mock.Mocker()
+    def test_fetch_json_error(self, m: Mocker):
+        m.get(DEFAULT_URL, status_code = 404)
+        fetcher = WebFetcher(DEFAULT_URL, self.__config, auto_fetch_json = True)
+        self.assertEqual(fetcher.json, None)

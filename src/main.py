@@ -11,12 +11,20 @@ Auth.config = config
 app = FastAPI()
 
 @app.get("/health")
-def health(): return { "status": "ok" }
+def health() -> dict: return { "status": "ok" }
 
-@app.get("/web-fetcher")
-def web_fetcher(
+@app.get("/html-fetcher")
+def html_fetcher(
     url: HttpUrl = Query(...),
     _ = Depends(Auth.get_api_key),
-):
-    fetcher = WebFetcher(url, config, auto_fetch = True)
+) -> dict:
+    fetcher = WebFetcher(url, config, auto_fetch_html = True)
     return { "url": url, "html": fetcher.html }
+
+@app.get("/json-fetcher")
+def json_fetcher(
+    url: HttpUrl = Query(...),
+    _ = Depends(Auth.get_api_key),
+) -> dict:
+    fetcher = WebFetcher(url, config, auto_fetch_json = True)
+    return { "url": url, "json": fetcher.json }
