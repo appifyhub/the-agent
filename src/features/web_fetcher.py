@@ -1,22 +1,21 @@
 import platform
 import time
-from typing import Optional
 
 import requests
 from requests.exceptions import RequestException, Timeout
 
-from config import Config
-from safe_printer_mixin import SafePrinterMixin
-
+from util.config import Config
+from util.safe_printer_mixin import SafePrinterMixin
 
 PLATFORM = f"{platform.python_implementation()}/{platform.python_version()}"
 USER_AGENT = f"Mozilla/5.0 (compatible; TheAgent/1.0; {PLATFORM})"
-HEADERS = { "User-Agent": USER_AGENT }
+HEADERS = {"User-Agent": USER_AGENT}
+
 
 class WebFetcher(SafePrinterMixin):
     url: str
-    html: Optional[str] = None
-    json: Optional[dict] = None
+    html: str | None = None
+    json: dict | None = None
     __config: Config
 
     def __init__(
@@ -34,7 +33,7 @@ class WebFetcher(SafePrinterMixin):
         if auto_fetch_json:
             self.fetch_json()
 
-    def fetch_html(self) -> Optional[str]:
+    def fetch_html(self) -> str | None:
         self.html = None  # reset value
         attempts = 0
         for _ in range(self.__config.web_retries):
@@ -49,7 +48,7 @@ class WebFetcher(SafePrinterMixin):
                 time.sleep(self.__config.web_retry_delay_s)
         return self.html
 
-    def fetch_json(self) -> Optional[dict]:
+    def fetch_json(self) -> dict | None:
         self.json = None
         attempts = 0
         for _ in range(self.__config.web_retries):

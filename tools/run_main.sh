@@ -19,7 +19,7 @@ CMD="pipenv run gunicorn \
     -k uvicorn.workers.UvicornWorker \
     --bind 0.0.0.0:80 \
     --preload \
-    src.main:app"
+    src.fast_api:app"
 
 # Add logging options if VERBOSE is true
 if [ "$VERBOSE" = "true" ]; then

@@ -24,7 +24,7 @@ pipenv run gunicorn \
     -k uvicorn.workers.UvicornWorker \
     --bind 0.0.0.0:80 \
     --preload \
-    src.main:app \
+    src.fast_api:app \
     --log-level debug \
     --access-logfile - \
     --error-logfile -

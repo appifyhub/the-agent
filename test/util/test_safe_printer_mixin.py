@@ -2,7 +2,7 @@ import unittest
 from io import StringIO
 from unittest.mock import patch
 
-from safe_printer_mixin import SafePrinterMixin
+from util.safe_printer_mixin import SafePrinterMixin
 
 
 class SafePrinterMixinTest(unittest.TestCase):
