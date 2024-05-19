@@ -3,7 +3,7 @@ from pydantic import HttpUrl
 
 from api.auth import verify_api_key
 from features.web_fetcher import WebFetcher
-from util.config import instance as config
+from util.config import config
 
 app = FastAPI()
 

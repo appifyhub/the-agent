@@ -3,7 +3,7 @@ from sqlalchemy import Column, String
 from db.sql import BaseModel
 
 
-class ChatConfig(BaseModel):
+class ChatConfigDB(BaseModel):
     __tablename__ = 'chat_configs'
 
     chat_id = Column(String, primary_key = True)

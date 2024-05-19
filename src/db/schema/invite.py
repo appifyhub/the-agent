@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import ConfigDict, BaseModel
 
 
 class InviteBase(BaseModel):
@@ -24,9 +24,7 @@ class Invite(InviteBase):
     accepted_at: datetime | None = None
     sender: "User"
     receiver: "User"
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes = True)
 
 
 # Importing here to avoid circular import issues

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import ConfigDict, BaseModel
 
 
 class ChatHistoryBase(BaseModel):
@@ -17,10 +17,9 @@ class ChatHistoryCreate(ChatHistoryBase):
 
 
 class ChatHistoryUpdate(BaseModel):
-    author_name: str | None
-    author_username: str | None
+    author_name: str | None = None
+    author_username: str | None = None
 
 
 class ChatHistory(ChatHistoryBase):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes = True)

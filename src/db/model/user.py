@@ -6,11 +6,11 @@ from sqlalchemy import Column, String, Date, Enum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from db.model.invite import Invite
+from db.model.invite import InviteDB
 from db.sql import BaseModel
 
 
-class User(BaseModel):
+class UserDB(BaseModel):
     __tablename__ = 'simulants'
 
     class Group(enum.Enum):
@@ -27,5 +27,5 @@ class User(BaseModel):
     group = Column(Enum(Group), nullable = False, default = Group.standard)
     created_at = Column(Date, default = date.today)
 
-    sent_invites = relationship("Invite", foreign_keys = [Invite.sender_id], back_populates = "sender")
-    received_invites = relationship("Invite", foreign_keys = [Invite.receiver_id], back_populates = "receiver")
+    sent_invites = relationship("InviteDB", foreign_keys = [InviteDB.sender_id], back_populates = "sender")
+    received_invites = relationship("InviteDB", foreign_keys = [InviteDB.receiver_id], back_populates = "receiver")

@@ -5,15 +5,15 @@ from alembic.config import Config as AlembicConfig
 from sqlalchemy import engine_from_config, pool
 
 # noinspection PyUnresolvedReferences
-from db.model.chat_config import ChatConfig  # used by alembic
+from db.model.chat_config import ChatConfigDB  # used by alembic
 # noinspection PyUnresolvedReferences
-from db.model.chat_history import ChatHistory  # used by alembic
+from db.model.chat_history import ChatHistoryDB  # used by alembic
 # noinspection PyUnresolvedReferences
-from db.model.invite import Invite  # used by alembic
+from db.model.invite import InviteDB  # used by alembic
 # noinspection PyUnresolvedReferences
-from db.model.user import User  # used by alembic
+from db.model.user import UserDB  # used by alembic
 from db.sql import BaseModel
-from util.config import instance as app_config
+from util.config import config as app_config
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

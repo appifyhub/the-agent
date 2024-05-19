@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import ConfigDict, BaseModel
 
 
 class ChatConfigBase(BaseModel):
@@ -21,5 +21,4 @@ class ChatConfigUpdate(BaseModel):
 
 
 class ChatConfig(ChatConfigBase):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes = True)

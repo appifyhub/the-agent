@@ -4,7 +4,7 @@ from sqlalchemy.sql import func
 from db.sql import BaseModel
 
 
-class ChatHistory(BaseModel):
+class ChatHistoryDB(BaseModel):
     __tablename__ = 'chat_history'
 
     chat_id = Column(String, ForeignKey('chat_configs.chat_id'), nullable = False)

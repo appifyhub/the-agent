@@ -76,4 +76,4 @@ class Config(SafePrinterMixin, metaclass = Singleton):
         return formatted.upper()
 
 
-instance = Config()
+config = Config()

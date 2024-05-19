@@ -2,7 +2,7 @@ from datetime import date
 from typing import List
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import ConfigDict, BaseModel
 
 
 class UserBase(BaseModel):
@@ -18,10 +18,10 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    full_name: str | None
-    telegram_username: str | None
-    telegram_chat_id: str | None
-    open_ai_key: str | None
+    full_name: str | None = None
+    telegram_username: str | None = None
+    telegram_chat_id: str | None = None
+    open_ai_key: str | None = None
     group: str
 
 
@@ -31,9 +31,7 @@ class User(UserBase):
     created_at: date
     sent_invites: List["Invite"] = []
     received_invites: List["Invite"] = []
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes = True)
 
 
 # Importing here to avoid circular import issues

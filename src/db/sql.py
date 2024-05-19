@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session, declarative_base
 
-from util.config import instance as config
+from util.config import config
 
 # type hinting is risky here because the function calls return class objects
 engine = create_engine(config.db_url)

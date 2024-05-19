@@ -8,7 +8,7 @@ from sqlalchemy.sql import func
 from db.sql import BaseModel
 
 
-class Invite(BaseModel):
+class InviteDB(BaseModel):
     __tablename__ = "invites"
 
     id = Column(UUID(as_uuid = True), primary_key = True, default = uuid.uuid4)
@@ -17,5 +17,5 @@ class Invite(BaseModel):
     invited_at = Column(DateTime, default = func.now(), nullable = False)
     accepted_at = Column(DateTime, nullable = True)
 
-    sender = relationship("User", foreign_keys = [sender_id], back_populates = "sent_invites")
-    receiver = relationship("User", foreign_keys = [receiver_id], back_populates = "received_invites")
+    sender = relationship("UserDB", foreign_keys = [sender_id], back_populates = "sent_invites")
+    receiver = relationship("UserDB", foreign_keys = [receiver_id], back_populates = "received_invites")
