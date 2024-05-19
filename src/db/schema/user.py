@@ -18,10 +18,10 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    full_name: str | None = None
-    telegram_username: str | None = None
-    telegram_chat_id: str | None = None
-    open_ai_key: str | None = None
+    full_name: str | None
+    telegram_username: str | None
+    telegram_chat_id: str | None
+    open_ai_key: str | None
     group: str
 
 

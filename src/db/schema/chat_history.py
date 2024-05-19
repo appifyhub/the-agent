@@ -8,7 +8,7 @@ class ChatHistoryBase(BaseModel):
     message_id: str
     author_name: str | None = None
     author_username: str | None = None
-    sent_at: datetime
+    sent_at: datetime = datetime.now()
     text: str
 
 
@@ -17,8 +17,7 @@ class ChatHistoryCreate(ChatHistoryBase):
 
 
 class ChatHistoryUpdate(BaseModel):
-    author_name: str | None = None
-    author_username: str | None = None
+    text: str
 
 
 class ChatHistory(ChatHistoryBase):
