@@ -9,6 +9,7 @@ fastapi = "*"
 gunicorn = "*"
 sqlalchemy = "*"
 psycopg2-binary = "*"
+alembic = "*"
 
 [dev-packages]
 pytest = "*"

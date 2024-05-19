@@ -46,6 +46,8 @@ All tests:
 $ ./tools/run_tests.sh
 ```
 
+There are more tools in the same directory (especially useful around database migrations); feel free to explore those at your own pace when needed.
+
 To emulate this behavior on Windows, you would need to inspect the scripts individually and mimic their behavior in the DOS environment.
 
 ### License
