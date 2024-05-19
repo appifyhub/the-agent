@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from db.model.user import User as UserModel
-from db.schema.user import UserCreate
+from db.schema.user import UserCreate, UserUpdate
 
 
 class User:
@@ -27,7 +27,7 @@ class User:
         self._db.refresh(db_user)
         return db_user
 
-    def update(self, user_id: UUID, update_data: UserCreate):
+    def update(self, user_id: UUID, update_data: UserUpdate):
         db_user = self.get(user_id)
         if db_user:
             for key, value in update_data.dict().items():

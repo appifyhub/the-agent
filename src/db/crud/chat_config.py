@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from db.model.chat_config import ChatConfig as ChatConfigModel
-from db.schema.chat_config import ChatConfigCreate
+from db.schema.chat_config import ChatConfigCreate, ChatConfigUpdate
 
 
 class ChatConfig:
@@ -25,7 +25,7 @@ class ChatConfig:
         self._db.refresh(db_chat_config)
         return db_chat_config
 
-    def update(self, chat_id: str, update_data: ChatConfigCreate):
+    def update(self, chat_id: str, update_data: ChatConfigUpdate):
         db_chat_config = self.get(chat_id)
         if db_chat_config:
             for key, value in update_data.dict().items():

@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from db.model.chat_history import ChatHistory as ChatHistoryModel
-from db.schema.chat_history import ChatHistoryCreate
+from db.schema.chat_history import ChatHistoryCreate, ChatHistoryUpdate
 
 
 class ChatHistory:
@@ -26,7 +26,7 @@ class ChatHistory:
         self._db.refresh(db_chat_history)
         return db_chat_history
 
-    def update(self, chat_id: str, message_id: str, update_data: ChatHistoryCreate):
+    def update(self, chat_id: str, message_id: str, update_data: ChatHistoryUpdate):
         db_chat_history = self.get_chat_history(chat_id, message_id)
         if db_chat_history:
             for key, value in update_data.dict().items():

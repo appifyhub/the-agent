@@ -4,8 +4,6 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from db.schema.invite import Invite
-
 
 class UserBase(BaseModel):
     full_name: str | None = None
@@ -19,11 +17,26 @@ class UserCreate(UserBase):
     pass
 
 
+class UserUpdate(BaseModel):
+    full_name: str | None
+    telegram_username: str | None
+    telegram_chat_id: str | None
+    open_ai_key: str | None
+    group: str
+
+
+# noinspection PyUnresolvedReferences
 class User(UserBase):
     id: UUID
     created_at: date
-    sent_invites: List[Invite] = []
-    received_invites: List[Invite] = []
+    sent_invites: List["Invite"] = []
+    received_invites: List["Invite"] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+
+# Importing here to avoid circular import issues
+from db.schema.invite import Invite
+
+User.model_rebuild()

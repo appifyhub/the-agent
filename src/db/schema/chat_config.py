@@ -2,6 +2,7 @@ from pydantic import BaseModel
 
 
 class ChatConfigBase(BaseModel):
+    chat_id: str
     persona_code: str
     persona_name: str
     language_iso_code: str = "en"
@@ -12,8 +13,13 @@ class ChatConfigCreate(ChatConfigBase):
     pass
 
 
-class ChatConfig(ChatConfigBase):
-    chat_id: str
+class ChatConfigUpdate(BaseModel):
+    persona_code: str
+    persona_name: str
+    language_iso_code: str
+    language_name: str
 
+
+class ChatConfig(ChatConfigBase):
     class Config:
-        orm_mode = True
+        from_attributes = True

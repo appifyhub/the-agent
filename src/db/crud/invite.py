@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from db.model.invite import Invite as InviteModel
-from db.schema.invite import InviteCreate
+from db.schema.invite import InviteCreate, InviteUpdate
 
 
 class Invite:
@@ -27,7 +27,7 @@ class Invite:
         self._db.refresh(db_invite)
         return db_invite
 
-    def update(self, invite_id: UUID, update_data: InviteCreate):
+    def update(self, invite_id: UUID, update_data: InviteUpdate):
         db_invite = self.get(invite_id)
         if db_invite:
             for key, value in update_data.dict().items():
