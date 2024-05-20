@@ -12,32 +12,34 @@ class InviteCRUD:
     def __init__(self, db: Session):
         self._db = db
 
-    def get(self, invite_id: UUID):
+    def get(self, sender_id: UUID, receiver_id: UUID) -> InviteDB | None:
         return self._db.query(InviteDB).filter(
-            invite_id == InviteDB.id
+            sender_id == InviteDB.sender_id,
+            receiver_id == InviteDB.receiver_id,
         ).first()
 
-    def get_all(self, skip: int = 0, limit: int = 100):
+    def get_all(self, skip: int = 0, limit: int = 100) -> list[InviteDB]:
+        # noinspection PyTypeChecker
         return self._db.query(InviteDB).offset(skip).limit(limit).all()
 
-    def create(self, invite: InviteCreate):
-        db_invite = InviteDB(**invite.dict())
+    def create(self, invite: InviteCreate) -> InviteDB:
+        db_invite = InviteDB(**invite.model_dump())
         self._db.add(db_invite)
         self._db.commit()
         self._db.refresh(db_invite)
         return db_invite
 
-    def update(self, invite_id: UUID, update_data: InviteUpdate):
-        db_invite = self.get(invite_id)
+    def update(self, sender_id: UUID, receiver_id: UUID, update_data: InviteUpdate) -> InviteDB | None:
+        db_invite = self.get(sender_id, receiver_id)
         if db_invite:
-            for key, value in update_data.dict().items():
+            for key, value in update_data.model_dump().items():
                 setattr(db_invite, key, value)
             self._db.commit()
             self._db.refresh(db_invite)
         return db_invite
 
-    def delete(self, invite_id: UUID):
-        db_invite = self.get(invite_id)
+    def delete(self, sender_id: UUID, receiver_id: UUID) -> InviteDB | None:
+        db_invite = self.get(sender_id, receiver_id)
         if db_invite:
             self._db.delete(db_invite)
             self._db.commit()

@@ -19,7 +19,6 @@ class InviteUpdate(BaseModel):
 
 # noinspection PyUnresolvedReferences
 class Invite(InviteBase):
-    id: UUID
     invited_at: datetime
     accepted_at: datetime | None = None
     sender: "User"
