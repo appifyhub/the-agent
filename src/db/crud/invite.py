@@ -22,25 +22,25 @@ class InviteCRUD:
         # noinspection PyTypeChecker
         return self._db.query(InviteDB).offset(skip).limit(limit).all()
 
-    def create(self, invite: InviteCreate) -> InviteDB:
-        db_invite = InviteDB(**invite.model_dump())
-        self._db.add(db_invite)
+    def create(self, create_data: InviteCreate) -> InviteDB:
+        invite = InviteDB(**create_data.model_dump())
+        self._db.add(invite)
         self._db.commit()
-        self._db.refresh(db_invite)
-        return db_invite
+        self._db.refresh(invite)
+        return invite
 
     def update(self, sender_id: UUID, receiver_id: UUID, update_data: InviteUpdate) -> InviteDB | None:
-        db_invite = self.get(sender_id, receiver_id)
-        if db_invite:
+        invite = self.get(sender_id, receiver_id)
+        if invite:
             for key, value in update_data.model_dump().items():
-                setattr(db_invite, key, value)
+                setattr(invite, key, value)
             self._db.commit()
-            self._db.refresh(db_invite)
-        return db_invite
+            self._db.refresh(invite)
+        return invite
 
     def delete(self, sender_id: UUID, receiver_id: UUID) -> InviteDB | None:
-        db_invite = self.get(sender_id, receiver_id)
-        if db_invite:
-            self._db.delete(db_invite)
+        invite = self.get(sender_id, receiver_id)
+        if invite:
+            self._db.delete(invite)
             self._db.commit()
-        return db_invite
+        return invite

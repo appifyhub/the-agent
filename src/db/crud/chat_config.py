@@ -19,25 +19,25 @@ class ChatConfigCRUD:
         # noinspection PyTypeChecker
         return self._db.query(ChatConfigDB).offset(skip).limit(limit).all()
 
-    def create(self, chat_config: ChatConfigCreate) -> ChatConfigDB:
-        db_chat_config = ChatConfigDB(**chat_config.model_dump())
-        self._db.add(db_chat_config)
+    def create(self, create_data: ChatConfigCreate) -> ChatConfigDB:
+        chat_config = ChatConfigDB(**create_data.model_dump())
+        self._db.add(chat_config)
         self._db.commit()
-        self._db.refresh(db_chat_config)
-        return db_chat_config
+        self._db.refresh(chat_config)
+        return chat_config
 
     def update(self, chat_id: str, update_data: ChatConfigUpdate) -> ChatConfigDB | None:
-        db_chat_config = self.get(chat_id)
-        if db_chat_config:
+        chat_config = self.get(chat_id)
+        if chat_config:
             for key, value in update_data.model_dump().items():
-                setattr(db_chat_config, key, value)
+                setattr(chat_config, key, value)
             self._db.commit()
-            self._db.refresh(db_chat_config)
-        return db_chat_config
+            self._db.refresh(chat_config)
+        return chat_config
 
     def delete(self, chat_id: str) -> ChatConfigDB | None:
-        db_chat_config = self.get(chat_id)
-        if db_chat_config:
-            self._db.delete(db_chat_config)
+        chat_config = self.get(chat_id)
+        if chat_config:
+            self._db.delete(chat_config)
             self._db.commit()
-        return db_chat_config
+        return chat_config

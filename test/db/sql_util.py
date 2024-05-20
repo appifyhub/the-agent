@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
 from db.crud.chat_config import ChatConfigCRUD
-from db.crud.chat_history import ChatHistoryCRUD
+from db.crud.chat_message import ChatMessageCRUD
 from db.crud.invite import InviteCRUD
 from db.crud.user import UserCRUD
 from db.sql import BaseModel
@@ -41,9 +41,9 @@ class SQLUtil:
         if not self._is_session_active: self.start_session()
         return ChatConfigCRUD(self._session)
 
-    def chat_history_crud(self) -> ChatHistoryCRUD:
+    def chat_message_crud(self) -> ChatMessageCRUD:
         if not self._is_session_active: self.start_session()
-        return ChatHistoryCRUD(self._session)
+        return ChatMessageCRUD(self._session)
 
     def invite_crud(self) -> InviteCRUD:
         if not self._is_session_active: self.start_session()

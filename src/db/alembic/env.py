@@ -7,7 +7,7 @@ from sqlalchemy import engine_from_config, pool
 # noinspection PyUnresolvedReferences
 from db.model.chat_config import ChatConfigDB  # used by alembic
 # noinspection PyUnresolvedReferences
-from db.model.chat_history import ChatHistoryDB  # used by alembic
+from db.model.chat_message import ChatMessageDB  # used by alembic
 # noinspection PyUnresolvedReferences
 from db.model.invite import InviteDB  # used by alembic
 # noinspection PyUnresolvedReferences

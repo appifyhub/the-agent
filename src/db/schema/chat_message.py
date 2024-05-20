@@ -3,7 +3,7 @@ from datetime import datetime
 from pydantic import ConfigDict, BaseModel
 
 
-class ChatHistoryBase(BaseModel):
+class ChatMessageBase(BaseModel):
     chat_id: str
     message_id: str
     author_name: str | None = None
@@ -12,13 +12,13 @@ class ChatHistoryBase(BaseModel):
     text: str
 
 
-class ChatHistoryCreate(ChatHistoryBase):
+class ChatMessageCreate(ChatMessageBase):
     pass
 
 
-class ChatHistoryUpdate(BaseModel):
+class ChatMessageUpdate(BaseModel):
     text: str
 
 
-class ChatHistory(ChatHistoryBase):
+class ChatMessage(ChatMessageBase):
     model_config = ConfigDict(from_attributes = True)
