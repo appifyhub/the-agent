@@ -12,13 +12,8 @@ RUN apk add --no-cache \
 # Set up working directory
 WORKDIR /
 
-# Copy files over
-COPY Pipfile* ./
-COPY src ./src
-COPY tools ./tools
-COPY .env .env
-
-RUN pipenv install
+# Copy the contents over (respecting .dockerignore)
+COPY . .
 
 # Set the entrypoint command
-CMD ["sh", "tools/run_main.sh"]
+CMD ["sh", "tools/run_prod.sh"]

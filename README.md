@@ -31,7 +31,7 @@ You can use the pre-built scripts located in the `tools` directory – those are
 Production server:
 
 ```console
-$ ./tools/run_main.sh
+$ ./tools/run_prod.sh
 ```
 
 Development server:

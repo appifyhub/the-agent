@@ -18,13 +18,11 @@ pipenv install --dev
 echoinfo "Setting up local API_KEY: '${API_KEY}' and VERBOSE mode..."
 echoinfo "Running dev server..." -n
 
-# We run with 1 worker in dev mode
-pipenv run gunicorn \
-    -w 1 \
-    -k uvicorn.workers.UvicornWorker \
-    --bind 0.0.0.0:80 \
-    --preload \
-    src.fast_api:app \
+# We run with 1 worker in dev mode (with hot reload)
+pipenv run uvicorn \
+    --workers 1 \
+    --host 0.0.0.0 \
+    --port 80 \
+    --reload \
     --log-level debug \
-    --access-logfile - \
-    --error-logfile -
+    src.fast_api:app

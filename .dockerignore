@@ -1,0 +1,11 @@
+# Exclude everything by default
+**
+
+# Include only the necessary files and directories
+!Pipfile
+!Pipfile.lock
+!src/
+!tools/
+!alembic.ini
+!.env
+!.version

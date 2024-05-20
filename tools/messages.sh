@@ -21,3 +21,9 @@ echowarn() {
 echoinfo() {
     _echo_smart "\033[94m" "$1" "$2"
 }
+
+echodebug() {
+    if [ "$VERBOSE" = "true" ]; then
+        _echo_smart "\033[90m" "$1" "$2"
+    fi
+}

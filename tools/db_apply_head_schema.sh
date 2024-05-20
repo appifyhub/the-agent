@@ -8,15 +8,14 @@ if [ ! -f "Pipfile" ]; then
     exit 1
 fi
 
-echoinfo "Installing dependencies in pipenv environment..."
-pipenv install
-
-echoinfo "Have you created all previous schemas and applied them to the database? (Y/n) "
-read -r RESPONSE
-if [ ! "$RESPONSE" = "Y" ]; then
-    echowarn "Let's make sure that's done first."
-    echoerr "Exiting..." -n >&2
-    exit 1
+if [ "$1" != "-y" ]; then
+    echoinfo "Have you created all previous schemas and applied them to the database? (Y/n) "
+    read -r RESPONSE
+    if [ ! "$RESPONSE" = "Y" ]; then
+        echowarn "Let's make sure that's done first."
+        echoerr "Exiting..." -n >&2
+        exit 1
+    fi
 fi
 
 echoinfo "Running the database upgrade..." -n

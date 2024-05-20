@@ -8,9 +8,6 @@ if [ ! -f "Pipfile" ]; then
     exit 1
 fi
 
-echoinfo "Installing dependencies in pipenv environment..."
-pipenv install
-
 echoinfo "Have you imported the latest models in 'src/db/alembic/env.py' imports? (Y/n) "
 read -r RESPONSE
 if [ ! "$RESPONSE" = "Y" ]; then
