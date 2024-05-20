@@ -1,11 +1,26 @@
 from fastapi import Depends, FastAPI, Query
 from pydantic import HttpUrl
+from starlette.responses import RedirectResponse
 
 from api.auth import verify_api_key
+from db.crud.user import UserCRUD
+from db.schema.user import User
+from db.sql import get_session
 from features.web_fetcher import WebFetcher
 from util.config import config
 
-app = FastAPI()
+app = FastAPI(
+    docs_url = None,
+    redoc_url = None,
+    title = "The Agent's API",
+    description = "This is the API service for The Agent.",
+    debug = config.verbose,
+)
+
+
+@app.get("/")
+def root() -> RedirectResponse:
+    return RedirectResponse(url = config.website_url)
 
 
 @app.get("/health")
@@ -28,3 +43,15 @@ def json_fetcher(
 ) -> dict:
     fetcher = WebFetcher(url, config, auto_fetch_json = True)
     return {"url": url, "json": fetcher.json}
+
+
+@app.get("/users")
+def get_users(
+    _ = Depends(verify_api_key),
+    db = Depends(get_session),
+    skip: int = Query(0),
+    limit: int = Query(100),
+) -> list[str]:
+    users_db = UserCRUD(db).get_all(skip = skip, limit = limit)
+    users = [User.from_orm(user) for user in users_db]
+    return [f"@{user.username}" for user in users]
