@@ -9,6 +9,7 @@ if [ ! -f "Pipfile" ]; then
 fi
 
 echoinfo "Installing dependencies in pipenv environment..."
+pipenv install --dev
 pipenv install
 
 # Function to revert the .env files

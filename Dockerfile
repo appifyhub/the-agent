@@ -15,5 +15,8 @@ WORKDIR /
 # Copy the contents over (respecting .dockerignore)
 COPY . .
 
+# Install the dependencies
+RUN pipenv install --deploy --ignore-pipfile
+
 # Set the entrypoint command
 CMD ["sh", "tools/run_prod.sh"]
