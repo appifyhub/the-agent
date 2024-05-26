@@ -1,0 +1,122 @@
+name: Build Release
+
+on:
+  push:
+    branches:
+      - release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_DB: agent
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: root
+        options: >-
+          --health-cmd "pg_isready -U root -d agent"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 100
+
+      - name: Print build name
+        run: echo "$GITHUB_ACTOR is building '$GITHUB_REPOSITORY' (commit $GITHUB_SHA)"
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-dependency-cache
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.3"
+
+      - name: Build and test service
+        env:
+          BUILD_QUALITY: "GA"
+        run: |
+          pip install --no-cache-dir pipenv
+          ./tools/run_tests.sh
+
+      - name: Build Docker image
+        run: docker build . --file Dockerfile --tag the-agent
+
+      - name: Auth for GitHub's Docker repository
+        env:
+          USER: ${{ secrets.PACKAGES_USER }}
+          TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+        run: docker login docker.pkg.github.com -u $USER -p $TOKEN
+
+      - name: Tag Docker image
+        run: |
+          VERSION=$(cat .version | tr -d '[:space:]')
+          echo "Tagging images with version '$VERSION'..."
+          docker tag the-agent docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:$VERSION
+          docker tag the-agent docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:latest
+          docker tag the-agent appifyhub/the-agent:$VERSION
+          docker tag the-agent appifyhub/the-agent:latest
+
+      - name: Publish Docker images to GitHub
+        run: |
+          VERSION=$(cat .version | tr -d '[:space:]')
+          echo "Publishing images with version '$VERSION'..."
+          docker push docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:$VERSION
+          docker push docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:latest
+
+      - name: Publish Docker images to DockerHub
+        id: docker_publish
+        env:
+          USER: ${{ secrets.DOCKER_HUB_USER }}
+          TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
+        run: |
+          VERSION=$(cat .version | tr -d '[:space:]')
+          docker login docker.io -u $USER -p $TOKEN
+          echo "Publishing images with version '$VERSION'..."
+          docker push appifyhub/the-agent:$VERSION
+          docker push appifyhub/the-agent:latest
+          echo ::set-output name=the_agent_version::"$VERSION"
+
+      - name: Publish to GitHub Releases
+        env:
+          ARTIFACT: "the-agent"
+          BUILD_QUALITY: "GA"
+          VERSION: ${{ steps.docker_publish.outputs.the_agent_version }}
+          GITHUB_SHA: ${{ env.GITHUB_SHA }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ env.GITHUB_REPOSITORY }}
+        run: |
+          pip install -r tools/github-release/requirements.txt
+          python tools/github-release/main.py
+
+      - name: Deploy to production
+        env:
+          DEPLOY_API: ${{ secrets.DEPLOY_API }}
+          DEPLOY_APP: ${{ secrets.DEPLOY_APP }}
+          DEPLOY_ARGS: ${{ secrets.DEPLOY_ARGS }}
+          DEPLOY_SPACE_PROD: ${{ secrets.DEPLOY_SPACE_PROD }}
+          DEPLOY_AUTH_PROD: ${{ secrets.DEPLOY_AUTH_PROD }}
+          DEPLOY_MODE: ${{ secrets.DEPLOY_MODE }}
+          DEPLOY_SPEC: ${{ secrets.DEPLOY_SPEC }}
+          DEPLOY_TAGS: ${{ secrets.DEPLOY_TAGS }}
+        run: |
+          CMD="${DEPLOY_SPEC}$(date +'%s')${DEPLOY_TAGS}"
+          URL_PROD="${DEPLOY_API}/${DEPLOY_SPACE_PROD}/deployments/${DEPLOY_APP}?${DEPLOY_ARGS}"
+          curl -s --location --request PATCH "${URL_PROD}" --insecure \
+          --header "${DEPLOY_MODE}" \
+          --header "${DEPLOY_AUTH_PROD}" \
+          --data-raw "${CMD}" \
+          > /dev/null

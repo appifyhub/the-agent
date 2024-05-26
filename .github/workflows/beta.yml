@@ -1,0 +1,123 @@
+name: Build Beta
+
+on:
+  pull_request:
+    branches:
+      - release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_DB: agent
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: root
+        options: >-
+          --health-cmd "pg_isready -U root -d agent"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 100
+
+      - name: Print build name
+        run: echo "$GITHUB_ACTOR is building '$GITHUB_REPOSITORY' (commit $GITHUB_SHA)"
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-dependency-cache
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.3"
+
+      - name: Build and test service
+        env:
+          BUILD_QUALITY: "BETA"
+        run: |
+          pip install --no-cache-dir pipenv
+          ./tools/run_tests.sh
+
+      - name: Build Docker image
+        run: docker build . --file Dockerfile --tag the-agent
+
+      - name: Auth for GitHub's Docker repository
+        env:
+          USER: ${{ secrets.PACKAGES_USER }}
+          TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+        run: docker login docker.pkg.github.com -u $USER -p $TOKEN
+
+      - name: Tag Docker image
+        run: |
+          VERSION=$(cat .version | tr -d '[:space:]')
+          echo "Tagging images with version '$VERSION'..."
+          docker tag the-agent docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:"$VERSION".beta
+          docker tag the-agent docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:latest_beta
+          docker tag the-agent appifyhub/the-agent:"$VERSION".beta
+          docker tag the-agent appifyhub/the-agent:latest_beta
+
+      - name: Publish Docker images to GitHub
+        run: |
+          VERSION=$(cat .version | tr -d '[:space:]')
+          echo "Publishing images with version '$VERSION'..."
+          docker push docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:"$VERSION".beta
+          docker push docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:latest_beta
+
+      - name: Publish Docker images to DockerHub
+        id: docker_publish
+        env:
+          USER: ${{ secrets.DOCKER_HUB_USER }}
+          TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
+        run: |
+          VERSION=$(cat .version | tr -d '[:space:]')
+          docker login docker.io -u $USER -p $TOKEN
+          echo "Publishing images with version '$VERSION'..."
+          docker push appifyhub/the-agent:"$VERSION".beta
+          docker push appifyhub/the-agent:latest_beta
+          echo ::set-output name=the_agent_version::"$VERSION"
+
+      - name: Publish to GitHub Releases
+        env:
+          ARTIFACT: "the-agent"
+          BUILD_QUALITY: "BETA"
+          VERSION: ${{ steps.docker_publish.outputs.the_agent_version }}
+          GITHUB_SHA: ${{ env.GITHUB_SHA }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ env.GITHUB_REPOSITORY }}
+        run: |
+          pip install -r tools/github-release/requirements.txt
+          python tools/github-release/main.py
+
+      - name: Comment build information
+        env:
+          GITHUB_SHA: ${{ env.GITHUB_SHA }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_RUN_ID: ${{ env.GITHUB_RUN_ID }}
+          GITHUB_REPOSITORY: ${{ env.GITHUB_REPOSITORY }}
+          GITHUB_SERVER_URL: ${{ env.GITHUB_SERVER_URL }}
+          PR_NUMBER: ${{ github.event.number }}
+          VERSION: ${{ steps.docker_publish.outputs.the_agent_version }}
+          DOCKER_IMG: "docker pull appifyhub/the-agent:latest_beta"
+        run: |
+          NL=$'\n'
+          CODE='```'
+          DOCKER_VERSIONED="$DOCKER_IMG:$VERSION.beta"
+          DOCKER_LATEST="# Valid until a new build${NL}${DOCKER_IMG}:latest_beta"
+          CODE_BLOCK="${CODE}shell${NL}${DOCKER_LATEST}${NL}${DOCKER_VERSIONED}${NL}${CODE}"
+          JOB="[${GITHUB_RUN_ID}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})"
+          NOTIFICATION="Build ${JOB} complete for ${GITHUB_SHA}.${NL}${NL}${CODE_BLOCK}${NL}"
+          gh pr comment "$PR_NUMBER" -b "$NOTIFICATION"
