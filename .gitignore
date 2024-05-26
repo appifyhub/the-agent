@@ -391,3 +391,7 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij+all,windows,macos,linux,python,pycharm+all
+
+# Custom
+
+.vscode/
