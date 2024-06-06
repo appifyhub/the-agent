@@ -1,10 +1,12 @@
 import os
 import unittest
+from typing import AnyStr
 
 from util.config import Config
 
 
 class ConfigTest(unittest.TestCase):
+    original_env: dict[AnyStr, AnyStr]
 
     def setUp(self):
         self.original_env = os.environ.copy()
@@ -26,6 +28,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.max_invites_per_user, 2)
         self.assertTrue(config.api_key)  # Check if API key is generated
         self.assertEqual(config.db_url, "postgresql://root:root@localhost:5432/agent")
+        self.assertEqual(config.telegram_bot_token, "invalid")
 
     def test_custom_config(self):
         os.environ["VERBOSE"] = "true"
@@ -37,6 +40,7 @@ class ConfigTest(unittest.TestCase):
         os.environ["POSTGRES_PASS"] = "admin123"
         os.environ["POSTGRES_HOST"] = "db.example.com"
         os.environ["POSTGRES_DB"] = "test_db"
+        os.environ["TELEGRAM_BOT_TOKEN"] = "id:sha"
 
         config = Config()
 
@@ -46,3 +50,4 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.web_timeout_s, 20)
         self.assertEqual(config.max_invites_per_user, 5)
         self.assertEqual(config.db_url, "postgresql://admin:admin123@db.example.com:5432/test_db")
+        self.assertEqual(config.telegram_bot_token, "id:sha")
