@@ -1,4 +1,4 @@
-from chat.telegram.message import Message
+from chat.telegram.model.message import Message
 
 
 class Update:

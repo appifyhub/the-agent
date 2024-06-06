@@ -1,4 +1,4 @@
-from chat.telegram.photo_size import PhotoSize
+from chat.telegram.model.photo_size import PhotoSize
 
 
 class Document:
