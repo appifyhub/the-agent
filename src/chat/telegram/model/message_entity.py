@@ -1,4 +1,4 @@
-from chat.telegram.user import User
+from chat.telegram.model.user import User
 
 
 class MessageEntity:

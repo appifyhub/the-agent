@@ -1,4 +1,4 @@
-from chat.telegram.message_entity import MessageEntity
+from chat.telegram.model.message_entity import MessageEntity
 
 
 class TextQuote:
