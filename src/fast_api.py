@@ -3,6 +3,7 @@ from pydantic import HttpUrl
 from starlette.responses import RedirectResponse
 
 from api.auth import verify_api_key
+from chat.telegram.model.update import Update
 from db.crud.user import UserCRUD
 from db.schema.user import User
 from db.sql import get_session
@@ -53,5 +54,11 @@ def get_users(
     limit: int = Query(100),
 ) -> list[str]:
     users_db = UserCRUD(db).get_all(skip = skip, limit = limit)
+    # noinspection Pydantic
     users = [User.from_orm(user) for user in users_db]
-    return [f"@{user.username}" for user in users]
+    return [f"@{user.telegram_username}" for user in users]
+
+
+@app.post("/telegram/chat-update")
+def telegram_chat_update(update: Update) -> Update:
+    return update
