@@ -115,7 +115,7 @@ jobs:
           GITHUB_SERVER_URL: ${{ env.GITHUB_SERVER_URL }}
           PR_NUMBER: ${{ github.event.number }}
           VERSION: ${{ steps.docker_publish.outputs.the_agent_version }}
-          DOCKER_IMG: "docker pull appifyhub/the-agent:latest_pr"
+          DOCKER_IMG: "docker pull appifyhub/the-agent"
         run: |
           NL=$'\n'
           CODE='```'
