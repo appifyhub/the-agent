@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import List
 
 from pydantic import ConfigDict, BaseModel
 
@@ -20,5 +21,13 @@ class ChatMessageUpdate(BaseModel):
     text: str
 
 
+# noinspection PyUnresolvedReferences
 class ChatMessage(ChatMessageBase):
+    attachments: List["ChatMessageAttachment"] = []
     model_config = ConfigDict(from_attributes = True)
+
+
+# Importing here to avoid circular import issues
+from db.schema.chat_message_attachment import ChatMessageAttachment
+
+ChatMessage.model_rebuild()
