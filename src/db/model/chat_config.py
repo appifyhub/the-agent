@@ -4,7 +4,7 @@ from db.sql import BaseModel
 
 
 class ChatConfigDB(BaseModel):
-    __tablename__ = 'chat_configs'
+    __tablename__ = "chat_configs"
 
     chat_id = Column(String, primary_key = True)
     persona_code = Column(String, nullable = False)

@@ -11,7 +11,7 @@ from db.sql import BaseModel
 
 
 class UserDB(BaseModel):
-    __tablename__ = 'simulants'
+    __tablename__ = "simulants"
 
     class Group(enum.Enum):
         standard = "standard"
