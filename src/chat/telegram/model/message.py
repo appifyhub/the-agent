@@ -2,14 +2,14 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from chat.telegram.model.audio import Audio
+from chat.telegram.model.attachment.audio import Audio
+from chat.telegram.model.attachment.document import Document
+from chat.telegram.model.attachment.photo_size import PhotoSize
+from chat.telegram.model.attachment.voice import Voice
 from chat.telegram.model.chat import Chat
-from chat.telegram.model.document import Document
 from chat.telegram.model.message_entity import MessageEntity
-from chat.telegram.model.photo_size import PhotoSize
 from chat.telegram.model.text_quote import TextQuote
 from chat.telegram.model.user import User
-from chat.telegram.model.voice import Voice
 
 
 class Message(BaseModel):
