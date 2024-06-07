@@ -9,9 +9,12 @@ from db.model.chat_config import ChatConfigDB  # used by alembic
 # noinspection PyUnresolvedReferences
 from db.model.chat_message import ChatMessageDB  # used by alembic
 # noinspection PyUnresolvedReferences
+from db.model.chat_message_attachment import ChatMessageAttachmentDB  # used by alembic
+# noinspection PyUnresolvedReferences
 from db.model.invite import InviteDB  # used by alembic
 # noinspection PyUnresolvedReferences
 from db.model.user import UserDB  # used by alembic
+# Base model is used by alembic
 from db.sql import BaseModel
 from util.config import config as app_config
 
