@@ -35,6 +35,11 @@ class ChatConfigCRUD:
             self._db.refresh(chat_config)
         return chat_config
 
+    def save(self, chat_id: str, data: ChatConfigCreate | ChatConfigUpdate) -> ChatConfigDB:
+        updated_config = self.update(chat_id, data)
+        if updated_config: return updated_config  # available only if update was successful
+        return self.create(data)
+
     def delete(self, chat_id: str) -> ChatConfigDB | None:
         chat_config = self.get(chat_id)
         if chat_config:

@@ -1,9 +1,10 @@
 import unittest
 from datetime import datetime
 
+from db.model.user import UserDB
 from db.schema.chat_config import ChatConfigCreate
 from db.schema.chat_message import ChatMessageCreate, ChatMessageUpdate
-from db.schema.user import UserCreate
+from db.schema.user import UserSave
 from db.sql_util import SQLUtil
 
 
@@ -21,13 +22,13 @@ class TestChatMessageCRUD(unittest.TestCase):
             ChatConfigCreate(chat_id = "chat1", persona_code = "persona1", persona_name = "Persona One")
         )
         user = self.sql.user_crud().create(
-            UserCreate(
+            UserSave(
                 full_name = "Test User",
                 telegram_username = "test-user",
                 telegram_chat_id = "123456",
                 telegram_user_id = 123456,
                 open_ai_key = "test-key",
-                group = "standard",
+                group = UserDB.Group.standard,
             )
         )
         chat_message_data = ChatMessageCreate(
@@ -51,13 +52,13 @@ class TestChatMessageCRUD(unittest.TestCase):
             ChatConfigCreate(chat_id = "chat1", persona_code = "persona1", persona_name = "Persona One")
         )
         user = self.sql.user_crud().create(
-            UserCreate(
+            UserSave(
                 full_name = "Test User",
                 telegram_username = "test-user",
                 telegram_chat_id = "123456",
                 telegram_user_id = 123456,
                 open_ai_key = "test-key",
-                group = "standard",
+                group = UserDB.Group.standard,
             )
         )
         chat_message_data = ChatMessageCreate(
@@ -86,13 +87,13 @@ class TestChatMessageCRUD(unittest.TestCase):
             ChatConfigCreate(chat_id = "chat2", persona_code = "persona2", persona_name = "Persona Two")
         )
         user = self.sql.user_crud().create(
-            UserCreate(
+            UserSave(
                 full_name = "Test User",
                 telegram_username = "test-user",
                 telegram_chat_id = "123456",
                 telegram_user_id = 123456,
                 open_ai_key = "test-key",
-                group = "standard",
+                group = UserDB.Group.standard,
             )
         )
         chat_messages = [
@@ -117,13 +118,13 @@ class TestChatMessageCRUD(unittest.TestCase):
             ChatConfigCreate(chat_id = "chat1", persona_code = "persona1", persona_name = "Persona One")
         )
         user = self.sql.user_crud().create(
-            UserCreate(
+            UserSave(
                 full_name = "Test User",
                 telegram_username = "test-user",
                 telegram_chat_id = "123456",
                 telegram_user_id = 123456,
                 open_ai_key = "test-key",
-                group = "standard",
+                group = UserDB.Group.standard,
             )
         )
         chat_message_data = ChatMessageCreate(
@@ -150,18 +151,59 @@ class TestChatMessageCRUD(unittest.TestCase):
         self.assertEqual(updated_chat_message.sent_at, created_chat_message.sent_at)
         self.assertEqual(updated_chat_message.text, update_data.text)
 
-    def test_delete_chat_message(self):
+    def test_save_chat_message(self):
         chat = self.sql.chat_config_crud().create(
             ChatConfigCreate(chat_id = "chat1", persona_code = "persona1", persona_name = "Persona One")
         )
         user = self.sql.user_crud().create(
-            UserCreate(
+            UserSave(
                 full_name = "Test User",
                 telegram_username = "test-user",
                 telegram_chat_id = "123456",
                 telegram_user_id = 123456,
                 open_ai_key = "test-key",
-                group = "standard",
+                group = UserDB.Group.standard,
+            )
+        )
+        chat_message_data = ChatMessageCreate(
+            chat_id = chat.chat_id,
+            message_id = "msg1",
+            author_id = user.id,
+            sent_at = datetime.now(),
+            text = "Hello, world!",
+        )
+
+        # First, save should create the record
+        saved_chat_message = self.sql.chat_message_crud().save(chat.chat_id, "msg1", chat_message_data)
+        self.assertIsNotNone(saved_chat_message)
+        self.assertEqual(saved_chat_message.chat_id, chat_message_data.chat_id)
+        self.assertEqual(saved_chat_message.message_id, chat_message_data.message_id)
+        self.assertEqual(saved_chat_message.author_id, chat_message_data.author_id)
+        self.assertEqual(saved_chat_message.text, chat_message_data.text)
+
+        # Now, save should update the existing record
+        update_data = ChatMessageUpdate(
+            text = "Updated text!"
+        )
+        updated_chat_message = self.sql.chat_message_crud().save(chat.chat_id, "msg1", update_data)
+        self.assertIsNotNone(updated_chat_message)
+        self.assertEqual(updated_chat_message.chat_id, chat_message_data.chat_id)
+        self.assertEqual(updated_chat_message.message_id, chat_message_data.message_id)
+        self.assertEqual(updated_chat_message.author_id, chat_message_data.author_id)
+        self.assertEqual(updated_chat_message.text, update_data.text)
+
+    def test_delete_chat_message(self):
+        chat = self.sql.chat_config_crud().create(
+            ChatConfigCreate(chat_id = "chat1", persona_code = "persona1", persona_name = "Persona One")
+        )
+        user = self.sql.user_crud().create(
+            UserSave(
+                full_name = "Test User",
+                telegram_username = "test-user",
+                telegram_chat_id = "123456",
+                telegram_user_id = 123456,
+                open_ai_key = "test-key",
+                group = UserDB.Group.standard,
             )
         )
         chat_message_data = ChatMessageCreate(

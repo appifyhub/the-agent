@@ -131,6 +131,53 @@ class TestChatMessageAttachmentCRUD(unittest.TestCase):
         self.assertEqual(updated_attachment.extension, update_data.extension)
         self.assertEqual(updated_attachment.mime_type, update_data.mime_type)
 
+    def test_save_attachment(self):
+        chat_message = self.sql.chat_message_crud().create(
+            ChatMessageCreate(
+                chat_id = "chat1",
+                message_id = "msg1",
+                text = "Hello, world!",
+            )
+        )
+
+        attachment_data = ChatMessageAttachmentCreate(
+            id = "attach1",
+            chat_id = chat_message.chat_id,
+            message_id = chat_message.message_id,
+            size = 1024,
+            last_url = "https://example.com/attachment",
+            last_url_until = 1234567890,
+            extension = "jpg",
+            mime_type = "image/jpeg",
+        )
+
+        # First, save should create the record
+        saved_attachment = self.sql.chat_message_attachment_crud().save("attach1", attachment_data)
+        self.assertIsNotNone(saved_attachment)
+        self.assertEqual(saved_attachment.id, attachment_data.id)
+        self.assertEqual(saved_attachment.chat_id, attachment_data.chat_id)
+        self.assertEqual(saved_attachment.message_id, attachment_data.message_id)
+        self.assertEqual(saved_attachment.size, attachment_data.size)
+        self.assertEqual(saved_attachment.last_url, attachment_data.last_url)
+        self.assertEqual(saved_attachment.last_url_until, attachment_data.last_url_until)
+        self.assertEqual(saved_attachment.extension, attachment_data.extension)
+        self.assertEqual(saved_attachment.mime_type, attachment_data.mime_type)
+
+        # Now, save should update the existing record
+        update_data = ChatMessageAttachmentUpdate(
+            last_url = "https://example.com/newfile",
+        )
+        updated_attachment = self.sql.chat_message_attachment_crud().save("attach1", update_data)
+        self.assertIsNotNone(updated_attachment)
+        self.assertEqual(updated_attachment.id, attachment_data.id)
+        self.assertEqual(updated_attachment.chat_id, attachment_data.chat_id)
+        self.assertEqual(updated_attachment.message_id, attachment_data.message_id)
+        self.assertEqual(updated_attachment.size, update_data.size)
+        self.assertEqual(updated_attachment.last_url, update_data.last_url)
+        self.assertEqual(updated_attachment.last_url_until, update_data.last_url_until)
+        self.assertEqual(updated_attachment.extension, update_data.extension)
+        self.assertEqual(updated_attachment.mime_type, update_data.mime_type)
+
     def test_delete_attachment(self):
         chat_message = self.sql.chat_message_crud().create(
             ChatMessageCreate(

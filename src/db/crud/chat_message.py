@@ -36,6 +36,11 @@ class ChatMessageCRUD:
             self._db.refresh(chat_message)
         return chat_message
 
+    def save(self, chat_id: str, message_id: str, data: ChatMessageCreate | ChatMessageUpdate) -> ChatMessageDB:
+        updated_message = self.update(chat_id, message_id, data)
+        if updated_message: return updated_message  # available only if update was successful
+        return self.create(data)
+
     def delete(self, chat_id: str, message_id: str) -> ChatMessageDB | None:
         chat_message = self.get(chat_id, message_id)
         if chat_message:

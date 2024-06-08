@@ -2,7 +2,7 @@ import unittest
 from datetime import datetime
 
 from db.schema.invite import InviteCreate, InviteUpdate
-from db.schema.user import UserCreate
+from db.schema.user import UserSave
 from db.sql_util import SQLUtil
 
 
@@ -16,8 +16,8 @@ class TestInviteCRUD(unittest.TestCase):
         self.sql.end_session()
 
     def test_create_invite(self):
-        sender = self.sql.user_crud().create(UserCreate())
-        receiver = self.sql.user_crud().create(UserCreate())
+        sender = self.sql.user_crud().create(UserSave())
+        receiver = self.sql.user_crud().create(UserSave())
         invite_data = InviteCreate(
             sender_id = sender.id,
             receiver_id = receiver.id,
@@ -31,8 +31,8 @@ class TestInviteCRUD(unittest.TestCase):
         self.assertIsNone(invite.accepted_at)
 
     def test_get_invite(self):
-        sender = self.sql.user_crud().create(UserCreate())
-        receiver = self.sql.user_crud().create(UserCreate())
+        sender = self.sql.user_crud().create(UserSave())
+        receiver = self.sql.user_crud().create(UserSave())
         invite_data = InviteCreate(
             sender_id = sender.id,
             receiver_id = receiver.id,
@@ -45,10 +45,10 @@ class TestInviteCRUD(unittest.TestCase):
         self.assertEqual(fetched_invite.receiver_id, created_invite.receiver_id)
 
     def test_get_all_invites(self):
-        sender1 = self.sql.user_crud().create(UserCreate())
-        receiver1 = self.sql.user_crud().create(UserCreate())
-        sender2 = self.sql.user_crud().create(UserCreate())
-        receiver2 = self.sql.user_crud().create(UserCreate())
+        sender1 = self.sql.user_crud().create(UserSave())
+        receiver1 = self.sql.user_crud().create(UserSave())
+        sender2 = self.sql.user_crud().create(UserSave())
+        receiver2 = self.sql.user_crud().create(UserSave())
         invites = [
             self.sql.invite_crud().create(InviteCreate(sender_id = sender1.id, receiver_id = receiver1.id)),
             self.sql.invite_crud().create(InviteCreate(sender_id = sender2.id, receiver_id = receiver2.id)),
@@ -62,8 +62,8 @@ class TestInviteCRUD(unittest.TestCase):
             self.assertEqual(fetched_invites[i].receiver_id, invites[i].receiver_id)
 
     def test_update_invite(self):
-        sender = self.sql.user_crud().create(UserCreate())
-        receiver = self.sql.user_crud().create(UserCreate())
+        sender = self.sql.user_crud().create(UserSave())
+        receiver = self.sql.user_crud().create(UserSave())
         invite_data = InviteCreate(
             sender_id = sender.id,
             receiver_id = receiver.id,
@@ -80,9 +80,36 @@ class TestInviteCRUD(unittest.TestCase):
         self.assertIsNotNone(updated_invite.invited_at, created_invite.invited_at)
         self.assertEqual(updated_invite.accepted_at, update_data.accepted_at)
 
+    def test_save_invite(self):
+        sender = self.sql.user_crud().create(UserSave())
+        receiver = self.sql.user_crud().create(UserSave())
+        invite_data = InviteCreate(
+            sender_id = sender.id,
+            receiver_id = receiver.id,
+        )
+
+        # First, save should create the record
+        saved_invite = self.sql.invite_crud().save(sender.id, receiver.id, invite_data)
+        self.assertIsNotNone(saved_invite)
+        self.assertEqual(saved_invite.sender_id, invite_data.sender_id)
+        self.assertEqual(saved_invite.receiver_id, invite_data.receiver_id)
+        self.assertIsNotNone(saved_invite.invited_at)
+        self.assertIsNone(saved_invite.accepted_at)
+
+        # Now, save should update the existing record
+        update_data = InviteUpdate(
+            accepted_at = datetime.now(),
+        )
+        updated_invite = self.sql.invite_crud().save(sender.id, receiver.id, update_data)
+        self.assertIsNotNone(updated_invite)
+        self.assertEqual(updated_invite.sender_id, invite_data.sender_id)
+        self.assertEqual(updated_invite.receiver_id, invite_data.receiver_id)
+        self.assertIsNotNone(updated_invite.invited_at)
+        self.assertEqual(updated_invite.accepted_at, update_data.accepted_at)
+
     def test_delete_invite(self):
-        sender = self.sql.user_crud().create(UserCreate())
-        receiver = self.sql.user_crud().create(UserCreate())
+        sender = self.sql.user_crud().create(UserSave())
+        receiver = self.sql.user_crud().create(UserSave())
         invite_data = InviteCreate(
             sender_id = sender.id,
             receiver_id = receiver.id,

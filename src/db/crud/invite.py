@@ -38,6 +38,11 @@ class InviteCRUD:
             self._db.refresh(invite)
         return invite
 
+    def save(self, sender_id: UUID, receiver_id: UUID, data: InviteCreate | InviteUpdate) -> InviteDB:
+        updated_invite = self.update(sender_id, receiver_id, data)
+        if updated_invite: return updated_invite  # available only if update was successful
+        return self.create(data)
+
     def delete(self, sender_id: UUID, receiver_id: UUID) -> InviteDB | None:
         invite = self.get(sender_id, receiver_id)
         if invite:
