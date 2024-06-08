@@ -18,6 +18,7 @@ class TestUserCRUD(unittest.TestCase):
             full_name = "Test User",
             telegram_username = "test-user",
             telegram_chat_id = "123456",
+            telegram_user_id = 123456,
             open_ai_key = "test-key",
             group = "standard",
         )
@@ -30,6 +31,7 @@ class TestUserCRUD(unittest.TestCase):
         self.assertEqual(user.telegram_chat_id, user_data.telegram_chat_id)
         self.assertEqual(user.open_ai_key, user_data.open_ai_key)
         self.assertEqual(user.group.value, user_data.group)
+        self.assertEqual(user.telegram_user_id, user_data.telegram_user_id)
         self.assertIsNotNone(user.created_at)
 
     def test_get_user(self):
@@ -37,6 +39,7 @@ class TestUserCRUD(unittest.TestCase):
             full_name = "Test User",
             telegram_username = "test-user",
             telegram_chat_id = "123456",
+            telegram_user_id = 123456,
             open_ai_key = "test-key",
             group = "standard",
         )
@@ -47,6 +50,7 @@ class TestUserCRUD(unittest.TestCase):
         self.assertEqual(fetched_user.id, created_user.id)
         self.assertEqual(fetched_user.full_name, user_data.full_name)
         self.assertEqual(fetched_user.telegram_username, user_data.telegram_username)
+        self.assertEqual(fetched_user.telegram_user_id, user_data.telegram_user_id)
 
     def test_get_all_users(self):
         users = [
@@ -65,6 +69,7 @@ class TestUserCRUD(unittest.TestCase):
             full_name = "Test User",
             telegram_username = "test-user",
             telegram_chat_id = "123456",
+            telegram_user_id = 123456,
             open_ai_key = "test-key",
             group = "standard",
         )
@@ -74,6 +79,7 @@ class TestUserCRUD(unittest.TestCase):
             full_name = "Updated User",
             telegram_username = "updated-user",
             telegram_chat_id = "654321",
+            telegram_user_id = 654321,
             open_ai_key = "updated-key",
             group = "beta",
         )
@@ -85,6 +91,7 @@ class TestUserCRUD(unittest.TestCase):
         self.assertEqual(updated_user.telegram_chat_id, update_data.telegram_chat_id)
         self.assertEqual(updated_user.open_ai_key, update_data.open_ai_key)
         self.assertEqual(updated_user.group.value, update_data.group)
+        self.assertEqual(updated_user.telegram_user_id, update_data.telegram_user_id)
         self.assertEqual(updated_user.created_at, created_user.created_at)
 
     def test_delete_user(self):
@@ -92,6 +99,7 @@ class TestUserCRUD(unittest.TestCase):
             full_name = "Test User",
             telegram_username = "test-user",
             telegram_chat_id = "123456",
+            telegram_user_id = 123456,
             open_ai_key = "test-key",
             group = "standard",
         )

@@ -14,7 +14,7 @@ class UserCRUD:
 
     def get(self, user_id: UUID) -> UserDB | None:
         return self._db.query(UserDB).filter(
-            user_id == UserDB.id
+            user_id == UserDB.id,
         ).first()
 
     def get_all(self, skip: int = 0, limit: int = 100) -> list[UserDB]:

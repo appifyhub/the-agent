@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import List
+from uuid import UUID
 
 from pydantic import ConfigDict, BaseModel
 
@@ -7,8 +8,7 @@ from pydantic import ConfigDict, BaseModel
 class ChatMessageBase(BaseModel):
     chat_id: str
     message_id: str
-    author_name: str | None = None
-    author_username: str | None = None
+    author_id: UUID | None = None
     sent_at: datetime = datetime.now()
     text: str
 

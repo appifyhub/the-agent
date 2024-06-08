@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, DateTime, ForeignKey, Text, UniqueConstraint, PrimaryKeyConstraint
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -9,12 +10,12 @@ class ChatMessageDB(BaseModel):
     __tablename__ = "chat_messages"
 
     chat_id = Column(String, ForeignKey("chat_configs.chat_id"), nullable = False)
+    author_id = Column(UUID(as_uuid = True), ForeignKey("simulants.id"), nullable = True)
     message_id = Column(String, nullable = False)
-    author_name = Column(String, nullable = True)
-    author_username = Column(String, nullable = True)
     sent_at = Column(DateTime, default = func.now(), nullable = False)
     text = Column(Text, nullable = False)
 
+    user = relationship("UserDB", back_populates = "messages")
     attachments = relationship(
         "ChatMessageAttachmentDB",
         back_populates = "chat_message",
