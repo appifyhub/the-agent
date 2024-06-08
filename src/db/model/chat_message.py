@@ -1,6 +1,5 @@
 from sqlalchemy import Column, String, DateTime, ForeignKey, Text, UniqueConstraint, PrimaryKeyConstraint
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from db.sql import BaseModel
@@ -14,13 +13,6 @@ class ChatMessageDB(BaseModel):
     message_id = Column(String, nullable = False)
     sent_at = Column(DateTime, default = func.now(), nullable = False)
     text = Column(Text, nullable = False)
-
-    user = relationship("UserDB", back_populates = "messages")
-    attachments = relationship(
-        "ChatMessageAttachmentDB",
-        back_populates = "chat_message",
-        foreign_keys = "[ChatMessageAttachmentDB.chat_id, ChatMessageAttachmentDB.message_id]",
-    )
 
     __table_args__ = (
         PrimaryKeyConstraint("chat_id", "message_id", name = "pk_chat_message"),

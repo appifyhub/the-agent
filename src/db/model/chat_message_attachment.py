@@ -1,5 +1,4 @@
 from sqlalchemy import Column, String, Integer, ForeignKeyConstraint, PrimaryKeyConstraint
-from sqlalchemy.orm import relationship
 
 from db.sql import BaseModel
 
@@ -15,12 +14,6 @@ class ChatMessageAttachmentDB(BaseModel):
     last_url_until = Column(Integer, nullable = True)
     extension = Column(String, nullable = True)
     mime_type = Column(String, nullable = True)
-
-    chat_message = relationship(
-        "ChatMessageDB",
-        back_populates = "attachments",
-        foreign_keys = "[ChatMessageAttachmentDB.chat_id, ChatMessageAttachmentDB.message_id]",
-    )
 
     __table_args__ = (
         PrimaryKeyConstraint("id"),
