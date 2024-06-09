@@ -16,12 +16,8 @@ class ChatMessageAttachmentCreate(ChatMessageAttachmentBase):
     pass
 
 
-class ChatMessageAttachmentUpdate(BaseModel):
-    size: int | None = None
-    last_url: str | None = None
-    last_url_until: int | None = None
-    extension: str | None = None
-    mime_type: str | None = None
+class ChatMessageAttachmentUpdate(ChatMessageAttachmentBase):
+    pass
 
 
 class ChatMessageAttachment(ChatMessageAttachmentBase):

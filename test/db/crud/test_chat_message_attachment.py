@@ -114,13 +114,16 @@ class TestChatMessageAttachmentCRUD(unittest.TestCase):
         created_attachment = self.sql.chat_message_attachment_crud().create(attachment_data)
 
         update_data = ChatMessageAttachmentUpdate(
+            id = created_attachment.id,
+            chat_id = created_attachment.chat_id,
+            message_id = created_attachment.message_id,
             size = 2048,
             last_url = "https://example.com/newfile",
             last_url_until = 9876543210,
             extension = "png",
             mime_type = "image/png",
         )
-        updated_attachment = self.sql.chat_message_attachment_crud().update(created_attachment.id, update_data)
+        updated_attachment = self.sql.chat_message_attachment_crud().update(update_data)
 
         self.assertEqual(updated_attachment.id, created_attachment.id)
         self.assertEqual(updated_attachment.chat_id, created_attachment.chat_id)
@@ -152,7 +155,7 @@ class TestChatMessageAttachmentCRUD(unittest.TestCase):
         )
 
         # First, save should create the record
-        saved_attachment = self.sql.chat_message_attachment_crud().save("attach1", attachment_data)
+        saved_attachment = self.sql.chat_message_attachment_crud().save(attachment_data)
         self.assertIsNotNone(saved_attachment)
         self.assertEqual(saved_attachment.id, attachment_data.id)
         self.assertEqual(saved_attachment.chat_id, attachment_data.chat_id)
@@ -165,9 +168,12 @@ class TestChatMessageAttachmentCRUD(unittest.TestCase):
 
         # Now, save should update the existing record
         update_data = ChatMessageAttachmentUpdate(
+            id = attachment_data.id,
+            chat_id = attachment_data.chat_id,
+            message_id = attachment_data.message_id,
             last_url = "https://example.com/newfile",
         )
-        updated_attachment = self.sql.chat_message_attachment_crud().save("attach1", update_data)
+        updated_attachment = self.sql.chat_message_attachment_crud().save(update_data)
         self.assertIsNotNone(updated_attachment)
         self.assertEqual(updated_attachment.id, attachment_data.id)
         self.assertEqual(updated_attachment.chat_id, attachment_data.chat_id)

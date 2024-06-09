@@ -26,8 +26,8 @@ class ChatMessageAttachmentCRUD:
         self._db.refresh(attachment)
         return attachment
 
-    def update(self, attachment_id: str, update_data: ChatMessageAttachmentUpdate) -> ChatMessageAttachmentDB | None:
-        attachment = self.get(attachment_id)
+    def update(self, update_data: ChatMessageAttachmentUpdate) -> ChatMessageAttachmentDB | None:
+        attachment = self.get(update_data.id)
         if attachment:
             for key, value in update_data.model_dump().items():
                 setattr(attachment, key, value)
@@ -35,12 +35,8 @@ class ChatMessageAttachmentCRUD:
             self._db.refresh(attachment)
         return attachment
 
-    def save(
-        self,
-        attachment_id: str,
-        data: ChatMessageAttachmentCreate | ChatMessageAttachmentUpdate,
-    ) -> ChatMessageAttachmentDB:
-        updated_attachment = self.update(attachment_id, data)
+    def save(self, data: ChatMessageAttachmentCreate | ChatMessageAttachmentUpdate, ) -> ChatMessageAttachmentDB:
+        updated_attachment = self.update(data)
         if updated_attachment: return updated_attachment  # available only if update was successful
         return self.create(data)
 

@@ -14,22 +14,22 @@ from chat.telegram.model.user import User
 
 class Message(BaseModel):
     """https://core.telegram.org/bots/api#message"""
+    chat: Chat
     message_id: int
-    date: int
     message_thread_id: int | None = None
-    reply_to_message: Optional["Message"] = None
     from_user: User | None = Field(None, alias = "from")
-    chat: Chat | None = None
-    quote: TextQuote | None = None
-    edit_date: int | None = None
     text: str | None = None
     entities: list[MessageEntity] | None = None
+    caption: str | None = None
+    caption_entities: list[MessageEntity] | None = None
+    reply_to_message: Optional["Message"] = None
+    quote: TextQuote | None = None
     audio: Audio | None = None
     document: Document | None = None
     photo: list[PhotoSize] | None = None
     voice: Voice | None = None
-    caption: str | None = None
-    caption_entities: list[MessageEntity] | None = None
+    date: int
+    edit_date: int | None = None
 
 
 Message.model_rebuild()
