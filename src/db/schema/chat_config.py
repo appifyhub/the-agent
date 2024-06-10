@@ -3,10 +3,10 @@ from pydantic import BaseModel, ConfigDict
 
 class ChatConfigBase(BaseModel):
     chat_id: str
-    persona_code: str
-    persona_name: str
-    language_iso_code: str = "en"
-    language_name: str = "English"
+    persona_code: str | None = None
+    persona_name: str | None = None
+    language_iso_code: str | None = None
+    language_name: str | None = None
 
 
 class ChatConfigSave(ChatConfigBase):
