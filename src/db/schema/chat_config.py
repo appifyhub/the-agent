@@ -9,15 +9,8 @@ class ChatConfigBase(BaseModel):
     language_name: str = "English"
 
 
-class ChatConfigCreate(ChatConfigBase):
+class ChatConfigSave(ChatConfigBase):
     pass
-
-
-class ChatConfigUpdate(BaseModel):
-    persona_code: str
-    persona_name: str
-    language_iso_code: str
-    language_name: str
 
 
 class ChatConfig(ChatConfigBase):

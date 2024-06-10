@@ -1,7 +1,7 @@
 import unittest
 
-from db.schema.chat_message import ChatMessageCreate
-from db.schema.chat_message_attachment import ChatMessageAttachmentCreate, ChatMessageAttachmentUpdate
+from db.schema.chat_message import ChatMessageSave
+from db.schema.chat_message_attachment import ChatMessageAttachmentSave
 from db.sql_util import SQLUtil
 
 
@@ -16,13 +16,13 @@ class TestChatMessageAttachmentCRUD(unittest.TestCase):
 
     def test_create_attachment(self):
         chat_message = self.sql.chat_message_crud().create(
-            ChatMessageCreate(
+            ChatMessageSave(
                 chat_id = "chat1",
                 message_id = "msg1",
                 text = "Hello, world!",
             )
         )
-        attachment_data = ChatMessageAttachmentCreate(
+        attachment_data = ChatMessageAttachmentSave(
             id = "attach1",
             chat_id = chat_message.chat_id,
             message_id = chat_message.message_id,
@@ -46,13 +46,13 @@ class TestChatMessageAttachmentCRUD(unittest.TestCase):
 
     def test_get_attachment(self):
         chat_message = self.sql.chat_message_crud().create(
-            ChatMessageCreate(
+            ChatMessageSave(
                 chat_id = "chat1",
                 message_id = "msg1",
                 text = "Hello, world!",
             )
         )
-        attachment_data = ChatMessageAttachmentCreate(
+        attachment_data = ChatMessageAttachmentSave(
             id = "attach1",
             chat_id = chat_message.chat_id,
             message_id = chat_message.message_id,
@@ -67,7 +67,7 @@ class TestChatMessageAttachmentCRUD(unittest.TestCase):
 
     def test_get_all_attachments(self):
         chat_message = self.sql.chat_message_crud().create(
-            ChatMessageCreate(
+            ChatMessageSave(
                 chat_id = "chat1",
                 message_id = "msg1",
                 text = "Hello, world!",
@@ -75,14 +75,14 @@ class TestChatMessageAttachmentCRUD(unittest.TestCase):
         )
         attachments = [
             self.sql.chat_message_attachment_crud().create(
-                ChatMessageAttachmentCreate(
+                ChatMessageAttachmentSave(
                     id = "attach1",
                     chat_id = chat_message.chat_id,
                     message_id = chat_message.message_id,
                 )
             ),
             self.sql.chat_message_attachment_crud().create(
-                ChatMessageAttachmentCreate(
+                ChatMessageAttachmentSave(
                     id = "attach2",
                     chat_id = chat_message.chat_id,
                     message_id = chat_message.message_id,
@@ -100,20 +100,20 @@ class TestChatMessageAttachmentCRUD(unittest.TestCase):
 
     def test_update_attachment(self):
         chat_message = self.sql.chat_message_crud().create(
-            ChatMessageCreate(
+            ChatMessageSave(
                 chat_id = "chat1",
                 message_id = "msg1",
                 text = "Hello, World!",
             )
         )
-        attachment_data = ChatMessageAttachmentCreate(
+        attachment_data = ChatMessageAttachmentSave(
             id = "att1",
             chat_id = chat_message.chat_id,
             message_id = chat_message.message_id,
         )
         created_attachment = self.sql.chat_message_attachment_crud().create(attachment_data)
 
-        update_data = ChatMessageAttachmentUpdate(
+        update_data = ChatMessageAttachmentSave(
             id = created_attachment.id,
             chat_id = created_attachment.chat_id,
             message_id = created_attachment.message_id,
@@ -136,14 +136,14 @@ class TestChatMessageAttachmentCRUD(unittest.TestCase):
 
     def test_save_attachment(self):
         chat_message = self.sql.chat_message_crud().create(
-            ChatMessageCreate(
+            ChatMessageSave(
                 chat_id = "chat1",
                 message_id = "msg1",
                 text = "Hello, world!",
             )
         )
 
-        attachment_data = ChatMessageAttachmentCreate(
+        attachment_data = ChatMessageAttachmentSave(
             id = "attach1",
             chat_id = chat_message.chat_id,
             message_id = chat_message.message_id,
@@ -167,7 +167,7 @@ class TestChatMessageAttachmentCRUD(unittest.TestCase):
         self.assertEqual(saved_attachment.mime_type, attachment_data.mime_type)
 
         # Now, save should update the existing record
-        update_data = ChatMessageAttachmentUpdate(
+        update_data = ChatMessageAttachmentSave(
             id = attachment_data.id,
             chat_id = attachment_data.chat_id,
             message_id = attachment_data.message_id,
@@ -186,13 +186,13 @@ class TestChatMessageAttachmentCRUD(unittest.TestCase):
 
     def test_delete_attachment(self):
         chat_message = self.sql.chat_message_crud().create(
-            ChatMessageCreate(
+            ChatMessageSave(
                 chat_id = "chat1",
                 message_id = "msg1",
                 text = "Hello, World!",
             )
         )
-        attachment_data = ChatMessageAttachmentCreate(
+        attachment_data = ChatMessageAttachmentSave(
             id = "att1",
             chat_id = chat_message.chat_id,
             message_id = chat_message.message_id,

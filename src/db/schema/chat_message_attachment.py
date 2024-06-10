@@ -12,11 +12,7 @@ class ChatMessageAttachmentBase(BaseModel):
     mime_type: str | None = None
 
 
-class ChatMessageAttachmentCreate(ChatMessageAttachmentBase):
-    pass
-
-
-class ChatMessageAttachmentUpdate(ChatMessageAttachmentBase):
+class ChatMessageAttachmentSave(ChatMessageAttachmentBase):
     pass
 
 

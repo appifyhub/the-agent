@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime
 
-from db.schema.invite import InviteCreate, InviteUpdate
+from db.schema.invite import InviteSave
 from db.schema.user import UserSave
 from db.sql_util import SQLUtil
 
@@ -18,7 +18,7 @@ class TestInviteCRUD(unittest.TestCase):
     def test_create_invite(self):
         sender = self.sql.user_crud().create(UserSave())
         receiver = self.sql.user_crud().create(UserSave())
-        invite_data = InviteCreate(
+        invite_data = InviteSave(
             sender_id = sender.id,
             receiver_id = receiver.id,
         )
@@ -33,7 +33,7 @@ class TestInviteCRUD(unittest.TestCase):
     def test_get_invite(self):
         sender = self.sql.user_crud().create(UserSave())
         receiver = self.sql.user_crud().create(UserSave())
-        invite_data = InviteCreate(
+        invite_data = InviteSave(
             sender_id = sender.id,
             receiver_id = receiver.id,
         )
@@ -50,8 +50,8 @@ class TestInviteCRUD(unittest.TestCase):
         sender2 = self.sql.user_crud().create(UserSave())
         receiver2 = self.sql.user_crud().create(UserSave())
         invites = [
-            self.sql.invite_crud().create(InviteCreate(sender_id = sender1.id, receiver_id = receiver1.id)),
-            self.sql.invite_crud().create(InviteCreate(sender_id = sender2.id, receiver_id = receiver2.id)),
+            self.sql.invite_crud().create(InviteSave(sender_id = sender1.id, receiver_id = receiver1.id)),
+            self.sql.invite_crud().create(InviteSave(sender_id = sender2.id, receiver_id = receiver2.id)),
         ]
 
         fetched_invites = self.sql.invite_crud().get_all()
@@ -64,16 +64,18 @@ class TestInviteCRUD(unittest.TestCase):
     def test_update_invite(self):
         sender = self.sql.user_crud().create(UserSave())
         receiver = self.sql.user_crud().create(UserSave())
-        invite_data = InviteCreate(
+        invite_data = InviteSave(
             sender_id = sender.id,
             receiver_id = receiver.id,
         )
         created_invite = self.sql.invite_crud().create(invite_data)
 
-        update_data = InviteUpdate(
+        update_data = InviteSave(
+            sender_id = sender.id,
+            receiver_id = receiver.id,
             accepted_at = datetime.now(),
         )
-        updated_invite = self.sql.invite_crud().update(sender.id, receiver.id, update_data)
+        updated_invite = self.sql.invite_crud().update(update_data)
 
         self.assertEqual(updated_invite.sender_id, created_invite.sender_id)
         self.assertEqual(updated_invite.receiver_id, created_invite.receiver_id)
@@ -83,13 +85,13 @@ class TestInviteCRUD(unittest.TestCase):
     def test_save_invite(self):
         sender = self.sql.user_crud().create(UserSave())
         receiver = self.sql.user_crud().create(UserSave())
-        invite_data = InviteCreate(
+        invite_data = InviteSave(
             sender_id = sender.id,
             receiver_id = receiver.id,
         )
 
         # First, save should create the record
-        saved_invite = self.sql.invite_crud().save(sender.id, receiver.id, invite_data)
+        saved_invite = self.sql.invite_crud().save(invite_data)
         self.assertIsNotNone(saved_invite)
         self.assertEqual(saved_invite.sender_id, invite_data.sender_id)
         self.assertEqual(saved_invite.receiver_id, invite_data.receiver_id)
@@ -97,10 +99,12 @@ class TestInviteCRUD(unittest.TestCase):
         self.assertIsNone(saved_invite.accepted_at)
 
         # Now, save should update the existing record
-        update_data = InviteUpdate(
+        update_data = InviteSave(
+            sender_id = sender.id,
+            receiver_id = receiver.id,
             accepted_at = datetime.now(),
         )
-        updated_invite = self.sql.invite_crud().save(sender.id, receiver.id, update_data)
+        updated_invite = self.sql.invite_crud().save(update_data)
         self.assertIsNotNone(updated_invite)
         self.assertEqual(updated_invite.sender_id, invite_data.sender_id)
         self.assertEqual(updated_invite.receiver_id, invite_data.receiver_id)
@@ -110,7 +114,7 @@ class TestInviteCRUD(unittest.TestCase):
     def test_delete_invite(self):
         sender = self.sql.user_crud().create(UserSave())
         receiver = self.sql.user_crud().create(UserSave())
-        invite_data = InviteCreate(
+        invite_data = InviteSave(
             sender_id = sender.id,
             receiver_id = receiver.id,
         )

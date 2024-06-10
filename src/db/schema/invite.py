@@ -9,15 +9,11 @@ class InviteBase(BaseModel):
     receiver_id: UUID
 
 
-class InviteCreate(InviteBase):
-    pass
-
-
-class InviteUpdate(BaseModel):
-    accepted_at: datetime | None
+class InviteSave(InviteBase):
+    accepted_at: datetime | None = None
 
 
 class Invite(InviteBase):
     invited_at: datetime
-    accepted_at: datetime | None = None
+    accepted_at: datetime | None
     model_config = ConfigDict(from_attributes = True)

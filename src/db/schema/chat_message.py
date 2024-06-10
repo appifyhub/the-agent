@@ -12,12 +12,8 @@ class ChatMessageBase(BaseModel):
     text: str
 
 
-class ChatMessageCreate(ChatMessageBase):
+class ChatMessageSave(ChatMessageBase):
     pass
-
-
-class ChatMessageUpdate(BaseModel):
-    text: str
 
 
 class ChatMessage(ChatMessageBase):

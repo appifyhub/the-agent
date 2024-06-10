@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from db.model.chat_message_attachment import ChatMessageAttachmentDB
-from db.schema.chat_message_attachment import ChatMessageAttachmentCreate, ChatMessageAttachmentUpdate
+from db.schema.chat_message_attachment import ChatMessageAttachmentSave
 
 
 class ChatMessageAttachmentCRUD:
@@ -19,14 +19,14 @@ class ChatMessageAttachmentCRUD:
         # noinspection PyTypeChecker
         return self._db.query(ChatMessageAttachmentDB).offset(skip).limit(limit).all()
 
-    def create(self, create_data: ChatMessageAttachmentCreate) -> ChatMessageAttachmentDB:
+    def create(self, create_data: ChatMessageAttachmentSave) -> ChatMessageAttachmentDB:
         attachment = ChatMessageAttachmentDB(**create_data.model_dump())
         self._db.add(attachment)
         self._db.commit()
         self._db.refresh(attachment)
         return attachment
 
-    def update(self, update_data: ChatMessageAttachmentUpdate) -> ChatMessageAttachmentDB | None:
+    def update(self, update_data: ChatMessageAttachmentSave) -> ChatMessageAttachmentDB | None:
         attachment = self.get(update_data.id)
         if attachment:
             for key, value in update_data.model_dump().items():
@@ -35,7 +35,7 @@ class ChatMessageAttachmentCRUD:
             self._db.refresh(attachment)
         return attachment
 
-    def save(self, data: ChatMessageAttachmentCreate | ChatMessageAttachmentUpdate, ) -> ChatMessageAttachmentDB:
+    def save(self, data: ChatMessageAttachmentSave) -> ChatMessageAttachmentDB:
         updated_attachment = self.update(data)
         if updated_attachment: return updated_attachment  # available only if update was successful
         return self.create(data)
