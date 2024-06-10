@@ -7,6 +7,8 @@ class ChatConfigBase(BaseModel):
     persona_name: str | None = None
     language_iso_code: str | None = None
     language_name: str | None = None
+    title: str | None = None
+    is_private: bool = False
 
 
 class ChatConfigSave(ChatConfigBase):

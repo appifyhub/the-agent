@@ -20,6 +20,8 @@ class TestChatConfigCRUD(unittest.TestCase):
             persona_name = "Persona One",
             language_iso_code = "en",
             language_name = "English",
+            title = "Chat One",
+            is_private = True,
         )
 
         chat_config = self.sql.chat_config_crud().create(chat_config_data)
@@ -37,6 +39,8 @@ class TestChatConfigCRUD(unittest.TestCase):
             persona_name = "Persona One",
             language_iso_code = "en",
             language_name = "English",
+            title = "Chat One",
+            is_private = True,
         )
         created_chat_config = self.sql.chat_config_crud().create(chat_config_data)
 
@@ -69,6 +73,8 @@ class TestChatConfigCRUD(unittest.TestCase):
             persona_name = "Persona One",
             language_iso_code = "en",
             language_name = "English",
+            title = "Chat One",
+            is_private = True,
         )
         created_chat_config = self.sql.chat_config_crud().create(chat_config_data)
 
@@ -78,6 +84,8 @@ class TestChatConfigCRUD(unittest.TestCase):
             persona_name = "Persona Two",
             language_iso_code = "fr",
             language_name = "French",
+            title = "Chat Another",
+            is_private = False,
         )
         updated_chat_config = self.sql.chat_config_crud().update(update_data)
 
@@ -94,6 +102,8 @@ class TestChatConfigCRUD(unittest.TestCase):
             persona_name = "Persona One",
             language_iso_code = "en",
             language_name = "English",
+            title = "Chat One",
+            is_private = True,
         )
 
         # First, save should create the record
@@ -112,6 +122,8 @@ class TestChatConfigCRUD(unittest.TestCase):
             persona_name = "Persona Two",
             language_iso_code = "fr",
             language_name = "French",
+            title = "Chat Another",
+            is_private = False,
         )
         updated_chat_config = self.sql.chat_config_crud().save(update_data)
         self.assertIsNotNone(updated_chat_config)
@@ -122,13 +134,7 @@ class TestChatConfigCRUD(unittest.TestCase):
         self.assertEqual(updated_chat_config.language_name, update_data.language_name)
 
     def test_delete_chat_config(self):
-        chat_config_data = ChatConfigSave(
-            chat_id = "chat1",
-            persona_code = "persona1",
-            persona_name = "Persona One",
-            language_iso_code = "en",
-            language_name = "English",
-        )
+        chat_config_data = ChatConfigSave(chat_id = "chat1")
         created_chat_config = self.sql.chat_config_crud().create(chat_config_data)
 
         deleted_chat_config = self.sql.chat_config_crud().delete(created_chat_config.chat_id)

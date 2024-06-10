@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String
+from sqlalchemy import Column, String, Boolean
 
 from db.sql import BaseModel
 
@@ -11,3 +11,5 @@ class ChatConfigDB(BaseModel):
     persona_name = Column(String, nullable = True)
     language_iso_code = Column(String, nullable = True)
     language_name = Column(String, nullable = True)
+    title = Column(String, nullable = True)
+    is_private = Column(Boolean, nullable = False)
