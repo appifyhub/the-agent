@@ -1,7 +1,6 @@
 import datetime
 import os
 import re
-from shlex import quote as shlex_quote
 from typing import List
 
 import requests
@@ -32,6 +31,7 @@ if not full_repo_name:
 build_quality = os.getenv("BUILD_QUALITY", "Debug")
 default_commitish = os.popen("git rev-parse HEAD").read().strip() or "main"
 commitish = os.getenv("GITHUB_SHA", default_commitish)
+print(f"Using '{commitish}' as commitish")
 
 # Determine the tag based on build quality
 tag = f"v{version}.{build_quality.lower()}"
@@ -68,11 +68,14 @@ def fetch_changes() -> List[str]:
 
     # get the most recent GA tag
     last_tag_command = "git for-each-ref --sort=-creatordate --format '%(refname:short)' refs/tags | grep '.ga$' | head -n1"
-    last_tag = os.popen(shlex_quote(last_tag_command)).read().strip()
+    # noinspection StandardShellInjection
+    last_tag = os.popen(last_tag_command).read().strip()
 
     # then get the history between now and the last GA tag
     commits_diff_command = f"git log {last_tag}..HEAD --format=oneline --abbrev-commit --no-merges"
-    commits_diff = os.popen(shlex_quote(commits_diff_command)).read().strip().split("\n")
+    # noinspection StandardShellInjection
+    commits_diff = os.popen(commits_diff_command).read().strip().split("\n")
+    print(f"Found commits diff:\n\t{commits_diff}")
 
     return [
         change.strip() for change in commits_diff
