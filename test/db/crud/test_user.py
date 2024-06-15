@@ -42,7 +42,7 @@ class TestUserCRUD(unittest.TestCase):
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
             open_ai_key = "test-key",
-            group = UserDB.Group.standard
+            group = UserDB.Group.standard,
         )
         created_user = self.sql.user_crud().create(user_data)
 
@@ -64,6 +64,24 @@ class TestUserCRUD(unittest.TestCase):
         self.assertEqual(len(fetched_users), len(users))
         for i in range(len(users)):
             self.assertEqual(fetched_users[i].id, users[i].id)
+
+    def test_get_user_by_telegram_user_id(self):
+        user_data = UserSave(
+            full_name = "Test User",
+            telegram_username = "test-user",
+            telegram_chat_id = "123456",
+            telegram_user_id = 55555,
+            open_ai_key = "test-key",
+            group = UserDB.Group.standard,
+        )
+        created_user = self.sql.user_crud().create(user_data)
+
+        fetched_user = self.sql.user_crud().get_by_telegram_user_id(created_user.telegram_user_id)
+
+        self.assertEqual(fetched_user.id, created_user.id)
+        self.assertEqual(fetched_user.full_name, user_data.full_name)
+        self.assertEqual(fetched_user.telegram_username, user_data.telegram_username)
+        self.assertEqual(fetched_user.telegram_user_id, user_data.telegram_user_id)
 
     def test_update_user(self):
         user_data = UserSave(

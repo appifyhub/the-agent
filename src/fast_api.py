@@ -54,8 +54,7 @@ def get_users(
     limit: int = Query(100),
 ) -> list[str]:
     users_db = UserCRUD(db).get_all(skip = skip, limit = limit)
-    # noinspection Pydantic
-    users = [User.from_orm(user) for user in users_db]
+    users = [User.model_validate(user) for user in users_db]
     return [f"@{user.telegram_username}" for user in users]
 
 

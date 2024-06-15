@@ -21,6 +21,11 @@ class UserCRUD:
         # noinspection PyTypeChecker
         return self._db.query(UserDB).offset(skip).limit(limit).all()
 
+    def get_by_telegram_user_id(self, telegram_user_id: int) -> UserDB | None:
+        return self._db.query(UserDB).filter(
+            telegram_user_id == UserDB.telegram_user_id
+        ).first()
+
     def create(self, create_data: UserSave) -> UserDB:
         user = UserDB(**create_data.model_dump())
         self._db.add(user)
