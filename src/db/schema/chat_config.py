@@ -1,23 +1,18 @@
-from pydantic import ConfigDict, BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ChatConfigBase(BaseModel):
     chat_id: str
-    persona_code: str
-    persona_name: str
-    language_iso_code: str = "en"
-    language_name: str = "English"
+    persona_code: str | None = None
+    persona_name: str | None = None
+    language_iso_code: str | None = None
+    language_name: str | None = None
+    title: str | None = None
+    is_private: bool = False
 
 
-class ChatConfigCreate(ChatConfigBase):
+class ChatConfigSave(ChatConfigBase):
     pass
-
-
-class ChatConfigUpdate(BaseModel):
-    persona_code: str
-    persona_name: str
-    language_iso_code: str
-    language_name: str
 
 
 class ChatConfig(ChatConfigBase):

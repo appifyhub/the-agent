@@ -23,6 +23,7 @@ revert_env_files() {
 echoinfo "Setting up .env files for test..."
 mv .env .env.backup
 echo "PYTHONPATH=\"\${PWD}/src:\${PWD}/test\"" > .env
+echo "VERBOSE=True" >> .env
 
 # Set a trap to revert environment files on script exit
 trap revert_env_files EXIT
