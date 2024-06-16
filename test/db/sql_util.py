@@ -3,6 +3,7 @@ from sqlalchemy.orm import sessionmaker, Session
 
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
+from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
 from db.crud.invite import InviteCRUD
 from db.crud.user import UserCRUD
 from db.sql import BaseModel
@@ -44,6 +45,10 @@ class SQLUtil:
     def chat_message_crud(self) -> ChatMessageCRUD:
         if not self._is_session_active: self.start_session()
         return ChatMessageCRUD(self._session)
+
+    def chat_message_attachment_crud(self) -> ChatMessageAttachmentCRUD:
+        if not self._is_session_active: self.start_session()
+        return ChatMessageAttachmentCRUD(self._session)
 
     def invite_crud(self) -> InviteCRUD:
         if not self._is_session_active: self.start_session()
