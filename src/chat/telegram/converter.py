@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import List
 
+from pydantic import BaseModel
+
 from chat.telegram.model.attachment.file import File
 from chat.telegram.model.message import Message
 from chat.telegram.model.update import Update
@@ -12,23 +14,11 @@ from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
 
-class ConversionResult:
+class ConversionResult(BaseModel):
     chat: ChatConfigSave
     author: UserSave | None
     message: ChatMessageSave
     attachments: List[ChatMessageAttachmentSave]
-
-    def __init__(
-        self,
-        chat: ChatConfigSave,
-        author: UserSave | None,
-        message: ChatMessageSave,
-        attachments: List[ChatMessageAttachmentSave],
-    ):
-        self.chat = chat
-        self.author = author
-        self.message = message
-        self.attachments = attachments
 
 
 class Converter(SafePrinterMixin):
@@ -221,11 +211,12 @@ class Converter(SafePrinterMixin):
         mime_type: str | None,
     ) -> ChatMessageAttachmentSave:
         self.sprint(f"Creating attachment from file: {file}")
+        last_url = f"{config.telegram_api_base_url}/file/bot{config.telegram_bot_token}/{file.file_path}"
         return ChatMessageAttachmentSave(
             id = file.file_id,
             chat_id = chat_id,
             message_id = message_id,
             size = file.file_size,
-            last_url = file.file_path,
+            last_url = last_url if file.file_path else None,
             mime_type = mime_type,
         )
