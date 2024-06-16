@@ -136,16 +136,18 @@ class Resolver(SafePrinterMixin):
 
         api_file = self.__bot_api.get_file_info(attachment.id)
         extension: str | None = None
+        last_url: str | None = None
         last_url_until: int | None = None
         mime_type: str | None = attachment.mime_type
         if api_file.file_path and ("." in api_file.file_path):
             extension = api_file.file_path.lower().split(".")[-1]
+            last_url = f"{config.telegram_api_base_url}/file/bot{config.telegram_bot_token}/{api_file.file_path}"
             last_url_until = self.nearest_hour_epoch()
             if not attachment.mime_type:
                 mime_type = SUPPORTED_MIME_TYPES.get(extension, None)
         self.sprint(f"Resolved:\n\textension '.{extension}'\n\tmime-type '{mime_type}'")
         attachment.size = api_file.file_size
-        attachment.last_url = api_file.file_path
+        attachment.last_url = last_url
         attachment.last_url_until = last_url_until
         attachment.extension = extension
         attachment.mime_type = mime_type
