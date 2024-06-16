@@ -13,14 +13,15 @@ from chat.telegram.model.text_quote import TextQuote
 from chat.telegram.model.update import Update
 from chat.telegram.model.user import User
 from db.model.user import UserDB
-from util.config import Config
+from util.config import config
 
 
 class ConverterTest(unittest.TestCase):
     __converter: Converter
 
     def setUp(self):
-        self.__converter = Converter(Config(def_verbose = True))
+        config.verbose = True
+        self.__converter = Converter()
 
     def test_convert_update_filled(self):
         update = Update(
@@ -266,7 +267,13 @@ class ConverterTest(unittest.TestCase):
         self.assertEqual(result, "Chat Title · First")
 
     def test_resolve_chat_name_empty(self):
-        result = self.__converter.resolve_chat_name("10")
+        result = self.__converter.resolve_chat_name(
+            chat_id = "10",
+            title = None,
+            username = None,
+            first_name = None,
+            last_name = None,
+        )
 
         self.assertEqual(result, "#10")
 
@@ -377,8 +384,8 @@ class ConverterTest(unittest.TestCase):
         self.assertEqual(result.message_id, message_id)
         self.assertEqual(result.size, file.file_size)
         self.assertEqual(result.last_url, file.file_path)
-        self.assertIsNotNone(result.last_url_until)
-        self.assertEqual(result.extension, "png")
+        self.assertIsNone(result.last_url_until)
+        self.assertIsNone(result.extension)
         self.assertEqual(result.mime_type, mime_type)
 
     def test_convert_to_attachment_filled_no_mime_type(self):
@@ -391,16 +398,16 @@ class ConverterTest(unittest.TestCase):
         chat_id = "10"
         message_id = "100"
 
-        result = self.__converter.convert_to_attachment(file, chat_id, message_id)
+        result = self.__converter.convert_to_attachment(file, chat_id, message_id, mime_type = None)
 
         self.assertEqual(result.id, file.file_id)
         self.assertEqual(result.chat_id, chat_id)
         self.assertEqual(result.message_id, message_id)
         self.assertEqual(result.size, file.file_size)
         self.assertEqual(result.last_url, file.file_path)
-        self.assertIsNotNone(result.last_url_until)
-        self.assertEqual(result.extension, "png")
-        self.assertEqual(result.mime_type, "image/png")
+        self.assertIsNone(result.last_url_until)
+        self.assertIsNone(result.extension)
+        self.assertIsNone(result.mime_type)
 
     def test_convert_to_attachment_empty(self):
         file = File(
@@ -410,7 +417,7 @@ class ConverterTest(unittest.TestCase):
         chat_id = "10"
         message_id = "100"
 
-        result = self.__converter.convert_to_attachment(file, chat_id, message_id)
+        result = self.__converter.convert_to_attachment(file, chat_id, message_id, mime_type = None)
 
         self.assertEqual(result.id, file.file_id)
         self.assertEqual(result.chat_id, chat_id)

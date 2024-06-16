@@ -1,28 +1,15 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List
 
 from chat.telegram.model.attachment.file import File
 from chat.telegram.model.message import Message
 from chat.telegram.model.update import Update
-from db.model.user import UserDB
 from db.schema.chat_config import ChatConfigSave
 from db.schema.chat_message import ChatMessageSave
 from db.schema.chat_message_attachment import ChatMessageAttachmentSave
 from db.schema.user import UserSave
-from util.config import Config
+from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
-
-# Based on popularity and support in vision models
-SUPPORTED_MIME_TYPES = {
-    "png": "image/png",
-    "jpg": "image/jpeg",
-    "jpeg": "image/jpeg",
-    "gif": "image/gif",
-    "webp": "image/webp",
-    "bmp": "image/bmp",
-    "tiff": "image/tiff",
-    "tif": "image/tiff",
-}
 
 
 class ConversionResult:
@@ -46,7 +33,7 @@ class ConversionResult:
 
 class Converter(SafePrinterMixin):
 
-    def __init__(self, config: Config):
+    def __init__(self):
         super().__init__(config.verbose)
 
     def convert_update(self, update: Update) -> ConversionResult | None:
@@ -71,7 +58,6 @@ class Converter(SafePrinterMixin):
         return ChatMessageSave(
             chat_id = str(message.chat.id),
             message_id = str(message.message_id),
-            author_id = None,  # explicitly not setting for now, it will be set after storing
             sent_at = datetime.fromtimestamp(message.edit_date or message.date),
             text = self.convert_text(message),
         )
@@ -86,8 +72,6 @@ class Converter(SafePrinterMixin):
             telegram_username = author.username,
             telegram_chat_id = str(message.chat.id) if message.chat.type == "private" else None,
             telegram_user_id = author.id,
-            open_ai_key = None,
-            group = UserDB.Group.standard,
         )
 
     def convert_text_as_reply(self, message: Message) -> str:
@@ -133,10 +117,10 @@ class Converter(SafePrinterMixin):
     def resolve_chat_name(
         self,
         chat_id: str,
-        title: str | None = None,
-        username: str | None = None,
-        first_name: str | None = None,
-        last_name: str | None = None,
+        title: str | None,
+        username: str | None,
+        first_name: str | None,
+        last_name: str | None,
     ) -> str:
         parts = []
         if title:
@@ -172,7 +156,6 @@ class Converter(SafePrinterMixin):
                 file_id = message.audio.file_id,
                 file_unique_id = message.audio.file_unique_id,
                 file_size = message.audio.file_size,
-                file_path = None,
             )
             attachments.append(
                 self.convert_to_attachment(
@@ -188,7 +171,6 @@ class Converter(SafePrinterMixin):
                 file_id = message.document.file_id,
                 file_unique_id = message.document.file_unique_id,
                 file_size = message.document.file_size,
-                file_path = None,
             )
             attachments.append(
                 self.convert_to_attachment(
@@ -205,13 +187,13 @@ class Converter(SafePrinterMixin):
                 file_id = largest_photo.file_id,
                 file_unique_id = largest_photo.file_unique_id,
                 file_size = largest_photo.file_size,
-                file_path = None,
             )
             attachments.append(
                 self.convert_to_attachment(
                     file = dummy_file,
                     chat_id = str(message.chat.id),
                     message_id = str(message.message_id),
+                    mime_type = None,
                 )
             )
         if message.voice:
@@ -220,7 +202,6 @@ class Converter(SafePrinterMixin):
                 file_id = message.voice.file_id,
                 file_unique_id = message.voice.file_unique_id,
                 file_size = message.voice.file_size,
-                file_path = None,
             )
             attachments.append(
                 self.convert_to_attachment(
@@ -237,30 +218,14 @@ class Converter(SafePrinterMixin):
         file: File,
         chat_id: str,
         message_id: str,
-        mime_type: str | None = None,
+        mime_type: str | None,
     ) -> ChatMessageAttachmentSave:
         self.sprint(f"Creating attachment from file: {file}")
-        extension: str | None = None
-        last_url_until: int | None = None
-        if file.file_path and ("." in file.file_path):
-            extension = file.file_path.lower().split(".")[-1]
-            last_url_until = self.nearest_hour_epoch()
-            if not mime_type:
-                mime_type = SUPPORTED_MIME_TYPES.get(extension, None)
-        self.sprint(f"Resolved:\n\textension '.{extension}'\n\tmime-type '{mime_type}'")
         return ChatMessageAttachmentSave(
             id = file.file_id,
             chat_id = chat_id,
             message_id = message_id,
             size = file.file_size,
             last_url = file.file_path,
-            last_url_until = last_url_until,
-            extension = extension,
             mime_type = mime_type,
         )
-
-    def nearest_hour_epoch(self) -> int:
-        last_hour_mark: datetime = datetime.now().replace(minute = 0, second = 0, microsecond = 0)
-        next_hour_mark: datetime = last_hour_mark + timedelta(hours = 1)
-        self.sprint(f"Last hour mark: {next_hour_mark}")
-        return int(next_hour_mark.timestamp())
