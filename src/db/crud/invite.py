@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from db.model.invite import InviteDB
-from db.schema.invite import InviteCreate, InviteUpdate
+from db.schema.invite import InviteSave
 
 
 class InviteCRUD:
@@ -22,21 +22,26 @@ class InviteCRUD:
         # noinspection PyTypeChecker
         return self._db.query(InviteDB).offset(skip).limit(limit).all()
 
-    def create(self, create_data: InviteCreate) -> InviteDB:
+    def create(self, create_data: InviteSave) -> InviteDB:
         invite = InviteDB(**create_data.model_dump())
         self._db.add(invite)
         self._db.commit()
         self._db.refresh(invite)
         return invite
 
-    def update(self, sender_id: UUID, receiver_id: UUID, update_data: InviteUpdate) -> InviteDB | None:
-        invite = self.get(sender_id, receiver_id)
+    def update(self, update_data: InviteSave) -> InviteDB | None:
+        invite = self.get(update_data.sender_id, update_data.receiver_id)
         if invite:
             for key, value in update_data.model_dump().items():
                 setattr(invite, key, value)
             self._db.commit()
             self._db.refresh(invite)
         return invite
+
+    def save(self, data: InviteSave) -> InviteDB:
+        updated_invite = self.update(data)
+        if updated_invite: return updated_invite  # available only if update was successful
+        return self.create(data)
 
     def delete(self, sender_id: UUID, receiver_id: UUID) -> InviteDB | None:
         invite = self.get(sender_id, receiver_id)

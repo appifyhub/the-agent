@@ -7,7 +7,7 @@ from starlette.status import HTTP_403_FORBIDDEN
 from api.auth import verify_api_key
 
 
-class TestGetApiKey(unittest.TestCase):
+class GetApiKeyTest(unittest.TestCase):
 
     def test_missing_api_key(self):
         with self.assertRaises(HTTPException) as context:

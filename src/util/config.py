@@ -14,7 +14,10 @@ class Config(SafePrinterMixin, metaclass = Singleton):
     website_url: str
     db_url: str
     api_key: str
+    telegram_bot_username: str
+    telegram_bot_name: str
     telegram_bot_token: str
+    telegram_api_base_url: str
 
     def __init__(
         self,
@@ -29,7 +32,10 @@ class Config(SafePrinterMixin, metaclass = Singleton):
         def_db_host: str = "localhost",
         def_db_name: str = "agent",
         def_api_key: str = "0000-1234-5678-0000",
+        def_telegram_bot_username: str = "the_agent",
+        def_telegram_bot_name: str = "The Agent",
         def_telegram_bot_token: str = "invalid",
+        def_telegram_api_base_url: str = "https://api.telegram.org",
     ):
         self.verbose = self.__env("VERBOSE", lambda: str(def_verbose)).lower() == "true"
         super().__init__(self.verbose)
@@ -38,9 +44,12 @@ class Config(SafePrinterMixin, metaclass = Singleton):
         self.web_timeout_s = int(self.__env("WEB_TIMEOUT_S", lambda: str(def_web_timeout_s)))
         self.max_invites_per_user = int(self.__env("MAX_INVITES_PER_USER", lambda: str(def_max_invites_per_user)))
         self.website_url = self.__env("WEBSITE_URL", lambda: def_website_url)
-        self.telegram_bot_token = self.__env("TELEGRAM_BOT_TOKEN", lambda: def_telegram_bot_token)
         self.__set_up_db(def_db_user, def_db_pass, def_db_host, def_db_name)
         self.api_key = self.__env("API_KEY", lambda: def_api_key)
+        self.telegram_bot_username = self.__env("TELEGRAM_BOT_USERNAME", lambda: def_telegram_bot_username)
+        self.telegram_bot_name = self.__env("TELEGRAM_BOT_NAME", lambda: def_telegram_bot_name)
+        self.telegram_bot_token = self.__env("TELEGRAM_BOT_TOKEN", lambda: def_telegram_bot_token)
+        self.telegram_api_base_url = self.__env("TELEGRAM_API_BASE_URL", lambda: def_telegram_api_base_url)
 
     def __set_up_db(
         self,
