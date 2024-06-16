@@ -4,14 +4,14 @@ from db.schema.chat_config import ChatConfigSave
 from db.sql_util import SQLUtil
 
 
-class TestChatConfigCRUD(unittest.TestCase):
-    sql: SQLUtil
+class ChatConfigCRUDTest(unittest.TestCase):
+    __sql: SQLUtil
 
     def setUp(self):
-        self.sql = SQLUtil()
+        self.__sql = SQLUtil()
 
     def tearDown(self):
-        self.sql.end_session()
+        self.__sql.end_session()
 
     def test_create_chat_config(self):
         chat_config_data = ChatConfigSave(
@@ -24,7 +24,7 @@ class TestChatConfigCRUD(unittest.TestCase):
             is_private = True,
         )
 
-        chat_config = self.sql.chat_config_crud().create(chat_config_data)
+        chat_config = self.__sql.chat_config_crud().create(chat_config_data)
 
         self.assertEqual(chat_config.chat_id, chat_config_data.chat_id)
         self.assertEqual(chat_config.persona_code, chat_config_data.persona_code)
@@ -42,9 +42,9 @@ class TestChatConfigCRUD(unittest.TestCase):
             title = "Chat One",
             is_private = True,
         )
-        created_chat_config = self.sql.chat_config_crud().create(chat_config_data)
+        created_chat_config = self.__sql.chat_config_crud().create(chat_config_data)
 
-        fetched_chat_config = self.sql.chat_config_crud().get(created_chat_config.chat_id)
+        fetched_chat_config = self.__sql.chat_config_crud().get(created_chat_config.chat_id)
 
         self.assertEqual(fetched_chat_config.chat_id, created_chat_config.chat_id)
         self.assertEqual(fetched_chat_config.persona_code, chat_config_data.persona_code)
@@ -52,15 +52,15 @@ class TestChatConfigCRUD(unittest.TestCase):
 
     def test_get_all_chat_configs(self):
         chat_configs = [
-            self.sql.chat_config_crud().create(
+            self.__sql.chat_config_crud().create(
                 ChatConfigSave(chat_id = "chat1", persona_code = "persona1", persona_name = "Persona One")
             ),
-            self.sql.chat_config_crud().create(
+            self.__sql.chat_config_crud().create(
                 ChatConfigSave(chat_id = "chat2", persona_code = "persona2", persona_name = "Persona Two")
             ),
         ]
 
-        fetched_chat_configs = self.sql.chat_config_crud().get_all()
+        fetched_chat_configs = self.__sql.chat_config_crud().get_all()
 
         self.assertEqual(len(fetched_chat_configs), len(chat_configs))
         for i in range(len(chat_configs)):
@@ -76,7 +76,7 @@ class TestChatConfigCRUD(unittest.TestCase):
             title = "Chat One",
             is_private = True,
         )
-        created_chat_config = self.sql.chat_config_crud().create(chat_config_data)
+        created_chat_config = self.__sql.chat_config_crud().create(chat_config_data)
 
         update_data = ChatConfigSave(
             chat_id = created_chat_config.chat_id,
@@ -87,7 +87,7 @@ class TestChatConfigCRUD(unittest.TestCase):
             title = "Chat Another",
             is_private = False,
         )
-        updated_chat_config = self.sql.chat_config_crud().update(update_data)
+        updated_chat_config = self.__sql.chat_config_crud().update(update_data)
 
         self.assertEqual(updated_chat_config.chat_id, created_chat_config.chat_id)
         self.assertEqual(updated_chat_config.persona_code, created_chat_config.persona_code)
@@ -107,7 +107,7 @@ class TestChatConfigCRUD(unittest.TestCase):
         )
 
         # First, save should create the record
-        saved_chat_config = self.sql.chat_config_crud().save(chat_config_data)
+        saved_chat_config = self.__sql.chat_config_crud().save(chat_config_data)
         self.assertIsNotNone(saved_chat_config)
         self.assertEqual(saved_chat_config.chat_id, chat_config_data.chat_id)
         self.assertEqual(saved_chat_config.persona_code, chat_config_data.persona_code)
@@ -125,7 +125,7 @@ class TestChatConfigCRUD(unittest.TestCase):
             title = "Chat Another",
             is_private = False,
         )
-        updated_chat_config = self.sql.chat_config_crud().save(update_data)
+        updated_chat_config = self.__sql.chat_config_crud().save(update_data)
         self.assertIsNotNone(updated_chat_config)
         self.assertEqual(updated_chat_config.chat_id, saved_chat_config.chat_id)
         self.assertEqual(updated_chat_config.persona_code, update_data.persona_code)
@@ -135,9 +135,9 @@ class TestChatConfigCRUD(unittest.TestCase):
 
     def test_delete_chat_config(self):
         chat_config_data = ChatConfigSave(chat_id = "chat1")
-        created_chat_config = self.sql.chat_config_crud().create(chat_config_data)
+        created_chat_config = self.__sql.chat_config_crud().create(chat_config_data)
 
-        deleted_chat_config = self.sql.chat_config_crud().delete(created_chat_config.chat_id)
+        deleted_chat_config = self.__sql.chat_config_crud().delete(created_chat_config.chat_id)
 
         self.assertEqual(deleted_chat_config.chat_id, created_chat_config.chat_id)
-        self.assertIsNone(self.sql.chat_config_crud().get(created_chat_config.chat_id))
+        self.assertIsNone(self.__sql.chat_config_crud().get(created_chat_config.chat_id))
