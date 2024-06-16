@@ -18,4 +18,4 @@ class BotAPI(SafePrinterMixin):
         url = f"{self.__bot_api_url}/getFile"
         response = httpx.get(url, params = {"file_id": file_id})
         response.raise_for_status()
-        return File(**response.json())
+        return File(**response.json()["result"])
