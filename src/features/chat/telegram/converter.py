@@ -3,13 +3,13 @@ from typing import List
 
 from pydantic import BaseModel
 
-from chat.telegram.model.attachment.file import File
 from chat.telegram.model.message import Message
 from chat.telegram.model.update import Update
 from db.schema.chat_config import ChatConfigSave
 from db.schema.chat_message import ChatMessageSave
 from db.schema.chat_message_attachment import ChatMessageAttachmentSave
 from db.schema.user import UserSave
+from features.chat.telegram.model.attachment.file import File
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
