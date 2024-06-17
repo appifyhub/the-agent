@@ -5,13 +5,13 @@ from unittest.mock import MagicMock
 from chat.telegram.bot_api import BotAPI
 from chat.telegram.converter import ConversionResult
 from chat.telegram.model.attachment.file import File
-from chat.telegram.resolver import Resolver
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfigSave, ChatConfig
 from db.schema.chat_message import ChatMessageSave, ChatMessage
 from db.schema.chat_message_attachment import ChatMessageAttachmentSave, ChatMessageAttachment
 from db.schema.user import UserSave, User
 from db.sql_util import SQLUtil
+from features.chat.telegram.resolver import Resolver
 from util.config import config
 
 
