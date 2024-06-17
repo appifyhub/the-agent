@@ -1,7 +1,6 @@
 import unittest
 from datetime import datetime
 
-from chat.telegram.converter import Converter
 from chat.telegram.model.attachment.audio import Audio
 from chat.telegram.model.attachment.document import Document
 from chat.telegram.model.attachment.file import File
@@ -13,6 +12,7 @@ from chat.telegram.model.text_quote import TextQuote
 from chat.telegram.model.update import Update
 from chat.telegram.model.user import User
 from db.model.user import UserDB
+from features.chat.telegram.converter import Converter
 from util.config import config
 
 
