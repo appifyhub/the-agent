@@ -1,11 +1,6 @@
 import unittest
 from datetime import datetime
 
-from chat.telegram.model.chat import Chat
-from chat.telegram.model.message import Message
-from chat.telegram.model.text_quote import TextQuote
-from chat.telegram.model.update import Update
-from chat.telegram.model.user import User
 from db.model.user import UserDB
 from features.chat.telegram.converter import Converter
 from features.chat.telegram.model.attachment.audio import Audio
@@ -13,6 +8,11 @@ from features.chat.telegram.model.attachment.document import Document
 from features.chat.telegram.model.attachment.file import File
 from features.chat.telegram.model.attachment.photo_size import PhotoSize
 from features.chat.telegram.model.attachment.voice import Voice
+from features.chat.telegram.model.chat import Chat
+from features.chat.telegram.model.message import Message
+from features.chat.telegram.model.text_quote import TextQuote
+from features.chat.telegram.model.update import Update
+from features.chat.telegram.model.user import User
 from util.config import config
 
 
