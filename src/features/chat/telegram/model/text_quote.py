@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from chat.telegram.model.message_entity import MessageEntity
+from features.chat.telegram.model.message_entity import MessageEntity
 
 
 class TextQuote(BaseModel):

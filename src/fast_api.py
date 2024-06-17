@@ -2,7 +2,6 @@ from fastapi import Depends, FastAPI, Query, HTTPException
 from pydantic import HttpUrl
 from starlette.responses import RedirectResponse
 
-from chat.telegram.model.update import Update
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
 from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
@@ -17,6 +16,7 @@ from db.sql import get_session
 from features.auth import verify_api_key
 from features.chat.telegram.bot_api import BotAPI
 from features.chat.telegram.converter import Converter
+from features.chat.telegram.model.update import Update
 from features.chat.telegram.resolver import Resolver
 from features.web_fetcher import WebFetcher
 from util.config import config

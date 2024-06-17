@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from chat.telegram.model.message import Message
+from features.chat.telegram.model.message import Message
 
 
 class Update(BaseModel):

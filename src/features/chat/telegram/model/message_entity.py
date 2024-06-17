@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from chat.telegram.model.user import User
+from features.chat.telegram.model.user import User
 
 
 class MessageEntity(BaseModel):
