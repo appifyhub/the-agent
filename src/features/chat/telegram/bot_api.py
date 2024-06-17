@@ -1,6 +1,6 @@
 import httpx
 
-from chat.telegram.model.attachment.file import File
+from features.chat.telegram.model.attachment.file import File
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
