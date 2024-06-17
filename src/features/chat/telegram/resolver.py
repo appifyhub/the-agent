@@ -5,7 +5,6 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from chat.telegram.bot_api import BotAPI
-from chat.telegram.converter import ConversionResult
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
 from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
@@ -14,6 +13,7 @@ from db.schema.chat_config import ChatConfigSave, ChatConfig
 from db.schema.chat_message import ChatMessageSave, ChatMessage
 from db.schema.chat_message_attachment import ChatMessageAttachmentSave, ChatMessageAttachment
 from db.schema.user import UserSave, User
+from features.chat.telegram.converter import ConversionResult
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
