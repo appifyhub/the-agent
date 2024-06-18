@@ -4,7 +4,7 @@ import time
 import requests
 from requests.exceptions import RequestException, Timeout
 
-from util.config import config
+from util.config import config, Config
 from util.safe_printer_mixin import SafePrinterMixin
 
 PLATFORM = f"{platform.python_implementation()}/{platform.python_version()}"
@@ -16,6 +16,7 @@ class WebFetcher(SafePrinterMixin):
     url: str
     html: str | None = None
     json: dict | None = None
+    __config: Config
 
     def __init__(
         self,

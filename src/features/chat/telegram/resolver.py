@@ -15,6 +15,7 @@ from db.schema.user import UserSave, User
 from features.chat.telegram.bot_api import BotAPI
 from features.chat.telegram.converter import ConversionResult
 from util.config import config
+from util.functions import is_the_agent
 from util.safe_printer_mixin import SafePrinterMixin
 
 # Based on popularity and support in vision models
@@ -56,7 +57,7 @@ class Resolver(SafePrinterMixin):
         resolved_chat_config = self.resolve_chat_config(conversion_result.chat)
         resolved_author: User | None = None
         if conversion_result.author:
-            if config.telegram_bot_username == conversion_result.author.telegram_username:
+            if is_the_agent(conversion_result.author):
                 conversion_result.author.telegram_chat_id = None  # bot has no private chat
             resolved_author = self.resolve_author(conversion_result.author)
             conversion_result.message.author_id = resolved_author.id
