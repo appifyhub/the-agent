@@ -1,3 +1,5 @@
+import traceback
+
 from fastapi import Depends, FastAPI, Query, HTTPException
 from pydantic import HttpUrl
 from starlette.responses import RedirectResponse
@@ -14,10 +16,12 @@ from db.schema.invite import Invite
 from db.schema.user import User
 from db.sql import get_session
 from features.auth import verify_api_key
-from features.chat.telegram.bot_api import BotAPI
-from features.chat.telegram.converter import Converter
+from features.chat.langchain.langchain_telegram_mapper import LangChainTelegramMapper
 from features.chat.telegram.model.update import Update
-from features.chat.telegram.resolver import Resolver
+from features.chat.telegram.telegram_bot_api import TelegramBotAPI
+from features.chat.telegram.telegram_chat_bot import TelegramChatBot, TELEGRAM_BOT_USER
+from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
+from features.chat.telegram.telegram_update_mapper import TelegramUpdateMapper
 from features.web_fetcher import WebFetcher
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
@@ -30,12 +34,14 @@ app = FastAPI(
     debug = config.verbose,
 )
 
-bot_api = BotAPI()
 
-
-def sprint(content: str):
+def sprint(content: str, e: Exception | None = None):
     printer = SafePrinterMixin(config.verbose)
     printer.sprint(content)
+    if e:
+        printer.sprint(str(e))
+        if config.verbose:
+            traceback.print_exc()
 
 
 @app.get("/")
@@ -135,14 +141,50 @@ def telegram_chat_update(
     update: Update,
     db = Depends(get_session),
 ) -> bool:
-    conversion_result = Converter().convert_update(update)
-    if not conversion_result: raise HTTPException(status_code = 404, detail = "Update not convertible")
-    resolver = Resolver(db, bot_api)
     try:
-        resolution_result = resolver.resolve(conversion_result)
-        sprint(f"Imported from Telegram: {resolution_result}")
+        # map to storage models for persistence
+        mapped_update = TelegramUpdateMapper().convert_update(update)
+        if not mapped_update: raise HTTPException(status_code = 422, detail = "Update not convertible")
+
+        # store and map to domain models (throws in case of error)
+        telegram_bot_api = TelegramBotAPI()
+        telegram_data_resolver = TelegramDataResolver(db, telegram_bot_api)
+        resolved_update = telegram_data_resolver.resolve(mapped_update)
+        sprint(f"Imported updates from Telegram: {resolved_update}")
+
+        # fetch latest messages to prepare a response
+        chat_messages_dao = ChatMessageCRUD(db)
+        past_messages_db = chat_messages_dao.get_latest_chat_messages(
+            chat_id = resolved_update.chat.chat_id,
+            limit = config.chat_history_depth,
+        )
+        past_messages = [ChatMessage.model_validate(chat_message) for chat_message in past_messages_db]
+        langchain_telegram_mapper = LangChainTelegramMapper()
+        author_of = lambda message: UserCRUD(db).get(message.author_id)
+        convert = lambda message: langchain_telegram_mapper.map_to_langchain(author_of(message), message)
+        langchain_messages = [convert(message) for message in past_messages][::-1]  # DB sorting is date descending
+
+        # process the update and respond
+        if not resolved_update.author:
+            sprint("Not responding to messages without author")
+            return False
+        UserCRUD(db).save(TELEGRAM_BOT_USER)  # save is ignored if it already exists
+        telegram_chat_bot = TelegramChatBot(resolved_update.author, langchain_messages)
+        raw_message_response = telegram_chat_bot.respond()
+        messages_to_send = langchain_telegram_mapper.map_bot_message_to_storage(
+            resolved_update.chat.chat_id,
+            raw_message_response,
+        )
+        sent_messages: int = 0
+        saved_messages: int = 0
+        for message in messages_to_send:
+            telegram_bot_api.send_text_message(message.chat_id, message.text)
+            sent_messages += 1
+            chat_messages_dao.save(message)
+            saved_messages += 1
+        sprint(f"Used {len(past_messages_db)}, saved {saved_messages}, sent {sent_messages} messages")
+        sprint(f"Finished responding to event: \n[{config.telegram_bot_name}]: {raw_message_response.content}")
         return True
     except Exception as e:
-        print(f"Failed to ingest: {update}")
-        print(e)
+        sprint(f"Failed to ingest: {update}", e)
         return False

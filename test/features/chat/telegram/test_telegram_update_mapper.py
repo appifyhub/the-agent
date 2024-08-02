@@ -2,7 +2,7 @@ import unittest
 from datetime import datetime
 
 from db.model.user import UserDB
-from features.chat.telegram.converter import Converter
+from features.chat.telegram.telegram_update_mapper import TelegramUpdateMapper
 from features.chat.telegram.model.attachment.audio import Audio
 from features.chat.telegram.model.attachment.document import Document
 from features.chat.telegram.model.attachment.file import File
@@ -16,12 +16,12 @@ from features.chat.telegram.model.user import User
 from util.config import config
 
 
-class ConverterTest(unittest.TestCase):
-    __converter: Converter
+class TelegramUpdateMapperTest(unittest.TestCase):
+    __converter: TelegramUpdateMapper
 
     def setUp(self):
         config.verbose = True
-        self.__converter = Converter()
+        self.__converter = TelegramUpdateMapper()
 
     def test_convert_update_filled(self):
         update = Update(
