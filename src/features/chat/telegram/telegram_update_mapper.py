@@ -3,30 +3,30 @@ from typing import List
 
 from pydantic import BaseModel
 
-from chat.telegram.model.attachment.file import File
-from chat.telegram.model.message import Message
-from chat.telegram.model.update import Update
 from db.schema.chat_config import ChatConfigSave
 from db.schema.chat_message import ChatMessageSave
 from db.schema.chat_message_attachment import ChatMessageAttachmentSave
 from db.schema.user import UserSave
+from features.chat.telegram.model.attachment.file import File
+from features.chat.telegram.model.message import Message
+from features.chat.telegram.model.update import Update
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
 
-class ConversionResult(BaseModel):
+class TelegramMappingResult(BaseModel):
     chat: ChatConfigSave
     author: UserSave | None
     message: ChatMessageSave
     attachments: List[ChatMessageAttachmentSave]
 
 
-class Converter(SafePrinterMixin):
+class TelegramUpdateMapper(SafePrinterMixin):
 
     def __init__(self):
         super().__init__(config.verbose)
 
-    def convert_update(self, update: Update) -> ConversionResult | None:
+    def convert_update(self, update: Update) -> TelegramMappingResult | None:
         self.sprint(f"Converting update: {update}")
         message = update.edited_message or update.message
         if not message:
@@ -36,7 +36,7 @@ class Converter(SafePrinterMixin):
         result_author = self.convert_author(message)
         result_message = self.convert_message(message)
         result_attachments = self.convert_attachments(message)
-        return ConversionResult(
+        return TelegramMappingResult(
             chat = result_chat,
             author = result_author,
             message = result_message,

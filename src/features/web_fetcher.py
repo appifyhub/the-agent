@@ -25,7 +25,6 @@ class WebFetcher(SafePrinterMixin):
     ):
         super().__init__(config.verbose)
         self.url = url
-        self.__config = config
         if auto_fetch_html:
             self.fetch_html()
         if auto_fetch_json:
@@ -34,29 +33,29 @@ class WebFetcher(SafePrinterMixin):
     def fetch_html(self) -> str | None:
         self.html = None  # reset value
         attempts = 0
-        for _ in range(self.__config.web_retries):
+        for _ in range(config.web_retries):
             try:
-                response = requests.get(self.url, headers = HEADERS, timeout = self.__config.web_timeout_s)
+                response = requests.get(self.url, headers = HEADERS, timeout = config.web_timeout_s)
                 response.raise_for_status()
                 self.html = response.text
             except (RequestException, Timeout) as e:
                 attempts += 1
-                attempts_left = self.__config.web_retries - attempts + 1
+                attempts_left = config.web_retries - attempts + 1
                 self.sprint(f"Error fetching HTML content: {e}. Retries left: {attempts_left}.")
-                time.sleep(self.__config.web_retry_delay_s)
+                time.sleep(config.web_retry_delay_s)
         return self.html
 
     def fetch_json(self) -> dict | None:
         self.json = None
         attempts = 0
-        for _ in range(self.__config.web_retries):
+        for _ in range(config.web_retries):
             try:
-                response = requests.get(self.url, headers = HEADERS, timeout = self.__config.web_timeout_s)
+                response = requests.get(self.url, headers = HEADERS, timeout = config.web_timeout_s)
                 response.raise_for_status()
                 self.json = response.json()
             except (RequestException, Timeout) as e:
                 attempts += 1
-                attempts_left = self.__config.web_retries - attempts + 1
+                attempts_left = config.web_retries - attempts + 1
                 self.sprint(f"Error fetching JSON content: {e}. Retries left: {attempts_left}.")
-                time.sleep(self.__config.web_retry_delay_s)
+                time.sleep(config.web_retry_delay_s)
         return self.json

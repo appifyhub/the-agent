@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfigSave
@@ -112,6 +112,80 @@ class ChatMessageCRUDTest(unittest.TestCase):
             self.assertEqual(fetched_chat_messages[i].chat_id, chat_messages[i].chat_id)
             self.assertEqual(fetched_chat_messages[i].message_id, chat_messages[i].message_id)
             self.assertEqual(fetched_chat_messages[i].author_id, chat_messages[i].author_id)
+
+    def test_get_latest_chat_messages(self):
+        chat1 = self.__sql.chat_config_crud().create(
+            ChatConfigSave(chat_id = "chat1", persona_code = "persona1", persona_name = "Persona One")
+        )
+        chat2 = self.__sql.chat_config_crud().create(
+            ChatConfigSave(chat_id = "chat2", persona_code = "persona2", persona_name = "Persona Two")
+        )
+        user = self.__sql.user_crud().create(
+            UserSave(
+                full_name = "Test User",
+                telegram_username = "test-user",
+                telegram_chat_id = "123456",
+                telegram_user_id = 123456,
+                open_ai_key = "test-key",
+                group = UserDB.Group.standard,
+            )
+        )
+
+        base_time = datetime.now()
+        chat1_messages = [
+            self.__sql.chat_message_crud().create(
+                ChatMessageSave(
+                    chat_id = chat1.chat_id,
+                    message_id = f"msg{i}",
+                    author_id = user.id,
+                    text = f"Message {i} for chat1",
+                    sent_at = base_time + timedelta(minutes = i)
+                )
+            ) for i in range(1, 6)
+        ]
+        chat2_messages = [
+            self.__sql.chat_message_crud().create(
+                ChatMessageSave(
+                    chat_id = chat2.chat_id,
+                    message_id = f"msg{i}",
+                    author_id = user.id,
+                    text = f"Message {i} for chat2",
+                    sent_at = base_time + timedelta(minutes = i + 10)
+                )
+            ) for i in range(1, 4)
+        ]
+
+        # fetching without pagination
+        fetched_chat1_messages = self.__sql.chat_message_crud().get_latest_chat_messages(chat1.chat_id)
+        limited_chat1_messages = self.__sql.chat_message_crud().get_latest_chat_messages(chat1.chat_id, limit = 3)
+        self.assertEqual(len(fetched_chat1_messages), len(chat1_messages))
+        self.assertEqual(len(limited_chat1_messages), 3)
+        for i, message in enumerate(reversed(chat1_messages)):  # we expect latest messages first
+            self.assertEqual(fetched_chat1_messages[i].chat_id, message.chat_id)
+            self.assertEqual(fetched_chat1_messages[i].message_id, message.message_id)
+            self.assertEqual(fetched_chat1_messages[i].text, message.text)
+        for i, message in enumerate(reversed(chat1_messages[-3:])):  # last 3 messages, reversed
+            self.assertEqual(limited_chat1_messages[i].chat_id, message.chat_id)
+            self.assertEqual(limited_chat1_messages[i].message_id, message.message_id)
+            self.assertEqual(limited_chat1_messages[i].text, message.text)
+
+        # fetching with pagination
+        paginated_chat1_messages = self.__sql.chat_message_crud().get_latest_chat_messages(
+            chat1.chat_id,
+            skip = 2,
+            limit = 2
+        )
+        fetched_chat2_messages = self.__sql.chat_message_crud().get_latest_chat_messages(chat2.chat_id)
+        self.assertEqual(len(paginated_chat1_messages), 2)
+        self.assertEqual(len(fetched_chat2_messages), len(chat2_messages))
+        for i, message in enumerate(reversed(chat1_messages[1:3])):  # messages 2 and 3, reversed
+            self.assertEqual(paginated_chat1_messages[i].chat_id, message.chat_id)
+            self.assertEqual(paginated_chat1_messages[i].message_id, message.message_id)
+            self.assertEqual(paginated_chat1_messages[i].text, message.text)
+        for i, message in enumerate(reversed(chat2_messages)):
+            self.assertEqual(fetched_chat2_messages[i].chat_id, message.chat_id)
+            self.assertEqual(fetched_chat2_messages[i].message_id, message.message_id)
+            self.assertEqual(fetched_chat2_messages[i].text, message.text)
 
     def test_update_chat_message(self):
         chat = self.__sql.chat_config_crud().create(

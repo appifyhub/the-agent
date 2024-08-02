@@ -1,3 +1,4 @@
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from db.model.chat_message import ChatMessageDB
@@ -19,6 +20,18 @@ class ChatMessageCRUD:
     def get_all(self, skip: int = 0, limit: int = 100) -> list[ChatMessageDB]:
         # noinspection PyTypeChecker
         return self._db.query(ChatMessageDB).offset(skip).limit(limit).all()
+
+    def get_latest_chat_messages(self, chat_id: str, skip: int = 0, limit: int = 100) -> list[ChatMessageDB]:
+        # noinspection PyTypeChecker
+        return (
+            self._db.query(ChatMessageDB).filter(
+                chat_id == ChatMessageDB.chat_id,
+            )
+            .order_by(desc(ChatMessageDB.sent_at))
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     def create(self, create_data: ChatMessageSave) -> ChatMessageDB:
         chat_message = ChatMessageDB(**create_data.model_dump())

@@ -2,29 +2,29 @@ import unittest
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock
 
-from chat.telegram.bot_api import BotAPI
-from chat.telegram.converter import ConversionResult
-from chat.telegram.model.attachment.file import File
-from chat.telegram.resolver import Resolver
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfigSave, ChatConfig
 from db.schema.chat_message import ChatMessageSave, ChatMessage
 from db.schema.chat_message_attachment import ChatMessageAttachmentSave, ChatMessageAttachment
 from db.schema.user import UserSave, User
 from db.sql_util import SQLUtil
+from features.chat.telegram.telegram_bot_api import TelegramBotAPI
+from features.chat.telegram.model.attachment.file import File
+from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
+from features.chat.telegram.telegram_update_mapper import TelegramMappingResult
 from util.config import config
 
 
-class ResolverTest(unittest.TestCase):
+class TelegramDataResolverTest(unittest.TestCase):
     __sql: SQLUtil
-    __bot_api: BotAPI
-    __resolver: Resolver
+    __bot_api: TelegramBotAPI
+    __resolver: TelegramDataResolver
 
     def setUp(self):
         config.verbose = True
         self.__sql = SQLUtil()
         self.__bot_api = MagicMock()
-        self.__resolver = Resolver(self.__sql.get_session(), self.__bot_api)
+        self.__resolver = TelegramDataResolver(self.__sql.get_session(), self.__bot_api)
 
     def tearDown(self):
         self.__sql.end_session()
@@ -45,7 +45,7 @@ class ResolverTest(unittest.TestCase):
             extension = "jpg",
             mime_type = "image/jpeg",
         )
-        conversion_result = ConversionResult(
+        conversion_result = TelegramMappingResult(
             chat = chat_config_data,
             author = None,
             message = message_data,
@@ -87,7 +87,7 @@ class ResolverTest(unittest.TestCase):
             extension = "jpg",
             mime_type = "image/jpeg",
         )
-        conversion_result = ConversionResult(
+        conversion_result = TelegramMappingResult(
             chat = chat_config_data,
             author = author_data,
             message = message_data,
@@ -130,7 +130,7 @@ class ResolverTest(unittest.TestCase):
             extension = "jpg",
             mime_type = "image/jpeg",
         )
-        conversion_result = ConversionResult(
+        conversion_result = TelegramMappingResult(
             chat = chat_config_data,
             author = author_data,
             message = message_data,

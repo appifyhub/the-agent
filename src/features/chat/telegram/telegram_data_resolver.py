@@ -4,8 +4,6 @@ from typing import List
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from chat.telegram.bot_api import BotAPI
-from chat.telegram.converter import ConversionResult
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
 from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
@@ -14,7 +12,10 @@ from db.schema.chat_config import ChatConfigSave, ChatConfig
 from db.schema.chat_message import ChatMessageSave, ChatMessage
 from db.schema.chat_message_attachment import ChatMessageAttachmentSave, ChatMessageAttachment
 from db.schema.user import UserSave, User
+from features.chat.telegram.telegram_bot_api import TelegramBotAPI
+from features.chat.telegram.telegram_update_mapper import TelegramMappingResult
 from util.config import config
+from util.functions import is_the_agent
 from util.safe_printer_mixin import SafePrinterMixin
 
 # Based on popularity and support in vision models
@@ -37,32 +38,32 @@ class ResolutionResult(BaseModel):
     attachments: List[ChatMessageAttachment]
 
 
-class Resolver(SafePrinterMixin):
+class TelegramDataResolver(SafePrinterMixin):
     """
     Resolves the final set of data attributes ready to be used by the service.
     If needed, this resolver will fetch more data from the API or the database.
     """
 
     __session: Session
-    __bot_api: BotAPI
+    __bot_api: TelegramBotAPI
 
-    def __init__(self, session: Session, api: BotAPI):
+    def __init__(self, session: Session, api: TelegramBotAPI):
         super().__init__(config.verbose)
         self.__session = session
         self.__bot_api = api
 
-    def resolve(self, conversion_result: ConversionResult) -> ResolutionResult:
-        self.sprint(f"Resolving conversion result: {conversion_result}")
-        resolved_chat_config = self.resolve_chat_config(conversion_result.chat)
+    def resolve(self, mapping_result: TelegramMappingResult) -> ResolutionResult:
+        self.sprint(f"Resolving conversion result: {mapping_result}")
+        resolved_chat_config = self.resolve_chat_config(mapping_result.chat)
         resolved_author: User | None = None
-        if conversion_result.author:
-            if config.telegram_bot_username == conversion_result.author.telegram_username:
-                conversion_result.author.telegram_chat_id = None  # bot has no private chat
-            resolved_author = self.resolve_author(conversion_result.author)
-            conversion_result.message.author_id = resolved_author.id
-        resolved_chat_message = self.resolve_chat_message(conversion_result.message)
+        if mapping_result.author:
+            if is_the_agent(mapping_result.author):
+                mapping_result.author.telegram_chat_id = None  # bot has no private chat
+            resolved_author = self.resolve_author(mapping_result.author)
+            mapping_result.message.author_id = resolved_author.id
+        resolved_chat_message = self.resolve_chat_message(mapping_result.message)
         resolved_attachments = [
-            self.resolve_chat_message_attachment(attachment) for attachment in conversion_result.attachments
+            self.resolve_chat_message_attachment(attachment) for attachment in mapping_result.attachments
         ]
         return ResolutionResult(
             chat = resolved_chat_config,

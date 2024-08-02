@@ -11,7 +11,10 @@ sqlalchemy = "*"
 psycopg2-binary = "*"
 alembic = "*"
 pydantic = "*"
-httpx = "*"
+langchain = "*"
+langchain-core = "*"
+langchain-community = "*"
+langchain-openai = "*"
 
 [dev-packages]
 pytest = "*"

@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock
 from fastapi import HTTPException
 from starlette.status import HTTP_403_FORBIDDEN
 
-from api.auth import verify_api_key
+from features.auth import verify_api_key
 
 
 class GetApiKeyTest(unittest.TestCase):
@@ -23,7 +23,7 @@ class GetApiKeyTest(unittest.TestCase):
         self.assertEqual(context.exception.status_code, HTTP_403_FORBIDDEN)
         self.assertEqual(context.exception.detail, "Could not validate the API key")
 
-    @patch("api.auth.config")
+    @patch("features.auth.config")
     def test_valid_api_key(self, mock_config: MagicMock):
         mock_config.api_key = "VALI-DKEY"
         api_key = verify_api_key("VALI-DKEY")
