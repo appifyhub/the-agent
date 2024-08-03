@@ -1,5 +1,6 @@
 import base64
 import traceback
+from datetime import datetime
 
 from fastapi import Depends, FastAPI, Query, HTTPException
 from pydantic import HttpUrl
@@ -11,7 +12,7 @@ from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
 from db.crud.invite import InviteCRUD
 from db.crud.user import UserCRUD
 from db.schema.chat_config import ChatConfig
-from db.schema.chat_message import ChatMessage
+from db.schema.chat_message import ChatMessage, ChatMessageSave
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.invite import Invite
 from db.schema.user import User
@@ -27,6 +28,7 @@ from features.summarizer.raw_notes_payload import RawNotesPayload
 from features.summarizer.release_summarizer import ReleaseSummarizer
 from features.web_fetcher import WebFetcher
 from util.config import config
+from util.functions import construct_bot_message_id
 from util.safe_printer_mixin import SafePrinterMixin
 from util.translations_cache import TranslationsCache, DEFAULT_LANGUAGE, DEFAULT_ISO_CODE
 
@@ -232,6 +234,15 @@ def notify_of_release(
         # let's send a notification to each chat
         try:
             telegram_bot_api.send_text_message(chat.chat_id, summary)
+            sent_at = datetime.now()
+            message_to_store = ChatMessageSave(
+                chat_id = chat.chat_id,
+                message_id = construct_bot_message_id(chat.chat_id, sent_at),
+                author_id = TELEGRAM_BOT_USER.id,
+                sent_at = sent_at,
+                text = summary,
+            )
+            ChatMessageCRUD(db).save(message_to_store)
             chats_notified += 1
         except Exception as e:
             sprint(f"Chat notification failed for chat #{chat.chat_id}", e)
