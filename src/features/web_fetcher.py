@@ -14,8 +14,8 @@ HEADERS = {"User-Agent": USER_AGENT}
 
 class WebFetcher(SafePrinterMixin):
     url: str
-    html: str | None = None
-    json: dict | None = None
+    html: str | None
+    json: dict | None
 
     def __init__(
         self,
@@ -25,6 +25,8 @@ class WebFetcher(SafePrinterMixin):
     ):
         super().__init__(config.verbose)
         self.url = url
+        self.html = None
+        self.json = None
         if auto_fetch_html:
             self.fetch_html()
         if auto_fetch_json:

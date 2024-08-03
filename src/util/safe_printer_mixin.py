@@ -2,7 +2,7 @@ import traceback
 
 
 class SafePrinterMixin:
-    __verbose: bool = False
+    __verbose: bool
 
     def __init__(self, verbose: bool = False):
         self.__verbose = verbose
