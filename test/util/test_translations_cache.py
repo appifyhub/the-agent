@@ -4,6 +4,7 @@ from util.translations_cache import TranslationsCache, DEFAULT_LANGUAGE, DEFAULT
 
 
 class TranslationsCacheTest(unittest.TestCase):
+    __cache: TranslationsCache
 
     def setUp(self):
         self.__cache = TranslationsCache()
