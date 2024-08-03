@@ -109,5 +109,5 @@ if response and response.status_code != 201:
     exit(1)
 
 encoded_change_log = base64.b64encode(change_log.encode('utf-8')).decode('utf-8')
-print(f"::set-output name=RELEASE_NOTES::{encoded_change_log}")
+print(f"::set-output name=encoded_change_log::{encoded_change_log}")
 print("GitHub Release created successfully")
