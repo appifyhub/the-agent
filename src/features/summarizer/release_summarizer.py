@@ -12,7 +12,7 @@ ANTHROPIC_MAX_TOKENS = 500
 
 
 class ReleaseSummarizer(SafePrinterMixin):
-    __llm_input: list[BaseMessage] = []
+    __llm_input: list[BaseMessage]
     __llm: BaseChatModel
 
     def __init__(self, raw_notes: str, language_name: str | None = None, language_iso_code: str | None = None):
@@ -22,6 +22,7 @@ class ReleaseSummarizer(SafePrinterMixin):
             language_name = language_name,
             langauge_iso_code = language_iso_code,
         )
+        self.__llm_input = []
         self.__llm_input.append(SystemMessage(prompt))
         self.__llm_input.append(HumanMessage(raw_notes))
         # noinspection PyArgumentList
