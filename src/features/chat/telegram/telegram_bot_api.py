@@ -44,6 +44,5 @@ class TelegramBotAPI(SafePrinterMixin):
             "link_preview_options": link_preview_options,
         }
         response = requests.post(url, json = payload, timeout = config.web_timeout_s)
-        print(response.json())
         response.raise_for_status()
         return response.json()
