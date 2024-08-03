@@ -56,7 +56,6 @@ ignored_patterns = [
         ".*version.*increase.*",
         ".*merge.*request.*",
         ".*request.*merge.*",
-        ".*update.*",
     ]
 ]
 
@@ -108,7 +107,8 @@ if response and response.status_code != 201:
     print(response.content)
     exit(1)
 
-encoded_change_log = base64.b64encode(change_log.encode('utf-8')).decode('utf-8')
+release_notes = f"# Release v{version}\n\n{change_log}"
+encoded_change_log = base64.b64encode(release_notes.encode('utf-8')).decode('utf-8')
 print(f"Encoded change log: {encoded_change_log}")
 print(f"::set-output name=encoded_change_log::{encoded_change_log}")
 print("GitHub Release created successfully")
