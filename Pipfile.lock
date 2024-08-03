@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "669c42f6324c9e6e84d4380b21825e7f1c0d46c0e1f93b7a86feee0cb009e883"
+            "sha256": "374d864e708f7eb5492affac73ce22da4d0f5cfef7b9dd1d2249d186c59d2d10"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -251,6 +251,14 @@
             "markers": "python_full_version >= '3.7.0'",
             "version": "==3.3.2"
         },
+        "click": {
+            "hashes": [
+                "sha256:ae74fb96c20a0277a1d615f1e4d73c8414f5a98db8b799a7931d1582f3390c28",
+                "sha256:ca9853ad459e787e2192211578cc907e7594e294c7ccc834310722b41b9ca6de"
+            ],
+            "markers": "python_version >= '3.7'",
+            "version": "==8.1.7"
+        },
         "dataclasses-json": {
             "hashes": [
                 "sha256:0dbf33f26c8d5305befd61b39d2b3414e8a407bedc2834dea9b8d642666fb40a",
@@ -436,12 +444,12 @@
         },
         "langchain-core": {
             "hashes": [
-                "sha256:5d2e4b9bc84285bbfe19864363b1a21dd04c2eed12d4a6b39f239ee02237ce40",
-                "sha256:b12f58d4e3590e8e0b4b727acb0457b00e80862d1bf8b9d1ae36128adb08a7d0"
+                "sha256:0728761d02ce696a1c6a57cfad18b874cf6c9566ba86120e2f542e442cb77a06",
+                "sha256:589f907fcb1f15acea55ea3f451a37faaa61c2e68b3d39d436cf73ca3dd23ef5"
             ],
             "index": "pypi",
             "markers": "python_version < '4.0' and python_full_version >= '3.8.1'",
-            "version": "==0.2.27"
+            "version": "==0.2.28"
         },
         "langchain-openai": {
             "hashes": [
@@ -1255,6 +1263,15 @@
             ],
             "markers": "python_version >= '3.8'",
             "version": "==2.2.2"
+        },
+        "uvicorn": {
+            "hashes": [
+                "sha256:ac6fdbd4425c5fd17a9fe39daf4d4d075da6fdc80f653e5894cdc2fd98752bee",
+                "sha256:b2d86de274726e9878188fa07576c9ceeff90a839e2b6e25c917fe05f5a6c835"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.8'",
+            "version": "==0.30.5"
         },
         "yarl": {
             "hashes": [
