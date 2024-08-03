@@ -33,18 +33,21 @@ TELEGRAM_BOT_USER = UserSave(
 
 
 class TelegramChatBot(SafePrinterMixin):
-    __prompt: BaseMessage = SystemMessage(predefined_prompts.chat_telegram)
-    __messages: list[BaseMessage] = []
-    __predefined_tools: PredefinedTools = PredefinedTools()
+    __prompt: BaseMessage
+    __messages: list[BaseMessage]
     __invoker: User
+    __predefined_tools: PredefinedTools
     __llm_base: BaseChatModel
     __llm_tools: TooledChatModel
 
     def __init__(self, invoker: User, messages: list[BaseMessage]):
         super().__init__(config.verbose)
+        self.__prompt = SystemMessage(predefined_prompts.chat_telegram)
+        self.__messages = []
         self.__messages.append(self.__prompt)
         self.__messages.extend(messages)
         self.__invoker = invoker
+        self.__predefined_tools = PredefinedTools()
         # noinspection PyArgumentList
         self.__llm_base = ChatOpenAI(
             model = OPEN_AI_MODEL,

@@ -11,9 +11,10 @@ from db.sql import BaseModel
 
 class SQLUtil:
     _session: Session
-    _is_session_active: bool = False
+    _is_session_active: bool
 
     def __init__(self):
+        self._is_session_active = False
         self.start_session()
         self._is_session_active = True
 
