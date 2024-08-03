@@ -99,7 +99,7 @@ class TelegramChatBot(SafePrinterMixin):
                     self.sprint(f"Processing {tool_id}/'{tool_name}' tool call")
                     tool_result: str | None = self.__predefined_tools.invoke(tool_name, tool_args)
                     if not tool_result:
-                        print(f"Tool {tool_name} not invoked!")
+                        self.sprint(f"Tool {tool_name} not invoked!")
                         continue
                     self.__append(ToolMessage(tool_result, tool_call_id = tool_id))
 
