@@ -45,10 +45,38 @@ jobs:
         with:
           python-version: "3.12.3"
 
+      - name: Publish to GitHub Releases
+        env:
+          ARTIFACT: "the-agent"
+          BUILD_QUALITY: "GA"
+          VERSION: ${{ steps.docker_publish.outputs.the_agent_version }}
+          GITHUB_SHA: ${{ env.GITHUB_SHA }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ env.GITHUB_REPOSITORY }}
+        run: |
+          pip install -r tools/github-release/requirements.txt
+          python tools/github-release/main.py
+
+      - name: FAKE - Notify of release
+        env:
+          NOTIFICATION_AUTH_KEY: ${{ secrets.NOTIFICATION_AUTH_KEY }}
+          NOTIFICATION_ENDPOINT: ${{ secrets.NOTIFICATION_URL }}
+          CHANGE_LOG_B64: ${{ steps.docker_publish.outputs.encoded_change_log }} # stored from Python
+        run: |
+          echo "Change log is below >>"
+          echo "$CHANGE_LOG_B64"
+          echo "<< CHANGE LOG"
+          curl -X POST \
+            -L "${{ secrets.NOTIFICATION_URL }}" \
+            -H "X-API-Key: ${{ secrets.NOTIFICATION_AUTH_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"raw_notes_b64\": \"$CHANGE_LOG_B64\"}"
+
       - name: Build and test service
         env:
           BUILD_QUALITY: "BETA"
         run: |
+          exit(1)
           pip install --no-cache-dir pipenv
           ./tools/run_tests.sh
 
