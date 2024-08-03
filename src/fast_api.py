@@ -1,3 +1,4 @@
+import base64
 import traceback
 
 from fastapi import Depends, FastAPI, Query, HTTPException
@@ -206,7 +207,8 @@ def notify_of_release(
     chats_notified: int = 0
     # translate once for the default language
     try:
-        answer = ReleaseSummarizer(payload.raw_notes, DEFAULT_LANGUAGE, DEFAULT_ISO_CODE).execute()
+        raw_notes = base64.b64decode(payload.raw_notes_b64).decode("utf-8")
+        answer = ReleaseSummarizer(raw_notes, DEFAULT_LANGUAGE, DEFAULT_ISO_CODE).execute()
         if not answer.content:
             raise ValueError("LLM Answer not received")
         translations.save(answer.content)
@@ -218,7 +220,8 @@ def notify_of_release(
         try:
             summary = translations.get(chat.language_name, chat.language_iso_code)
             if not summary:
-                answer = ReleaseSummarizer(payload.raw_notes, chat.language_name, chat.language_iso_code).execute()
+                raw_notes = base64.b64decode(payload.raw_notes_b64).decode("utf-8")
+                answer = ReleaseSummarizer(raw_notes, chat.language_name, chat.language_iso_code).execute()
                 if not answer.content:
                     raise ValueError("LLM Answer not received")
                 summary = translations.save(answer.content, chat.language_name, chat.language_iso_code)

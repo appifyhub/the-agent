@@ -102,6 +102,18 @@ jobs:
           pip install -r tools/github-release/requirements.txt
           python tools/github-release/main.py
 
+      - name: Notify of release
+        env:
+          NOTIFICATION_AUTH_KEY: ${{ secrets.NOTIFICATION_AUTH_KEY }}
+          NOTIFICATION_ENDPOINT: ${{ secrets.NOTIFICATION_URL }}
+          CHANGE_LOG_B64: ${{ steps.docker_publish.outputs.encoded_change_log }} # stored from Python
+        run: |
+          curl -X POST \
+            -L "${{ secrets.NOTIFICATION_URL }}" \
+            -H "X-API-Key: ${{ secrets.NOTIFICATION_AUTH_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"raw_notes_b64\": \"$CHANGE_LOG_B64\"}"
+
       - name: Deploy to production
         env:
           DEPLOY_API: ${{ secrets.DEPLOY_API }}
@@ -120,14 +132,3 @@ jobs:
           --header "${DEPLOY_AUTH_PROD}" \
           --data-raw "${CMD}" \
           > /dev/null
-
-      - name: Notify of release
-        env:
-          NOTIFICATION_AUTH_KEY: ${{ secrets.NOTIFICATION_AUTH_KEY }}
-          NOTIFICATION_ENDPOINT: ${{ secrets.NOTIFICATION_URL }}
-        run: |
-          RELEASE_NOTES=$(echo "${{ steps.release_notes.outputs.RELEASE_NOTES }}" | base64 --decode)
-          curl -L "${{ secrets.NOTIFICATION_URL }}" \
-          -H "X-API-Key: ${{ secrets.NOTIFICATION_AUTH_KEY }}" \
-          -H "Content-Type: application/json" \
-          -d "{\"raw_notes\": \"$RELEASE_NOTES\"}"
