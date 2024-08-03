@@ -1,4 +1,5 @@
 from features.llm.prompt_builder import PromptBuilder, PromptSection
+from util.translations_cache import DEFAULT_LANGUAGE, DEFAULT_ISO_CODE
 
 ALLOWED_TELEGRAM_EMOJIS: list[str] = [
     "👍", "👎", "❤", "🔥", "🥰", "👏", "😁", "🤔", "🤯", "😱", "🤬", "😢", "🎉", "🤩", "🤮", "💩",
@@ -245,3 +246,30 @@ generator_stable_diffusion: str = (
 observer_computer_vision: str = PromptBuilder(
     "Looking at this image in detail, describe what it contains (including any text)."
 ).build()
+
+
+def translated_response(
+    base_prompt: str,
+    language_name: str | None = None,
+    langauge_iso_code: str | None = None,
+) -> str:
+    preference: str
+    if not language_name and not langauge_iso_code:
+        return base_prompt
+    if not language_name:
+        preference = f"You should try to respond in language '{langauge_iso_code.upper()}' (ISO code)."
+    elif not langauge_iso_code:
+        preference = f"You should try to respond in {language_name.capitalize()}."
+    else:
+        preference = f"You should try to respond in {language_name.capitalize()} (ISO '{langauge_iso_code.upper()}')."
+    return (
+        PromptBuilder(base_prompt)
+        .add_section(
+            PromptSection.appendix,
+            __join(
+                preference,
+                "If you are unable to use this langauge,",
+                f"you must default to {DEFAULT_LANGUAGE} (ISO '{DEFAULT_ISO_CODE}').",
+            )
+        )
+    ).build()
