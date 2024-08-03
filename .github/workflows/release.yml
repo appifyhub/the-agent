@@ -91,6 +91,7 @@ jobs:
           echo ::set-output name=the_agent_version::"$VERSION"
 
       - name: Publish to GitHub Releases
+        id: github_releases_publish
         env:
           ARTIFACT: "the-agent"
           BUILD_QUALITY: "GA"
@@ -106,7 +107,7 @@ jobs:
         env:
           NOTIFICATION_AUTH_KEY: ${{ secrets.NOTIFICATION_AUTH_KEY }}
           NOTIFICATION_ENDPOINT: ${{ secrets.NOTIFICATION_URL }}
-          CHANGE_LOG_B64: ${{ steps.docker_publish.outputs.encoded_change_log }} # stored from Python
+          CHANGE_LOG_B64: ${{ steps.github_releases_publish.outputs.encoded_change_log }} # stored from Python
         run: |
           curl -X POST \
             -L "${{ secrets.NOTIFICATION_URL }}" \
