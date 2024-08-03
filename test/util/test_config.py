@@ -34,6 +34,8 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.telegram_bot_token, "invalid")
         self.assertEqual(config.telegram_api_base_url, "https://api.telegram.org")
         self.assertEqual(config.chat_history_depth, 50)
+        self.assertEqual(config.anthropic_token, "invalid")
+        self.assertEqual(config.open_ai_token, "invalid")
 
     def test_custom_config(self):
         os.environ["VERBOSE"] = "true"
@@ -52,6 +54,8 @@ class ConfigTest(unittest.TestCase):
         os.environ["TELEGRAM_BOT_TOKEN"] = "id:sha"
         os.environ["TELEGRAM_API_BASE_URL"] = "https://new.api.telegram.org"
         os.environ["CHAT_HISTORY_DEPTH"] = "10"
+        os.environ["ANTHROPIC_TOKEN"] = "sk-a-valid"
+        os.environ["OPEN_AI_TOKEN"] = "sk-o-valid"
 
         config = Config()
 
@@ -68,3 +72,5 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.telegram_bot_token, "id:sha")
         self.assertEqual(config.telegram_api_base_url, "https://new.api.telegram.org")
         self.assertEqual(config.chat_history_depth, 10)
+        self.assertEqual(config.anthropic_token, "sk-a-valid")
+        self.assertEqual(config.open_ai_token, "sk-o-valid")

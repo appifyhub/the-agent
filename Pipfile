@@ -16,6 +16,7 @@ langchain-core = "*"
 langchain-community = "*"
 langchain-openai = "*"
 uvicorn = "*"
+langchain-anthropic = "*"
 
 [dev-packages]
 pytest = "*"
