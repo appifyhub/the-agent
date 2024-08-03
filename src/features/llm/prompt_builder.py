@@ -15,7 +15,7 @@ class PromptSection(enum.Enum):
 
 
 class PromptBuilder:
-    __prompt: str = ""
+    __prompt: str
 
     def __init__(self, initial: str = ""):
         self.__prompt = initial

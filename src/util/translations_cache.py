@@ -5,9 +5,10 @@ DEFAULT_ISO_CODE = "en"
 
 
 class TranslationsCache:
+    __cache: Dict[str, str]
 
     def __init__(self):
-        self.__cache: Dict[str, str] = {}
+        self.__cache = {}
 
     def save(self, value: str, language_name: str | None = None, language_iso_code: str | None = None) -> str:
         if language_name:
