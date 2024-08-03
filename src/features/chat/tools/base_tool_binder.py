@@ -6,9 +6,11 @@ from langchain_core.runnables import Runnable
 
 
 class BaseToolBinder:
-    __tools_map: Dict[str, Callable] = {}
+    __tools_map: Dict[str, Callable]
 
-    def __init__(self, tools_map: Dict[str, Callable]):
+    def __init__(self, tools_map: Dict[str, Callable] | None = None):
+        if tools_map is None:
+            tools_map = {}
         self.__tools_map = tools_map
 
     def bind_tools(self, llm_base: BaseChatModel) -> Runnable[LanguageModelInput, BaseMessage]:
