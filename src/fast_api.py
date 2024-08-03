@@ -16,16 +16,20 @@ from db.schema.invite import Invite
 from db.schema.user import User
 from db.sql import get_session
 from features.auth import verify_api_key
-from features.chat.langchain.langchain_telegram_mapper import LangChainTelegramMapper
+from features.chat.telegram.langchain_telegram_mapper import LangChainTelegramMapper
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.telegram_chat_bot import TelegramChatBot, TELEGRAM_BOT_USER
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_update_mapper import TelegramUpdateMapper
+from features.summarizer.raw_notes_payload import RawNotesPayload
+from features.summarizer.release_summarizer import ReleaseSummarizer
 from features.web_fetcher import WebFetcher
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
+from util.translations_cache import TranslationsCache, DEFAULT_LANGUAGE, DEFAULT_ISO_CODE
 
+telegram_bot_api = TelegramBotAPI()
 app = FastAPI(
     docs_url = None,
     redoc_url = None,
@@ -147,7 +151,6 @@ def telegram_chat_update(
         if not mapped_update: raise HTTPException(status_code = 422, detail = "Update not convertible")
 
         # store and map to domain models (throws in case of error)
-        telegram_bot_api = TelegramBotAPI()
         telegram_data_resolver = TelegramDataResolver(db, telegram_bot_api)
         resolved_update = telegram_data_resolver.resolve(mapped_update)
         sprint(f"Imported updates from Telegram: {resolved_update}")
@@ -188,3 +191,52 @@ def telegram_chat_update(
     except Exception as e:
         sprint(f"Failed to ingest: {update}", e)
         return False
+
+
+@app.post("/notify/release")
+def notify_of_release(
+    payload: RawNotesPayload,
+    _ = Depends(verify_api_key),
+    db = Depends(get_session),
+) -> dict:
+    latest_chats_db = ChatConfigCRUD(db).get_all(limit = 1024)
+    latest_chats = [ChatConfig.model_validate(chat) for chat in latest_chats_db]
+    translations = TranslationsCache()
+    summaries_created: int = 0
+    chats_notified: int = 0
+    # translate once for the default language
+    try:
+        answer = ReleaseSummarizer(payload.raw_notes, DEFAULT_LANGUAGE, DEFAULT_ISO_CODE).execute()
+        if not answer.content:
+            raise ValueError("LLM Answer not received")
+        translations.save(answer.content)
+        summaries_created += 1
+    except Exception as e:
+        sprint(f"Release summary failed for default language", e)
+    # we also need to summarize for each language
+    for chat in latest_chats:
+        try:
+            summary = translations.get(chat.language_name, chat.language_iso_code)
+            if not summary:
+                answer = ReleaseSummarizer(payload.raw_notes, chat.language_name, chat.language_iso_code).execute()
+                if not answer.content:
+                    raise ValueError("LLM Answer not received")
+                summary = translations.save(answer.content, chat.language_name, chat.language_iso_code)
+                summaries_created += 1
+        except Exception as e:
+            sprint(f"Release summary failed for chat #{chat.chat_id}", e)
+            continue
+        # let's send a notification to each chat
+        try:
+            telegram_bot_api.send_text_message(chat.chat_id, summary)
+            chats_notified += 1
+        except Exception as e:
+            sprint(f"Chat notification failed for chat #{chat.chat_id}", e)
+    # we're done, report back
+    sprint(f"Chats: {len(latest_chats)}, summaries created: {summaries_created}, notified: {chats_notified}")
+    return {
+        "summary": translations.get(),  # fetches default language
+        "chats_selected": len(latest_chats),
+        "chats_notified": chats_notified,
+        "summaries_created": summaries_created,
+    }

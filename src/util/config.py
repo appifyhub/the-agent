@@ -19,6 +19,8 @@ class Config(SafePrinterMixin, metaclass = Singleton):
     telegram_bot_token: str
     telegram_api_base_url: str
     chat_history_depth: int
+    anthropic_token: str
+    open_ai_token: str
 
     def __init__(
         self,
@@ -38,6 +40,8 @@ class Config(SafePrinterMixin, metaclass = Singleton):
         def_telegram_bot_token: str = "invalid",
         def_telegram_api_base_url: str = "https://api.telegram.org",
         def_chat_history_depth: int = 50,
+        def_anthropic_token: str = "invalid",
+        def_open_ai_token: str = "invalid",
     ):
         self.verbose = self.__env("VERBOSE", lambda: str(def_verbose)).lower() == "true"
         super().__init__(self.verbose)
@@ -53,6 +57,8 @@ class Config(SafePrinterMixin, metaclass = Singleton):
         self.telegram_bot_token = self.__env("TELEGRAM_BOT_TOKEN", lambda: def_telegram_bot_token)
         self.telegram_api_base_url = self.__env("TELEGRAM_API_BASE_URL", lambda: def_telegram_api_base_url)
         self.chat_history_depth = int(self.__env("CHAT_HISTORY_DEPTH", lambda: str(def_chat_history_depth)))
+        self.anthropic_token = self.__env("ANTHROPIC_TOKEN", lambda: def_anthropic_token)
+        self.open_ai_token = self.__env("OPEN_AI_TOKEN", lambda: def_open_ai_token)
 
     def __set_up_db(
         self,
