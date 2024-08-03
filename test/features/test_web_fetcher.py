@@ -21,7 +21,7 @@ class WebFetcherTest(unittest.TestCase):
     def test_auto_fetch_html_disabled(self, m: Mocker):
         m.get(DEFAULT_URL, text = "data", status_code = 200)
         fetcher = WebFetcher(DEFAULT_URL)
-        self.assertEqual(fetcher.html, None)
+        self.assertIsNone(fetcher.html)
 
     @requests_mock.Mocker()
     def test_auto_fetch_html_enabled(self, m: Mocker):
@@ -40,14 +40,14 @@ class WebFetcherTest(unittest.TestCase):
     def test_fetch_html_error(self, m: Mocker):
         m.get(DEFAULT_URL, status_code = 404)
         fetcher = WebFetcher(DEFAULT_URL, auto_fetch_html = True)
-        self.assertEqual(fetcher.html, None)
+        self.assertIsNone(fetcher.html)
 
     @requests_mock.Mocker()
     def test_auto_fetch_json_disabled(self, m: Mocker):
         stub = {"value": "data"}
         m.get(DEFAULT_URL, json = stub, status_code = 200)
         fetcher = WebFetcher(DEFAULT_URL)
-        self.assertEqual(fetcher.json, None)
+        self.assertIsNone(fetcher.json)
 
     @requests_mock.Mocker()
     def test_auto_fetch_json_enabled(self, m: Mocker):
@@ -68,4 +68,4 @@ class WebFetcherTest(unittest.TestCase):
     def test_fetch_json_error(self, m: Mocker):
         m.get(DEFAULT_URL, status_code = 404)
         fetcher = WebFetcher(DEFAULT_URL, auto_fetch_json = True)
-        self.assertEqual(fetcher.json, None)
+        self.assertIsNone(fetcher.json)

@@ -1,4 +1,3 @@
-import random
 from datetime import datetime
 
 from langchain_core.messages import HumanMessage, AIMessage
@@ -8,7 +7,7 @@ from db.schema.user import User
 from features.chat.telegram.telegram_chat_bot import TELEGRAM_BOT_USER
 from features.llm.predefined_prompts import MULTI_MESSAGE_DELIMITER
 from util.config import config
-from util.functions import is_the_agent
+from util.functions import is_the_agent, construct_bot_message_id
 from util.safe_printer_mixin import SafePrinterMixin
 
 
@@ -34,7 +33,7 @@ class LangChainTelegramMapper(SafePrinterMixin):
             sent_at = datetime.now()
             storage_message = ChatMessageSave(
                 chat_id = chat_id,
-                message_id = self.__construct_bot_message_id(chat_id, sent_at),
+                message_id = construct_bot_message_id(chat_id, sent_at),
                 author_id = TELEGRAM_BOT_USER.id,
                 sent_at = sent_at,
                 text = part,
@@ -71,10 +70,3 @@ class LangChainTelegramMapper(SafePrinterMixin):
         pretty_print = lambda raw_dict: "\n".join(f"{key}: {value}" for key, value in raw_dict.items())
         pretty_dicts = [pretty_print(raw_dict) for raw_dict in message.content]
         return MULTI_MESSAGE_DELIMITER.join(pretty_dicts)
-
-    def __construct_bot_message_id(self, chat_id: str, sent_at: datetime) -> str:
-        random_info = str(random.randint(1000, 9999))
-        formatted_time = sent_at.strftime("%y%m%d%H%M%S")
-        result = f"{chat_id}-{formatted_time}-{random_info}"
-        self.sprint(f"Constructed AI Message ID {result}")
-        return result
