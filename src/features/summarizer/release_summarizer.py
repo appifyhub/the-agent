@@ -2,7 +2,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, AIMessage, HumanMessage
 
-from features.llm import predefined_prompts
+from features.prompting import predefined_prompts
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 

@@ -9,8 +9,8 @@ from langchain_openai import ChatOpenAI
 from db.model.user import UserDB
 from db.schema.user import User, UserSave
 from features.chat.tools.predefined_tools import PredefinedTools
-from features.llm import predefined_prompts
-from features.llm.predefined_prompts import MULTI_MESSAGE_DELIMITER
+from features.prompting import predefined_prompts
+from features.prompting.predefined_prompts import MULTI_MESSAGE_DELIMITER
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
