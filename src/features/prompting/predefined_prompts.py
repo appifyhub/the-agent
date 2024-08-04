@@ -26,6 +26,7 @@ ALLOWED_TELEGRAM_EMOJIS: list[str] = [
 
 MULTI_MESSAGE_DELIMITER = "\n\n\n"
 COMMAND_START = "start"
+ORGANIZATION_OPEN_AI = "Open AI"
 
 
 def __join(*items: str) -> str:
@@ -267,7 +268,7 @@ observer_computer_vision: str = PromptBuilder(
 ).build()
 
 
-def translated_response(
+def translator_on_response(
     base_prompt: str,
     language_name: str | None = None,
     langauge_iso_code: str | None = None,
@@ -292,3 +293,36 @@ def translated_response(
             )
         )
     ).build()
+
+
+def error_missing_api_key(reason: str, llm_author_organization: str = ORGANIZATION_OPEN_AI) -> str:
+    return MULTI_MESSAGE_DELIMITER.join(
+        [
+            f"👾 I am {TELEGRAM_BOT_USER.full_name}, the monitor of our world simulation.",
+            f"There was an issue with your last command. {reason}",
+            f"To talk to me, you must send me your {llm_author_organization} "
+            f"[API key](https://bit.ly/open-api-key-info) first, like this:",
+            f"`/{COMMAND_START} sk-0123456789ABCDEF`",
+        ]
+    )
+
+
+def error_general_problem(reason: str, llm_author_organization: str = ORGANIZATION_OPEN_AI) -> str:
+    return MULTI_MESSAGE_DELIMITER.join(
+        [
+            f"🔴 I'm having issues replying to you.",
+            f"Maybe it's a problem with your {llm_author_organization} setup, or it's an internal problem on my side.",
+            f"Here's what I got:\n\n```{reason}```",
+            f"Remember, you can reset your {llm_author_organization} [API key](https://bit.ly/open-api-key-info):",
+            f"`/{COMMAND_START} sk-0123456789ABCDEF`",
+        ]
+    )
+
+
+explainer_setup_done: str = MULTI_MESSAGE_DELIMITER.join(
+    [
+        "Thanks, we can try again now.",
+        "Tell me, which language would you like me to use?",
+        "🗣️ 🐼 🥨 🪆 🥖 🍔 🥷 🕵️ 🌍",
+    ]
+)

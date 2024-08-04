@@ -17,7 +17,7 @@ class ReleaseSummarizer(SafePrinterMixin):
 
     def __init__(self, raw_notes: str, language_name: str | None = None, language_iso_code: str | None = None):
         super().__init__(config.verbose)
-        prompt = predefined_prompts.translated_response(
+        prompt = predefined_prompts.translator_on_response(
             base_prompt = predefined_prompts.announcer_release_telegram,
             language_name = language_name,
             langauge_iso_code = language_iso_code,
