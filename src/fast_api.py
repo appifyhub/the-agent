@@ -21,9 +21,11 @@ from features.auth import verify_api_key
 from features.chat.telegram.langchain_telegram_mapper import LangChainTelegramMapper
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
-from features.chat.telegram.telegram_chat_bot import TelegramChatBot, TELEGRAM_BOT_USER
+from features.chat.telegram.telegram_chat_bot import TelegramChatBot
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_update_mapper import TelegramUpdateMapper
+from features.command_processor import CommandProcessor
+from features.prompting.predefined_prompts import TELEGRAM_BOT_USER
 from features.summarizer.raw_notes_payload import RawNotesPayload
 from features.summarizer.release_summarizer import ReleaseSummarizer
 from features.web_fetcher import WebFetcher
@@ -160,6 +162,7 @@ def telegram_chat_update(
 
         # fetch latest messages to prepare a response
         chat_messages_dao = ChatMessageCRUD(db)
+        user_dao = UserCRUD(db)
         past_messages_db = chat_messages_dao.get_latest_chat_messages(
             chat_id = resolved_update.chat.chat_id,
             limit = config.chat_history_depth,
@@ -175,8 +178,9 @@ def telegram_chat_update(
             sprint("Not responding to messages without author")
             return False
         UserCRUD(db).save(TELEGRAM_BOT_USER)  # save is ignored if it already exists
-        telegram_chat_bot = TelegramChatBot(resolved_update.author, langchain_messages)
-        raw_message_response = telegram_chat_bot.respond()
+        command_processor = CommandProcessor(resolved_update.author, user_dao)
+        telegram_chat_bot = TelegramChatBot(resolved_update.author, langchain_messages, command_processor)
+        raw_message_response = telegram_chat_bot.execute()
         messages_to_send = langchain_telegram_mapper.map_bot_message_to_storage(
             resolved_update.chat.chat_id,
             raw_message_response,

@@ -1,6 +1,6 @@
 import unittest
 
-from features.llm.prompt_builder import PromptBuilder, PromptSection
+from features.prompting.prompt_builder import PromptBuilder, PromptSection
 
 
 class PromptBuilderTest(unittest.TestCase):

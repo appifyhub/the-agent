@@ -1,4 +1,3 @@
-import uuid
 from typing import TypeVar, Any
 
 from langchain_core.language_models import BaseChatModel, LanguageModelInput
@@ -6,11 +5,11 @@ from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage, AIM
 from langchain_core.runnables import Runnable
 from langchain_openai import ChatOpenAI
 
-from db.model.user import UserDB
-from db.schema.user import User, UserSave
+from db.schema.user import User
 from features.chat.tools.predefined_tools import PredefinedTools
-from features.llm import predefined_prompts
-from features.llm.predefined_prompts import MULTI_MESSAGE_DELIMITER
+from features.command_processor import CommandProcessor
+from features.prompting import predefined_prompts
+from features.prompting.predefined_prompts import MULTI_MESSAGE_DELIMITER, COMMAND_START
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
@@ -21,32 +20,22 @@ OPEN_AI_MAX_TOKENS = 600
 TMessage = TypeVar('TMessage', bound = BaseMessage)  # Generic message type
 TooledChatModel = Runnable[LanguageModelInput, BaseMessage]
 
-TELEGRAM_BOT_USER = UserSave(
-    full_name = config.telegram_bot_name,
-    telegram_username = config.telegram_bot_username,
-    telegram_chat_id = config.telegram_bot_username,
-    telegram_user_id = abs(hash(config.telegram_bot_username)) % (2 ** 31 - 1),
-    open_ai_key = None,
-    group = UserDB.Group.standard,
-    id = uuid.uuid5(uuid.NAMESPACE_DNS, config.telegram_bot_username),
-)
-
 
 class TelegramChatBot(SafePrinterMixin):
-    __prompt: BaseMessage
     __messages: list[BaseMessage]
     __invoker: User
+    __command_processor: CommandProcessor
     __predefined_tools: PredefinedTools
     __llm_base: BaseChatModel
     __llm_tools: TooledChatModel
 
-    def __init__(self, invoker: User, messages: list[BaseMessage]):
+    def __init__(self, invoker: User, messages: list[BaseMessage], command_processor: CommandProcessor):
         super().__init__(config.verbose)
-        self.__prompt = SystemMessage(predefined_prompts.chat_telegram)
-        self.__messages = []
-        self.__messages.append(self.__prompt)
-        self.__messages.extend(messages)
         self.__invoker = invoker
+        self.__messages = []
+        self.__messages.append(SystemMessage(predefined_prompts.chat_telegram))
+        self.__messages.extend(messages)
+        self.__command_processor = command_processor
         self.__predefined_tools = PredefinedTools()
         # noinspection PyArgumentList
         self.__llm_base = ChatOpenAI(
@@ -67,19 +56,19 @@ class TelegramChatBot(SafePrinterMixin):
     def __last_message(self) -> BaseMessage:
         return self.__messages[-1]
 
-    def respond(self) -> AIMessage:
+    def execute(self) -> AIMessage:
         self.sprint(f"Starting chat completion for '{self.__last_message.content}'")
         if isinstance(self.__llm_base, ChatOpenAI):
             if not self.__invoker.open_ai_key:
                 self.sprint(f"No API key found for #{self.__invoker.id}")
                 # TODO: this should eventually get replaced by a key storing function
-                if str(self.__last_message.content).startswith("/open-ai-key"):
+                if str(self.__last_message.content).startswith(f"/{COMMAND_START}"):
                     self.sprint("Attempting to store a new OpenAI API key")
                     self.sprint("  - not implemented yet")
                 error_message = MULTI_MESSAGE_DELIMITER.join(
                     [
                         "You need to send your Open AI key first, like so:",
-                        "/open-ai-key sk-0123456789ABCDEF",
+                        f"/{COMMAND_START} sk-0123456789ABCDEF",
                         "Note that this feature is not working yet 😬"
                     ]
                 )
