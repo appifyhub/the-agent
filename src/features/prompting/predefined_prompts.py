@@ -1,4 +1,4 @@
-from features.llm.prompt_builder import PromptBuilder, PromptSection
+from features.prompting.prompt_builder import PromptBuilder, PromptSection
 from util.translations_cache import DEFAULT_LANGUAGE, DEFAULT_ISO_CODE
 
 ALLOWED_TELEGRAM_EMOJIS: list[str] = [

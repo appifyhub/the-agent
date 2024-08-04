@@ -8,7 +8,7 @@ from db.schema.chat_message import ChatMessage
 from db.schema.user import User
 from features.chat.telegram.langchain_telegram_mapper import LangChainTelegramMapper
 from features.chat.telegram.telegram_chat_bot import TELEGRAM_BOT_USER
-from features.llm.predefined_prompts import MULTI_MESSAGE_DELIMITER
+from features.prompting.predefined_prompts import MULTI_MESSAGE_DELIMITER
 from util.config import config
 
 
