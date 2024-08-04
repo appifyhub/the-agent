@@ -1,5 +1,20 @@
+import uuid
+
+from db.model.user import UserDB
+from db.schema.user import UserSave
 from features.prompting.prompt_builder import PromptBuilder, PromptSection
+from util.config import config
 from util.translations_cache import DEFAULT_LANGUAGE, DEFAULT_ISO_CODE
+
+TELEGRAM_BOT_USER = UserSave(
+    full_name = config.telegram_bot_name,
+    telegram_username = config.telegram_bot_username,
+    telegram_chat_id = config.telegram_bot_username,
+    telegram_user_id = abs(hash(config.telegram_bot_username)) % (2 ** 31 - 1),
+    open_ai_key = None,
+    group = UserDB.Group.standard,
+    id = uuid.uuid5(uuid.NAMESPACE_DNS, config.telegram_bot_username),
+)
 
 ALLOWED_TELEGRAM_EMOJIS: list[str] = [
     "👍", "👎", "❤", "🔥", "🥰", "👏", "😁", "🤔", "🤯", "😱", "🤬", "😢", "🎉", "🤩", "🤮", "💩",
@@ -10,6 +25,7 @@ ALLOWED_TELEGRAM_EMOJIS: list[str] = [
 ]
 
 MULTI_MESSAGE_DELIMITER = "\n\n\n"
+COMMAND_START = "start"
 
 
 def __join(*items: str) -> str:
