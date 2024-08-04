@@ -2,7 +2,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, AIMessage, HumanMessage
 
-from features.llm import predefined_prompts
+from features.prompting import predefined_prompts
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
@@ -17,7 +17,7 @@ class ReleaseSummarizer(SafePrinterMixin):
 
     def __init__(self, raw_notes: str, language_name: str | None = None, language_iso_code: str | None = None):
         super().__init__(config.verbose)
-        prompt = predefined_prompts.translated_response(
+        prompt = predefined_prompts.translator_on_response(
             base_prompt = predefined_prompts.announcer_release_telegram,
             language_name = language_name,
             langauge_iso_code = language_iso_code,
