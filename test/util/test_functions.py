@@ -3,14 +3,14 @@ from datetime import date, datetime
 from uuid import UUID
 
 from db.schema.user import User
-from util.config import config
-from util.functions import is_the_agent, construct_bot_message_id
+from features.prompting.predefined_prompts import TELEGRAM_BOT_USER
+from util.functions import is_the_agent, construct_bot_message_id, silent
 
 
 class FunctionsTest(unittest.TestCase):
 
     def test_is_the_agent_true(self):
-        config.telegram_bot_username = "the_new_agent"
+        TELEGRAM_BOT_USER.telegram_username = "the_new_agent"
         user = User(
             id = UUID(int = 1),
             created_at = date.today(),
@@ -19,7 +19,7 @@ class FunctionsTest(unittest.TestCase):
         self.assertTrue(is_the_agent(user))
 
     def test_is_the_agent_false(self):
-        config.telegram_bot_username = "the_not_agent"
+        TELEGRAM_BOT_USER.telegram_username = "the_not_agent"
         user = User(
             id = UUID(int = 1),
             created_at = date.today(),
@@ -52,3 +52,27 @@ class FunctionsTest(unittest.TestCase):
         result2 = construct_bot_message_id(chat_id, sent_at2)
         self.assertNotEqual(result1, result2)
         self.assertNotEqual(result1[-9:-5], result2[-9:-5])
+
+    def test_silent_function_no_exception(self):
+        @silent
+        def no_exception() -> int:
+            return 42
+
+        result = no_exception()
+        self.assertEqual(result, 42)
+
+    def test_silent_function_with_exception(self):
+        @silent
+        def raise_exception() -> None:
+            raise ValueError("This is an error")
+
+        result = raise_exception()
+        self.assertIsNone(result)
+
+    def test_silent_lambda_no_exception(self):
+        result = silent(lambda: 100)()
+        self.assertEqual(result, 100)
+
+    def test_silent_lambda_with_exception(self):
+        result = silent(lambda: 10 / 0)()
+        self.assertIsNone(result)

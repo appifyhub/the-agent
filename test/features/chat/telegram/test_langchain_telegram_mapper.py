@@ -7,8 +7,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 from db.schema.chat_message import ChatMessage
 from db.schema.user import User
 from features.chat.telegram.langchain_telegram_mapper import LangChainTelegramMapper
-from features.chat.telegram.telegram_chat_bot import TELEGRAM_BOT_USER
-from features.llm.predefined_prompts import MULTI_MESSAGE_DELIMITER
+from features.prompting.predefined_prompts import MULTI_MESSAGE_DELIMITER, TELEGRAM_BOT_USER
 from util.config import config
 
 
@@ -41,9 +40,9 @@ class LangChainTelegramMapperTest(unittest.TestCase):
         ai_author = User(
             id = UUID(int = 2),
             created_at = date.today(),
-            telegram_user_id = 67890,
-            telegram_username = config.telegram_bot_username,
-            full_name = config.telegram_bot_name,
+            telegram_username = TELEGRAM_BOT_USER.telegram_username,
+            telegram_user_id = TELEGRAM_BOT_USER.telegram_user_id,
+            full_name = TELEGRAM_BOT_USER.full_name,
         )
         message = ChatMessage(chat_id = "c2", message_id = "m2", text = "I'm an AI assistant.")
         expected_output = AIMessage("I'm an AI assistant.")
