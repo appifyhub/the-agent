@@ -8,10 +8,11 @@ from db.schema.chat_message import ChatMessageSave, ChatMessage
 from db.schema.chat_message_attachment import ChatMessageAttachmentSave, ChatMessageAttachment
 from db.schema.user import UserSave, User
 from db.sql_util import SQLUtil
-from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.model.attachment.file import File
+from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_update_mapper import TelegramMappingResult
+from features.prompting.predefined_prompts import TELEGRAM_BOT_USER
 from util.config import config
 
 
@@ -68,10 +69,10 @@ class TelegramDataResolverTest(unittest.TestCase):
     def test_resolve_with_author_bot(self):
         chat_config_data = ChatConfigSave(chat_id = "c1", title = "Chat Title", is_private = True)
         author_data = UserSave(
-            telegram_username = config.telegram_bot_username,
+            telegram_username = TELEGRAM_BOT_USER.telegram_username,
             telegram_chat_id = chat_config_data.chat_id,
-            telegram_user_id = 1,
-            full_name = config.telegram_bot_name,
+            telegram_user_id = TELEGRAM_BOT_USER.telegram_user_id,
+            full_name = TELEGRAM_BOT_USER.full_name,
         )
         message_data = ChatMessageSave(
             chat_id = chat_config_data.chat_id,
