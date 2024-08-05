@@ -181,12 +181,16 @@ def telegram_chat_update(
             return False
         command_processor = CommandProcessor(resolved_domain_data.author, user_dao)
         telegram_chat_bot = TelegramChatBot(
+            resolved_domain_data.chat,
             resolved_domain_data.author,
             langchain_messages,
             domain_update.message.text,
             command_processor,
         )
         answer = telegram_chat_bot.execute()
+        if not answer.content:
+            sprint("Resolved an empty response, skipping bot reply")
+            return False
 
         # send and store the response[s]
         sent_messages: int = 0
@@ -200,8 +204,8 @@ def telegram_chat_update(
             sent_messages += 1
             chat_messages_dao.save(message)
             saved_messages += 1
+        sprint(f"Finished responding to updates. \n[{TELEGRAM_BOT_USER.full_name}]: {answer.content}")
         sprint(f"Used {len(past_messages_db)}, saved {saved_messages}, sent {sent_messages} messages")
-        sprint(f"Finished responding to event: \n[{TELEGRAM_BOT_USER.full_name}]: {answer.content}")
         return True
     except Exception as e:
         sprint(f"Failed to ingest: {update}", e)
