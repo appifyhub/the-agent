@@ -155,12 +155,11 @@ class TelegramDataResolverTest(unittest.TestCase):
     def test_resolve_chat_config_existing(self):
         existing_config_data = ChatConfigSave(
             chat_id = "c1",
-            persona_code = "existing_code",
-            persona_name = "Existing Persona",
             language_iso_code = "en",
             language_name = "English",
             title = "Old Title",
             is_private = False,
+            reply_chance_percent = 100,
         )
         existing_config_db = self.sql.chat_config_crud().save(existing_config_data)
         existing_config = ChatConfig.model_validate(existing_config_db)
@@ -177,12 +176,11 @@ class TelegramDataResolverTest(unittest.TestCase):
 
         self.assertEqual(result, saved_config)
         self.assertEqual(result.chat_id, mapped_data.chat_id)
-        self.assertEqual(result.persona_code, existing_config.persona_code)
-        self.assertEqual(result.persona_name, existing_config.persona_name)
         self.assertEqual(result.language_iso_code, existing_config.language_iso_code)
         self.assertEqual(result.language_name, existing_config.language_name)
         self.assertEqual(result.title, mapped_data.title)
         self.assertEqual(result.is_private, mapped_data.is_private)
+        self.assertEqual(result.reply_chance_percent, mapped_data.reply_chance_percent)
 
     def test_resolve_chat_config_new(self):
         mapped_data = ChatConfigSave(
@@ -197,12 +195,11 @@ class TelegramDataResolverTest(unittest.TestCase):
 
         self.assertEqual(result, saved_config)
         self.assertEqual(result.chat_id, mapped_data.chat_id)
-        self.assertEqual(result.persona_code, mapped_data.persona_code)
-        self.assertEqual(result.persona_name, mapped_data.persona_name)
         self.assertEqual(result.language_iso_code, mapped_data.language_iso_code)
         self.assertEqual(result.language_name, mapped_data.language_name)
         self.assertEqual(result.title, mapped_data.title)
         self.assertEqual(result.is_private, mapped_data.is_private)
+        self.assertEqual(result.reply_chance_percent, mapped_data.reply_chance_percent)
 
     def test_resolve_author_none(self):
         result = self.resolver.resolve_author(None)

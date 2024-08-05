@@ -221,11 +221,10 @@ class TelegramDomainMapperTest(unittest.TestCase):
 
         self.assertEqual(result.chat_id, "10")
         self.assertEqual(result.title, "First · @chat_username")
-        self.assertTrue(result.is_private)
-        self.assertIsNone(result.persona_code)
-        self.assertIsNone(result.persona_name)
         self.assertIsNone(result.language_iso_code)
         self.assertIsNone(result.language_name)
+        self.assertTrue(result.is_private)
+        self.assertEqual(result.reply_chance_percent, 100)
 
     def test_map_chat_empty(self):
         message = Message(
@@ -238,11 +237,10 @@ class TelegramDomainMapperTest(unittest.TestCase):
 
         self.assertEqual(result.chat_id, "10")
         self.assertEqual(result.title, "#10")
-        self.assertFalse(result.is_private)
-        self.assertIsNone(result.persona_code)
-        self.assertIsNone(result.persona_name)
         self.assertIsNone(result.language_iso_code)
         self.assertIsNone(result.language_name)
+        self.assertFalse(result.is_private)
+        self.assertEqual(result.reply_chance_percent, 100)
 
     def test_resolve_chat_name_filled(self):
         result = self.mapper.resolve_chat_name(

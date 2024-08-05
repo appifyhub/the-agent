@@ -18,9 +18,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
         self.sql.end_session()
 
     def test_create_chat_message(self):
-        chat = self.sql.chat_config_crud().create(
-            ChatConfigSave(chat_id = "chat1", persona_code = "persona1", persona_name = "Persona One")
-        )
+        chat = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1"))
         user = self.sql.user_crud().create(
             UserSave(
                 full_name = "Test User",
@@ -48,9 +46,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
         self.assertEqual(chat_message.text, chat_message_data.text)
 
     def test_get_chat_message(self):
-        chat = self.sql.chat_config_crud().create(
-            ChatConfigSave(chat_id = "chat1", persona_code = "persona1", persona_name = "Persona One")
-        )
+        chat = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1"))
         user = self.sql.user_crud().create(
             UserSave(
                 full_name = "Test User",
@@ -80,12 +76,8 @@ class ChatMessageCRUDTest(unittest.TestCase):
         self.assertEqual(fetched_chat_message.author_id, created_chat_message.author_id)
 
     def test_get_all_chat_messages(self):
-        chat1 = self.sql.chat_config_crud().create(
-            ChatConfigSave(chat_id = "chat1", persona_code = "persona1", persona_name = "Persona One")
-        )
-        chat2 = self.sql.chat_config_crud().create(
-            ChatConfigSave(chat_id = "chat2", persona_code = "persona2", persona_name = "Persona Two")
-        )
+        chat1 = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1"))
+        chat2 = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat2"))
         user = self.sql.user_crud().create(
             UserSave(
                 full_name = "Test User",
@@ -114,12 +106,8 @@ class ChatMessageCRUDTest(unittest.TestCase):
             self.assertEqual(fetched_chat_messages[i].author_id, chat_messages[i].author_id)
 
     def test_get_latest_chat_messages(self):
-        chat1 = self.sql.chat_config_crud().create(
-            ChatConfigSave(chat_id = "chat1", persona_code = "persona1", persona_name = "Persona One")
-        )
-        chat2 = self.sql.chat_config_crud().create(
-            ChatConfigSave(chat_id = "chat2", persona_code = "persona2", persona_name = "Persona Two")
-        )
+        chat1 = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1"))
+        chat2 = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat2"))
         user = self.sql.user_crud().create(
             UserSave(
                 full_name = "Test User",
@@ -188,9 +176,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
             self.assertEqual(fetched_chat2_messages[i].text, message.text)
 
     def test_update_chat_message(self):
-        chat = self.sql.chat_config_crud().create(
-            ChatConfigSave(chat_id = "chat1", persona_code = "persona1", persona_name = "Persona One")
-        )
+        chat = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1"))
         user = self.sql.user_crud().create(
             UserSave(
                 full_name = "Test User",
@@ -224,9 +210,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
         self.assertEqual(updated_chat_message.text, update_data.text)
 
     def test_save_chat_message(self):
-        chat = self.sql.chat_config_crud().create(
-            ChatConfigSave(chat_id = "chat1", persona_code = "persona1", persona_name = "Persona One")
-        )
+        chat = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1"))
         user = self.sql.user_crud().create(
             UserSave(
                 full_name = "Test User",
@@ -271,9 +255,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
         self.assertEqual(updated_chat_message.text, update_data.text)
 
     def test_delete_chat_message(self):
-        chat = self.sql.chat_config_crud().create(
-            ChatConfigSave(chat_id = "chat1", persona_code = "persona1", persona_name = "Persona One")
-        )
+        chat = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1"))
         user = self.sql.user_crud().create(
             UserSave(
                 full_name = "Test User",

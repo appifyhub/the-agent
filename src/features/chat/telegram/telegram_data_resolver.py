@@ -78,11 +78,10 @@ class TelegramDataResolver(SafePrinterMixin):
         if old_chat_config_db:
             old_chat_config = ChatConfig.model_validate(old_chat_config_db)
             # reset the attributes that are not normally changed through the Telegram API
-            mapped_data.persona_code = old_chat_config.persona_code
-            mapped_data.persona_name = old_chat_config.persona_name
             mapped_data.language_iso_code = old_chat_config.language_iso_code
             mapped_data.language_name = old_chat_config.language_name
             mapped_data.is_private = old_chat_config.is_private
+            mapped_data.reply_chance_percent = old_chat_config.reply_chance_percent
         return ChatConfig.model_validate(db.save(mapped_data))
 
     def resolve_author(self, mapped_data: UserSave | None) -> User | None:
