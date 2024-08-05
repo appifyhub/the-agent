@@ -2,7 +2,6 @@ import unittest
 from datetime import datetime
 
 from db.model.user import UserDB
-from features.chat.telegram.telegram_update_mapper import TelegramUpdateMapper
 from features.chat.telegram.model.attachment.audio import Audio
 from features.chat.telegram.model.attachment.document import Document
 from features.chat.telegram.model.attachment.file import File
@@ -13,17 +12,18 @@ from features.chat.telegram.model.message import Message
 from features.chat.telegram.model.text_quote import TextQuote
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.model.user import User
+from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from util.config import config
 
 
-class TelegramUpdateMapperTest(unittest.TestCase):
-    __converter: TelegramUpdateMapper
+class TelegramDomainMapperTest(unittest.TestCase):
+    mapper: TelegramDomainMapper
 
     def setUp(self):
         config.verbose = True
-        self.__converter = TelegramUpdateMapper()
+        self.mapper = TelegramDomainMapper()
 
-    def test_convert_update_filled(self):
+    def test_map_update_filled(self):
         update = Update(
             update_id = 1,
             message = Message(
@@ -45,7 +45,7 @@ class TelegramUpdateMapperTest(unittest.TestCase):
             ),
         )
 
-        result = self.__converter.convert_update(update)
+        result = self.mapper.map_update(update)
 
         self.assertIsNotNone(result)
         self.assertEqual(result.chat.chat_id, "10")
@@ -56,14 +56,14 @@ class TelegramUpdateMapperTest(unittest.TestCase):
         self.assertEqual(result.attachments[0].id, "a1")
         self.assertEqual(result.attachments[1].id, "d2")
 
-    def test_convert_update_empty(self):
+    def test_map_update_empty(self):
         update = Update(update_id = 1)
 
-        result = self.__converter.convert_update(update)
+        result = self.mapper.map_update(update)
 
         self.assertIsNone(result)
 
-    def test_convert_message_filled(self):
+    def test_map_message_filled(self):
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,
@@ -72,7 +72,7 @@ class TelegramUpdateMapperTest(unittest.TestCase):
             edit_date = int(datetime.now().timestamp()),
         )
 
-        result = self.__converter.convert_message(message)
+        result = self.mapper.map_message(message)
 
         self.assertEqual(result.chat_id, "10")
         self.assertEqual(result.message_id, "100")
@@ -80,7 +80,7 @@ class TelegramUpdateMapperTest(unittest.TestCase):
         self.assertEqual(result.sent_at, datetime.fromtimestamp(message.edit_date))
         self.assertEqual(result.text, "This is a test message")
 
-    def test_convert_message_empty(self):
+    def test_map_message_empty(self):
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,
@@ -88,7 +88,7 @@ class TelegramUpdateMapperTest(unittest.TestCase):
             date = int(datetime.now().timestamp()),
         )
 
-        result = self.__converter.convert_message(message)
+        result = self.mapper.map_message(message)
 
         self.assertEqual(result.chat_id, "10")
         self.assertEqual(result.message_id, "100")
@@ -96,7 +96,7 @@ class TelegramUpdateMapperTest(unittest.TestCase):
         self.assertEqual(result.sent_at, datetime.fromtimestamp(message.date))
         self.assertEqual(result.text, "This is a caption")
 
-    def test_convert_author_filled(self):
+    def test_map_author_filled(self):
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,
@@ -113,7 +113,7 @@ class TelegramUpdateMapperTest(unittest.TestCase):
             },
         )
 
-        result = self.__converter.convert_author(message)
+        result = self.mapper.map_author(message)
 
         self.assertIsNone(result.id)
         self.assertEqual(result.full_name, "First Last")
@@ -123,18 +123,18 @@ class TelegramUpdateMapperTest(unittest.TestCase):
         self.assertIsNone(result.open_ai_key)
         self.assertEqual(result.group, UserDB.Group.standard)
 
-    def test_convert_author_empty(self):
+    def test_map_author_empty(self):
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,
             date = int(datetime.now().timestamp()),
         )
 
-        result = self.__converter.convert_author(message)
+        result = self.mapper.map_author(message)
 
         self.assertIsNone(result)
 
-    def test_convert_text_as_reply_filled(self):
+    def test_map_text_as_reply_filled(self):
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,
@@ -144,7 +144,7 @@ class TelegramUpdateMapperTest(unittest.TestCase):
             audio = Audio(file_id = "a1", file_unique_id = "a", mime_type = "audio/mpeg"),
         )
 
-        result = self.__converter.convert_text_as_reply(message)
+        result = self.mapper.map_text_as_reply(message)
 
         expected_text = (
             ">>>> This is a caption\n\n"
@@ -154,18 +154,18 @@ class TelegramUpdateMapperTest(unittest.TestCase):
 
         self.assertEqual(result, expected_text)
 
-    def test_convert_text_as_reply_empty(self):
+    def test_map_text_as_reply_empty(self):
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,
             date = int(datetime.now().timestamp()),
         )
 
-        result = self.__converter.convert_text_as_reply(message)
+        result = self.mapper.map_text_as_reply(message)
 
         self.assertEqual(result, "")
 
-    def test_convert_text_filled(self):
+    def test_map_text_filled(self):
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,
@@ -182,7 +182,7 @@ class TelegramUpdateMapperTest(unittest.TestCase):
             voice = Voice(file_id = "v4", file_unique_id = "v", file_size = 4, mime_type = "audio/ogg"),
         )
 
-        result = self.__converter.convert_text(message)
+        result = self.mapper.map_text(message)
 
         expected_text = (
             ">>>> This is a reply message\n\n"
@@ -194,18 +194,18 @@ class TelegramUpdateMapperTest(unittest.TestCase):
 
         self.assertEqual(result, expected_text)
 
-    def test_convert_text_empty(self):
+    def test_map_text_empty(self):
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,
             date = int(datetime.now().timestamp()),
         )
 
-        result = self.__converter.convert_text(message)
+        result = self.mapper.map_text(message)
 
         self.assertEqual(result, "")
 
-    def test_convert_chat_filled(self):
+    def test_map_chat_filled(self):
         message = Message(
             chat = Chat(
                 id = 10,
@@ -217,7 +217,7 @@ class TelegramUpdateMapperTest(unittest.TestCase):
             date = int(datetime.now().timestamp()),
         )
 
-        result = self.__converter.convert_chat(message)
+        result = self.mapper.map_chat(message)
 
         self.assertEqual(result.chat_id, "10")
         self.assertEqual(result.title, "First · @chat_username")
@@ -227,14 +227,14 @@ class TelegramUpdateMapperTest(unittest.TestCase):
         self.assertIsNone(result.language_iso_code)
         self.assertIsNone(result.language_name)
 
-    def test_convert_chat_empty(self):
+    def test_map_chat_empty(self):
         message = Message(
             chat = Chat(id = 10, type = "channel"),
             message_id = 100,
             date = int(datetime.now().timestamp()),
         )
 
-        result = self.__converter.convert_chat(message)
+        result = self.mapper.map_chat(message)
 
         self.assertEqual(result.chat_id, "10")
         self.assertEqual(result.title, "#10")
@@ -245,7 +245,7 @@ class TelegramUpdateMapperTest(unittest.TestCase):
         self.assertIsNone(result.language_name)
 
     def test_resolve_chat_name_filled(self):
-        result = self.__converter.resolve_chat_name(
+        result = self.mapper.resolve_chat_name(
             chat_id = "10",
             title = "Chat Title",
             username = "chat_username",
@@ -256,7 +256,7 @@ class TelegramUpdateMapperTest(unittest.TestCase):
         self.assertEqual(result, "Chat Title · First Last · @chat_username")
 
     def test_resolve_chat_name_partial(self):
-        result = self.__converter.resolve_chat_name(
+        result = self.mapper.resolve_chat_name(
             chat_id = "10",
             title = "Chat Title",
             username = None,
@@ -267,7 +267,7 @@ class TelegramUpdateMapperTest(unittest.TestCase):
         self.assertEqual(result, "Chat Title · First")
 
     def test_resolve_chat_name_empty(self):
-        result = self.__converter.resolve_chat_name(
+        result = self.mapper.resolve_chat_name(
             chat_id = "10",
             title = None,
             username = None,
@@ -277,7 +277,7 @@ class TelegramUpdateMapperTest(unittest.TestCase):
 
         self.assertEqual(result, "#10")
 
-    def test_convert_attachments_as_text_filled(self):
+    def test_map_attachments_as_text_filled(self):
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,
@@ -286,22 +286,22 @@ class TelegramUpdateMapperTest(unittest.TestCase):
             date = int(datetime.now().timestamp()),
         )
 
-        result = self.__converter.convert_attachments_as_text(message)
+        result = self.mapper.map_attachments_as_text(message)
 
         self.assertEqual(result, "[ a1 (audio/mpeg), d2 ]")
 
-    def test_convert_attachments_as_text_empty(self):
+    def test_map_attachments_as_text_empty(self):
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,
             date = int(datetime.now().timestamp()),
         )
 
-        result = self.__converter.convert_attachments_as_text(message)
+        result = self.mapper.map_attachments_as_text(message)
 
         self.assertIsNone(result)
 
-    def test_convert_attachments_filled(self):
+    def test_map_attachments_filled(self):
         message = Message(
             message_id = 100,
             chat = Chat(id = 10, type = "private"),
@@ -315,7 +315,7 @@ class TelegramUpdateMapperTest(unittest.TestCase):
             date = int(datetime.now().timestamp()),
         )
 
-        result = self.__converter.convert_attachments(message)
+        result = self.mapper.map_attachments(message)
 
         self.assertEqual(len(result), 4)
         # audio
@@ -355,18 +355,18 @@ class TelegramUpdateMapperTest(unittest.TestCase):
         self.assertIsNone(result[3].last_url)
         self.assertIsNone(result[3].last_url_until)
 
-    def test_convert_attachments_empty(self):
+    def test_map_attachments_empty(self):
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,
             date = int(datetime.now().timestamp()),
         )
 
-        result = self.__converter.convert_attachments(message)
+        result = self.mapper.map_attachments(message)
 
         self.assertEqual(result, [])
 
-    def test_convert_to_attachment_filled(self):
+    def test_map_to_attachment_filled(self):
         file = File(
             file_id = "123",
             file_unique_id = "ABC",
@@ -377,7 +377,7 @@ class TelegramUpdateMapperTest(unittest.TestCase):
         message_id = "100"
         mime_type = "image/png"
 
-        result = self.__converter.convert_to_attachment(file, chat_id, message_id, mime_type)
+        result = self.mapper.map_to_attachment(file, chat_id, message_id, mime_type)
 
         self.assertEqual(result.id, file.file_id)
         self.assertEqual(result.chat_id, chat_id)
@@ -388,7 +388,7 @@ class TelegramUpdateMapperTest(unittest.TestCase):
         self.assertIsNone(result.extension)
         self.assertEqual(result.mime_type, mime_type)
 
-    def test_convert_to_attachment_filled_no_mime_type(self):
+    def test_map_to_attachment_filled_no_mime_type(self):
         file = File(
             file_id = "123",
             file_unique_id = "ABC",
@@ -398,7 +398,7 @@ class TelegramUpdateMapperTest(unittest.TestCase):
         chat_id = "10"
         message_id = "100"
 
-        result = self.__converter.convert_to_attachment(file, chat_id, message_id, mime_type = None)
+        result = self.mapper.map_to_attachment(file, chat_id, message_id, mime_type = None)
 
         self.assertEqual(result.id, file.file_id)
         self.assertEqual(result.chat_id, chat_id)
@@ -409,7 +409,7 @@ class TelegramUpdateMapperTest(unittest.TestCase):
         self.assertIsNone(result.extension)
         self.assertIsNone(result.mime_type)
 
-    def test_convert_to_attachment_empty(self):
+    def test_map_to_attachment_empty(self):
         file = File(
             file_id = "123",
             file_unique_id = "ABC",
@@ -417,7 +417,7 @@ class TelegramUpdateMapperTest(unittest.TestCase):
         chat_id = "10"
         message_id = "100"
 
-        result = self.__converter.convert_to_attachment(file, chat_id, message_id, mime_type = None)
+        result = self.mapper.map_to_attachment(file, chat_id, message_id, mime_type = None)
 
         self.assertEqual(result.id, file.file_id)
         self.assertEqual(result.chat_id, chat_id)

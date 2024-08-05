@@ -11,24 +11,24 @@ from db.sql_util import SQLUtil
 from features.chat.telegram.model.attachment.file import File
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
-from features.chat.telegram.telegram_update_mapper import TelegramMappingResult
+from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.prompting.predefined_prompts import TELEGRAM_BOT_USER
 from util.config import config
 
 
 class TelegramDataResolverTest(unittest.TestCase):
-    __sql: SQLUtil
-    __bot_api: TelegramBotAPI
-    __resolver: TelegramDataResolver
+    sql: SQLUtil
+    bot_api: TelegramBotAPI
+    resolver: TelegramDataResolver
 
     def setUp(self):
         config.verbose = True
-        self.__sql = SQLUtil()
-        self.__bot_api = MagicMock()
-        self.__resolver = TelegramDataResolver(self.__sql.get_session(), self.__bot_api)
+        self.sql = SQLUtil()
+        self.bot_api = MagicMock()
+        self.resolver = TelegramDataResolver(self.sql.get_session(), self.bot_api)
 
     def tearDown(self):
-        self.__sql.end_session()
+        self.sql.end_session()
 
     def test_resolve_no_author(self):
         chat_config_data = ChatConfigSave(chat_id = "c1", title = "Chat Title", is_private = True)
@@ -46,14 +46,14 @@ class TelegramDataResolverTest(unittest.TestCase):
             extension = "jpg",
             mime_type = "image/jpeg",
         )
-        conversion_result = TelegramMappingResult(
+        mapping_result = TelegramDomainMapper.Result(
             chat = chat_config_data,
             author = None,
             message = message_data,
             attachments = [attachment_data],
         )
 
-        result = self.__resolver.resolve(conversion_result)
+        result = self.resolver.resolve(mapping_result)
 
         self.assertIsNone(result.author)
         self.assertEqual(result.chat.chat_id, chat_config_data.chat_id)
@@ -88,14 +88,14 @@ class TelegramDataResolverTest(unittest.TestCase):
             extension = "jpg",
             mime_type = "image/jpeg",
         )
-        conversion_result = TelegramMappingResult(
+        mapping_result = TelegramDomainMapper.Result(
             chat = chat_config_data,
             author = author_data,
             message = message_data,
             attachments = [attachment_data],
         )
 
-        result = self.__resolver.resolve(conversion_result)
+        result = self.resolver.resolve(mapping_result)
 
         self.assertIsNotNone(result.author.id)
         self.assertEqual(result.chat.chat_id, chat_config_data.chat_id)
@@ -131,14 +131,14 @@ class TelegramDataResolverTest(unittest.TestCase):
             extension = "jpg",
             mime_type = "image/jpeg",
         )
-        conversion_result = TelegramMappingResult(
+        mapping_result = TelegramDomainMapper.Result(
             chat = chat_config_data,
             author = author_data,
             message = message_data,
             attachments = [attachment_data],
         )
 
-        result = self.__resolver.resolve(conversion_result)
+        result = self.resolver.resolve(mapping_result)
 
         self.assertIsNotNone(result.author.id)
         self.assertEqual(result.chat.chat_id, chat_config_data.chat_id)
@@ -162,71 +162,71 @@ class TelegramDataResolverTest(unittest.TestCase):
             title = "Old Title",
             is_private = False,
         )
-        existing_config_db = self.__sql.chat_config_crud().save(existing_config_data)
+        existing_config_db = self.sql.chat_config_crud().save(existing_config_data)
         existing_config = ChatConfig.model_validate(existing_config_db)
 
-        converted_data = ChatConfigSave(
+        mapped_data = ChatConfigSave(
             chat_id = "c1",
             title = "New Title",
             is_private = True,
         )
 
-        result = self.__resolver.resolve_chat_config(converted_data)
-        saved_config_db = self.__sql.chat_config_crud().get(converted_data.chat_id)
+        result = self.resolver.resolve_chat_config(mapped_data)
+        saved_config_db = self.sql.chat_config_crud().get(mapped_data.chat_id)
         saved_config = ChatConfig.model_validate(saved_config_db)
 
         self.assertEqual(result, saved_config)
-        self.assertEqual(result.chat_id, converted_data.chat_id)
+        self.assertEqual(result.chat_id, mapped_data.chat_id)
         self.assertEqual(result.persona_code, existing_config.persona_code)
         self.assertEqual(result.persona_name, existing_config.persona_name)
         self.assertEqual(result.language_iso_code, existing_config.language_iso_code)
         self.assertEqual(result.language_name, existing_config.language_name)
-        self.assertEqual(result.title, converted_data.title)
-        self.assertEqual(result.is_private, converted_data.is_private)
+        self.assertEqual(result.title, mapped_data.title)
+        self.assertEqual(result.is_private, mapped_data.is_private)
 
     def test_resolve_chat_config_new(self):
-        converted_data = ChatConfigSave(
+        mapped_data = ChatConfigSave(
             chat_id = "c1",
             title = "Title",
             is_private = True,
         )
 
-        result = self.__resolver.resolve_chat_config(converted_data)
-        saved_config_db = self.__sql.chat_config_crud().get(converted_data.chat_id)
+        result = self.resolver.resolve_chat_config(mapped_data)
+        saved_config_db = self.sql.chat_config_crud().get(mapped_data.chat_id)
         saved_config = ChatConfig.model_validate(saved_config_db)
 
         self.assertEqual(result, saved_config)
-        self.assertEqual(result.chat_id, converted_data.chat_id)
-        self.assertEqual(result.persona_code, converted_data.persona_code)
-        self.assertEqual(result.persona_name, converted_data.persona_name)
-        self.assertEqual(result.language_iso_code, converted_data.language_iso_code)
-        self.assertEqual(result.language_name, converted_data.language_name)
-        self.assertEqual(result.title, converted_data.title)
-        self.assertEqual(result.is_private, converted_data.is_private)
+        self.assertEqual(result.chat_id, mapped_data.chat_id)
+        self.assertEqual(result.persona_code, mapped_data.persona_code)
+        self.assertEqual(result.persona_name, mapped_data.persona_name)
+        self.assertEqual(result.language_iso_code, mapped_data.language_iso_code)
+        self.assertEqual(result.language_name, mapped_data.language_name)
+        self.assertEqual(result.title, mapped_data.title)
+        self.assertEqual(result.is_private, mapped_data.is_private)
 
     def test_resolve_author_none(self):
-        result = self.__resolver.resolve_author(None)
+        result = self.resolver.resolve_author(None)
         self.assertIsNone(result)
 
     def test_resolve_author_new(self):
-        converted_data = UserSave(
+        mapped_data = UserSave(
             telegram_user_id = 1,
             full_name = "New User",
             telegram_chat_id = "c1",
         )
 
-        result = self.__resolver.resolve_author(converted_data)
-        saved_user_db = self.__sql.user_crud().get_by_telegram_user_id(converted_data.telegram_user_id)
+        result = self.resolver.resolve_author(mapped_data)
+        saved_user_db = self.sql.user_crud().get_by_telegram_user_id(mapped_data.telegram_user_id)
         saved_user = User.model_validate(saved_user_db)
 
         self.assertEqual(result, saved_user)
         self.assertIsNotNone(result.id)
-        self.assertEqual(result.full_name, converted_data.full_name)
-        self.assertEqual(result.telegram_username, converted_data.telegram_username)
-        self.assertEqual(result.telegram_chat_id, converted_data.telegram_chat_id)
-        self.assertEqual(result.telegram_user_id, converted_data.telegram_user_id)
-        self.assertEqual(result.open_ai_key, converted_data.open_ai_key)
-        self.assertEqual(result.group, converted_data.group)
+        self.assertEqual(result.full_name, mapped_data.full_name)
+        self.assertEqual(result.telegram_username, mapped_data.telegram_username)
+        self.assertEqual(result.telegram_chat_id, mapped_data.telegram_chat_id)
+        self.assertEqual(result.telegram_user_id, mapped_data.telegram_user_id)
+        self.assertEqual(result.open_ai_key, mapped_data.open_ai_key)
+        self.assertEqual(result.group, mapped_data.group)
         self.assertEqual(result.created_at, datetime.now().date())
 
     def test_resolve_author_existing(self):
@@ -237,46 +237,46 @@ class TelegramDataResolverTest(unittest.TestCase):
             open_ai_key = "sk-key",
             group = UserDB.Group.alpha,
         )
-        existing_user_db = self.__sql.user_crud().save(existing_user_data)
+        existing_user_db = self.sql.user_crud().save(existing_user_data)
         existing_user = User.model_validate(existing_user_db)
 
-        converted_data = UserSave(
+        mapped_data = UserSave(
             telegram_user_id = 1,
             full_name = "Updated User",
             telegram_chat_id = "c2",
         )
 
-        result = self.__resolver.resolve_author(converted_data)
-        saved_user_db = self.__sql.user_crud().get(result.id)
+        result = self.resolver.resolve_author(mapped_data)
+        saved_user_db = self.sql.user_crud().get(result.id)
         saved_user = User.model_validate(saved_user_db)
 
         self.assertEqual(result, saved_user)
         self.assertEqual(result.id, existing_user.id)
-        self.assertEqual(result.full_name, converted_data.full_name)
-        self.assertEqual(result.telegram_username, converted_data.telegram_username)
-        self.assertEqual(result.telegram_chat_id, converted_data.telegram_chat_id)
-        self.assertEqual(result.telegram_user_id, converted_data.telegram_user_id)
+        self.assertEqual(result.full_name, mapped_data.full_name)
+        self.assertEqual(result.telegram_username, mapped_data.telegram_username)
+        self.assertEqual(result.telegram_chat_id, mapped_data.telegram_chat_id)
+        self.assertEqual(result.telegram_user_id, mapped_data.telegram_user_id)
         self.assertEqual(result.open_ai_key, existing_user.open_ai_key)
         self.assertEqual(result.group, existing_user.group)
         self.assertEqual(result.created_at, existing_user.created_at)
 
     def test_resolve_chat_message_new(self):
-        converted_data = ChatMessageSave(
+        mapped_data = ChatMessageSave(
             chat_id = "c1",
             message_id = "m1",
             text = "This is a message",
         )
 
-        result = self.__resolver.resolve_chat_message(converted_data)
-        saved_message_db = self.__sql.chat_message_crud().get(converted_data.chat_id, converted_data.message_id)
+        result = self.resolver.resolve_chat_message(mapped_data)
+        saved_message_db = self.sql.chat_message_crud().get(mapped_data.chat_id, mapped_data.message_id)
         saved_message = ChatMessage.model_validate(saved_message_db)
 
         self.assertEqual(result, saved_message)
-        self.assertEqual(result.chat_id, converted_data.chat_id)
-        self.assertEqual(result.message_id, converted_data.message_id)
-        self.assertEqual(result.author_id, converted_data.author_id)
-        self.assertEqual(result.sent_at, converted_data.sent_at)
-        self.assertEqual(result.text, converted_data.text)
+        self.assertEqual(result.chat_id, mapped_data.chat_id)
+        self.assertEqual(result.message_id, mapped_data.message_id)
+        self.assertEqual(result.author_id, mapped_data.author_id)
+        self.assertEqual(result.sent_at, mapped_data.sent_at)
+        self.assertEqual(result.text, mapped_data.text)
 
     def test_resolve_chat_message_with_existing(self):
         old_message_data = ChatMessageSave(
@@ -286,11 +286,11 @@ class TelegramDataResolverTest(unittest.TestCase):
             sent_at = datetime.now() - timedelta(days = 1),
             text = "Old message",
         )
-        self.__sql.chat_message_crud().save(old_message_data)
+        self.sql.chat_message_crud().save(old_message_data)
 
         new_author_data = UserSave(full_name = "First Last", telegram_chat_id = "c1")
-        new_author = User.model_validate(self.__sql.user_crud().save(new_author_data))
-        converted_data = ChatMessageSave(
+        new_author = User.model_validate(self.sql.user_crud().save(new_author_data))
+        mapped_data = ChatMessageSave(
             chat_id = "c1",
             message_id = "m1",
             author_id = new_author.id,
@@ -298,19 +298,19 @@ class TelegramDataResolverTest(unittest.TestCase):
             text = "Updated message",
         )
 
-        result = self.__resolver.resolve_chat_message(converted_data)
-        saved_message_db = self.__sql.chat_message_crud().get(converted_data.chat_id, converted_data.message_id)
+        result = self.resolver.resolve_chat_message(mapped_data)
+        saved_message_db = self.sql.chat_message_crud().get(mapped_data.chat_id, mapped_data.message_id)
         saved_message = ChatMessage.model_validate(saved_message_db)
 
         self.assertEqual(result, saved_message)
-        self.assertEqual(result.chat_id, converted_data.chat_id)
-        self.assertEqual(result.message_id, converted_data.message_id)
-        self.assertEqual(result.author_id, converted_data.author_id)
-        self.assertEqual(result.sent_at, converted_data.sent_at)
-        self.assertEqual(result.text, converted_data.text)
+        self.assertEqual(result.chat_id, mapped_data.chat_id)
+        self.assertEqual(result.message_id, mapped_data.message_id)
+        self.assertEqual(result.author_id, mapped_data.author_id)
+        self.assertEqual(result.sent_at, mapped_data.sent_at)
+        self.assertEqual(result.text, mapped_data.text)
 
     def test_resolve_chat_message_attachment_new(self):
-        converted_data = ChatMessageAttachmentSave(
+        mapped_data = ChatMessageAttachmentSave(
             id = "i1",
             chat_id = "c1",
             message_id = "m1",
@@ -320,19 +320,19 @@ class TelegramDataResolverTest(unittest.TestCase):
             mime_type = "image/jpeg",
         )
 
-        result = self.__resolver.resolve_chat_message_attachment(converted_data)
-        saved_attachment_db = self.__sql.chat_message_attachment_crud().get(converted_data.id)
+        result = self.resolver.resolve_chat_message_attachment(mapped_data)
+        saved_attachment_db = self.sql.chat_message_attachment_crud().get(mapped_data.id)
         saved_attachment = ChatMessageAttachment.model_validate(saved_attachment_db)
 
         self.assertEqual(result, saved_attachment)
-        self.assertEqual(result.id, converted_data.id)
-        self.assertEqual(result.chat_id, converted_data.chat_id)
-        self.assertEqual(result.message_id, converted_data.message_id)
-        self.assertEqual(result.size, converted_data.size)
-        self.assertEqual(result.last_url, converted_data.last_url)
-        self.assertEqual(result.last_url_until, converted_data.last_url_until)
-        self.assertEqual(result.extension, converted_data.extension)
-        self.assertEqual(result.mime_type, converted_data.mime_type)
+        self.assertEqual(result.id, mapped_data.id)
+        self.assertEqual(result.chat_id, mapped_data.chat_id)
+        self.assertEqual(result.message_id, mapped_data.message_id)
+        self.assertEqual(result.size, mapped_data.size)
+        self.assertEqual(result.last_url, mapped_data.last_url)
+        self.assertEqual(result.last_url_until, mapped_data.last_url_until)
+        self.assertEqual(result.extension, mapped_data.extension)
+        self.assertEqual(result.mime_type, mapped_data.mime_type)
 
     def test_resolve_chat_message_attachment_existing(self):
         old_attachment_data = ChatMessageAttachmentSave(
@@ -345,17 +345,17 @@ class TelegramDataResolverTest(unittest.TestCase):
             extension = "jpg",
             mime_type = "image/jpeg",
         )
-        self.__sql.chat_message_attachment_crud().save(old_attachment_data)
+        self.sql.chat_message_attachment_crud().save(old_attachment_data)
 
-        converted_data = ChatMessageAttachmentSave(id = "i1", chat_id = "c1", message_id = "m1")  # missing file data
-        result = self.__resolver.resolve_chat_message_attachment(converted_data)  # injects file data from DB
-        saved_attachment_db = self.__sql.chat_message_attachment_crud().get(converted_data.id)
+        mapped_data = ChatMessageAttachmentSave(id = "i1", chat_id = "c1", message_id = "m1")  # missing file data
+        result = self.resolver.resolve_chat_message_attachment(mapped_data)  # injects file data from DB
+        saved_attachment_db = self.sql.chat_message_attachment_crud().get(mapped_data.id)
         saved_attachment = ChatMessageAttachment.model_validate(saved_attachment_db)
 
         self.assertEqual(result, saved_attachment)
-        self.assertEqual(result.id, converted_data.id)
-        self.assertEqual(result.chat_id, converted_data.chat_id)
-        self.assertEqual(result.message_id, converted_data.message_id)
+        self.assertEqual(result.id, mapped_data.id)
+        self.assertEqual(result.chat_id, mapped_data.chat_id)
+        self.assertEqual(result.message_id, mapped_data.message_id)
         self.assertEqual(result.size, old_attachment_data.size)
         self.assertEqual(result.last_url, old_attachment_data.last_url)
         self.assertEqual(result.last_url_until, old_attachment_data.last_url_until)
@@ -363,7 +363,7 @@ class TelegramDataResolverTest(unittest.TestCase):
         self.assertEqual(result.mime_type, old_attachment_data.mime_type)
 
     def test_update_attachment_using_api_url_valid(self):
-        converted_data = ChatMessageAttachmentSave(
+        mapped_data = ChatMessageAttachmentSave(
             id = "i1",
             chat_id = "c1",
             message_id = "m1",
@@ -374,57 +374,57 @@ class TelegramDataResolverTest(unittest.TestCase):
             extension = "jpg",
         )
 
-        result = self.__resolver.update_attachment_using_api(converted_data)
+        result = self.resolver.update_attachment_using_api(mapped_data)
 
         self.assertFalse(result)
-        self.assertEqual(converted_data.id, "i1")
-        self.assertEqual(converted_data.chat_id, "c1")
-        self.assertEqual(converted_data.message_id, "m1")
-        self.assertEqual(converted_data.size, 2)
-        self.assertEqual(converted_data.last_url, "old/url/to/file.jpg")
-        self.assertIsNotNone(converted_data.last_url_until)
-        self.assertEqual(converted_data.extension, "jpg")
-        self.assertEqual(converted_data.mime_type, "image/jpeg")
+        self.assertEqual(mapped_data.id, "i1")
+        self.assertEqual(mapped_data.chat_id, "c1")
+        self.assertEqual(mapped_data.message_id, "m1")
+        self.assertEqual(mapped_data.size, 2)
+        self.assertEqual(mapped_data.last_url, "old/url/to/file.jpg")
+        self.assertIsNotNone(mapped_data.last_url_until)
+        self.assertEqual(mapped_data.extension, "jpg")
+        self.assertEqual(mapped_data.mime_type, "image/jpeg")
 
     def test_update_attachment_using_api_url_expired(self):
         api_file = File(file_id = "i1", file_unique_id = "ui1", file_size = 1, file_path = "path/to/file.png")
-        converted_data = ChatMessageAttachmentSave(
+        mapped_data = ChatMessageAttachmentSave(
             id = "i1",
             chat_id = "c1",
             message_id = "m1",
             last_url = "old/url/to/file.jpg",
             last_url_until = self.expired_url_timestamp(),
         )
-        self.__bot_api.get_file_info.return_value = api_file
+        self.bot_api.get_file_info.return_value = api_file
 
-        result = self.__resolver.update_attachment_using_api(converted_data)
+        result = self.resolver.update_attachment_using_api(mapped_data)
 
         self.assertTrue(result)
-        self.assertEqual(converted_data.id, "i1")
-        self.assertEqual(converted_data.chat_id, "c1")
-        self.assertEqual(converted_data.message_id, "m1")
-        self.assertEqual(converted_data.size, 1)
-        self.assertTrue(converted_data.last_url.endswith("path/to/file.png"))
-        self.assertIsNotNone(converted_data.last_url_until)
-        self.assertEqual(converted_data.extension, "png")
-        self.assertEqual(converted_data.mime_type, "image/png")
+        self.assertEqual(mapped_data.id, "i1")
+        self.assertEqual(mapped_data.chat_id, "c1")
+        self.assertEqual(mapped_data.message_id, "m1")
+        self.assertEqual(mapped_data.size, 1)
+        self.assertTrue(mapped_data.last_url.endswith("path/to/file.png"))
+        self.assertIsNotNone(mapped_data.last_url_until)
+        self.assertEqual(mapped_data.extension, "png")
+        self.assertEqual(mapped_data.mime_type, "image/png")
 
     def test_update_attachment_using_api_url_missing(self):
         api_file = File(file_id = "i1", file_unique_id = "ui1", file_size = 1, file_path = "path/to/file.png")
-        converted_data = ChatMessageAttachmentSave(id = "i1", chat_id = "c1", message_id = "m1")
-        self.__bot_api.get_file_info.return_value = api_file
+        mapped_data = ChatMessageAttachmentSave(id = "i1", chat_id = "c1", message_id = "m1")
+        self.bot_api.get_file_info.return_value = api_file
 
-        result = self.__resolver.update_attachment_using_api(converted_data)
+        result = self.resolver.update_attachment_using_api(mapped_data)
 
         self.assertTrue(result)
-        self.assertEqual(converted_data.id, "i1")
-        self.assertEqual(converted_data.chat_id, "c1")
-        self.assertEqual(converted_data.message_id, "m1")
-        self.assertEqual(converted_data.size, 1)
-        self.assertTrue(converted_data.last_url.endswith("path/to/file.png"))
-        self.assertIsNotNone(converted_data.last_url_until)
-        self.assertEqual(converted_data.extension, "png")
-        self.assertEqual(converted_data.mime_type, "image/png")
+        self.assertEqual(mapped_data.id, "i1")
+        self.assertEqual(mapped_data.chat_id, "c1")
+        self.assertEqual(mapped_data.message_id, "m1")
+        self.assertEqual(mapped_data.size, 1)
+        self.assertTrue(mapped_data.last_url.endswith("path/to/file.png"))
+        self.assertIsNotNone(mapped_data.last_url_until)
+        self.assertEqual(mapped_data.extension, "png")
+        self.assertEqual(mapped_data.mime_type, "image/png")
 
     @staticmethod
     def valid_url_timestamp():
