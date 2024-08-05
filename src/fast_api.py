@@ -19,12 +19,12 @@ from db.schema.invite import Invite
 from db.schema.user import User
 from db.sql import get_session
 from features.auth import verify_api_key
-from features.chat.telegram.langchain_telegram_mapper import LangChainTelegramMapper
+from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.telegram_chat_bot import TelegramChatBot
-from features.chat.telegram.telegram_data_resolver import TelegramDataResolver, ResolutionResult
-from features.chat.telegram.telegram_update_mapper import TelegramUpdateMapper
+from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
+from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.command_processor import CommandProcessor
 from features.prompting import predefined_prompts
 from features.prompting.predefined_prompts import TELEGRAM_BOT_USER
@@ -155,55 +155,62 @@ def telegram_chat_update(
     user_dao = UserCRUD(db)
     user_dao.save(TELEGRAM_BOT_USER)  # save is ignored if bot already exists
     chat_messages_dao = ChatMessageCRUD(db)
-    langchain_telegram_mapper = LangChainTelegramMapper()
-    resolved_update: ResolutionResult | None = None
+    domain_langchain_mapper = DomainLangchainMapper()
+    resolved_domain_data: TelegramDataResolver.Result | None = None
     try:
         # map to storage models for persistence
-        mapped_update = TelegramUpdateMapper().convert_update(update)
-        if not mapped_update: raise HTTPException(status_code = 422, detail = "Update not convertible")
+        domain_update = TelegramDomainMapper().map_update(update)
+        if not domain_update: raise HTTPException(status_code = 422, detail = "Unable to map the update")
 
         # store and map to domain models (throws in case of error)
-        resolved_update = TelegramDataResolver(db, telegram_bot_api).resolve(mapped_update)
-        sprint(f"Imported updates from Telegram: {resolved_update}")
+        resolved_domain_data = TelegramDataResolver(db, telegram_bot_api).resolve(domain_update)
+        sprint(f"Imported updates from Telegram: {resolved_domain_data}")
 
         # fetch latest messages to prepare a response
         past_messages_db = chat_messages_dao.get_latest_chat_messages(
-            chat_id = resolved_update.chat.chat_id,
+            chat_id = resolved_domain_data.chat.chat_id,
             limit = config.chat_history_depth,
         )
         past_messages = [ChatMessage.model_validate(chat_message) for chat_message in past_messages_db]
-        convert = lambda message: langchain_telegram_mapper.map_to_langchain(user_dao.get(message.author_id), message)
-        langchain_messages = [convert(message) for message in past_messages][::-1]  # DB sorting is date descending
+        map_to_lc = lambda message: domain_langchain_mapper.map_to_langchain(user_dao.get(message.author_id), message)
+        langchain_messages = [map_to_lc(message) for message in past_messages][::-1]  # DB sorting is date descending
 
         # process the update using LLM
-        if not resolved_update.author:
+        if not resolved_domain_data.author:
             sprint("Not responding to messages without author")
             return False
-        command_processor = CommandProcessor(resolved_update.author, user_dao)
+        command_processor = CommandProcessor(resolved_domain_data.author, user_dao)
         telegram_chat_bot = TelegramChatBot(
-            resolved_update.author,
+            resolved_domain_data.chat,
+            resolved_domain_data.author,
             langchain_messages,
-            mapped_update.message.text,
+            domain_update.message.text,
             command_processor,
         )
         answer = telegram_chat_bot.execute()
+        if not answer.content:
+            sprint("Resolved an empty response, skipping bot reply")
+            return False
 
         # send and store the response[s]
         sent_messages: int = 0
         saved_messages: int = 0
-        domain_messages = langchain_telegram_mapper.map_bot_message_to_storage(resolved_update.chat.chat_id, answer)
+        domain_messages = domain_langchain_mapper.map_bot_message_to_storage(
+            resolved_domain_data.chat.chat_id,
+            answer
+        )
         for message in domain_messages:
             telegram_bot_api.send_text_message(message.chat_id, message.text)
             sent_messages += 1
             chat_messages_dao.save(message)
             saved_messages += 1
+        sprint(f"Finished responding to updates. \n[{TELEGRAM_BOT_USER.full_name}]: {answer.content}")
         sprint(f"Used {len(past_messages_db)}, saved {saved_messages}, sent {sent_messages} messages")
-        sprint(f"Finished responding to event: \n[{TELEGRAM_BOT_USER.full_name}]: {answer.content}")
         return True
     except Exception as e:
         sprint(f"Failed to ingest: {update}", e)
-        if resolved_update:
-            __notify_user_error(e, resolved_update, langchain_telegram_mapper, chat_messages_dao)
+        if resolved_domain_data:
+            __notify_user_error(e, resolved_domain_data, domain_langchain_mapper, chat_messages_dao)
         return False
 
 
@@ -218,6 +225,7 @@ def notify_of_release(
     translations = TranslationsCache()
     summaries_created: int = 0
     chats_notified: int = 0
+
     # translate once for the default language
     try:
         raw_notes = base64.b64decode(payload.raw_notes_b64).decode("utf-8")
@@ -228,6 +236,7 @@ def notify_of_release(
         summaries_created += 1
     except Exception as e:
         sprint(f"Release summary failed for default language", e)
+
     # we also need to summarize for each language
     for chat in latest_chats:
         try:
@@ -242,6 +251,7 @@ def notify_of_release(
         except Exception as e:
             sprint(f"Release summary failed for chat #{chat.chat_id}", e)
             continue
+
         # let's send a notification to each chat
         try:
             telegram_bot_api.send_text_message(chat.chat_id, summary)
@@ -257,6 +267,7 @@ def notify_of_release(
             chats_notified += 1
         except Exception as e:
             sprint(f"Chat notification failed for chat #{chat.chat_id}", e)
+
     # we're done, report back
     sprint(f"Chats: {len(latest_chats)}, summaries created: {summaries_created}, notified: {chats_notified}")
     return {
@@ -270,8 +281,8 @@ def notify_of_release(
 @silent
 def __notify_user_error(
     e: Exception,
-    update: ResolutionResult,
-    mapper: LangChainTelegramMapper,
+    update: TelegramDataResolver.Result,
+    mapper: DomainLangchainMapper,
     chat_messages_dao: ChatMessageCRUD,
 ):
     answer = AIMessage(predefined_prompts.error_general_problem(str(e)))
