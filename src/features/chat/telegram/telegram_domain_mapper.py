@@ -14,47 +14,49 @@ from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
 
-class TelegramMappingResult(BaseModel):
-    chat: ChatConfigSave
-    author: UserSave | None
-    message: ChatMessageSave
-    attachments: List[ChatMessageAttachmentSave]
+class TelegramDomainMapper(SafePrinterMixin):
+    """
+    Maps the Telegram network models to domain models.
+    """
 
-
-class TelegramUpdateMapper(SafePrinterMixin):
+    class Result(BaseModel):
+        chat: ChatConfigSave
+        author: UserSave | None
+        message: ChatMessageSave
+        attachments: List[ChatMessageAttachmentSave]
 
     def __init__(self):
         super().__init__(config.verbose)
 
-    def convert_update(self, update: Update) -> TelegramMappingResult | None:
-        self.sprint(f"Converting update: {update}")
+    def map_update(self, update: Update) -> Result | None:
+        self.sprint(f"Mapping update: {update}")
         message = update.edited_message or update.message
         if not message:
-            self.sprint(f"Nothing to convert in update: {update}")
+            self.sprint(f"Nothing to map in update: {update}")
             return None
-        result_chat = self.convert_chat(message)
-        result_author = self.convert_author(message)
-        result_message = self.convert_message(message)
-        result_attachments = self.convert_attachments(message)
-        return TelegramMappingResult(
+        result_chat = self.map_chat(message)
+        result_author = self.map_author(message)
+        result_message = self.map_message(message)
+        result_attachments = self.map_attachments(message)
+        return TelegramDomainMapper.Result(
             chat = result_chat,
             author = result_author,
             message = result_message,
             attachments = result_attachments,
         )
 
-    def convert_message(self, message: Message) -> ChatMessageSave:
-        self.sprint(f"Converting message: {message}")
+    def map_message(self, message: Message) -> ChatMessageSave:
+        self.sprint(f"Mapping message: {message}")
         return ChatMessageSave(
             chat_id = str(message.chat.id),
             message_id = str(message.message_id),
             sent_at = datetime.fromtimestamp(message.edit_date or message.date),
-            text = self.convert_text(message),
+            text = self.map_text(message),
         )
 
-    def convert_author(self, message: Message) -> UserSave | None:
+    def map_author(self, message: Message) -> UserSave | None:
         if not message.from_user: return None
-        self.sprint(f"Converting author {message.from_user}")
+        self.sprint(f"Mapping author {message.from_user}")
         # properties might be updated later when this is stored
         author = message.from_user
         return UserSave(
@@ -64,21 +66,21 @@ class TelegramUpdateMapper(SafePrinterMixin):
             telegram_user_id = author.id,
         )
 
-    def convert_text_as_reply(self, message: Message) -> str:
+    def map_text_as_reply(self, message: Message) -> str:
         parts = []
         if message.caption:
             parts.append(f">>>> {message.caption}")
         if message.text:
             parts.append(f">>>> {message.text}")
-        attachments_as_text = self.convert_attachments_as_text(message)
+        attachments_as_text = self.map_attachments_as_text(message)
         if attachments_as_text:
             parts.append(f">>>> 📎 {attachments_as_text}")
-        self.sprint(f"Converting reply message text: {parts}")
+        self.sprint(f"Mapping reply message text: {parts}")
         return "\n\n".join(parts)
 
-    def convert_text(self, message: Message) -> str:
+    def map_text(self, message: Message) -> str:
         parts = []
-        reply_text = self.convert_text_as_reply(message.reply_to_message) if message.reply_to_message else None
+        reply_text = self.map_text_as_reply(message.reply_to_message) if message.reply_to_message else None
         if reply_text:
             parts.append(f"{reply_text}")
         quote = message.quote.text if message.quote else None
@@ -88,15 +90,15 @@ class TelegramUpdateMapper(SafePrinterMixin):
             parts.append(f"{message.caption}")
         if message.text:
             parts.append(message.text)
-        attachments_as_text = self.convert_attachments_as_text(message)
+        attachments_as_text = self.map_attachments_as_text(message)
         if attachments_as_text:
             parts.append(f"📎 {attachments_as_text}")
-        self.sprint(f"Converting message text: {parts}")
+        self.sprint(f"Mapping message text: {parts}")
         return "\n\n".join(parts)
 
-    def convert_chat(self, message: Message) -> ChatConfigSave:
+    def map_chat(self, message: Message) -> ChatConfigSave:
         chat = message.chat
-        self.sprint(f"Converting chat: {chat}")
+        self.sprint(f"Mapping chat: {chat}")
         title = self.resolve_chat_name(str(chat.id), chat.title, chat.username, chat.first_name, chat.last_name)
         return ChatConfigSave(
             chat_id = str(chat.id),
@@ -128,27 +130,27 @@ class TelegramUpdateMapper(SafePrinterMixin):
         self.sprint(f"Resolved chat name {result}")
         return result
 
-    def convert_attachments_as_text(self, message: Message) -> str | None:
-        attachments = self.convert_attachments(message)
+    def map_attachments_as_text(self, message: Message) -> str | None:
+        attachments = self.map_attachments(message)
         if not attachments: return None
         formatted_attachments = [
             f"{attachment.id} ({attachment.mime_type})" if attachment.mime_type else f"{attachment.id}"
             for attachment in attachments
         ]
-        self.sprint(f"Converting attachments: {formatted_attachments}")
+        self.sprint(f"Mapping attachments: {formatted_attachments}")
         return f"[ {', '.join(formatted_attachments)} ]"
 
-    def convert_attachments(self, message: Message) -> List[ChatMessageAttachmentSave]:
+    def map_attachments(self, message: Message) -> List[ChatMessageAttachmentSave]:
         attachments: List[ChatMessageAttachmentSave] = []
         if message.audio:
-            self.sprint(f"Converting audio: {message.audio}")
+            self.sprint(f"Mapping audio: {message.audio}")
             dummy_file = File(
                 file_id = message.audio.file_id,
                 file_unique_id = message.audio.file_unique_id,
                 file_size = message.audio.file_size,
             )
             attachments.append(
-                self.convert_to_attachment(
+                self.map_to_attachment(
                     file = dummy_file,
                     chat_id = str(message.chat.id),
                     message_id = str(message.message_id),
@@ -156,14 +158,14 @@ class TelegramUpdateMapper(SafePrinterMixin):
                 )
             )
         if message.document:
-            self.sprint(f"Converting document: {message.document}")
+            self.sprint(f"Mapping document: {message.document}")
             dummy_file = File(
                 file_id = message.document.file_id,
                 file_unique_id = message.document.file_unique_id,
                 file_size = message.document.file_size,
             )
             attachments.append(
-                self.convert_to_attachment(
+                self.map_to_attachment(
                     file = dummy_file,
                     chat_id = str(message.chat.id),
                     message_id = str(message.message_id),
@@ -172,14 +174,14 @@ class TelegramUpdateMapper(SafePrinterMixin):
             )
         if message.photo:
             largest_photo = max(message.photo, key = lambda size: size.width * size.height)
-            self.sprint(f"Converting photo: {largest_photo}")
+            self.sprint(f"Mapping photo: {largest_photo}")
             dummy_file = File(
                 file_id = largest_photo.file_id,
                 file_unique_id = largest_photo.file_unique_id,
                 file_size = largest_photo.file_size,
             )
             attachments.append(
-                self.convert_to_attachment(
+                self.map_to_attachment(
                     file = dummy_file,
                     chat_id = str(message.chat.id),
                     message_id = str(message.message_id),
@@ -187,14 +189,14 @@ class TelegramUpdateMapper(SafePrinterMixin):
                 )
             )
         if message.voice:
-            self.sprint(f"Converting voice: {message.voice}")
+            self.sprint(f"Mapping voice: {message.voice}")
             dummy_file = File(
                 file_id = message.voice.file_id,
                 file_unique_id = message.voice.file_unique_id,
                 file_size = message.voice.file_size,
             )
             attachments.append(
-                self.convert_to_attachment(
+                self.map_to_attachment(
                     file = dummy_file,
                     chat_id = str(message.chat.id),
                     message_id = str(message.message_id),
@@ -203,7 +205,7 @@ class TelegramUpdateMapper(SafePrinterMixin):
             )
         return attachments
 
-    def convert_to_attachment(
+    def map_to_attachment(
         self,
         file: File,
         chat_id: str,

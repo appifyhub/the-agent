@@ -10,22 +10,25 @@ from util.functions import is_the_agent, construct_bot_message_id
 from util.safe_printer_mixin import SafePrinterMixin
 
 
-class LangChainTelegramMapper(SafePrinterMixin):
+class DomainLangchainMapper(SafePrinterMixin):
+    """
+    Maps the domain models to Langchain models.
+    """
 
     def __init__(self):
         super().__init__(config.verbose)
 
     def map_to_langchain(self, author: User | None, message: ChatMessage) -> HumanMessage | AIMessage:
-        self.sprint(f"Converting {message} by {author} to LangChain message")
-        content = self.__convert_stored_message_text(author, message)
+        self.sprint(f"Mapping {message} by {author} to Langchain message")
+        content = self.__map_stored_message_text(author, message)
         if not author or is_the_agent(author):
             return AIMessage(content)
         return HumanMessage(content)
 
     def map_bot_message_to_storage(self, chat_id: str, message: AIMessage) -> list[ChatMessageSave]:
-        self.sprint(f"Converting AI message '{message}' to storage message")
+        self.sprint(f"Mapping AI message '{message}' to storage message")
         result: list[ChatMessageSave] = []
-        content = self.__convert_bot_message_text(message)
+        content = self.__map_bot_message_text(message)
         parts = content.split(MULTI_MESSAGE_DELIMITER)
         for part in parts:
             if not part: continue
@@ -40,7 +43,7 @@ class LangChainTelegramMapper(SafePrinterMixin):
             result.append(storage_message)
         return result
 
-    def __convert_stored_message_text(self, author: User | None, message: ChatMessage) -> str:
+    def __map_stored_message_text(self, author: User | None, message: ChatMessage) -> str:
         parts = []
         if author:
             name_parts = []
@@ -54,11 +57,11 @@ class LangChainTelegramMapper(SafePrinterMixin):
                 name_tag = " ".join(name_parts)
                 parts.append(f"{name_tag}:")
         parts.append(message.text)
-        self.sprint(f"Converted message parts: {parts}, joining...")
+        self.sprint(f"Mapped message parts: {parts}, joining...")
         return "\n".join(parts)
 
-    def __convert_bot_message_text(self, message: AIMessage) -> str:
-        self.sprint(f"Converting AI message {message}")
+    def __map_bot_message_text(self, message: AIMessage) -> str:
+        self.sprint(f"Mapping AI message {message}")
         # content can be either a list (of strings or dicts) or a plain string
         if not message.content:
             return ""

@@ -6,13 +6,13 @@ from db.sql_util import SQLUtil
 
 
 class UserCRUDTest(unittest.TestCase):
-    __sql: SQLUtil
+    sql: SQLUtil
 
     def setUp(self):
-        self.__sql = SQLUtil()
+        self.sql = SQLUtil()
 
     def tearDown(self):
-        self.__sql.end_session()
+        self.sql.end_session()
 
     def test_create_user(self):
         user_data = UserSave(
@@ -24,7 +24,7 @@ class UserCRUDTest(unittest.TestCase):
             group = UserDB.Group.standard,
         )
 
-        user = self.__sql.user_crud().create(user_data)
+        user = self.sql.user_crud().create(user_data)
 
         self.assertIsNotNone(user.id)
         self.assertEqual(user.full_name, user_data.full_name)
@@ -44,9 +44,9 @@ class UserCRUDTest(unittest.TestCase):
             open_ai_key = "test-key",
             group = UserDB.Group.standard,
         )
-        created_user = self.__sql.user_crud().create(user_data)
+        created_user = self.sql.user_crud().create(user_data)
 
-        fetched_user = self.__sql.user_crud().get(created_user.id)
+        fetched_user = self.sql.user_crud().get(created_user.id)
 
         self.assertEqual(fetched_user.id, created_user.id)
         self.assertEqual(fetched_user.full_name, user_data.full_name)
@@ -55,11 +55,11 @@ class UserCRUDTest(unittest.TestCase):
 
     def test_get_all_users(self):
         users = [
-            self.__sql.user_crud().create(UserSave()),
-            self.__sql.user_crud().create(UserSave()),
+            self.sql.user_crud().create(UserSave()),
+            self.sql.user_crud().create(UserSave()),
         ]
 
-        fetched_users = self.__sql.user_crud().get_all()
+        fetched_users = self.sql.user_crud().get_all()
 
         self.assertEqual(len(fetched_users), len(users))
         for i in range(len(users)):
@@ -74,9 +74,9 @@ class UserCRUDTest(unittest.TestCase):
             open_ai_key = "test-key",
             group = UserDB.Group.standard,
         )
-        created_user = self.__sql.user_crud().create(user_data)
+        created_user = self.sql.user_crud().create(user_data)
 
-        fetched_user = self.__sql.user_crud().get_by_telegram_user_id(created_user.telegram_user_id)
+        fetched_user = self.sql.user_crud().get_by_telegram_user_id(created_user.telegram_user_id)
 
         self.assertEqual(fetched_user.id, created_user.id)
         self.assertEqual(fetched_user.full_name, user_data.full_name)
@@ -92,7 +92,7 @@ class UserCRUDTest(unittest.TestCase):
             open_ai_key = "test-key",
             group = UserDB.Group.standard,
         )
-        created_user = self.__sql.user_crud().create(user_data)
+        created_user = self.sql.user_crud().create(user_data)
 
         update_data = UserSave(
             id = created_user.id,
@@ -103,7 +103,7 @@ class UserCRUDTest(unittest.TestCase):
             open_ai_key = "updated-key",
             group = UserDB.Group.beta,
         )
-        updated_user = self.__sql.user_crud().update(update_data)
+        updated_user = self.sql.user_crud().update(update_data)
 
         self.assertEqual(updated_user.id, created_user.id)
         self.assertEqual(updated_user.full_name, update_data.full_name)
@@ -125,7 +125,7 @@ class UserCRUDTest(unittest.TestCase):
         )
 
         # First, save should create the record
-        saved_user = self.__sql.user_crud().save(user_data)
+        saved_user = self.sql.user_crud().save(user_data)
         self.assertIsNotNone(saved_user)
         self.assertEqual(saved_user.full_name, user_data.full_name)
         self.assertEqual(saved_user.telegram_username, user_data.telegram_username)
@@ -144,7 +144,7 @@ class UserCRUDTest(unittest.TestCase):
             open_ai_key = "updated-key",
             group = UserDB.Group.beta,
         )
-        updated_user = self.__sql.user_crud().save(update_data)
+        updated_user = self.sql.user_crud().save(update_data)
         self.assertIsNotNone(updated_user)
         self.assertEqual(updated_user.full_name, update_data.full_name)
         self.assertEqual(updated_user.telegram_username, update_data.telegram_username)
@@ -162,9 +162,9 @@ class UserCRUDTest(unittest.TestCase):
             open_ai_key = "test-key",
             group = UserDB.Group.standard,
         )
-        created_user = self.__sql.user_crud().create(user_data)
+        created_user = self.sql.user_crud().create(user_data)
 
-        deleted_user = self.__sql.user_crud().delete(created_user.id)
+        deleted_user = self.sql.user_crud().delete(created_user.id)
 
         self.assertEqual(deleted_user.id, created_user.id)
-        self.assertIsNone(self.__sql.user_crud().get(created_user.id))
+        self.assertIsNone(self.sql.user_crud().get(created_user.id))
