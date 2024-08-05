@@ -6,16 +6,16 @@ from db.sql_util import SQLUtil
 
 
 class ChatMessageAttachmentCRUDTest(unittest.TestCase):
-    __sql: SQLUtil
+    sql: SQLUtil
 
     def setUp(self):
-        self.__sql = SQLUtil()
+        self.sql = SQLUtil()
 
     def tearDown(self):
-        self.__sql.end_session()
+        self.sql.end_session()
 
     def test_create_attachment(self):
-        chat_message = self.__sql.chat_message_crud().create(
+        chat_message = self.sql.chat_message_crud().create(
             ChatMessageSave(
                 chat_id = "chat1",
                 message_id = "msg1",
@@ -33,7 +33,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
             mime_type = "image/jpeg",
         )
 
-        attachment = self.__sql.chat_message_attachment_crud().create(attachment_data)
+        attachment = self.sql.chat_message_attachment_crud().create(attachment_data)
 
         self.assertEqual(attachment.id, attachment_data.id)
         self.assertEqual(attachment.chat_id, attachment_data.chat_id)
@@ -45,7 +45,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         self.assertEqual(attachment.mime_type, attachment_data.mime_type)
 
     def test_get_attachment(self):
-        chat_message = self.__sql.chat_message_crud().create(
+        chat_message = self.sql.chat_message_crud().create(
             ChatMessageSave(
                 chat_id = "chat1",
                 message_id = "msg1",
@@ -57,16 +57,16 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
             chat_id = chat_message.chat_id,
             message_id = chat_message.message_id,
         )
-        created_attachment = self.__sql.chat_message_attachment_crud().create(attachment_data)
+        created_attachment = self.sql.chat_message_attachment_crud().create(attachment_data)
 
-        fetched_attachment = self.__sql.chat_message_attachment_crud().get("attach1")
+        fetched_attachment = self.sql.chat_message_attachment_crud().get("attach1")
 
         self.assertEqual(fetched_attachment.id, created_attachment.id)
         self.assertEqual(fetched_attachment.chat_id, created_attachment.chat_id)
         self.assertEqual(fetched_attachment.message_id, created_attachment.message_id)
 
     def test_get_all_attachments(self):
-        chat_message = self.__sql.chat_message_crud().create(
+        chat_message = self.sql.chat_message_crud().create(
             ChatMessageSave(
                 chat_id = "chat1",
                 message_id = "msg1",
@@ -74,14 +74,14 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
             )
         )
         attachments = [
-            self.__sql.chat_message_attachment_crud().create(
+            self.sql.chat_message_attachment_crud().create(
                 ChatMessageAttachmentSave(
                     id = "attach1",
                     chat_id = chat_message.chat_id,
                     message_id = chat_message.message_id,
                 )
             ),
-            self.__sql.chat_message_attachment_crud().create(
+            self.sql.chat_message_attachment_crud().create(
                 ChatMessageAttachmentSave(
                     id = "attach2",
                     chat_id = chat_message.chat_id,
@@ -90,7 +90,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
             ),
         ]
 
-        fetched_attachments = self.__sql.chat_message_attachment_crud().get_all()
+        fetched_attachments = self.sql.chat_message_attachment_crud().get_all()
 
         self.assertEqual(len(fetched_attachments), len(attachments))
         for i in range(len(attachments)):
@@ -99,7 +99,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
             self.assertEqual(fetched_attachments[i].message_id, attachments[i].message_id)
 
     def test_update_attachment(self):
-        chat_message = self.__sql.chat_message_crud().create(
+        chat_message = self.sql.chat_message_crud().create(
             ChatMessageSave(
                 chat_id = "chat1",
                 message_id = "msg1",
@@ -111,7 +111,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
             chat_id = chat_message.chat_id,
             message_id = chat_message.message_id,
         )
-        created_attachment = self.__sql.chat_message_attachment_crud().create(attachment_data)
+        created_attachment = self.sql.chat_message_attachment_crud().create(attachment_data)
 
         update_data = ChatMessageAttachmentSave(
             id = created_attachment.id,
@@ -123,7 +123,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
             extension = "png",
             mime_type = "image/png",
         )
-        updated_attachment = self.__sql.chat_message_attachment_crud().update(update_data)
+        updated_attachment = self.sql.chat_message_attachment_crud().update(update_data)
 
         self.assertEqual(updated_attachment.id, created_attachment.id)
         self.assertEqual(updated_attachment.chat_id, created_attachment.chat_id)
@@ -135,7 +135,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         self.assertEqual(updated_attachment.mime_type, update_data.mime_type)
 
     def test_save_attachment(self):
-        chat_message = self.__sql.chat_message_crud().create(
+        chat_message = self.sql.chat_message_crud().create(
             ChatMessageSave(
                 chat_id = "chat1",
                 message_id = "msg1",
@@ -155,7 +155,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         )
 
         # First, save should create the record
-        saved_attachment = self.__sql.chat_message_attachment_crud().save(attachment_data)
+        saved_attachment = self.sql.chat_message_attachment_crud().save(attachment_data)
         self.assertIsNotNone(saved_attachment)
         self.assertEqual(saved_attachment.id, attachment_data.id)
         self.assertEqual(saved_attachment.chat_id, attachment_data.chat_id)
@@ -173,7 +173,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
             message_id = attachment_data.message_id,
             last_url = "https://example.com/newfile",
         )
-        updated_attachment = self.__sql.chat_message_attachment_crud().save(update_data)
+        updated_attachment = self.sql.chat_message_attachment_crud().save(update_data)
         self.assertIsNotNone(updated_attachment)
         self.assertEqual(updated_attachment.id, attachment_data.id)
         self.assertEqual(updated_attachment.chat_id, attachment_data.chat_id)
@@ -185,7 +185,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         self.assertEqual(updated_attachment.mime_type, update_data.mime_type)
 
     def test_delete_attachment(self):
-        chat_message = self.__sql.chat_message_crud().create(
+        chat_message = self.sql.chat_message_crud().create(
             ChatMessageSave(
                 chat_id = "chat1",
                 message_id = "msg1",
@@ -197,11 +197,11 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
             chat_id = chat_message.chat_id,
             message_id = chat_message.message_id,
         )
-        created_attachment = self.__sql.chat_message_attachment_crud().create(attachment_data)
+        created_attachment = self.sql.chat_message_attachment_crud().create(attachment_data)
 
-        deleted_attachment = self.__sql.chat_message_attachment_crud().delete(created_attachment.id)
+        deleted_attachment = self.sql.chat_message_attachment_crud().delete(created_attachment.id)
 
         self.assertEqual(deleted_attachment.id, created_attachment.id)
         self.assertEqual(deleted_attachment.chat_id, created_attachment.chat_id)
         self.assertEqual(deleted_attachment.message_id, created_attachment.message_id)
-        self.assertIsNone(self.__sql.chat_message_attachment_crud().get(created_attachment.id))
+        self.assertIsNone(self.sql.chat_message_attachment_crud().get(created_attachment.id))

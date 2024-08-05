@@ -13,7 +13,7 @@ from db.schema.chat_message import ChatMessageSave, ChatMessage
 from db.schema.chat_message_attachment import ChatMessageAttachmentSave, ChatMessageAttachment
 from db.schema.user import UserSave, User
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
-from features.chat.telegram.telegram_update_mapper import TelegramMappingResult
+from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from util.config import config
 from util.functions import is_the_agent
 from util.safe_printer_mixin import SafePrinterMixin
@@ -31,18 +31,17 @@ SUPPORTED_MIME_TYPES = {
 }
 
 
-class ResolutionResult(BaseModel):
-    chat: ChatConfig
-    author: User | None
-    message: ChatMessage
-    attachments: List[ChatMessageAttachment]
-
-
 class TelegramDataResolver(SafePrinterMixin):
     """
     Resolves the final set of data attributes ready to be used by the service.
     If needed, this resolver will fetch more data from the API or the database.
     """
+
+    class Result(BaseModel):
+        chat: ChatConfig
+        author: User | None
+        message: ChatMessage
+        attachments: List[ChatMessageAttachment]
 
     __session: Session
     __bot_api: TelegramBotAPI
@@ -52,8 +51,8 @@ class TelegramDataResolver(SafePrinterMixin):
         self.__session = session
         self.__bot_api = api
 
-    def resolve(self, mapping_result: TelegramMappingResult) -> ResolutionResult:
-        self.sprint(f"Resolving conversion result: {mapping_result}")
+    def resolve(self, mapping_result: TelegramDomainMapper.Result) -> Result:
+        self.sprint(f"Resolving mapping result: {mapping_result}")
         resolved_chat_config = self.resolve_chat_config(mapping_result.chat)
         resolved_author: User | None = None
         if mapping_result.author:
@@ -65,66 +64,65 @@ class TelegramDataResolver(SafePrinterMixin):
         resolved_attachments = [
             self.resolve_chat_message_attachment(attachment) for attachment in mapping_result.attachments
         ]
-        return ResolutionResult(
+        return TelegramDataResolver.Result(
             chat = resolved_chat_config,
             author = resolved_author,
             message = resolved_chat_message,
             attachments = resolved_attachments,
         )
 
-    def resolve_chat_config(self, converted_data: ChatConfigSave) -> ChatConfig:
-        self.sprint(f"Resolving chat config: {converted_data}")
+    def resolve_chat_config(self, mapped_data: ChatConfigSave) -> ChatConfig:
+        self.sprint(f"Resolving chat config: {mapped_data}")
         db = ChatConfigCRUD(self.__session)
-        old_chat_config_db = db.get(converted_data.chat_id)
+        old_chat_config_db = db.get(mapped_data.chat_id)
         if old_chat_config_db:
             old_chat_config = ChatConfig.model_validate(old_chat_config_db)
             # reset the attributes that are not normally changed through the Telegram API
-            converted_data.persona_code = old_chat_config.persona_code
-            converted_data.persona_name = old_chat_config.persona_name
-            converted_data.language_iso_code = old_chat_config.language_iso_code
-            converted_data.language_name = old_chat_config.language_name
-            converted_data.is_private = old_chat_config.is_private
-        return ChatConfig.model_validate(db.save(converted_data))
+            mapped_data.language_iso_code = old_chat_config.language_iso_code
+            mapped_data.language_name = old_chat_config.language_name
+            mapped_data.is_private = old_chat_config.is_private
+            mapped_data.reply_chance_percent = old_chat_config.reply_chance_percent
+        return ChatConfig.model_validate(db.save(mapped_data))
 
-    def resolve_author(self, converted_data: UserSave | None) -> User | None:
-        if not converted_data: return None
-        self.sprint(f"Resolving user: {converted_data}")
+    def resolve_author(self, mapped_data: UserSave | None) -> User | None:
+        if not mapped_data: return None
+        self.sprint(f"Resolving user: {mapped_data}")
         db = UserCRUD(self.__session)
-        old_user_db = db.get_by_telegram_user_id(converted_data.telegram_user_id)
+        old_user_db = db.get_by_telegram_user_id(mapped_data.telegram_user_id)
         if old_user_db:
             old_user = User.model_validate(old_user_db)
             # reset the attributes that are not normally changed through the Telegram API
-            converted_data.id = old_user.id
-            converted_data.open_ai_key = old_user.open_ai_key
-            converted_data.group = old_user.group
-        return User.model_validate(db.save(converted_data))
+            mapped_data.id = old_user.id
+            mapped_data.open_ai_key = old_user.open_ai_key
+            mapped_data.group = old_user.group
+        return User.model_validate(db.save(mapped_data))
 
-    def resolve_chat_message(self, converted_data: ChatMessageSave) -> ChatMessage:
-        self.sprint(f"Resolving chat message: {converted_data}")
+    def resolve_chat_message(self, mapped_data: ChatMessageSave) -> ChatMessage:
+        self.sprint(f"Resolving chat message: {mapped_data}")
         db = ChatMessageCRUD(self.__session)
-        old_chat_message_db = db.get(converted_data.chat_id, converted_data.message_id)
+        old_chat_message_db = db.get(mapped_data.chat_id, mapped_data.message_id)
         if old_chat_message_db:
             old_chat_message = ChatMessage.model_validate(old_chat_message_db)
             # reset the attributes that are not normally changed through the Telegram API
-            converted_data.author_id = converted_data.author_id or old_chat_message.author_id
-            converted_data.sent_at = converted_data.sent_at or old_chat_message.sent_at
-        return ChatMessage.model_validate(db.save(converted_data))
+            mapped_data.author_id = mapped_data.author_id or old_chat_message.author_id
+            mapped_data.sent_at = mapped_data.sent_at or old_chat_message.sent_at
+        return ChatMessage.model_validate(db.save(mapped_data))
 
-    def resolve_chat_message_attachment(self, converted_data: ChatMessageAttachmentSave) -> ChatMessageAttachment:
-        self.sprint(f"Resolving chat message attachment: {converted_data}")
+    def resolve_chat_message_attachment(self, mapped_data: ChatMessageAttachmentSave) -> ChatMessageAttachment:
+        self.sprint(f"Resolving chat message attachment: {mapped_data}")
         db = ChatMessageAttachmentCRUD(self.__session)
-        old_attachment_db = db.get(converted_data.id)
+        old_attachment_db = db.get(mapped_data.id)
         if old_attachment_db:
             old_attachment = ChatMessageAttachment.model_validate(old_attachment_db)
             # reset the attributes that are not normally changed through the Telegram API
-            converted_data.size = converted_data.size or old_attachment.size
-            converted_data.last_url = converted_data.last_url or old_attachment.last_url
-            converted_data.last_url_until = converted_data.last_url_until or old_attachment.last_url_until
-            converted_data.extension = converted_data.extension or old_attachment.extension
-            converted_data.mime_type = converted_data.mime_type or old_attachment.mime_type
-        is_updated = self.update_attachment_using_api(converted_data)
+            mapped_data.size = mapped_data.size or old_attachment.size
+            mapped_data.last_url = mapped_data.last_url or old_attachment.last_url
+            mapped_data.last_url_until = mapped_data.last_url_until or old_attachment.last_url_until
+            mapped_data.extension = mapped_data.extension or old_attachment.extension
+            mapped_data.mime_type = mapped_data.mime_type or old_attachment.mime_type
+        is_updated = self.update_attachment_using_api(mapped_data)
         self.sprint(f"Attachment updated via API: {is_updated}")
-        return ChatMessageAttachment.model_validate(db.save(converted_data))
+        return ChatMessageAttachment.model_validate(db.save(mapped_data))
 
     def update_attachment_using_api(self, attachment: ChatMessageAttachmentSave) -> bool:
         is_missing_url = not attachment.last_url
