@@ -9,6 +9,7 @@ class ChatConfigBase(BaseModel):
     language_name: str | None = None
     title: str | None = None
     is_private: bool = False
+    reply_chance_percent: int = 100
 
 
 class ChatConfigSave(ChatConfigBase):

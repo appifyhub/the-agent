@@ -22,6 +22,7 @@ class ChatConfigCRUDTest(unittest.TestCase):
             language_name = "English",
             title = "Chat One",
             is_private = True,
+            reply_chance_percent = 100,
         )
 
         chat_config = self.sql.chat_config_crud().create(chat_config_data)
@@ -31,6 +32,9 @@ class ChatConfigCRUDTest(unittest.TestCase):
         self.assertEqual(chat_config.persona_name, chat_config_data.persona_name)
         self.assertEqual(chat_config.language_iso_code, chat_config_data.language_iso_code)
         self.assertEqual(chat_config.language_name, chat_config_data.language_name)
+        self.assertEqual(chat_config.title, chat_config_data.title)
+        self.assertEqual(chat_config.is_private, chat_config_data.is_private)
+        self.assertEqual(chat_config.reply_chance_percent, chat_config_data.reply_chance_percent)
 
     def test_get_chat_config(self):
         chat_config_data = ChatConfigSave(
@@ -41,6 +45,7 @@ class ChatConfigCRUDTest(unittest.TestCase):
             language_name = "English",
             title = "Chat One",
             is_private = True,
+            reply_chance_percent = 100,
         )
         created_chat_config = self.sql.chat_config_crud().create(chat_config_data)
 
@@ -75,6 +80,7 @@ class ChatConfigCRUDTest(unittest.TestCase):
             language_name = "English",
             title = "Chat One",
             is_private = True,
+            reply_chance_percent = 100,
         )
         created_chat_config = self.sql.chat_config_crud().create(chat_config_data)
 
@@ -86,6 +92,7 @@ class ChatConfigCRUDTest(unittest.TestCase):
             language_name = "French",
             title = "Chat Another",
             is_private = False,
+            reply_chance_percent = 0,
         )
         updated_chat_config = self.sql.chat_config_crud().update(update_data)
 
@@ -94,6 +101,9 @@ class ChatConfigCRUDTest(unittest.TestCase):
         self.assertEqual(updated_chat_config.persona_name, update_data.persona_name)
         self.assertEqual(updated_chat_config.language_iso_code, update_data.language_iso_code)
         self.assertEqual(updated_chat_config.language_name, update_data.language_name)
+        self.assertEqual(updated_chat_config.title, update_data.title)
+        self.assertEqual(updated_chat_config.is_private, update_data.is_private)
+        self.assertEqual(updated_chat_config.reply_chance_percent, update_data.reply_chance_percent)
 
     def test_save_chat_config(self):
         chat_config_data = ChatConfigSave(
@@ -104,6 +114,7 @@ class ChatConfigCRUDTest(unittest.TestCase):
             language_name = "English",
             title = "Chat One",
             is_private = True,
+            reply_chance_percent = 100,
         )
 
         # First, save should create the record
@@ -114,6 +125,9 @@ class ChatConfigCRUDTest(unittest.TestCase):
         self.assertEqual(saved_chat_config.persona_name, chat_config_data.persona_name)
         self.assertEqual(saved_chat_config.language_iso_code, chat_config_data.language_iso_code)
         self.assertEqual(saved_chat_config.language_name, chat_config_data.language_name)
+        self.assertEqual(saved_chat_config.title, chat_config_data.title)
+        self.assertEqual(saved_chat_config.is_private, chat_config_data.is_private)
+        self.assertEqual(saved_chat_config.reply_chance_percent, chat_config_data.reply_chance_percent)
 
         # Now, save should update the existing record
         update_data = ChatConfigSave(
@@ -124,6 +138,7 @@ class ChatConfigCRUDTest(unittest.TestCase):
             language_name = "French",
             title = "Chat Another",
             is_private = False,
+            reply_chance_percent = 0,
         )
         updated_chat_config = self.sql.chat_config_crud().save(update_data)
         self.assertIsNotNone(updated_chat_config)
@@ -132,6 +147,9 @@ class ChatConfigCRUDTest(unittest.TestCase):
         self.assertEqual(updated_chat_config.persona_name, update_data.persona_name)
         self.assertEqual(updated_chat_config.language_iso_code, update_data.language_iso_code)
         self.assertEqual(updated_chat_config.language_name, update_data.language_name)
+        self.assertEqual(updated_chat_config.title, update_data.title)
+        self.assertEqual(updated_chat_config.is_private, update_data.is_private)
+        self.assertEqual(updated_chat_config.reply_chance_percent, update_data.reply_chance_percent)
 
     def test_delete_chat_config(self):
         chat_config_data = ChatConfigSave(chat_id = "chat1")
