@@ -85,12 +85,14 @@ class TelegramChatBot(SafePrinterMixin):
         try:
             while True:
                 answer = self.__add_message(self.__llm_tools.invoke(self.__messages))
+                # noinspection Pydantic
                 if not answer.tool_calls:
                     self.sprint(f"No tool calls. Finishing with {type(answer)}: {len(answer.content)} characters")
                     if not isinstance(answer, AIMessage):
                         raise AssertionError(f"Received a non-AI message from LLM: {answer}")
                     return answer
 
+                # noinspection Pydantic
                 for tool_call in answer.tool_calls:
                     tool_id: Any = tool_call["id"]
                     tool_name: Any = tool_call["name"]
@@ -128,7 +130,12 @@ class TelegramChatBot(SafePrinterMixin):
     def __should_reply(self) -> bool:
         has_content = bool(self.__raw_last_message.strip())
         is_bot_mentioned = f"@{TELEGRAM_BOT_USER.telegram_username}" in self.__raw_last_message
-        should_reply_at_random = random.randint(0, 100) <= self.__chat.reply_chance_percent
+        if self.__chat.reply_chance_percent == 100:
+            should_reply_at_random = True
+        elif self.__chat.reply_chance_percent == 0:
+            should_reply_at_random = False
+        else:
+            should_reply_at_random = random.randint(0, 100) <= self.__chat.reply_chance_percent
         should_reply = has_content and (self.__chat.is_private or is_bot_mentioned or should_reply_at_random)
         self.sprint(
             f"Reply decision: {"REPLY" if should_reply else "NO REPLY"}. Conditions:\n"
