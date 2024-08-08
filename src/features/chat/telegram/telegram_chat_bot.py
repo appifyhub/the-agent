@@ -73,11 +73,11 @@ class TelegramChatBot(SafePrinterMixin):
         self.sprint(f"Starting chat completion for '{self.__last_message.content}'")
 
         # check if a reply is needed at all
-        if not self.__should_reply():
+        if not self.should_reply():
             return AIMessage("")
 
         # check if there was a command sent
-        answer, status = self.__process_commands()
+        answer, status = self.process_commands()
         if not self.__invoker.open_ai_key or status == CommandProcessor.Result.success:
             return answer
 
@@ -112,7 +112,7 @@ class TelegramChatBot(SafePrinterMixin):
             text = predefined_prompts.error_general_problem(str(e))
             return AIMessage(text)
 
-    def __process_commands(self) -> Tuple[AIMessage, CommandProcessor.Result]:
+    def process_commands(self) -> Tuple[AIMessage, CommandProcessor.Result]:
         if not self.__invoker.open_ai_key:
             self.sprint(f"No API key found for #{self.__invoker.id}")
         result = self.__command_processor.execute(self.__raw_last_message)
@@ -127,7 +127,7 @@ class TelegramChatBot(SafePrinterMixin):
             raise NotImplementedError("Wild branch")
         return AIMessage(text), result
 
-    def __should_reply(self) -> bool:
+    def should_reply(self) -> bool:
         has_content = bool(self.__raw_last_message.strip())
         is_bot_mentioned = f"@{TELEGRAM_BOT_USER.telegram_username}" in self.__raw_last_message
         if self.__chat.reply_chance_percent == 100:
