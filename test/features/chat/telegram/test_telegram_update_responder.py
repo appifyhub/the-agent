@@ -11,7 +11,7 @@ from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.chat.telegram.telegram_update_responder import respond_to_update
 
 
-class TestRespondToUpdate(unittest.TestCase):
+class TestTelegramUpdateResponder(unittest.TestCase):
     user_dao: UserCRUD
     chat_messages_dao: ChatMessageCRUD
     telegram_domain_mapper: TelegramDomainMapper
