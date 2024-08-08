@@ -1,5 +1,4 @@
 import base64
-import traceback
 from datetime import datetime
 
 from fastapi import Depends, FastAPI, Query, HTTPException
@@ -33,7 +32,7 @@ from features.summarizer.release_summarizer import ReleaseSummarizer
 from features.web_fetcher import WebFetcher
 from util.config import config
 from util.functions import construct_bot_message_id, silent
-from util.safe_printer_mixin import SafePrinterMixin
+from util.safe_printer_mixin import sprint
 from util.translations_cache import TranslationsCache, DEFAULT_LANGUAGE, DEFAULT_ISO_CODE
 
 telegram_bot_api = TelegramBotAPI()
@@ -44,15 +43,6 @@ app = FastAPI(
     description = "This is the API service for The Agent.",
     debug = config.verbose,
 )
-
-
-def sprint(content: str, e: Exception | None = None):
-    printer = SafePrinterMixin(config.verbose)
-    printer.sprint(content)
-    if e:
-        printer.sprint(str(e))
-        if config.verbose:
-            traceback.print_exc()
 
 
 @app.get("/")

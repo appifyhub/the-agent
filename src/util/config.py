@@ -1,11 +1,10 @@
 import os
 from typing import Callable
 
-from util.safe_printer_mixin import SafePrinterMixin
 from util.singleton import Singleton
 
 
-class Config(SafePrinterMixin, metaclass = Singleton):
+class Config(metaclass = Singleton):
     verbose: bool
     web_retries: int
     web_retry_delay_s: int
@@ -44,7 +43,6 @@ class Config(SafePrinterMixin, metaclass = Singleton):
         def_open_ai_token: str = "invalid",
     ):
         self.verbose = self.__env("VERBOSE", lambda: str(def_verbose)).lower() == "true"
-        super().__init__(self.verbose)
         self.web_retries = int(self.__env("WEB_RETRIES", lambda: str(def_web_retries)))
         self.web_retry_delay_s = int(self.__env("WEB_RETRY_DELAY_S", lambda: str(def_web_retry_delay_s)))
         self.web_timeout_s = int(self.__env("WEB_TIMEOUT_S", lambda: str(def_web_timeout_s)))
@@ -60,20 +58,13 @@ class Config(SafePrinterMixin, metaclass = Singleton):
         self.anthropic_token = self.__env("ANTHROPIC_TOKEN", lambda: def_anthropic_token)
         self.open_ai_token = self.__env("OPEN_AI_TOKEN", lambda: def_open_ai_token)
 
-    def __set_up_db(
-        self,
-        def_db_user: str,
-        def_db_pass: str,
-        def_db_host: str,
-        def_db_name: str,
-    ) -> None:
+    def __set_up_db(self, def_db_user: str, def_db_pass: str, def_db_host: str, def_db_name: str) -> None:
         db_user = self.__env("POSTGRES_USER", lambda: def_db_user)
         db_pass = self.__env("POSTGRES_PASS", lambda: def_db_pass)
         db_host = self.__env("POSTGRES_HOST", lambda: def_db_host)
         db_name = self.__env("POSTGRES_DB", lambda: def_db_name)
         db_port = 5432  # standard for postgres
         self.db_url = f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
-        self.sprint(f"Database configured!\nURL: '{self.db_url}'\n")
 
     @staticmethod
     def __env(name: str, default: Callable[[], str]) -> str:
