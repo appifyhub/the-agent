@@ -1,20 +1,14 @@
 import base64
 from datetime import datetime
 
-from fastapi import Depends, FastAPI, Query
-from pydantic import HttpUrl
+from fastapi import Depends, FastAPI
 from starlette.responses import RedirectResponse
 
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
-from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
-from db.crud.invite import InviteCRUD
 from db.crud.user import UserCRUD
 from db.schema.chat_config import ChatConfig
-from db.schema.chat_message import ChatMessage, ChatMessageSave
-from db.schema.chat_message_attachment import ChatMessageAttachment
-from db.schema.invite import Invite
-from db.schema.user import User
+from db.schema.chat_message import ChatMessageSave
 from db.sql import get_session
 from features.auth import verify_api_key
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
@@ -26,7 +20,6 @@ from features.chat.telegram.telegram_update_responder import respond_to_update
 from features.prompting.predefined_prompts import TELEGRAM_BOT_USER
 from features.summarizer.raw_notes_payload import RawNotesPayload
 from features.summarizer.release_summarizer import ReleaseSummarizer
-from features.web_fetcher import WebFetcher
 from util.config import config
 from util.functions import construct_bot_message_id
 from util.safe_printer_mixin import sprint
@@ -49,89 +42,6 @@ def root() -> RedirectResponse:
 
 @app.get("/health")
 def health() -> dict: return {"status": "ok"}
-
-
-# not accessible in production
-@app.get("/debug/html-fetcher")
-def html_fetcher(
-    url: HttpUrl = Query(...),
-    _ = Depends(verify_api_key),
-) -> dict:
-    fetcher = WebFetcher(url, auto_fetch_html = True)
-    return {"url": url, "html": fetcher.html}
-
-
-# not accessible in production
-@app.get("/debug/json-fetcher")
-def json_fetcher(
-    url: HttpUrl = Query(...),
-    _ = Depends(verify_api_key),
-) -> dict:
-    fetcher = WebFetcher(url, auto_fetch_json = True)
-    return {"url": url, "json": fetcher.json}
-
-
-# not accessible in production
-@app.get("/debug/users")
-def get_users(
-    skip: int = Query(0),
-    limit: int = Query(100),
-    _ = Depends(verify_api_key),
-    db = Depends(get_session),
-) -> list[User]:
-    users_db = UserCRUD(db).get_all(skip = skip, limit = limit)
-    return [User.model_validate(user) for user in users_db]
-
-
-# not accessible in production
-@app.get("/debug/chat-messages")
-def get_chat_messages(
-    skip: int = Query(0),
-    limit: int = Query(100),
-    _ = Depends(verify_api_key),
-    db = Depends(get_session),
-) -> list[ChatMessage]:
-    chat_messages_db = ChatMessageCRUD(db).get_all(skip = skip, limit = limit)
-    return [ChatMessage.model_validate(chat_message) for chat_message in chat_messages_db]
-
-
-# not accessible in production
-@app.get("/debug/chat-message-attachments")
-def get_chat_messages(
-    _ = Depends(verify_api_key),
-    db = Depends(get_session),
-    skip: int = Query(0),
-    limit: int = Query(100),
-) -> list[ChatMessageAttachment]:
-    chat_message_attachments_db = ChatMessageAttachmentCRUD(db).get_all(skip = skip, limit = limit)
-    return [
-        ChatMessageAttachment.model_validate(chat_message_attachment)
-        for chat_message_attachment in chat_message_attachments_db
-    ]
-
-
-# not accessible in production
-@app.get("/debug/chats")
-def get_chat_messages(
-    _ = Depends(verify_api_key),
-    db = Depends(get_session),
-    skip: int = Query(0),
-    limit: int = Query(100),
-) -> list[ChatConfig]:
-    chat_config_db = ChatConfigCRUD(db).get_all(skip = skip, limit = limit)
-    return [ChatConfig.model_validate(chat_config) for chat_config in chat_config_db]
-
-
-# not accessible in production
-@app.get("/debug/invites")
-def get_chat_messages(
-    _ = Depends(verify_api_key),
-    db = Depends(get_session),
-    skip: int = Query(0),
-    limit: int = Query(100),
-) -> list[Invite]:
-    invite_db = InviteCRUD(db).get_all(skip = skip, limit = limit)
-    return [Invite.model_validate(invite) for invite in invite_db]
 
 
 @app.post("/telegram/chat-update")
