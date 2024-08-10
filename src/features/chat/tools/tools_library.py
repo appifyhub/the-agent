@@ -25,7 +25,7 @@ def fetch_web_page_html(url: str) -> str:
         return json.dumps({"result": "Error", "error": str(e)})
 
 
-class PredefinedTools(BaseToolBinder):
+class ToolsLibrary(BaseToolBinder):
 
     def __init__(self):
         super().__init__(

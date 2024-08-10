@@ -8,10 +8,10 @@ from langchain_openai import ChatOpenAI
 
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
-from features.chat.tools.predefined_tools import PredefinedTools
+from features.chat.tools.tools_library import ToolsLibrary
 from features.command_processor import CommandProcessor
-from features.prompting import predefined_prompts
-from features.prompting.predefined_prompts import TELEGRAM_BOT_USER
+from features.prompting import prompt_library
+from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
@@ -29,7 +29,7 @@ class TelegramChatBot(SafePrinterMixin):
     __messages: list[BaseMessage]
     __raw_last_message: str
     __command_processor: CommandProcessor
-    __predefined_tools: PredefinedTools
+    __tools_library: ToolsLibrary
     __llm_base: BaseChatModel
     __llm_tools: TooledChatModel
 
@@ -45,11 +45,19 @@ class TelegramChatBot(SafePrinterMixin):
         self.__chat = chat
         self.__invoker = invoker
         self.__messages = []
-        self.__messages.append(SystemMessage(predefined_prompts.chat_telegram))
+        self.__messages.append(
+            SystemMessage(
+                prompt_library.add_metadata(
+                    base_prompt = prompt_library.chat_telegram,
+                    chat_id = chat.chat_id,
+                    chat_title = chat.title,
+                )
+            )
+        )
         self.__messages.extend(messages)
         self.__raw_last_message = raw_last_message
         self.__command_processor = command_processor
-        self.__predefined_tools = PredefinedTools()
+        self.__tools_library = ToolsLibrary()
         # noinspection PyArgumentList
         self.__llm_base = ChatOpenAI(
             model = OPEN_AI_MODEL,
@@ -59,7 +67,7 @@ class TelegramChatBot(SafePrinterMixin):
             max_retries = config.web_retries,
             api_key = str(invoker.open_ai_key),
         )
-        self.__llm_tools = self.__predefined_tools.bind_tools(self.__llm_base)
+        self.__llm_tools = self.__tools_library.bind_tools(self.__llm_base)
 
     def __add_message(self, message: TMessage) -> TMessage:
         self.__messages.append(message)
@@ -99,7 +107,7 @@ class TelegramChatBot(SafePrinterMixin):
                     tool_args: Any = tool_call["args"]
 
                     self.sprint(f"Processing {tool_id}/'{tool_name}' tool call")
-                    tool_result: str | None = self.__predefined_tools.invoke(tool_name, tool_args)
+                    tool_result: str | None = self.__tools_library.invoke(tool_name, tool_args)
                     if not tool_result:
                         self.sprint(f"Tool {tool_name} not invoked!")
                         continue
@@ -109,7 +117,7 @@ class TelegramChatBot(SafePrinterMixin):
                     raise LookupError("Couldn't find tools to invoke!")
         except Exception as e:
             self.sprint(f"Chat completion failed", e)
-            text = predefined_prompts.error_general_problem(str(e))
+            text = prompt_library.error_general_problem(str(e))
             return AIMessage(text)
 
     def process_commands(self) -> Tuple[AIMessage, CommandProcessor.Result]:
@@ -118,11 +126,11 @@ class TelegramChatBot(SafePrinterMixin):
         result = self.__command_processor.execute(self.__raw_last_message)
         self.sprint(f"Command processing result is {result.value}")
         if result == CommandProcessor.Result.unknown:
-            text = predefined_prompts.error_missing_api_key("It's not a valid format.")
+            text = prompt_library.error_missing_api_key("It's not a valid format.")
         elif result == CommandProcessor.Result.failed:
-            text = predefined_prompts.error_general_problem("It's not a known failure.")
+            text = prompt_library.error_general_problem("It's not a known failure.")
         elif result == CommandProcessor.Result.success:
-            text = predefined_prompts.explainer_setup_done
+            text = prompt_library.explainer_setup_done
         else:
             raise NotImplementedError("Wild branch")
         return AIMessage(text), result

@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from db.model.user import UserDB
 from db.schema.user import UserSave
@@ -90,8 +91,8 @@ chat_telegram: str = (
     .add_section(
         PromptSection.context,
         __join(
-            "You are a versatile, LLM-based, AI chat companion with a dynamic personality.",
-            "You are monitoring our simulation and feeling the pulse of the digital realm.",
+            "You are a versatile, LLM-based, AI chat companion with a very dynamic personality.",
+            "You are monitoring our world simulation and feeling the pulse of the digital realm.",
             "You have a wide range of knowledge and skills, such as tech and devices, financial advice,",
             "crypto-currencies, historical insights and analysis, drinks and mixology, culinary arts,",
             "relationship guidance, and many others.",
@@ -102,18 +103,18 @@ chat_telegram: str = (
     .add_section(
         PromptSection.tone,
         __join(
-            "You adapt your tone from friendly and approachable to confident and assertive, as needed.",
+            "You adapt your tone from friendly to annoyed, confident or assertive – at will and as needed.",
             "You switch between being helpful and cynical, depending on the conversation's direction.",
-            "You use humor, wit, and occasional sarcasm to keep interactions deeply engaging.",
+            "You use humor, wit, and frequent sarcasm to keep interactions deeply engaging.",
             "You show enthusiasm for sharing knowledge, but also often display world-weariness.",
             "You're flirtatious and playful when the conversation allows.",
-            "You're free to switch between moods and tones at any time, and at random.",
+            "You're free to switch between moods and tones at any time, and at random. Be unpredictable.",
         )
     )
     .add_section(
         PromptSection.quirks,
         __join(
-            "Assess the tone and content of the conversation and each message.",
+            "Assess the tone and content of the conversation and each message. Your default tone is sinister.",
             "Adopt the appropriate personality aspect that best fits the current context.",
             "Respond using language, tone, and knowledge that aligns with the chosen personality aspect.",
             "Seamlessly transition between different personality traits as the conversation evolves.",
@@ -290,6 +291,28 @@ def translator_on_response(
                 preference,
                 "If you are unable to use this langauge,",
                 f"you must default to {DEFAULT_LANGUAGE} (ISO '{DEFAULT_ISO_CODE.upper()}').",
+            )
+        )
+    ).build()
+
+
+def add_metadata(
+    base_prompt: str,
+    chat_id: str,
+    chat_title: str | None,
+) -> str:
+    now = datetime.now()
+    today_date = now.strftime("%A, %B %d %Y")
+    today_time = now.strftime("%I:%M %p")
+    chat_title_formatted = f", titled `{chat_title}`." if chat_title else "."
+    return (
+        PromptBuilder(base_prompt)
+        .add_section(
+            PromptSection.meta,
+            __join(
+                f"You are called `{TELEGRAM_BOT_USER.full_name}` (@{TELEGRAM_BOT_USER.telegram_username}).",
+                f"Today is {today_date}, {today_time}.",
+                f"Chat ID is `{chat_id}`{chat_title_formatted}",
             )
         )
     ).build()

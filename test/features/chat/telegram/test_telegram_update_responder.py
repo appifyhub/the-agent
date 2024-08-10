@@ -93,7 +93,7 @@ class TestTelegramUpdateResponder(unittest.TestCase):
     def test_mapping_error(self):
         self.telegram_domain_mapper.map_update.return_value = None
 
-        with patch("features.prompting.predefined_prompts.error_general_problem", return_value = "Mapping error"):
+        with patch("features.prompting.prompt_library.error_general_problem", return_value = "Mapping error"):
             self.domain_langchain_mapper.map_bot_message_to_storage.return_value = [
                 Mock(chat_id = "123", text = "Mapping error"),
             ]
@@ -119,7 +119,7 @@ class TestTelegramUpdateResponder(unittest.TestCase):
     def test_general_exception(self):
         self.chat_messages_dao.get_latest_chat_messages.side_effect = Exception("Test error")
 
-        with patch("features.prompting.predefined_prompts.error_general_problem", return_value = "Error occurred"):
+        with patch("features.prompting.prompt_library.error_general_problem", return_value = "Error occurred"):
             self.domain_langchain_mapper.map_bot_message_to_storage.return_value = [
                 Mock(chat_id = "123", text = "Error occurred"),
             ]

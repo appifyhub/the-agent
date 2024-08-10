@@ -11,8 +11,8 @@ from features.chat.telegram.telegram_chat_bot import TelegramChatBot
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.command_processor import CommandProcessor
-from features.prompting import predefined_prompts
-from features.prompting.predefined_prompts import TELEGRAM_BOT_USER
+from features.prompting import prompt_library
+from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config
 from util.functions import silent
 from util.safe_printer_mixin import sprint
@@ -94,7 +94,7 @@ def __notify_of_errors(
     error: Exception,
 ):
     if resolved_domain_data:
-        answer = AIMessage(predefined_prompts.error_general_problem(str(error)))
+        answer = AIMessage(prompt_library.error_general_problem(str(error)))
         messages = domain_langchain_mapper.map_bot_message_to_storage(resolved_domain_data.chat.chat_id, answer)
         for message in messages:
             telegram_bot_api.send_text_message(message.chat_id, message.text)

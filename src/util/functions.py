@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Callable, Any
 
 from db.schema.user import User, UserSave
-from features.prompting.predefined_prompts import TELEGRAM_BOT_USER
+from features.prompting.prompt_library import TELEGRAM_BOT_USER
 
 
 def is_the_agent(who: User | UserSave | None) -> bool:
