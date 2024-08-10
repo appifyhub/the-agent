@@ -18,4 +18,5 @@ class BaseToolBinder:
 
     def invoke(self, tool_name: str, args: object) -> str | None:
         selected_tool: Callable[..., Any] | None = self.__tools_map.get(tool_name)
-        return selected_tool(args) if (selected_tool is not None) else None
+        # noinspection PyUnresolvedReferences
+        return selected_tool.invoke(args) if (selected_tool is not None) else None
