@@ -49,7 +49,8 @@ class PromptBuilderTest(unittest.TestCase):
             "[Tone]\nContent for Tone\n\n"
             "[Quirks]\nContent for Quirks\n\n"
             "[Appendix]\nContent for Appendix\n\n"
-            "[Important Reminder]\nContent for Important Reminder"
+            "[Important Reminder]\nContent for Important Reminder\n\n"
+            "[Metadata]\nContent for Metadata"
         )
         self.assertEqual(result, expected)
 
