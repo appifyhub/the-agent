@@ -6,7 +6,7 @@ from uuid import UUID
 from db.model.user import UserDB
 from db.schema.user import User
 from features.command_processor import CommandProcessor
-from features.prompting.predefined_prompts import TELEGRAM_BOT_USER, COMMAND_START
+from features.prompting.prompt_library import TELEGRAM_BOT_USER, COMMAND_START
 
 
 class CommandProcessorTest(unittest.TestCase):
