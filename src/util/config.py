@@ -38,7 +38,7 @@ class Config(metaclass = Singleton):
         def_telegram_bot_name: str = "The Agent",
         def_telegram_bot_token: str = "invalid",
         def_telegram_api_base_url: str = "https://api.telegram.org",
-        def_chat_history_depth: int = 50,
+        def_chat_history_depth: int = 30,
         def_anthropic_token: str = "invalid",
         def_open_ai_token: str = "invalid",
     ):

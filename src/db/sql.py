@@ -1,8 +1,9 @@
 import time
+from contextlib import contextmanager
 
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.orm import sessionmaker, Session, declarative_base
+from sqlalchemy.orm import sessionmaker, declarative_base
 
 from util.config import config
 from util.safe_printer_mixin import sprint
@@ -29,9 +30,19 @@ BaseModel = declarative_base()
 BaseModel.metadata.create_all(bind = engine)
 
 
-def get_session() -> Session:
+def get_session():
     db = LocalSession()
     try:
         yield db
     finally:
         db.close()
+
+
+@contextmanager
+def get_detached_session():
+    session_generator = get_session()
+    db = next(session_generator)
+    try:
+        yield db
+    finally:
+        session_generator.close()
