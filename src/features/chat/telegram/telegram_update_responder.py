@@ -69,7 +69,7 @@ def respond_to_update(
         saved_messages: int = 0
         domain_messages = domain_langchain_mapper.map_bot_message_to_storage(
             resolved_domain_data.chat.chat_id,
-            answer
+            answer,
         )
         for message in domain_messages:
             telegram_bot_api.send_text_message(message.chat_id, message.text)

@@ -1,6 +1,7 @@
 import unittest
 from datetime import datetime, timedelta
 
+from db.crud.tools_cache import ToolsCacheCRUD
 from db.schema.tools_cache import ToolsCacheSave
 from db.sql_util import SQLUtil
 
@@ -133,3 +134,7 @@ class ToolsCacheCRUDTest(unittest.TestCase):
         # Asserting expired entry does not exist
         fetched_expired = self.sql.tools_cache_crud().get(tools_cache_expired.key)
         self.assertIsNone(fetched_expired)
+
+    def test_create_key(self):
+        key = ToolsCacheCRUD.create_key("prefix", "identifier")
+        self.assertEqual(key, "cHJlZml4~aWRlbnRpZmllcg==")

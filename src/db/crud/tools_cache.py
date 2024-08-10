@@ -1,9 +1,12 @@
+import base64
 from datetime import datetime
 
 from sqlalchemy.orm import Session
 
 from db.model.tools_cache import ToolsCacheDB
 from db.schema.tools_cache import ToolsCacheSave
+
+KEY_DELIMITER = "~"
 
 
 class ToolsCacheCRUD:
@@ -56,3 +59,9 @@ class ToolsCacheCRUD:
         ).delete()
         self._db.commit()
         return expired
+
+    @staticmethod
+    def create_key(prefix: str, identifier: str) -> str:
+        prefix_b64 = base64.b64encode(prefix.encode()).decode()
+        identifier_b64 = base64.b64encode(identifier.encode()).decode()
+        return f"{prefix_b64}{KEY_DELIMITER}{identifier_b64}"
