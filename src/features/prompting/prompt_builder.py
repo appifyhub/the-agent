@@ -12,6 +12,7 @@ class PromptSection(enum.Enum):
     quirks = "Quirks"
     appendix = "Appendix"
     reminder = "Important Reminder"
+    meta = "Metadata"
 
 
 class PromptBuilder:

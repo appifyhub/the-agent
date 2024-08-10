@@ -33,7 +33,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.telegram_bot_name, "The Agent")
         self.assertEqual(config.telegram_bot_token, "invalid")
         self.assertEqual(config.telegram_api_base_url, "https://api.telegram.org")
-        self.assertEqual(config.chat_history_depth, 50)
+        self.assertEqual(config.chat_history_depth, 30)
         self.assertEqual(config.anthropic_token, "invalid")
         self.assertEqual(config.open_ai_token, "invalid")
 

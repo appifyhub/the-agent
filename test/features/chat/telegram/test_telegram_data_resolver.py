@@ -12,7 +12,7 @@ from features.chat.telegram.model.attachment.file import File
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
-from features.prompting.predefined_prompts import TELEGRAM_BOT_USER
+from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config
 
 

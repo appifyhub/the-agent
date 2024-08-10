@@ -3,7 +3,7 @@ from datetime import date, datetime
 from uuid import UUID
 
 from db.schema.user import User
-from features.prompting.predefined_prompts import TELEGRAM_BOT_USER
+from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.functions import is_the_agent, construct_bot_message_id, silent
 
 

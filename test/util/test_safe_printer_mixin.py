@@ -1,5 +1,4 @@
 import unittest
-from io import StringIO
 from unittest.mock import patch
 
 from util.safe_printer_mixin import SafePrinterMixin
@@ -7,44 +6,36 @@ from util.safe_printer_mixin import SafePrinterMixin
 
 class SafePrinterMixinTest(unittest.TestCase):
 
-    def test_safe_print_verbose(self):
+    @patch("util.safe_printer_mixin.logger")
+    def test_sprint_verbose(self, mock_logger):
         printer = SafePrinterMixin(verbose = True)
-        with patch("sys.stdout", new = StringIO()) as mock:
-            printer.sprint("Test")
-            self.assertEqual(mock.getvalue(), "Test\n")
+        printer.sprint("Test")
+        mock_logger.debug.assert_called_once_with("Test")
 
-    def test_safe_print_non_verbose(self):
+    @patch("util.safe_printer_mixin.logger")
+    def test_sprint_non_verbose(self, mock_logger):
         printer = SafePrinterMixin(verbose = False)
-        with patch("sys.stdout", new = StringIO()) as mock:
-            printer.sprint("Test")
-            self.assertEqual(mock.getvalue(), "")
+        printer.sprint("Test")
+        mock_logger.debug.assert_not_called()
 
-    def test_safe_print_with_exception_verbose(self):
+    @patch("util.safe_printer_mixin.logger")
+    @patch("util.safe_printer_mixin.traceback")
+    def test_sprint_with_exception_verbose(self, mock_traceback, mock_logger):
         printer = SafePrinterMixin(verbose = True)
+        test_exception = ValueError("Test exception")
+        printer.sprint("Error occurred", test_exception)
 
-        def function_that_raises_exception():
-            raise ValueError("Test exception")
+        mock_logger.warning.assert_called_once_with("Error occurred")
+        mock_logger.error.assert_called_once_with(str(test_exception))
+        mock_traceback.print_exc.assert_called_once()
 
-        try:
-            function_that_raises_exception()
-        except ValueError as e:
-            with patch("sys.stdout", new = StringIO()) as stdout_mock, \
-                patch("sys.stderr", new = StringIO()) as stderr_mock:
-                printer.sprint("Error occurred", e)
-                stdout_output = stdout_mock.getvalue()
-                stderr_output = stderr_mock.getvalue()
-
-                self.assertIn("Error occurred", stdout_output)
-                self.assertIn("Test exception", stdout_output)
-                self.assertIn("Traceback (most recent call last):", stderr_output)
-                self.assertIn("ValueError: Test exception", stderr_output)
-                self.assertIn("function_that_raises_exception", stderr_output)
-
-    def test_safe_print_with_exception_non_verbose(self):
+    @patch("util.safe_printer_mixin.logger")
+    @patch("util.safe_printer_mixin.traceback")
+    def test_sprint_with_exception_non_verbose(self, mock_traceback, mock_logger):
         printer = SafePrinterMixin(verbose = False)
         test_exception = ValueError("Test exception")
-        with patch("sys.stdout", new = StringIO()) as stdout_mock, \
-            patch("sys.stderr", new = StringIO()) as stderr_mock:
-            printer.sprint("Error occurred", test_exception)
-            self.assertEqual(stdout_mock.getvalue(), "")
-            self.assertEqual(stderr_mock.getvalue(), "")
+        printer.sprint("Error occurred", test_exception)
+
+        mock_logger.debug.assert_not_called()
+        mock_logger.warning.assert_not_called()
+        mock_traceback.print_exc.assert_not_called()
