@@ -22,7 +22,6 @@ class WebFetcherTest(unittest.TestCase):
     mock_cache_crud: ToolsCacheCRUD
 
     def setUp(self):
-        config.verbose = True
         config.web_retries = 1
         config.web_retry_delay_s = 0
         config.web_timeout_s = 1
