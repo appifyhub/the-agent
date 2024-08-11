@@ -10,6 +10,7 @@ class Config(metaclass = Singleton):
     web_retry_delay_s: int
     web_timeout_s: int
     max_invites_per_user: int
+    max_users: int
     website_url: str
     db_url: str
     api_key: str
@@ -28,6 +29,7 @@ class Config(metaclass = Singleton):
         def_web_retry_delay_s: int = 1,
         def_web_timeout_s: int = 10,
         def_max_invites_per_user: int = 2,
+        def_max_users: int = 100,
         def_website_url: str = "https://the-agent.appifyhub.com",
         def_db_user: str = "root",
         def_db_pass: str = "root",
@@ -47,6 +49,7 @@ class Config(metaclass = Singleton):
         self.web_retry_delay_s = int(self.__env("WEB_RETRY_DELAY_S", lambda: str(def_web_retry_delay_s)))
         self.web_timeout_s = int(self.__env("WEB_TIMEOUT_S", lambda: str(def_web_timeout_s)))
         self.max_invites_per_user = int(self.__env("MAX_INVITES_PER_USER", lambda: str(def_max_invites_per_user)))
+        self.max_users = int(self.__env("MAX_USERS", lambda: str(def_max_users)))
         self.website_url = self.__env("WEBSITE_URL", lambda: def_website_url)
         self.__set_up_db(def_db_user, def_db_pass, def_db_host, def_db_name)
         self.api_key = self.__env("API_KEY", lambda: def_api_key)

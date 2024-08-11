@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfigSave, ChatConfig
@@ -225,6 +225,21 @@ class TelegramDataResolverTest(unittest.TestCase):
         self.assertEqual(result.open_ai_key, mapped_data.open_ai_key)
         self.assertEqual(result.group, mapped_data.group)
         self.assertEqual(result.created_at, datetime.now().date())
+
+    @patch('db.crud.user.UserCRUD.count')
+    def test_resolve_author_user_limit_reached(self, mock_count):
+        mock_count.return_value = config.max_users  # reach maximum immediately
+        mapped_data = UserSave(
+            telegram_user_id = 1,
+            full_name = "New User",
+            telegram_chat_id = "c1",
+        )
+
+        with self.assertRaises(ValueError) as context:
+            self.resolver.resolve_author(mapped_data)
+
+        self.assertEqual(str(context.exception), "User limit reached, try again later")
+        mock_count.assert_called_once()
 
     def test_resolve_author_existing(self):
         existing_user_data = UserSave(
