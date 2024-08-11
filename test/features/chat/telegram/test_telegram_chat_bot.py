@@ -86,7 +86,7 @@ class TelegramChatBotTest(unittest.TestCase):
 
         self.assertIsInstance(result, AIMessage)
         self.assertEqual(status, CommandProcessor.Result.success)
-        self.assertIn("Thanks, we can try again now", result.content)
+        self.assertIn("everything is set up", result.content)
 
     def test_should_reply_private_chat(self):
         self.chat_config.is_private = True
