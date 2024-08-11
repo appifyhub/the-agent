@@ -2,6 +2,7 @@ from enum import Enum
 
 from db.crud.user import UserCRUD
 from db.schema.user import User, UserSave
+from features.invite_manager import InviteManager
 from features.prompting.prompt_library import COMMAND_START, TELEGRAM_BOT_USER
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
@@ -15,11 +16,13 @@ class CommandProcessor(SafePrinterMixin):
 
     __invoker: User
     __user_dao: UserCRUD
+    __invite_manager: InviteManager
 
-    def __init__(self, invoker: User, user_dao: UserCRUD):
+    def __init__(self, invoker: User, user_dao: UserCRUD, invite_manager: InviteManager):
         super().__init__(config.verbose)
         self.__invoker = invoker
         self.__user_dao = user_dao
+        self.__invite_manager = invite_manager
 
     def execute(self, raw_input: str) -> Result:
         self.sprint(f"Starting to evaluate command input '{raw_input}'")
@@ -47,10 +50,15 @@ class CommandProcessor(SafePrinterMixin):
     def __handle_start_command(self, parts: list[str]) -> Result:
         self.sprint(f"Processing OpenAI key now from parts [{", ".join(parts)}]")
         try:
+            accepted_invite = self.__invite_manager.accept_invite(self.__invoker)
+            if accepted_invite:
+                self.sprint("Just accepted an invite by messaging the bot")
+                return CommandProcessor.Result.success
             if not parts:
                 self.sprint("Not enough command parts")
                 return CommandProcessor.Result.unknown
-            self.__user_dao.save(
+            # store the API key
+            saved_user_db = self.__user_dao.save(
                 UserSave(
                     id = self.__invoker.id,
                     full_name = self.__invoker.full_name,
@@ -61,6 +69,9 @@ class CommandProcessor(SafePrinterMixin):
                     group = self.__invoker.group,
                 )
             )
+            # remove all invites for this user to allow re-inviting
+            saved_user = User.model_validate(saved_user_db)
+            self.__invite_manager.purge_accepted_invites(saved_user)
             return CommandProcessor.Result.success
         except Exception as e:
             self.sprint(f"Failed to process OpenAI key", e)

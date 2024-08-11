@@ -11,6 +11,7 @@ from features.chat.telegram.telegram_chat_bot import TelegramChatBot
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.command_processor import CommandProcessor
+from features.invite_manager import InviteManager
 from features.prompting import prompt_library
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config
@@ -20,6 +21,7 @@ from util.safe_printer_mixin import sprint
 
 def respond_to_update(
     user_dao: UserCRUD,
+    invite_manager: InviteManager,
     chat_messages_dao: ChatMessageCRUD,
     telegram_domain_mapper: TelegramDomainMapper,
     telegram_data_resolver: TelegramDataResolver,
@@ -51,7 +53,7 @@ def respond_to_update(
         if not resolved_domain_data.author:
             sprint("Not responding to messages without author")
             return False
-        command_processor = CommandProcessor(resolved_domain_data.author, user_dao)
+        command_processor = CommandProcessor(resolved_domain_data.author, user_dao, invite_manager)
         telegram_chat_bot = TelegramChatBot(
             resolved_domain_data.chat,
             resolved_domain_data.author,

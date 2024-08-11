@@ -88,7 +88,11 @@ class TelegramDataResolver(SafePrinterMixin):
         if not mapped_data: return None
         self.sprint(f"Resolving user: {mapped_data}")
         db = UserCRUD(self.__session)
-        old_user_db = db.get_by_telegram_user_id(mapped_data.telegram_user_id)
+        old_user_db = (
+            db.get_by_telegram_user_id(mapped_data.telegram_user_id) or
+            db.get_by_telegram_username(mapped_data.telegram_username)
+        )
+
         if old_user_db:
             old_user = User.model_validate(old_user_db)
             # reset the attributes that are not normally changed through the Telegram API

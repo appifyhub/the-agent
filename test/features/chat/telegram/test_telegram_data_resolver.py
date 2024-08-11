@@ -226,6 +226,36 @@ class TelegramDataResolverTest(unittest.TestCase):
         self.assertEqual(result.group, mapped_data.group)
         self.assertEqual(result.created_at, datetime.now().date())
 
+    def test_resolve_author_by_username(self):
+        existing_user_data = UserSave(
+            telegram_user_id = None,
+            telegram_username = "unique_username",
+            full_name = "Existing User",
+        )
+        existing_user_db = self.sql.user_crud().save(existing_user_data)
+        existing_user = User.model_validate(existing_user_db)
+
+        mapped_data = UserSave(
+            telegram_user_id = None,
+            telegram_username = "unique_username",
+            full_name = "Updated User",
+            telegram_chat_id = "c1",
+        )
+
+        result = self.resolver.resolve_author(mapped_data)
+        saved_user_db = self.sql.user_crud().get(result.id)
+        saved_user = User.model_validate(saved_user_db)
+
+        self.assertEqual(result, saved_user)
+        self.assertEqual(result.id, existing_user.id)
+        self.assertEqual(result.full_name, mapped_data.full_name)
+        self.assertEqual(result.telegram_username, mapped_data.telegram_username)
+        self.assertEqual(result.telegram_chat_id, mapped_data.telegram_chat_id)
+        self.assertEqual(result.telegram_user_id, existing_user.telegram_user_id)
+        self.assertEqual(result.open_ai_key, existing_user.open_ai_key)
+        self.assertEqual(result.group, existing_user.group)
+        self.assertEqual(result.created_at, existing_user.created_at)
+
     @patch('db.crud.user.UserCRUD.count')
     def test_resolve_author_user_limit_reached(self, mock_count):
         mock_count.return_value = config.max_users  # reach maximum immediately

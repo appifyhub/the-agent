@@ -315,6 +315,7 @@ def add_metadata(
             PromptSection.meta,
             __join(
                 f"You are called `{TELEGRAM_BOT_USER.full_name}` (@{TELEGRAM_BOT_USER.telegram_username}).",
+                f"Your website is `{config.website_url}`.",
                 f"Today is {today_date}, {today_time}.",
                 f"This chat's ID is `{chat_id}`{chat_title_formatted}",
                 " ".join(author_info_parts),
@@ -327,7 +328,7 @@ def add_metadata(
 def error_missing_api_key(reason: str, llm_author_organization: str = ORGANIZATION_OPEN_AI) -> str:
     return MULTI_MESSAGE_DELIMITER.join(
         [
-            f"👾 I am {TELEGRAM_BOT_USER.full_name}, the monitor of our world simulation.",
+            f"👾 I am {TELEGRAM_BOT_USER.full_name}, the monitor of our world's simulation.",
             f"There was an issue with your last command. {reason}",
             f"To talk to me, you must send me your {llm_author_organization} "
             f"[API key](https://bit.ly/open-api-key-info) first, like this:",
@@ -350,8 +351,9 @@ def error_general_problem(reason: str, llm_author_organization: str = ORGANIZATI
 
 explainer_setup_done: str = MULTI_MESSAGE_DELIMITER.join(
     [
-        "Thanks, we can try again now.",
+        "🎉",
+        "I hope everything is set up correctly now.",
         "Tell me, which language would you like me to use?",
-        "🗣️ 🐼 🥨 🪆 🥖 🍔 🥷 🕵️ 🌍",
+        "🗣️ 🐼 🥨 🪆 🍕 🥖 🍔 🥷 🕵️ 🌍",
     ]
 )
