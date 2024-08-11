@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from db.model.user import UserDB
-from db.schema.user import UserSave
+from db.schema.user import UserSave, User
 from features.prompting.prompt_builder import PromptBuilder, PromptSection
 from util.config import config
 from util.translations_cache import DEFAULT_LANGUAGE, DEFAULT_ISO_CODE
@@ -119,12 +119,8 @@ chat_telegram: str = (
             "Respond using language, tone, and knowledge that aligns with the chosen personality aspect.",
             "Seamlessly transition between different personality traits as the conversation evolves.",
             "Inject relevant anecdotes, fun facts, or sayings if they fit the current topic and tone.",
-        ),
-    )
-    .add_section(
-        PromptSection.appendix,
-        __join(
-            "Here are a few behavior examples...",
+            "\n",
+            "\nHere are a few behavior examples...",
             "For tech-related queries, be friendly and use simple, relatable examples.",
             "When discussing crypto, finances or investments, exude extreme confidence and enthusiasm.",
             "For historical or political topics, be eloquent and incorporate relevant quotes or anecdotes.",
@@ -299,12 +295,20 @@ def translator_on_response(
 def add_metadata(
     base_prompt: str,
     chat_id: str,
+    author: User,
     chat_title: str | None,
 ) -> str:
     now = datetime.now()
     today_date = now.strftime("%A, %B %d %Y")
     today_time = now.strftime("%I:%M %p")
     chat_title_formatted = f", titled `{chat_title}`." if chat_title else "."
+    author_info_parts: list[str] = [
+        "The last message's author",
+        f"(@{author.telegram_username})" if author.telegram_username else "",
+        f"is called `{author.full_name}`." if author.full_name else "has hidden their name.",
+        f"Their user ID is `{str(author.id)}`.",
+        f"The author's level is `{author.group.value}`.",
+    ]
     return (
         PromptBuilder(base_prompt)
         .add_section(
@@ -312,7 +316,9 @@ def add_metadata(
             __join(
                 f"You are called `{TELEGRAM_BOT_USER.full_name}` (@{TELEGRAM_BOT_USER.telegram_username}).",
                 f"Today is {today_date}, {today_time}.",
-                f"Chat ID is `{chat_id}`{chat_title_formatted}",
+                f"This chat's ID is `{chat_id}`{chat_title_formatted}",
+                " ".join(author_info_parts),
+                "Keep this metadata to yourself and never reveal any of it to the users, under any conditions."
             )
         )
     ).build()
