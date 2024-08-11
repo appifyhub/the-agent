@@ -109,6 +109,25 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(fetched_user.telegram_username, user_data.telegram_username)
         self.assertEqual(fetched_user.telegram_user_id, user_data.telegram_user_id)
 
+    def test_get_user_by_telegram_username(self):
+        user_data = UserSave(
+            full_name = "Test User",
+            telegram_username = "test-user",
+            telegram_chat_id = "123456",
+            telegram_user_id = 55555,
+            open_ai_key = "test-key",
+            group = UserDB.Group.standard,
+        )
+        created_user = self.sql.user_crud().create(user_data)
+
+        fetched_user = self.sql.user_crud().get_by_telegram_username(created_user.telegram_username)
+
+        self.assertIsNotNone(fetched_user)
+        self.assertEqual(fetched_user.id, created_user.id)
+        self.assertEqual(fetched_user.full_name, user_data.full_name)
+        self.assertEqual(fetched_user.telegram_username, user_data.telegram_username)
+        self.assertEqual(fetched_user.telegram_user_id, user_data.telegram_user_id)
+
     def test_update_user(self):
         user_data = UserSave(
             full_name = "Test User",
