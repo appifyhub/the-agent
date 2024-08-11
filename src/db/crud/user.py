@@ -29,6 +29,11 @@ class UserCRUD:
             telegram_user_id == UserDB.telegram_user_id
         ).first()
 
+    def get_by_telegram_username(self, telegram_username: str) -> UserDB | None:
+        return self._db.query(UserDB).filter(
+            telegram_username == UserDB.telegram_username
+        ).first()
+
     def create(self, create_data: UserSave) -> UserDB:
         user = UserDB(**create_data.model_dump())
         self._db.add(user)
