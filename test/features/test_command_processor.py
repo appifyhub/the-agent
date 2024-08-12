@@ -12,6 +12,7 @@ from features.prompting.prompt_library import TELEGRAM_BOT_USER, COMMAND_START
 class CommandProcessorTest(unittest.TestCase):
     user: User
     mock_user_dao: Mock
+    mock_invite_manager: Mock
     processor: CommandProcessor
 
     def setUp(self):
@@ -26,7 +27,11 @@ class CommandProcessorTest(unittest.TestCase):
             created_at = datetime.now().date(),
         )
         self.mock_user_dao = Mock()
-        self.processor = CommandProcessor(self.user, self.mock_user_dao)
+        self.mock_invite_manager = Mock()
+        self.mock_invite_manager.purge_accepted_invites.return_value = 0
+        self.mock_invite_manager.accept_invite.return_value = 0
+        self.mock_user_dao.save.return_value = User(**self.user.model_dump())
+        self.processor = CommandProcessor(self.user, self.mock_user_dao, self.mock_invite_manager)
 
     def test_empty_input(self):
         result = self.processor.execute("")
@@ -49,14 +54,27 @@ class CommandProcessorTest(unittest.TestCase):
         self.mock_user_dao.save.side_effect = Exception("Test exception")
         result = self.processor.execute(f"/{COMMAND_START} api_key_here")
         self.assertEqual(result, CommandProcessor.Result.failed)
+        self.mock_invite_manager.accept_invite.assert_called_once_with(self.user)
 
     def test_start_command_success(self):
+        self.mock_invite_manager.accept_invite.return_value = False
         result = self.processor.execute(f"/{COMMAND_START} api_key_here")
         self.assertEqual(result, CommandProcessor.Result.success)
         self.mock_user_dao.save.assert_called_once()
+        self.mock_invite_manager.purge_accepted_invites.assert_called_once_with(self.user)
 
     def test_start_command_success_with_bot_tag(self):
+        self.mock_invite_manager.accept_invite.return_value = False
         bot_tag = TELEGRAM_BOT_USER.telegram_username
         result = self.processor.execute(f"/{COMMAND_START}@{bot_tag} api_key_here")
         self.assertEqual(result, CommandProcessor.Result.success)
         self.mock_user_dao.save.assert_called_once()
+        self.mock_invite_manager.purge_accepted_invites.assert_called_once_with(self.user)
+
+    def test_accept_invite_success(self):
+        self.mock_invite_manager.accept_invite.return_value = True
+        result = self.processor.execute(f"/{COMMAND_START} api_key_here")
+        self.assertEqual(result, CommandProcessor.Result.success)
+        self.mock_invite_manager.accept_invite.assert_called_once_with(self.user)
+        self.mock_user_dao.save.assert_not_called()
+        self.mock_invite_manager.purge_accepted_invites.assert_not_called()

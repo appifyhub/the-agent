@@ -44,6 +44,38 @@ class InviteCRUDTest(unittest.TestCase):
         self.assertEqual(fetched_invite.sender_id, created_invite.sender_id)
         self.assertEqual(fetched_invite.receiver_id, created_invite.receiver_id)
 
+    def test_get_all_by_sender(self):
+        sender = self.sql.user_crud().create(UserSave())
+        receiver1 = self.sql.user_crud().create(UserSave())
+        receiver2 = self.sql.user_crud().create(UserSave())
+        invites = [
+            self.sql.invite_crud().create(InviteSave(sender_id = sender.id, receiver_id = receiver1.id)),
+            self.sql.invite_crud().create(InviteSave(sender_id = sender.id, receiver_id = receiver2.id)),
+        ]
+
+        fetched_invites = self.sql.invite_crud().get_all_by_sender(sender.id)
+
+        self.assertEqual(len(fetched_invites), len(invites))
+        for invite in fetched_invites:
+            self.assertEqual(invite.sender_id, sender.id)
+            self.assertIn(invite.receiver_id, [receiver1.id, receiver2.id])
+
+    def test_get_all_by_receiver(self):
+        receiver = self.sql.user_crud().create(UserSave())
+        sender1 = self.sql.user_crud().create(UserSave())
+        sender2 = self.sql.user_crud().create(UserSave())
+        invites = [
+            self.sql.invite_crud().create(InviteSave(sender_id = sender1.id, receiver_id = receiver.id)),
+            self.sql.invite_crud().create(InviteSave(sender_id = sender2.id, receiver_id = receiver.id)),
+        ]
+
+        fetched_invites = self.sql.invite_crud().get_all_by_receiver(receiver.id)
+
+        self.assertEqual(len(fetched_invites), len(invites))
+        for invite in fetched_invites:
+            self.assertEqual(invite.receiver_id, receiver.id)
+            self.assertIn(invite.sender_id, [sender1.id, sender2.id])
+
     def test_get_all_invites(self):
         sender1 = self.sql.user_crud().create(UserSave())
         receiver1 = self.sql.user_crud().create(UserSave())
@@ -125,3 +157,17 @@ class InviteCRUDTest(unittest.TestCase):
         self.assertEqual(deleted_invite.sender_id, created_invite.sender_id)
         self.assertEqual(deleted_invite.receiver_id, created_invite.receiver_id)
         self.assertIsNone(self.sql.invite_crud().get(sender.id, receiver.id))
+
+    def test_delete_all_by_receiver(self):
+        receiver = self.sql.user_crud().create(UserSave())
+
+        sender1 = self.sql.user_crud().create(UserSave())
+        sender2 = self.sql.user_crud().create(UserSave())
+        self.sql.invite_crud().create(InviteSave(sender_id = sender1.id, receiver_id = receiver.id))
+        self.sql.invite_crud().create(InviteSave(sender_id = sender2.id, receiver_id = receiver.id))
+
+        deleted_count = self.sql.invite_crud().delete_all_by_receiver(receiver.id)
+
+        self.assertEqual(deleted_count, 2)
+        remaining_invites = self.sql.invite_crud().get_all_by_receiver(receiver.id)
+        self.assertEqual(len(remaining_invites), 0)
