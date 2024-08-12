@@ -338,11 +338,16 @@ def error_missing_api_key(reason: str, llm_author_organization: str = ORGANIZATI
 
 
 def error_general_problem(reason: str, llm_author_organization: str = ORGANIZATION_OPEN_AI) -> str:
+    clean_reason = reason.replace(config.db_url, "https://****")
+    clean_reason = clean_reason.replace(config.parent_organization, "organization")
+    clean_reason = clean_reason.replace(config.telegram_bot_token, "****")
+    clean_reason = clean_reason.replace(config.anthropic_token, "****")
+    clean_reason = clean_reason.replace(config.open_ai_token, "****")
     return MULTI_MESSAGE_DELIMITER.join(
         [
             f"🔴 I'm having issues replying to you.",
             f"Maybe it's a problem with your {llm_author_organization} setup, or it's an internal problem on my side.",
-            f"Here's what I got:\n\n```{reason}```",
+            f"Here's what I got:\n\n```{clean_reason}```",
             f"Remember, you can reset your {llm_author_organization} [API key](https://bit.ly/open-api-key-info):",
             f"`/{COMMAND_START} sk-0123456789ABCDEF`",
         ]

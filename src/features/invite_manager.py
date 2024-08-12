@@ -93,7 +93,7 @@ class InviteManager(SafePrinterMixin):
             )
             receiver_user = User.model_validate(receiver_user_db)
             accepted_at = datetime.now()
-            message = f"Activated! Send a welcome message to user '{receiver_user.id}'"
+            message = f"Activated! Send a welcome message to user '@{receiver_user.telegram_username}'"
         else:
             # create a new user for the receiver persona with the sender's API key
             self.sprint(f"Creating new user for receiver '@{receiver_telegram_username}'")
@@ -176,7 +176,10 @@ class InviteManager(SafePrinterMixin):
                     group = receiver_user.group,
                 )
             )
-            message_appendix = " Shared API key was also removed from the receiver."
+            message_appendix = (
+                " Shared API key was also removed from the receiver."
+                f" Send a thanks/goodbye message to user '@{receiver_user.telegram_username}'"
+            )
         message = f"Invite revoked!{message_appendix}"
         self.sprint(message)
         return InviteManager.Result.success, message
