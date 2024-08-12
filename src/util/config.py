@@ -10,9 +10,11 @@ class Config(metaclass = Singleton):
     web_retry_delay_s: int
     web_timeout_s: int
     max_invites_per_user: int
+    max_users: int
     website_url: str
     db_url: str
     api_key: str
+    parent_organization: str
     telegram_bot_username: str
     telegram_bot_name: str
     telegram_bot_token: str
@@ -28,12 +30,14 @@ class Config(metaclass = Singleton):
         def_web_retry_delay_s: int = 1,
         def_web_timeout_s: int = 10,
         def_max_invites_per_user: int = 2,
+        def_max_users: int = 100,
         def_website_url: str = "https://the-agent.appifyhub.com",
         def_db_user: str = "root",
         def_db_pass: str = "root",
         def_db_host: str = "localhost",
         def_db_name: str = "agent",
         def_api_key: str = "0000-1234-5678-0000",
+        def_parent_organization: str = "AppifyHub",
         def_telegram_bot_username: str = "the_agent",
         def_telegram_bot_name: str = "The Agent",
         def_telegram_bot_token: str = "invalid",
@@ -47,9 +51,11 @@ class Config(metaclass = Singleton):
         self.web_retry_delay_s = int(self.__env("WEB_RETRY_DELAY_S", lambda: str(def_web_retry_delay_s)))
         self.web_timeout_s = int(self.__env("WEB_TIMEOUT_S", lambda: str(def_web_timeout_s)))
         self.max_invites_per_user = int(self.__env("MAX_INVITES_PER_USER", lambda: str(def_max_invites_per_user)))
+        self.max_users = int(self.__env("MAX_USERS", lambda: str(def_max_users)))
         self.website_url = self.__env("WEBSITE_URL", lambda: def_website_url)
         self.__set_up_db(def_db_user, def_db_pass, def_db_host, def_db_name)
         self.api_key = self.__env("API_KEY", lambda: def_api_key)
+        self.parent_organization = self.__env("PARENT_ORGANIZATION", lambda: def_parent_organization)
         self.telegram_bot_username = self.__env("TELEGRAM_BOT_USERNAME", lambda: def_telegram_bot_username)
         self.telegram_bot_name = self.__env("TELEGRAM_BOT_NAME", lambda: def_telegram_bot_name)
         self.telegram_bot_token = self.__env("TELEGRAM_BOT_TOKEN", lambda: def_telegram_bot_token)
