@@ -88,13 +88,23 @@ class TelegramDataResolver(SafePrinterMixin):
         if not mapped_data: return None
         self.sprint(f"Resolving user: {mapped_data}")
         db = UserCRUD(self.__session)
-        old_user_db = db.get_by_telegram_user_id(mapped_data.telegram_user_id)
+        old_user_db = (
+            db.get_by_telegram_user_id(mapped_data.telegram_user_id) or
+            db.get_by_telegram_username(mapped_data.telegram_username)
+        )
+
         if old_user_db:
             old_user = User.model_validate(old_user_db)
             # reset the attributes that are not normally changed through the Telegram API
             mapped_data.id = old_user.id
             mapped_data.open_ai_key = old_user.open_ai_key
             mapped_data.group = old_user.group
+        else:
+            # new users can only be added until the user limit is reached
+            user_count = db.count()
+            if user_count >= config.max_users:
+                self.sprint(f"User limit reached: {user_count}/{config.max_users}")
+                raise ValueError("User limit reached, try again later")
         return User.model_validate(db.save(mapped_data))
 
     def resolve_chat_message(self, mapped_data: ChatMessageSave) -> ChatMessage:

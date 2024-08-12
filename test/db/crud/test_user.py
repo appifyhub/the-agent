@@ -65,6 +65,32 @@ class UserCRUDTest(unittest.TestCase):
         for i in range(len(users)):
             self.assertEqual(fetched_users[i].id, users[i].id)
 
+    def test_count_users(self):
+        initial_count = self.sql.user_crud().count()
+        self.assertEqual(initial_count, 0)
+
+        user_data1 = UserSave(
+            full_name = "Test User 1",
+            telegram_username = "test-user-1",
+            telegram_chat_id = "1234561",
+            telegram_user_id = 1234561,
+            open_ai_key = "test-key-1",
+            group = UserDB.Group.standard,
+        )
+        user_data2 = UserSave(
+            full_name = "Test User 2",
+            telegram_username = "test-user-2",
+            telegram_chat_id = "1234562",
+            telegram_user_id = 1234562,
+            open_ai_key = "test-key-2",
+            group = UserDB.Group.standard,
+        )
+        self.sql.user_crud().create(user_data1)
+        self.sql.user_crud().create(user_data2)
+
+        user_count = self.sql.user_crud().count()
+        self.assertEqual(user_count, 2)
+
     def test_get_user_by_telegram_user_id(self):
         user_data = UserSave(
             full_name = "Test User",
@@ -78,6 +104,25 @@ class UserCRUDTest(unittest.TestCase):
 
         fetched_user = self.sql.user_crud().get_by_telegram_user_id(created_user.telegram_user_id)
 
+        self.assertEqual(fetched_user.id, created_user.id)
+        self.assertEqual(fetched_user.full_name, user_data.full_name)
+        self.assertEqual(fetched_user.telegram_username, user_data.telegram_username)
+        self.assertEqual(fetched_user.telegram_user_id, user_data.telegram_user_id)
+
+    def test_get_user_by_telegram_username(self):
+        user_data = UserSave(
+            full_name = "Test User",
+            telegram_username = "test-user",
+            telegram_chat_id = "123456",
+            telegram_user_id = 55555,
+            open_ai_key = "test-key",
+            group = UserDB.Group.standard,
+        )
+        created_user = self.sql.user_crud().create(user_data)
+
+        fetched_user = self.sql.user_crud().get_by_telegram_username(created_user.telegram_username)
+
+        self.assertIsNotNone(fetched_user)
         self.assertEqual(fetched_user.id, created_user.id)
         self.assertEqual(fetched_user.full_name, user_data.full_name)
         self.assertEqual(fetched_user.telegram_username, user_data.telegram_username)

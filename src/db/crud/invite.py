@@ -18,6 +18,18 @@ class InviteCRUD:
             receiver_id == InviteDB.receiver_id,
         ).first()
 
+    def get_all_by_sender(self, sender_id: UUID, skip: int = 0, limit: int = 100) -> list[InviteDB]:
+        # noinspection PyTypeChecker
+        return self._db.query(InviteDB).filter(
+            sender_id == InviteDB.sender_id,
+        ).offset(skip).limit(limit).all()
+
+    def get_all_by_receiver(self, receiver_id: UUID, skip: int = 0, limit: int = 100) -> list[InviteDB]:
+        # noinspection PyTypeChecker
+        return self._db.query(InviteDB).filter(
+            receiver_id == InviteDB.receiver_id,
+        ).offset(skip).limit(limit).all()
+
     def get_all(self, skip: int = 0, limit: int = 100) -> list[InviteDB]:
         # noinspection PyTypeChecker
         return self._db.query(InviteDB).offset(skip).limit(limit).all()
@@ -49,3 +61,10 @@ class InviteCRUD:
             self._db.delete(invite)
             self._db.commit()
         return invite
+
+    def delete_all_by_receiver(self, receiver_id: UUID) -> int:
+        result = self._db.query(InviteDB).filter(
+            receiver_id == InviteDB.receiver_id,
+        ).delete(synchronize_session = False)  # optimizes by assuming no other session will use these objects
+        self._db.commit()
+        return result
