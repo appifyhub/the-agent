@@ -15,7 +15,7 @@ from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
-OPEN_AI_MODEL = "gpt-4o-mini"
+OPEN_AI_MODEL = "gpt-4o"
 OPEN_AI_TEMPERATURE = 0.7
 OPEN_AI_MAX_TOKENS = 600
 
@@ -48,7 +48,12 @@ class TelegramChatBot(SafePrinterMixin):
         self.__messages.append(
             SystemMessage(
                 prompt_library.add_metadata(
-                    base_prompt = prompt_library.chat_telegram,
+                    base_prompt = prompt_library.translator_on_response(
+                        base_prompt = prompt_library.chat_telegram,
+                        language_name = chat.language_name,
+                        langauge_iso_code = chat.language_iso_code,
+                    ),
+                    author = invoker,
                     chat_id = chat.chat_id,
                     chat_title = chat.title,
                 )

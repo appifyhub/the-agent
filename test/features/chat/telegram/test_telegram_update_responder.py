@@ -9,10 +9,12 @@ from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.chat.telegram.telegram_update_responder import respond_to_update
+from features.invite_manager import InviteManager
 
 
 class TestTelegramUpdateResponder(unittest.TestCase):
     user_dao: UserCRUD
+    invite_manager: InviteManager
     chat_messages_dao: ChatMessageCRUD
     telegram_domain_mapper: TelegramDomainMapper
     telegram_data_resolver: TelegramDataResolver
@@ -22,6 +24,7 @@ class TestTelegramUpdateResponder(unittest.TestCase):
 
     def setUp(self):
         self.user_dao = Mock(spec = UserCRUD)
+        self.invite_manager = Mock(spec = InviteManager)
         self.chat_messages_dao = Mock(spec = ChatMessageCRUD)
         self.telegram_domain_mapper = Mock(spec = TelegramDomainMapper)
         self.telegram_data_resolver = Mock(spec = TelegramDataResolver)
@@ -46,6 +49,7 @@ class TestTelegramUpdateResponder(unittest.TestCase):
 
         result = respond_to_update(
             self.user_dao,
+            self.invite_manager,
             self.chat_messages_dao,
             self.telegram_domain_mapper,
             self.telegram_data_resolver,
@@ -55,6 +59,7 @@ class TestTelegramUpdateResponder(unittest.TestCase):
         )
 
         self.assertTrue(result)
+        # noinspection PyUnresolvedReferences
         self.user_dao.save.assert_called_once()
         mock_execute.assert_called_once()
         # noinspection PyUnresolvedReferences
@@ -76,6 +81,7 @@ class TestTelegramUpdateResponder(unittest.TestCase):
 
             result = respond_to_update(
                 self.user_dao,
+                self.invite_manager,
                 self.chat_messages_dao,
                 self.telegram_domain_mapper,
                 self.telegram_data_resolver,
@@ -99,6 +105,7 @@ class TestTelegramUpdateResponder(unittest.TestCase):
             ]
             result = respond_to_update(
                 self.user_dao,
+                self.invite_manager,
                 self.chat_messages_dao,
                 self.telegram_domain_mapper,
                 self.telegram_data_resolver,
@@ -126,6 +133,7 @@ class TestTelegramUpdateResponder(unittest.TestCase):
 
             result = respond_to_update(
                 self.user_dao,
+                self.invite_manager,
                 self.chat_messages_dao,
                 self.telegram_domain_mapper,
                 self.telegram_data_resolver,

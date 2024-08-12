@@ -1,3 +1,5 @@
+import re
+
 import requests
 
 from features.chat.telegram.model.attachment.file import File
@@ -30,6 +32,7 @@ class TelegramBotAPI(SafePrinterMixin):
     ) -> dict:
         self.sprint(f"Sending message to chat #{chat_id}")
         url = f"{self.__bot_api_url}/sendMessage"
+        cleaned_text = re.sub(r'(?<!\b)_(?!\b)', r'\\_', text)
         if link_preview_options is None:
             link_preview_options = {
                 "is_disabled": False,
@@ -38,7 +41,7 @@ class TelegramBotAPI(SafePrinterMixin):
             }
         payload = {
             "chat_id": chat_id,
-            "text": text,
+            "text": cleaned_text,
             "parse_mode": parse_mode,
             "disable_notification": disable_notification,
             "link_preview_options": link_preview_options,
