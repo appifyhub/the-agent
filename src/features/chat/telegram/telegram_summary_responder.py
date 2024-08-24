@@ -7,8 +7,8 @@ from db.schema.chat_config import ChatConfig
 from db.schema.chat_message import ChatMessageSave
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
-from features.summarizer.raw_notes_payload import RawNotesPayload
-from features.summarizer.release_summarizer import ReleaseSummarizer
+from features.release_summarizer.raw_notes_payload import RawNotesPayload
+from features.release_summarizer.release_summarizer import ReleaseSummarizer
 from util.functions import construct_bot_message_id
 from util.safe_printer_mixin import sprint
 from util.translations_cache import TranslationsCache, DEFAULT_LANGUAGE, DEFAULT_ISO_CODE
