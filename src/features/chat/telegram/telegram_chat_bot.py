@@ -15,7 +15,7 @@ from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
-OPEN_AI_MODEL = "gpt-4o"
+OPEN_AI_MODEL = "gpt-4o-mini"
 OPEN_AI_TEMPERATURE = 0.7
 OPEN_AI_MAX_TOKENS = 600
 

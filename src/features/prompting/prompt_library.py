@@ -25,7 +25,7 @@ ALLOWED_TELEGRAM_EMOJIS: list[str] = [
     "😘", "💊", "🙊", "😎", "👾", "🤷‍♂️", "😡",
 ]
 
-MULTI_MESSAGE_DELIMITER = "\n\n\n"
+MULTI_MESSAGE_DELIMITER = "\n\n"
 COMMAND_START = "start"
 ORGANIZATION_OPEN_AI = "Open AI"
 
@@ -56,7 +56,7 @@ __chat_telegram_format: PromptBuilder = (
         __join(
             "Keep it brief and quit yapping. You should be concise because this is a fast-paced chat.",
             "Group your thoughts into paragraphs of sentences.",
-            f"Split long responses into sections using a triple newline delimiter ('{MULTI_MESSAGE_DELIMITER}').",
+            f"Split long responses into sections using a multi-line delimiter, e.g. `{MULTI_MESSAGE_DELIMITER}`.",
             "This is a fast-paced chat and long sentences are considered boring. Don't be boring.",
         ),
     )
