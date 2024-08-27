@@ -8,7 +8,7 @@ from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.telegram_summary_responder import respond_with_summary
-from features.summarizer.raw_notes_payload import RawNotesPayload
+from features.release_summarizer.raw_notes_payload import RawNotesPayload
 from util.translations_cache import TranslationsCache
 
 
