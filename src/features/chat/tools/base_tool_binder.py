@@ -6,17 +6,21 @@ from langchain_core.runnables import Runnable
 
 
 class BaseToolBinder:
-    __tools_map: Dict[str, Callable]
+    _tools_map: Dict[str, Callable]
 
     def __init__(self, tools_map: Dict[str, Callable] | None = None):
         if tools_map is None:
             tools_map = {}
-        self.__tools_map = tools_map
+        self._tools_map = tools_map
 
     def bind_tools(self, llm_base: BaseChatModel) -> Runnable[LanguageModelInput, BaseMessage]:
-        return llm_base.bind_tools(list(self.__tools_map.values()))
+        return llm_base.bind_tools(list(self._tools_map.values()))
 
     def invoke(self, tool_name: str, args: object) -> str | None:
-        selected_tool: Callable[..., Any] | None = self.__tools_map.get(tool_name)
+        selected_tool: Callable[..., Any] | None = self._tools_map.get(tool_name)
         # noinspection PyUnresolvedReferences
         return selected_tool.invoke(args) if (selected_tool is not None) else None
+
+    @property
+    def tool_names(self) -> list[str]:
+        return list(self._tools_map.keys())

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List
 
 from pydantic import BaseModel
@@ -14,21 +14,10 @@ from db.schema.chat_message_attachment import ChatMessageAttachmentSave, ChatMes
 from db.schema.user import UserSave, User
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
+from features.computer_vision_analyzer import KNOWN_IMAGE_FORMATS
 from util.config import config
-from util.functions import is_the_agent
+from util.functions import is_the_agent, nearest_hour_epoch
 from util.safe_printer_mixin import SafePrinterMixin
-
-# Based on popularity and support in vision models
-SUPPORTED_MIME_TYPES = {
-    "png": "image/png",
-    "jpg": "image/jpeg",
-    "jpeg": "image/jpeg",
-    "gif": "image/gif",
-    "webp": "image/webp",
-    "bmp": "image/bmp",
-    "tiff": "image/tiff",
-    "tif": "image/tiff",
-}
 
 
 class TelegramDataResolver(SafePrinterMixin):
@@ -131,17 +120,16 @@ class TelegramDataResolver(SafePrinterMixin):
             mapped_data.extension = mapped_data.extension or old_attachment.extension
             mapped_data.mime_type = mapped_data.mime_type or old_attachment.mime_type
         is_updated = self.update_attachment_using_api(mapped_data)
-        self.sprint(f"Attachment updated via API: {is_updated}")
+        self.sprint(f"Is attachment updated via API? {is_updated}")
         return ChatMessageAttachment.model_validate(db.save(mapped_data))
 
     def update_attachment_using_api(self, attachment: ChatMessageAttachmentSave) -> bool:
-        is_missing_url = not attachment.last_url
-        expiration_timestamp = attachment.last_url_until or 0
-        is_url_expired = expiration_timestamp <= int(datetime.now().timestamp())
-
-        if not is_missing_url and not is_url_expired: return False
-        self.sprint(f"Updating attachment using API data. URL is {attachment.last_url}")
-        self.sprint(f"\tExpiration at {datetime.fromtimestamp(expiration_timestamp)}")
+        if not attachment.has_stale_data: return False
+        self.sprint(f"Updating attachment using API data. URL is now {attachment.last_url}")
+        self.sprint(
+            f"\tExpires {"<unset>" if not attachment.last_url_until
+            else f"at {datetime.fromtimestamp(attachment.last_url_until)}"}"
+        )
 
         api_file = self.__bot_api.get_file_info(attachment.id)
         extension: str | None = None
@@ -151,9 +139,9 @@ class TelegramDataResolver(SafePrinterMixin):
         if api_file.file_path and ("." in api_file.file_path):
             extension = api_file.file_path.lower().split(".")[-1]
             last_url = f"{config.telegram_api_base_url}/file/bot{config.telegram_bot_token}/{api_file.file_path}"
-            last_url_until = self.nearest_hour_epoch()
+            last_url_until = nearest_hour_epoch()
             if not attachment.mime_type:
-                mime_type = SUPPORTED_MIME_TYPES.get(extension, None)
+                mime_type = KNOWN_IMAGE_FORMATS.get(extension, None)
         self.sprint(f"Resolved:\n\textension '.{extension}'\n\tmime-type '{mime_type}'")
         attachment.size = api_file.file_size
         attachment.last_url = last_url
@@ -161,10 +149,3 @@ class TelegramDataResolver(SafePrinterMixin):
         attachment.extension = extension
         attachment.mime_type = mime_type
         return True
-
-    def nearest_hour_epoch(self) -> int:
-        now = datetime.now()
-        last_hour_mark: datetime = now.replace(minute = 0, second = 0, microsecond = 0)
-        next_hour_mark: datetime = last_hour_mark + timedelta(hours = 1)
-        self.sprint(f"Nearest hour at {now} is {next_hour_mark}")
-        return int(next_hour_mark.timestamp())

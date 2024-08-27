@@ -23,13 +23,13 @@ class WebFetcher(SafePrinterMixin):
     url: str
     html: str | None
     json: dict | None
-    __cache_crud: ToolsCacheCRUD
+    __cache_dao: ToolsCacheCRUD
     __cache_key: str
 
     def __init__(
         self,
         url: str,
-        cache_crud: ToolsCacheCRUD,
+        cache_dao: ToolsCacheCRUD,
         auto_fetch_html: bool = False,
         auto_fetch_json: bool = False,
     ):
@@ -37,8 +37,8 @@ class WebFetcher(SafePrinterMixin):
         self.url = url
         self.html = None
         self.json = None
-        self.__cache_crud = cache_crud
-        self.__cache_key = cache_crud.create_key(CACHE_PREFIX, url)
+        self.__cache_dao = cache_dao
+        self.__cache_key = cache_dao.create_key(CACHE_PREFIX, url)
         if auto_fetch_html:
             self.fetch_html()
         if auto_fetch_json:
@@ -47,7 +47,7 @@ class WebFetcher(SafePrinterMixin):
     def fetch_html(self) -> str | None:
         self.html = None  # reset value
 
-        cache_entry_db = self.__cache_crud.get(self.__cache_key)
+        cache_entry_db = self.__cache_dao.get(self.__cache_key)
         if cache_entry_db:
             cache_entry = ToolsCache.model_validate(cache_entry_db)
             if not cache_entry.is_expired():
@@ -63,7 +63,7 @@ class WebFetcher(SafePrinterMixin):
                 response = requests.get(self.url, headers = HEADERS, timeout = config.web_timeout_s)
                 response.raise_for_status()
                 self.html = response.text
-                self.__cache_crud.save(
+                self.__cache_dao.save(
                     ToolsCacheSave(
                         key = self.__cache_key,
                         value = self.html,
@@ -81,7 +81,7 @@ class WebFetcher(SafePrinterMixin):
     def fetch_json(self) -> dict | None:
         self.json = None  # reset value
 
-        cache_entry_db = self.__cache_crud.get(self.__cache_key)
+        cache_entry_db = self.__cache_dao.get(self.__cache_key)
         if cache_entry_db:
             cache_entry = ToolsCache.model_validate(cache_entry_db)
             if not cache_entry.is_expired():
@@ -97,7 +97,7 @@ class WebFetcher(SafePrinterMixin):
                 response = requests.get(self.url, headers = HEADERS, timeout = config.web_timeout_s)
                 response.raise_for_status()
                 self.json = response.json()
-                self.__cache_crud.save(
+                self.__cache_dao.save(
                     ToolsCacheSave(
                         key = self.__cache_key,
                         value = json.dumps(self.json),

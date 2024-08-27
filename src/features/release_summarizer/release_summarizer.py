@@ -20,7 +20,7 @@ class ReleaseSummarizer(SafePrinterMixin):
         prompt = prompt_library.translator_on_response(
             base_prompt = prompt_library.announcer_release_telegram,
             language_name = language_name,
-            langauge_iso_code = language_iso_code,
+            language_iso_code = language_iso_code,
         )
         self.__llm_input = []
         self.__llm_input.append(SystemMessage(prompt))

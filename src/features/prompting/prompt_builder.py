@@ -1,10 +1,10 @@
-import enum
+from enum import Enum
 
 SECTION_BODY_DIVIDER = "\n"
 SECTIONS_DIVIDER = "\n\n"
 
 
-class PromptSection(enum.Enum):
+class PromptSection(Enum):
     style = "Style"
     format = "Format"
     context = "Context"
