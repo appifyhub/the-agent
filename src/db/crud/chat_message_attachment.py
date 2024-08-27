@@ -19,6 +19,13 @@ class ChatMessageAttachmentCRUD:
         # noinspection PyTypeChecker
         return self._db.query(ChatMessageAttachmentDB).offset(skip).limit(limit).all()
 
+    def get_by_message(self, chat_id: str, message_id: str) -> list[ChatMessageAttachmentDB]:
+        # noinspection PyTypeChecker
+        return self._db.query(ChatMessageAttachmentDB).filter(
+            chat_id == ChatMessageAttachmentDB.chat_id,
+            message_id == ChatMessageAttachmentDB.message_id,
+        ).all()
+
     def create(self, create_data: ChatMessageAttachmentSave) -> ChatMessageAttachmentDB:
         attachment = ChatMessageAttachmentDB(**create_data.model_dump())
         self._db.add(attachment)

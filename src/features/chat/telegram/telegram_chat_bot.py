@@ -15,7 +15,7 @@ from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
-OPEN_AI_MODEL = "gpt-4o"
+OPEN_AI_MODEL = "gpt-4o-mini"
 OPEN_AI_TEMPERATURE = 0.7
 OPEN_AI_MAX_TOKENS = 600
 
@@ -26,10 +26,10 @@ TooledChatModel = Runnable[LanguageModelInput, BaseMessage]
 class TelegramChatBot(SafePrinterMixin):
     __chat: ChatConfig
     __invoker: User
+    __tools_library: ToolsLibrary
     __messages: list[BaseMessage]
     __raw_last_message: str
     __command_processor: CommandProcessor
-    __tools_library: ToolsLibrary
     __llm_base: BaseChatModel
     __llm_tools: TooledChatModel
 
@@ -44,6 +44,7 @@ class TelegramChatBot(SafePrinterMixin):
         super().__init__(config.verbose)
         self.__chat = chat
         self.__invoker = invoker
+        self.__tools_library = ToolsLibrary()
         self.__messages = []
         self.__messages.append(
             SystemMessage(
@@ -51,18 +52,18 @@ class TelegramChatBot(SafePrinterMixin):
                     base_prompt = prompt_library.translator_on_response(
                         base_prompt = prompt_library.chat_telegram,
                         language_name = chat.language_name,
-                        langauge_iso_code = chat.language_iso_code,
+                        language_iso_code = chat.language_iso_code,
                     ),
                     author = invoker,
                     chat_id = chat.chat_id,
                     chat_title = chat.title,
+                    available_tools = self.__tools_library.tool_names,
                 )
             )
         )
         self.__messages.extend(messages)
         self.__raw_last_message = raw_last_message
         self.__command_processor = command_processor
-        self.__tools_library = ToolsLibrary()
         # noinspection PyArgumentList
         self.__llm_base = ChatOpenAI(
             model = OPEN_AI_MODEL,
@@ -96,14 +97,18 @@ class TelegramChatBot(SafePrinterMixin):
 
         # main flow: process the messages using LLM AI
         try:
+            iteration = 1
             while True:
                 answer = self.__add_message(self.__llm_tools.invoke(self.__messages))
                 # noinspection Pydantic
                 if not answer.tool_calls:
-                    self.sprint(f"No tool calls. Finishing with {type(answer)}: {len(answer.content)} characters")
+                    self.sprint(f"Iteration #{iteration} has no tool calls.")
+                    self.sprint(f"Finishing with {type(answer)}: {len(answer.content)} characters")
                     if not isinstance(answer, AIMessage):
                         raise AssertionError(f"Received a non-AI message from LLM: {answer}")
                     return answer
+                self.sprint(f"Iteration #{iteration} has some tool calls, processing now...")
+                iteration += 1
 
                 # noinspection Pydantic
                 for tool_call in answer.tool_calls:

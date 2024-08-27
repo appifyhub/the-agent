@@ -98,6 +98,52 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
             self.assertEqual(fetched_attachments[i].chat_id, attachments[i].chat_id)
             self.assertEqual(fetched_attachments[i].message_id, attachments[i].message_id)
 
+    def test_get_by_message(self):
+        chat_message = self.sql.chat_message_crud().create(
+            ChatMessageSave(
+                chat_id = "chat1",
+                message_id = "msg1",
+                text = "Hello, world!",
+            )
+        )
+        attachments = [
+            self.sql.chat_message_attachment_crud().create(
+                ChatMessageAttachmentSave(
+                    id = f"attach{i}",
+                    chat_id = chat_message.chat_id,
+                    message_id = chat_message.message_id,
+                    size = 1024 * i,
+                    last_url = f"https://example.com/attachment{i}",
+                    last_url_until = 1234567890 + i,
+                    extension = "jpg",
+                    mime_type = "image/jpeg",
+                )
+            )
+            for i in range(1, 4)  # Create 3 attachments
+        ]
+
+        fetched_attachments = self.sql.chat_message_attachment_crud().get_by_message(
+            chat_id = chat_message.chat_id,
+            message_id = chat_message.message_id
+        )
+
+        self.assertEqual(len(fetched_attachments), len(attachments))
+        for created, fetched in zip(attachments, fetched_attachments):
+            self.assertEqual(fetched.id, created.id)
+            self.assertEqual(fetched.chat_id, created.chat_id)
+            self.assertEqual(fetched.message_id, created.message_id)
+            self.assertEqual(fetched.size, created.size)
+            self.assertEqual(fetched.last_url, created.last_url)
+            self.assertEqual(fetched.last_url_until, created.last_url_until)
+            self.assertEqual(fetched.extension, created.extension)
+            self.assertEqual(fetched.mime_type, created.mime_type)
+
+        non_existent_attachments = self.sql.chat_message_attachment_crud().get_by_message(
+            chat_id = "non_existent_chat",
+            message_id = "non_existent_message",
+        )
+        self.assertEqual(len(non_existent_attachments), 0)
+
     def test_update_attachment(self):
         chat_message = self.sql.chat_message_crud().create(
             ChatMessageSave(
