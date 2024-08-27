@@ -1,4 +1,4 @@
-import enum
+from enum import Enum
 
 from db.crud.chat_config import ChatConfigCRUD
 from db.schema.chat_config import ChatConfig, ChatConfigSave
@@ -7,7 +7,7 @@ from util.safe_printer_mixin import SafePrinterMixin
 
 
 class ChatConfigManager(SafePrinterMixin):
-    class Result(enum.Enum):
+    class Result(Enum):
         success = "success"
         failure = "failure"
 

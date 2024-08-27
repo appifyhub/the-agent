@@ -1,5 +1,5 @@
-import enum
 from datetime import datetime
+from enum import Enum
 from uuid import UUID
 
 from db.crud.invite import InviteCRUD
@@ -12,7 +12,7 @@ from util.safe_printer_mixin import SafePrinterMixin
 
 
 class InviteManager(SafePrinterMixin):
-    class Result(enum.Enum):
+    class Result(Enum):
         success = "success"
         failure = "failure"
 

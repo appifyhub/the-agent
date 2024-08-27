@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from db.model.tools_cache import ToolsCacheDB
 from db.schema.tools_cache import ToolsCacheSave
+from util.functions import digest_md5
 
 KEY_DELIMITER = "~"
 
@@ -64,4 +65,4 @@ class ToolsCacheCRUD:
     def create_key(prefix: str, identifier: str) -> str:
         prefix_b64 = base64.b64encode(prefix.encode()).decode()
         identifier_b64 = base64.b64encode(identifier.encode()).decode()
-        return f"{prefix_b64}{KEY_DELIMITER}{identifier_b64}"
+        return digest_md5(f"{prefix_b64}{KEY_DELIMITER}{identifier_b64}")
