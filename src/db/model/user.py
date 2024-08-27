@@ -18,7 +18,15 @@ class UserDB(BaseModel):
         developer = "developer"
 
         def __lt__(self, other):
-            return self.value < other.value
+            if not isinstance(other, UserDB.Group):
+                return NotImplemented
+            hierarchy = {
+                "standard": 1,
+                "beta": 2,
+                "alpha": 3,
+                "developer": 4,
+            }
+            return hierarchy[self.value] < hierarchy[other.value]
 
     id = Column(UUID(as_uuid = True), primary_key = True, default = uuid.uuid4)
     full_name = Column(String, nullable = True)
