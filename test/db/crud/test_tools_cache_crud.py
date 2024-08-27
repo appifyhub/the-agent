@@ -137,4 +137,4 @@ class ToolsCacheCRUDTest(unittest.TestCase):
 
     def test_create_key(self):
         key = ToolsCacheCRUD.create_key("prefix", "identifier")
-        self.assertEqual(key, "cHJlZml4~aWRlbnRpZmllcg==")
+        self.assertEqual(key, "3fffc53e8c62753274ae6ff244f2f4a4")

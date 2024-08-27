@@ -16,7 +16,7 @@ from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.chat.telegram.telegram_summary_responder import respond_with_summary
 from features.chat.telegram.telegram_update_responder import respond_to_update
 from features.invite_manager import InviteManager
-from features.summarizer.raw_notes_payload import RawNotesPayload
+from features.release_summarizer.raw_notes_payload import RawNotesPayload
 from util.config import config
 from util.safe_printer_mixin import sprint
 from util.translations_cache import TranslationsCache
