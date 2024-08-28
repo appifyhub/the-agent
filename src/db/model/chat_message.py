@@ -15,6 +15,6 @@ class ChatMessageDB(BaseModel):
     text = Column(Text, nullable = False)
 
     __table_args__ = (
-        PrimaryKeyConstraint("chat_id", "message_id", name = "pk_chat_message"),
-        UniqueConstraint("chat_id", "message_id", name = "uq_message_per_chat"),
+        PrimaryKeyConstraint(chat_id, message_id, name = "pk_chat_message"),
+        UniqueConstraint(chat_id, message_id, name = "uq_message_per_chat"),
     )
