@@ -347,6 +347,8 @@ def error_general_problem(reason: str, llm_author_organization: str = ORGANIZATI
     clean_reason = clean_reason.replace(config.telegram_bot_token, "****")
     clean_reason = clean_reason.replace(config.anthropic_token, "****")
     clean_reason = clean_reason.replace(config.open_ai_token, "****")
+    clean_reason = clean_reason.replace(config.rapid_api_token, "****")
+    clean_reason = clean_reason.replace(config.coin_api_token, "****")
     return MULTI_MESSAGE_DELIMITER.join(
         [
             f"🔴 I'm having issues replying to you.",

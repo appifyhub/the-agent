@@ -38,6 +38,8 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.chat_history_depth, 30)
         self.assertEqual(config.anthropic_token, "invalid")
         self.assertEqual(config.open_ai_token, "invalid")
+        self.assertEqual(config.rapid_api_token, "invalid")
+        self.assertEqual(config.coin_api_token, "invalid")
 
     def test_custom_config(self):
         os.environ["VERBOSE"] = "true"
@@ -60,6 +62,8 @@ class ConfigTest(unittest.TestCase):
         os.environ["CHAT_HISTORY_DEPTH"] = "10"
         os.environ["ANTHROPIC_TOKEN"] = "sk-a-valid"
         os.environ["OPEN_AI_TOKEN"] = "sk-o-valid"
+        os.environ["RAPID_API_TOKEN"] = "sk-r-valid"
+        os.environ["COIN_API_TOKEN"] = "sk-c-valid"
 
         config = Config()
 
@@ -80,3 +84,5 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.chat_history_depth, 10)
         self.assertEqual(config.anthropic_token, "sk-a-valid")
         self.assertEqual(config.open_ai_token, "sk-o-valid")
+        self.assertEqual(config.rapid_api_token, "sk-r-valid")
+        self.assertEqual(config.coin_api_token, "sk-c-valid")

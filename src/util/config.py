@@ -22,6 +22,8 @@ class Config(metaclass = Singleton):
     chat_history_depth: int
     anthropic_token: str
     open_ai_token: str
+    rapid_api_token: str
+    coin_api_token: str
 
     def __init__(
         self,
@@ -45,6 +47,8 @@ class Config(metaclass = Singleton):
         def_chat_history_depth: int = 30,
         def_anthropic_token: str = "invalid",
         def_open_ai_token: str = "invalid",
+        def_rapid_api_token: str = "invalid",
+        def_coin_api_token: str = "invalid",
     ):
         self.verbose = self.__env("VERBOSE", lambda: str(def_verbose)).lower() == "true"
         self.web_retries = int(self.__env("WEB_RETRIES", lambda: str(def_web_retries)))
@@ -63,6 +67,8 @@ class Config(metaclass = Singleton):
         self.chat_history_depth = int(self.__env("CHAT_HISTORY_DEPTH", lambda: str(def_chat_history_depth)))
         self.anthropic_token = self.__env("ANTHROPIC_TOKEN", lambda: def_anthropic_token)
         self.open_ai_token = self.__env("OPEN_AI_TOKEN", lambda: def_open_ai_token)
+        self.rapid_api_token = self.__env("RAPID_API_TOKEN", lambda: def_rapid_api_token)
+        self.coin_api_token = self.__env("COIN_API_TOKEN", lambda: def_coin_api_token)
 
     def __set_up_db(self, def_db_user: str, def_db_pass: str, def_db_host: str, def_db_name: str) -> None:
         db_user = self.__env("POSTGRES_USER", lambda: def_db_user)
