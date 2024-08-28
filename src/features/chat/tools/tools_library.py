@@ -14,9 +14,11 @@ from features.attachments_content_resolver import AttachmentsContentResolver
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.tools.base_tool_binder import BaseToolBinder
 from features.chat_config_manager import ChatConfigManager
+from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
 from features.html_content_cleaner import HTMLContentCleaner
 from features.invite_manager import InviteManager
 from features.web_fetcher import WebFetcher
+from util.config import config
 
 TOOL_TRUNCATE_LENGTH = 8192  # to save some tokens
 
@@ -165,6 +167,26 @@ def fetch_web_content(url: str) -> str:
         return json.dumps({"result": "Error", "error": str(e)})
 
 
+@tool
+def get_exchange_rate(base_currency: str, desired_currency: str, amount: str | None = None) -> str:
+    """
+    Fetches the exchange rate between two (crypto or fiat) currencies.
+
+    Args:
+        base_currency: [mandatory] The currency code of the base currency, e.g. 'USD' or 'BTC'
+        desired_currency: [mandatory] The currency code of the desired currency, e.g. 'EUR' or 'ADA'
+        amount: [optional] The amount of the base currency to convert; not sending this will assume value of 1.0
+    """
+    try:
+        with get_detached_session() as db:
+            rate_fetcher = ExchangeRateFetcher(config.coin_api_token, config.rapid_api_token, ToolsCacheCRUD(db))
+            result = rate_fetcher.execute(base_currency, desired_currency, amount or 1.0)
+            return json.dumps({"result": "Success", "exchange_rate": result})
+    except Exception as e:
+        traceback.print_exc()
+        return json.dumps({"result": "Error", "error": str(e)})
+
+
 class ToolsLibrary(BaseToolBinder):
 
     def __init__(self):
@@ -176,5 +198,6 @@ class ToolsLibrary(BaseToolBinder):
                 "change_chat_reply_chance": change_chat_reply_chance,
                 "fetch_web_content": fetch_web_content,
                 "resolve_attachments": resolve_attachments,
+                "get_exchange_rate": get_exchange_rate,
             }
         )
