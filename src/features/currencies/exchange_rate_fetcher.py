@@ -36,7 +36,7 @@ class ExchangeRateFetcher(SafePrinterMixin):
         base_currency_code: str,
         desired_currency_code: str,
         amount: float = 1.0,
-    ) -> Dict[str, float]:
+    ) -> Dict[str, Any]:
         def as_result(rate: float) -> dict[str, Any]:
             return {
                 "from": base_currency_code,
@@ -58,8 +58,6 @@ class ExchangeRateFetcher(SafePrinterMixin):
         self.sprint(f"{base_currency_code} is {"F" if is_base_fiat else "C" if is_base_crypto else "??"}")
         self.sprint(f"{desired_currency_code} is {"F" if is_desired_fiat else "C" if is_desired_crypto else "??"}")
 
-        rate_of_one: float
-        final_rate: float
         if is_base_fiat and is_desired_fiat:
             self.sprint("Fetching fiat to fiat conversion rate")
             rate_of_one = self.get_fiat_conversion_rate(base_currency_code, desired_currency_code)
