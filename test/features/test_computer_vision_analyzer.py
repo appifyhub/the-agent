@@ -113,7 +113,3 @@ class ComputerVisionAnalyzerTest(unittest.TestCase):
                 image_url = f"https://example.com/image.{ext}",
             )
             self.assertIsInstance(analyzer, ComputerVisionAnalyzer)
-
-
-if __name__ == "__main__":
-    unittest.main()
