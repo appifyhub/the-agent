@@ -1,12 +1,16 @@
 import json
 from datetime import datetime, timedelta
 from typing import Dict, Any
+from uuid import UUID
 
 import requests
 from tenacity import sleep
 
 from db.crud.tools_cache import ToolsCacheCRUD
+from db.crud.user import UserCRUD
+from db.model.user import UserDB
 from db.schema.tools_cache import ToolsCacheSave, ToolsCache
+from db.schema.user import User
 from features.currencies.supported_currencies import SUPPORTED_FIAT, SUPPORTED_CRYPTO
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
@@ -21,15 +25,28 @@ RATE_LIMIT_DELAY_S = 1
 
 
 class ExchangeRateFetcher(SafePrinterMixin):
-    __coinmarketcap_api_key: str
-    __rapid_api_token: str
+    __user_dao: UserCRUD
     __cache_dao: ToolsCacheCRUD
 
-    def __init__(self, coinmarketcap_api_key: str, rapid_api_token: str, cache_dao: ToolsCacheCRUD):
+    def __init__(self, invoker_user_id_hex: str | None, user_dao: UserCRUD, cache_dao: ToolsCacheCRUD):
         super().__init__(config.verbose)
-        self.__coinmarketcap_api_key = coinmarketcap_api_key
-        self.__rapid_api_token = rapid_api_token
+        self.__user_dao = user_dao
         self.__cache_dao = cache_dao
+        if invoker_user_id_hex:  # system invocations don't have an invoker
+            self.validate(invoker_user_id_hex)
+
+    def validate(self, invoker_user_id_hex: str):
+        invoker_user_db = self.__user_dao.get(UUID(hex = invoker_user_id_hex))
+        if not invoker_user_db:
+            message = f"Invoker '{invoker_user_id_hex}' not found"
+            self.sprint(message)
+            raise ValueError(message)
+        invoker_user = User.model_validate(invoker_user_db)
+
+        if invoker_user.group < UserDB.Group.beta:
+            message = f"Invoker '{invoker_user_id_hex}' is not allowed to exchange currencies"
+            self.sprint(message)
+            raise ValueError(message)
 
     def execute(
         self,
@@ -132,7 +149,7 @@ class ExchangeRateFetcher(SafePrinterMixin):
             return cached_rate
 
         rate: float
-        headers = {"X-CMC_PRO_API_KEY": self.__coinmarketcap_api_key, "Accept": "application/json"}
+        headers = {"X-CMC_PRO_API_KEY": config.coinmarketcap_api_token, "Accept": "application/json"}
         if base_currency_code != DEFAULT_FIAT and desired_currency_code != DEFAULT_FIAT:
             # due to API limitations, we must traverse both cryptos through USD
             params_base = {"symbol": base_currency_code, "convert": DEFAULT_FIAT}
@@ -174,7 +191,6 @@ class ExchangeRateFetcher(SafePrinterMixin):
             rate = float(response.json()["data"][symbol]["quote"][DEFAULT_FIAT]["price"])
             if base_currency_code == DEFAULT_FIAT:
                 rate = 1 / rate
-
         if rate:
             self.__save_rate_to_cache(base_currency_code, desired_currency_code, rate)
             return rate
@@ -193,7 +209,7 @@ class ExchangeRateFetcher(SafePrinterMixin):
 
         sleep(RATE_LIMIT_DELAY_S)
         params = {"format": "json", "from": base_currency_code, "to": desired_currency_code, "amount": "1.0"}
-        headers = {"X-RapidAPI-Key": self.__rapid_api_token, "X-RapidAPI-Host": CURRENCY_API_HOST}
+        headers = {"X-RapidAPI-Key": config.rapid_api_token, "X-RapidAPI-Host": CURRENCY_API_HOST}
         response = requests.get(CURRENCY_API_URL, params = params, headers = headers, timeout = config.web_timeout_s)
         response.raise_for_status()
 

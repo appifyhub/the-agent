@@ -1,11 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from features.stable_diffusion_image_generator import (
-    StableDiffusionImageGenerator,
-    BASIC_MODEL,
-    ADVANCED_MODEL,
-)
+from features.images.stable_diffusion_image_generator import StableDiffusionImageGenerator, BASIC_MODEL, ADVANCED_MODEL
 
 
 class StableDiffusionImageGeneratorTest(unittest.TestCase):
@@ -22,7 +18,7 @@ class StableDiffusionImageGeneratorTest(unittest.TestCase):
         )
         self.assertIsInstance(generator, StableDiffusionImageGenerator)
 
-    @patch("features.stable_diffusion_image_generator.replicate.Client")
+    @patch("features.images.stable_diffusion_image_generator.replicate.Client")
     def test_execute_basic_model(self, mock_client):
         mock_run = MagicMock(return_value = ["http://example.com/image.png"])
         mock_client.return_value.run = mock_run
@@ -47,7 +43,7 @@ class StableDiffusionImageGeneratorTest(unittest.TestCase):
             }
         )
 
-    @patch("features.stable_diffusion_image_generator.replicate.Client")
+    @patch("features.images.stable_diffusion_image_generator.replicate.Client")
     def test_execute_advanced_model(self, mock_client):
         mock_run = MagicMock(return_value = ["http://example.com/image.png"])
         mock_client.return_value.run = mock_run
@@ -72,7 +68,7 @@ class StableDiffusionImageGeneratorTest(unittest.TestCase):
             }
         )
 
-    @patch("features.stable_diffusion_image_generator.replicate.Client")
+    @patch("features.images.stable_diffusion_image_generator.replicate.Client")
     def test_execute_failure(self, mock_client):
         mock_client.return_value.run.side_effect = Exception("API error")
 
@@ -85,7 +81,7 @@ class StableDiffusionImageGeneratorTest(unittest.TestCase):
 
         self.assertIsNone(result)
 
-    @patch("features.stable_diffusion_image_generator.replicate.Client")
+    @patch("features.images.stable_diffusion_image_generator.replicate.Client")
     def test_execute_empty_result(self, mock_client):
         mock_client.return_value.run.return_value = []
 

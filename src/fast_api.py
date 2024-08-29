@@ -67,6 +67,7 @@ def notify_of_price_alerts(
     db = Depends(get_session),
 ) -> dict:
     return respond_with_announcements(
+        user_dao = UserCRUD(db),
         chat_config_dao = ChatConfigCRUD(db),
         chat_message_dao = ChatMessageCRUD(db),
         price_alert_dao = PriceAlertCRUD(db),
