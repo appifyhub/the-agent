@@ -4,6 +4,7 @@ from starlette.responses import RedirectResponse
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
 from db.crud.invite import InviteCRUD
+from db.crud.price_alert import PriceAlertCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.sql import get_session
@@ -13,6 +14,7 @@ from features.chat.telegram.model.update import Update
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
+from features.chat.telegram.telegram_price_alert_responder import respond_with_announcements
 from features.chat.telegram.telegram_summary_responder import respond_with_summary
 from features.chat.telegram.telegram_update_responder import respond_to_update
 from features.invite_manager import InviteManager
@@ -56,6 +58,21 @@ def telegram_chat_update(
         domain_langchain_mapper = DomainLangchainMapper(),
         telegram_bot_api = telegram_bot_api,
         update = update,
+    )
+
+
+@app.post("/notify/price-alerts")
+def notify_of_price_alerts(
+    _ = Depends(verify_api_key),
+    db = Depends(get_session),
+) -> dict:
+    return respond_with_announcements(
+        chat_config_dao = ChatConfigCRUD(db),
+        chat_message_dao = ChatMessageCRUD(db),
+        price_alert_dao = PriceAlertCRUD(db),
+        tools_cache_dao = ToolsCacheCRUD(db),
+        telegram_bot_api = TelegramBotAPI(),
+        translations = TranslationsCache(),
     )
 
 
