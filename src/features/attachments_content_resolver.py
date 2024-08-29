@@ -10,6 +10,7 @@ from db.crud.chat_message import ChatMessageCRUD
 from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
+from db.model.chat_message_attachment import ChatMessageAttachmentDB
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessageAttachmentSave
@@ -126,10 +127,12 @@ class AttachmentsContentResolver(SafePrinterMixin):
         self.__chat_config = ChatConfig.model_validate(chat_config_db)
 
         # fetch all attachments (with potentially stale data)
-        self.sprint("Fetching all attachments")
+        self.sprint(f"Fetching all attachments: [ {", ".join(attachment_ids)} ]")
+        stale_attachments_db: list[ChatMessageAttachmentDB] = [
+            self.__chat_message_attachment_dao.get(attachment_id) for attachment_id in attachment_ids
+        ]
         stale_attachments: list[ChatMessageAttachment] = [
-            ChatMessageAttachment.model_validate(self.__chat_message_attachment_dao.get(attachment_id))
-            for attachment_id in attachment_ids
+            ChatMessageAttachment.model_validate(stale_attachment_db) for stale_attachment_db in stale_attachments_db
         ]
 
         # update the file locator for each attachment (and the locator expiration date, if needed)

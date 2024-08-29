@@ -86,6 +86,7 @@ class TelegramDataResolver(SafePrinterMixin):
             old_user = User.model_validate(old_user_db)
             # reset the attributes that are not normally changed through the Telegram API
             mapped_data.id = old_user.id
+            mapped_data.telegram_chat_id = mapped_data.telegram_chat_id or old_user.telegram_chat_id
             mapped_data.open_ai_key = old_user.open_ai_key
             mapped_data.group = old_user.group
         else:

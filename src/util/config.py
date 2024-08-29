@@ -17,6 +17,7 @@ class Config(metaclass = Singleton):
     parent_organization: str
     telegram_bot_username: str
     telegram_bot_name: str
+    telegram_bot_id: int
     telegram_bot_token: str
     telegram_api_base_url: str
     chat_history_depth: int
@@ -24,6 +25,7 @@ class Config(metaclass = Singleton):
     open_ai_token: str
     rapid_api_token: str
     coinmarketcap_api_token: str
+    replicate_api_token: str
 
     def __init__(
         self,
@@ -42,6 +44,7 @@ class Config(metaclass = Singleton):
         def_parent_organization: str = "AppifyHub",
         def_telegram_bot_username: str = "the_agent",
         def_telegram_bot_name: str = "The Agent",
+        def_telegram_bot_id: int = 1234567890,
         def_telegram_bot_token: str = "invalid",
         def_telegram_api_base_url: str = "https://api.telegram.org",
         def_chat_history_depth: int = 30,
@@ -49,6 +52,7 @@ class Config(metaclass = Singleton):
         def_open_ai_token: str = "invalid",
         def_rapid_api_token: str = "invalid",
         def_coinmarketcap_api_token: str = "invalid",
+        def_replicate_api_token: str = "invalid",
     ):
         self.verbose = self.__env("VERBOSE", lambda: str(def_verbose)).lower() == "true"
         self.web_retries = int(self.__env("WEB_RETRIES", lambda: str(def_web_retries)))
@@ -62,6 +66,7 @@ class Config(metaclass = Singleton):
         self.parent_organization = self.__env("PARENT_ORGANIZATION", lambda: def_parent_organization)
         self.telegram_bot_username = self.__env("TELEGRAM_BOT_USERNAME", lambda: def_telegram_bot_username)
         self.telegram_bot_name = self.__env("TELEGRAM_BOT_NAME", lambda: def_telegram_bot_name)
+        self.telegram_bot_id = int(self.__env("TELEGRAM_BOT_ID", lambda: str(def_telegram_bot_id)))
         self.telegram_bot_token = self.__env("TELEGRAM_BOT_TOKEN", lambda: def_telegram_bot_token)
         self.telegram_api_base_url = self.__env("TELEGRAM_API_BASE_URL", lambda: def_telegram_api_base_url)
         self.chat_history_depth = int(self.__env("CHAT_HISTORY_DEPTH", lambda: str(def_chat_history_depth)))
@@ -69,6 +74,7 @@ class Config(metaclass = Singleton):
         self.open_ai_token = self.__env("OPEN_AI_TOKEN", lambda: def_open_ai_token)
         self.rapid_api_token = self.__env("RAPID_API_TOKEN", lambda: def_rapid_api_token)
         self.coinmarketcap_api_token = self.__env("COINMARKETCAP_API_TOKEN", lambda: def_coinmarketcap_api_token)
+        self.replicate_api_token = self.__env("REPLICATE_API_TOKEN", lambda: def_replicate_api_token)
 
     def __set_up_db(self, def_db_user: str, def_db_pass: str, def_db_host: str, def_db_name: str) -> None:
         db_user = self.__env("POSTGRES_USER", lambda: def_db_user)

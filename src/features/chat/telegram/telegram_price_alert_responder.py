@@ -5,6 +5,7 @@ from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
 from db.crud.price_alert import PriceAlertCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
+from db.crud.user import UserCRUD
 from db.schema.chat_config import ChatConfig
 from db.schema.chat_message import ChatMessageSave
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
@@ -12,13 +13,13 @@ from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
 from features.currencies.price_alert_manager import PriceAlertManager
 from features.information_announcer import InformationAnnouncer
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
-from util.config import config
 from util.functions import construct_bot_message_id
 from util.safe_printer_mixin import sprint
 from util.translations_cache import TranslationsCache, DEFAULT_LANGUAGE, DEFAULT_ISO_CODE
 
 
 def respond_with_announcements(
+    user_dao: UserCRUD,
     chat_config_dao: ChatConfigCRUD,
     chat_message_dao: ChatMessageCRUD,
     price_alert_dao: PriceAlertCRUD,
@@ -26,7 +27,7 @@ def respond_with_announcements(
     telegram_bot_api: TelegramBotAPI,
     translations: TranslationsCache,
 ) -> dict:
-    rate_fetcher = ExchangeRateFetcher(config.coinmarketcap_api_token, config.rapid_api_token, tools_cache_dao)
+    rate_fetcher = ExchangeRateFetcher(None, user_dao, tools_cache_dao)
     triggered_alerts = PriceAlertManager.check_triggered_alerts(
         chat_id = None,
         fetcher = rate_fetcher,
