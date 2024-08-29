@@ -12,7 +12,7 @@ from features.release_summarizer.raw_notes_payload import RawNotesPayload
 from util.translations_cache import TranslationsCache
 
 
-class TestTelegramSummaryResponder(unittest.TestCase):
+class TelegramSummaryResponderTest(unittest.TestCase):
 
     def setUp(self):
         self.chat_config_dao = Mock(spec = ChatConfigCRUD)
