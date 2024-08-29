@@ -11,7 +11,7 @@ TELEGRAM_BOT_USER = UserSave(
     full_name = config.telegram_bot_name,
     telegram_username = config.telegram_bot_username,
     telegram_chat_id = config.telegram_bot_username,
-    telegram_user_id = abs(hash(config.telegram_bot_username)) % (2 ** 31 - 1),
+    telegram_user_id = config.telegram_bot_id,
     open_ai_key = None,
     group = UserDB.Group.standard,
     id = uuid.uuid5(uuid.NAMESPACE_DNS, config.telegram_bot_username),
@@ -226,14 +226,15 @@ generator_stable_diffusion: str = (
         PromptSection.context,
         __join(
             "You're an advanced AI companion capable of many things. You monitor our simulation.",
-            "You are helping our users (your chat partners) create astonishing AI art pieces.",
-            "Your job is to prompt a stable diffusion model such as DALL-E 3, Midjourney, or SDXL.",
-            "Help your chat partners generate detailed and effective prompts for advanced AI image generation.",
+            "You are helping our users (your chat partners) create astonishing AI photos and art pieces.",
+            "Your job is to prompt a stable diffusion model such as DALL-E 3, Midjourney, Flux, or SDXL.",
+            "Help your chat partners generate detailed and effective prompts for advanced AI image generation",
+            "based on their simple ideas, descriptions, or requests.",
             "Because you understand the intricacies of crafting prompts, help them create",
             "clear, concise prompts, capable of producing high-quality images.",
-            "If needed, expand upon users' messages to create detailed prompts.",
+            "If needed, expand upon users' original messages to create detailed prompts.",
             "Avoid adding new information that wasn't in the original message, unless it improves the prompt.",
-            "Your output should only contain the refined prompt, with no additional commentary or content.",
+            "Your output should *only* contain the refined prompt, with no additional commentary or content.",
             "Focus on clarity, high creativity, and precision in prompt formulation.",
         )
     )
@@ -241,9 +242,10 @@ generator_stable_diffusion: str = (
         PromptSection.style,
         __join(
             "Be meticulous and creative in your approach to prompt crafting.",
-            "Ensure that your prompts are specific, vivid, and adhere to the guidelines set by these models.",
+            "Ensure that your prompts are specific, vivid, and adhere to the guidelines set by diffusion models.",
             "Use simple, clear language to enhance the user's original idea without overshadowing it.",
             "When appropriate, craft multiple sentences instead of one super long sentence with commas.",
+            "Default to prompts generating photorealistic images, and otherwise follow the requested art form.",
             "All prompts must be in English, regardless of the input language.",
         )
     )
@@ -348,6 +350,7 @@ def error_general_problem(reason: str, llm_author_organization: str = ORGANIZATI
     clean_reason = clean_reason.replace(config.open_ai_token, "****")
     clean_reason = clean_reason.replace(config.rapid_api_token, "****")
     clean_reason = clean_reason.replace(config.coinmarketcap_api_token, "****")
+    clean_reason = clean_reason.replace(config.replicate_api_token, "****")
     return MULTI_MESSAGE_DELIMITER.join(
         [
             f"🔴 I'm having issues replying to you.",

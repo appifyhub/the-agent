@@ -18,9 +18,9 @@ from features.chat_config_manager import ChatConfigManager
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
 from features.currencies.price_alert_manager import PriceAlertManager
 from features.html_content_cleaner import HTMLContentCleaner
+from features.images.generative_imaging_manager import GenerativeImagingManager
 from features.invite_manager import InviteManager
 from features.web_fetcher import WebFetcher
-from util.config import config
 
 TOOL_TRUNCATE_LENGTH = 8192  # to save some tokens
 
@@ -170,18 +170,20 @@ def fetch_web_content(url: str) -> str:
 
 
 @tool
-def get_exchange_rate(base_currency: str, desired_currency: str, amount: str | None = None) -> str:
+def get_exchange_rate(user_id: str, base_currency: str, desired_currency: str, amount: str | None = None) -> str:
     """
     Fetches the exchange rate between two (crypto or fiat) currencies.
 
     Args:
+        user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
         base_currency: [mandatory] The currency code of the base currency, e.g. 'USD' or 'BTC'
         desired_currency: [mandatory] The currency code of the desired currency, e.g. 'EUR' or 'ADA'
         amount: [optional] The amount of the base currency to convert; not sending this will assume value of 1.0
     """
     try:
         with get_detached_session() as db:
-            fetcher = ExchangeRateFetcher(config.coinmarketcap_api_token, config.rapid_api_token, ToolsCacheCRUD(db))
+            user_dao = UserCRUD(db)
+            fetcher = ExchangeRateFetcher(user_id, user_dao, ToolsCacheCRUD(db))
             result = fetcher.execute(base_currency, desired_currency, amount or 1.0)
             return json.dumps({"result": "Success", "exchange_rate": result})
     except Exception as e:
@@ -205,9 +207,10 @@ def set_up_currency_price_alert(
     """
     try:
         with get_detached_session() as db:
-            fetcher = ExchangeRateFetcher(config.coinmarketcap_api_token, config.rapid_api_token, ToolsCacheCRUD(db))
+            user_dao = UserCRUD(db)
+            fetcher = ExchangeRateFetcher(user_id, user_dao, ToolsCacheCRUD(db))
             alert_manager = PriceAlertManager(
-                chat_id, user_id, UserCRUD(db), ChatConfigCRUD(db), PriceAlertCRUD(db), fetcher,
+                chat_id, user_id, user_dao, ChatConfigCRUD(db), PriceAlertCRUD(db), fetcher,
             )
             alert = alert_manager.create_alert(base_currency, desired_currency, threshold_percent)
             return json.dumps({"result": "Success", "created_alert_data": alert.model_dump()})
@@ -229,9 +232,10 @@ def remove_currency_price_alerts(chat_id: str, user_id: str, base_currency: str,
     """
     try:
         with get_detached_session() as db:
-            fetcher = ExchangeRateFetcher(config.coinmarketcap_api_token, config.rapid_api_token, ToolsCacheCRUD(db))
+            user_dao = UserCRUD(db)
+            fetcher = ExchangeRateFetcher(user_id, user_dao, ToolsCacheCRUD(db))
             alert_manager = PriceAlertManager(
-                chat_id, user_id, UserCRUD(db), ChatConfigCRUD(db), PriceAlertCRUD(db), fetcher,
+                chat_id, user_id, user_dao, ChatConfigCRUD(db), PriceAlertCRUD(db), fetcher,
             )
             alert = alert_manager.delete_alert(base_currency, desired_currency)
             return json.dumps({"result": "Success", "deleted_alert_data": alert.model_dump()})
@@ -251,12 +255,35 @@ def list_currency_price_alerts(chat_id: str, user_id: str) -> str:
     """
     try:
         with get_detached_session() as db:
-            fetcher = ExchangeRateFetcher(config.coinmarketcap_api_token, config.rapid_api_token, ToolsCacheCRUD(db))
+            user_dao = UserCRUD(db)
+            fetcher = ExchangeRateFetcher(user_id, user_dao, ToolsCacheCRUD(db))
             alert_manager = PriceAlertManager(
-                chat_id, user_id, UserCRUD(db), ChatConfigCRUD(db), PriceAlertCRUD(db), fetcher,
+                chat_id, user_id, user_dao, ChatConfigCRUD(db), PriceAlertCRUD(db), fetcher,
             )
             alerts = alert_manager.get_all_alerts()
             return json.dumps({"result": "Success", "alerts": [alert.model_dump() for alert in alerts]})
+    except Exception as e:
+        traceback.print_exc()
+        return json.dumps({"result": "Error", "error": str(e)})
+
+
+@tool
+def generate_image(chat_id: str, user_id: str, prompt: str) -> str:
+    """
+    Generates an image based on the given prompt using Generative AI.
+
+    Args:
+        chat_id: [mandatory] A unique identifier of the chat, usually found in the metadata
+        user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
+        prompt: [mandatory] The user's description or prompt for the generated image
+    """
+    try:
+        with get_detached_session() as db:
+            imaging = GenerativeImagingManager(chat_id, prompt, user_id, TelegramBotAPI(), UserCRUD(db))
+            result = imaging.execute()
+            if result == GenerativeImagingManager.Result.failed:
+                raise ValueError("Failed to generate the image")
+        return json.dumps({"result": "Success", "next_step": "Confirm to partner that the image has been sent"})
     except Exception as e:
         traceback.print_exc()
         return json.dumps({"result": "Error", "error": str(e)})
@@ -277,5 +304,6 @@ class ToolsLibrary(BaseToolBinder):
                 "set_up_currency_price_alert": set_up_currency_price_alert,
                 "remove_currency_price_alerts": remove_currency_price_alerts,
                 "list_currency_price_alerts": list_currency_price_alerts,
+                "generate_image": generate_image,
             }
         )
