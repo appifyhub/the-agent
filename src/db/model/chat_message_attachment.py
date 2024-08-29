@@ -16,9 +16,9 @@ class ChatMessageAttachmentDB(BaseModel):
     mime_type = Column(String, nullable = True)
 
     __table_args__ = (
-        PrimaryKeyConstraint("id"),
+        PrimaryKeyConstraint(id),
         ForeignKeyConstraint(
-            ["chat_id", "message_id"],
+            [chat_id, message_id],
             ["chat_messages.chat_id", "chat_messages.message_id"],
         ),
     )

@@ -7,6 +7,7 @@ from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
 from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
 from db.crud.invite import InviteCRUD
+from db.crud.price_alert import PriceAlertCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.sql import get_detached_session
@@ -15,6 +16,7 @@ from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.tools.base_tool_binder import BaseToolBinder
 from features.chat_config_manager import ChatConfigManager
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
+from features.currencies.price_alert_manager import PriceAlertManager
 from features.html_content_cleaner import HTMLContentCleaner
 from features.invite_manager import InviteManager
 from features.web_fetcher import WebFetcher
@@ -187,6 +189,79 @@ def get_exchange_rate(base_currency: str, desired_currency: str, amount: str | N
         return json.dumps({"result": "Error", "error": str(e)})
 
 
+@tool
+def set_up_currency_price_alert(
+    chat_id: str, user_id: str, base_currency: str, desired_currency: str, threshold_percent: int,
+) -> str:
+    """
+    Sets up a price alert at the given threshold for the given currency pair.
+
+    Args:
+        chat_id: [mandatory] A unique identifier of the chat, usually found in the metadata
+        user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
+        base_currency: [mandatory] The currency code of the base currency, e.g. 'USD' or 'BTC'
+        desired_currency: [mandatory] The currency code of the desired currency, e.g. 'EUR' or 'ADA'
+        threshold_percent: [mandatory] The trigger threshold, in percent [0-100], that triggers the price alert
+    """
+    try:
+        with get_detached_session() as db:
+            rate_fetcher = ExchangeRateFetcher(config.coin_api_token, config.rapid_api_token, ToolsCacheCRUD(db))
+            alert_manager = PriceAlertManager(
+                chat_id, user_id, UserCRUD(db), ChatConfigCRUD(db), PriceAlertCRUD(db), rate_fetcher,
+            )
+            alert = alert_manager.create_alert(base_currency, desired_currency, threshold_percent)
+            return json.dumps({"result": "Success", "created_alert_data": alert.model_dump()})
+    except Exception as e:
+        traceback.print_exc()
+        return json.dumps({"result": "Error", "error": str(e)})
+
+
+@tool
+def remove_currency_price_alerts(chat_id: str, user_id: str, base_currency: str, desired_currency: str) -> str:
+    """
+    Deletes the oldest price alert for the given currency pair.
+
+    Args:
+        chat_id: [mandatory] A unique identifier of the chat, usually found in the metadata
+        user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
+        base_currency: [mandatory] The currency code of the base currency, e.g. 'USD' or 'BTC'
+        desired_currency: [mandatory] The currency code of the desired currency, e.g. 'EUR' or 'ADA'
+    """
+    try:
+        with get_detached_session() as db:
+            rate_fetcher = ExchangeRateFetcher(config.coin_api_token, config.rapid_api_token, ToolsCacheCRUD(db))
+            alert_manager = PriceAlertManager(
+                chat_id, user_id, UserCRUD(db), ChatConfigCRUD(db), PriceAlertCRUD(db), rate_fetcher,
+            )
+            alert = alert_manager.delete_alert(base_currency, desired_currency)
+            return json.dumps({"result": "Success", "deleted_alert_data": alert.model_dump()})
+    except Exception as e:
+        traceback.print_exc()
+        return json.dumps({"result": "Error", "error": str(e)})
+
+
+@tool
+def list_currency_price_alerts(chat_id: str, user_id: str) -> str:
+    """
+    Lists all price alerts.
+
+    Args:
+        chat_id: [mandatory] A unique identifier of the chat, usually found in the metadata
+        user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
+    """
+    try:
+        with get_detached_session() as db:
+            rate_fetcher = ExchangeRateFetcher(config.coin_api_token, config.rapid_api_token, ToolsCacheCRUD(db))
+            alert_manager = PriceAlertManager(
+                chat_id, user_id, UserCRUD(db), ChatConfigCRUD(db), PriceAlertCRUD(db), rate_fetcher,
+            )
+            alerts = alert_manager.get_all_alerts()
+            return json.dumps({"result": "Success", "alerts": [alert.model_dump() for alert in alerts]})
+    except Exception as e:
+        traceback.print_exc()
+        return json.dumps({"result": "Error", "error": str(e)})
+
+
 class ToolsLibrary(BaseToolBinder):
 
     def __init__(self):
@@ -199,5 +274,8 @@ class ToolsLibrary(BaseToolBinder):
                 "fetch_web_content": fetch_web_content,
                 "resolve_attachments": resolve_attachments,
                 "get_exchange_rate": get_exchange_rate,
+                "set_up_currency_price_alert": set_up_currency_price_alert,
+                "remove_currency_price_alerts": remove_currency_price_alerts,
+                "list_currency_price_alerts": list_currency_price_alerts,
             }
         )
