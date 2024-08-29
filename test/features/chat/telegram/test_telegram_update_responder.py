@@ -12,7 +12,7 @@ from features.chat.telegram.telegram_update_responder import respond_to_update
 from features.invite_manager import InviteManager
 
 
-class TestTelegramUpdateResponder(unittest.TestCase):
+class TelegramUpdateResponderTest(unittest.TestCase):
     user_dao: UserCRUD
     invite_manager: InviteManager
     chat_messages_dao: ChatMessageCRUD
