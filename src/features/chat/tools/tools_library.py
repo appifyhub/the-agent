@@ -181,8 +181,8 @@ def get_exchange_rate(base_currency: str, desired_currency: str, amount: str | N
     """
     try:
         with get_detached_session() as db:
-            rate_fetcher = ExchangeRateFetcher(config.coin_api_token, config.rapid_api_token, ToolsCacheCRUD(db))
-            result = rate_fetcher.execute(base_currency, desired_currency, amount or 1.0)
+            fetcher = ExchangeRateFetcher(config.coinmarketcap_api_token, config.rapid_api_token, ToolsCacheCRUD(db))
+            result = fetcher.execute(base_currency, desired_currency, amount or 1.0)
             return json.dumps({"result": "Success", "exchange_rate": result})
     except Exception as e:
         traceback.print_exc()
@@ -205,9 +205,9 @@ def set_up_currency_price_alert(
     """
     try:
         with get_detached_session() as db:
-            rate_fetcher = ExchangeRateFetcher(config.coin_api_token, config.rapid_api_token, ToolsCacheCRUD(db))
+            fetcher = ExchangeRateFetcher(config.coinmarketcap_api_token, config.rapid_api_token, ToolsCacheCRUD(db))
             alert_manager = PriceAlertManager(
-                chat_id, user_id, UserCRUD(db), ChatConfigCRUD(db), PriceAlertCRUD(db), rate_fetcher,
+                chat_id, user_id, UserCRUD(db), ChatConfigCRUD(db), PriceAlertCRUD(db), fetcher,
             )
             alert = alert_manager.create_alert(base_currency, desired_currency, threshold_percent)
             return json.dumps({"result": "Success", "created_alert_data": alert.model_dump()})
@@ -229,9 +229,9 @@ def remove_currency_price_alerts(chat_id: str, user_id: str, base_currency: str,
     """
     try:
         with get_detached_session() as db:
-            rate_fetcher = ExchangeRateFetcher(config.coin_api_token, config.rapid_api_token, ToolsCacheCRUD(db))
+            fetcher = ExchangeRateFetcher(config.coinmarketcap_api_token, config.rapid_api_token, ToolsCacheCRUD(db))
             alert_manager = PriceAlertManager(
-                chat_id, user_id, UserCRUD(db), ChatConfigCRUD(db), PriceAlertCRUD(db), rate_fetcher,
+                chat_id, user_id, UserCRUD(db), ChatConfigCRUD(db), PriceAlertCRUD(db), fetcher,
             )
             alert = alert_manager.delete_alert(base_currency, desired_currency)
             return json.dumps({"result": "Success", "deleted_alert_data": alert.model_dump()})
@@ -251,9 +251,9 @@ def list_currency_price_alerts(chat_id: str, user_id: str) -> str:
     """
     try:
         with get_detached_session() as db:
-            rate_fetcher = ExchangeRateFetcher(config.coin_api_token, config.rapid_api_token, ToolsCacheCRUD(db))
+            fetcher = ExchangeRateFetcher(config.coinmarketcap_api_token, config.rapid_api_token, ToolsCacheCRUD(db))
             alert_manager = PriceAlertManager(
-                chat_id, user_id, UserCRUD(db), ChatConfigCRUD(db), PriceAlertCRUD(db), rate_fetcher,
+                chat_id, user_id, UserCRUD(db), ChatConfigCRUD(db), PriceAlertCRUD(db), fetcher,
             )
             alerts = alert_manager.get_all_alerts()
             return json.dumps({"result": "Success", "alerts": [alert.model_dump() for alert in alerts]})
