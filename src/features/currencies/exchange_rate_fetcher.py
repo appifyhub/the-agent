@@ -12,22 +12,22 @@ from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
 DEFAULT_FIAT = "USD"
-COIN_API_URL = "https://rest.coinapi.io"
+COINMARKETCAP_API_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
 CURRENCY_API_HOST = "currency-converter5.p.rapidapi.com"
 CURRENCY_API_URL = f"https://{CURRENCY_API_HOST}/currency/convert"
 CACHE_PREFIX = "exchange-rate-fetcher"
 CACHE_TTL = timedelta(minutes = 5)
-RATE_LIMIT_DELAY_S = 1.5
+RATE_LIMIT_DELAY_S = 1
 
 
 class ExchangeRateFetcher(SafePrinterMixin):
-    __coin_api_token: str
+    __coinmarketcap_api_key: str
     __rapid_api_token: str
     __cache_dao: ToolsCacheCRUD
 
-    def __init__(self, coin_api_token: str, rapid_api_token: str, cache_dao: ToolsCacheCRUD):
+    def __init__(self, coinmarketcap_api_key: str, rapid_api_token: str, cache_dao: ToolsCacheCRUD):
         super().__init__(config.verbose)
-        self.__coin_api_token = coin_api_token
+        self.__coinmarketcap_api_key = coinmarketcap_api_key
         self.__rapid_api_token = rapid_api_token
         self.__cache_dao = cache_dao
 
@@ -124,22 +124,61 @@ class ExchangeRateFetcher(SafePrinterMixin):
         if desired_currency_code not in SUPPORTED_CRYPTO and desired_currency_code != DEFAULT_FIAT:
             raise ValueError(f"Unsupported currency: {desired_currency_code}")
 
-        if base_currency_code == desired_currency_code: return 1.0
+        if base_currency_code == desired_currency_code:
+            return 1.0
+
         cached_rate = self.__get_cached_rate_of_one(base_currency_code, desired_currency_code)
-        if cached_rate: return cached_rate
+        if cached_rate:
+            return cached_rate
 
-        sleep(RATE_LIMIT_DELAY_S)
-        url = f"{COIN_API_URL}/v1/exchangerate/{base_currency_code}/{desired_currency_code}"
-        headers = {"X-CoinAPI-Key": self.__coin_api_token}
-        response = requests.get(url, headers = headers, timeout = config.web_timeout_s)
-        response.raise_for_status()
-        data = response.json()
+        rate: float
+        headers = {"X-CMC_PRO_API_KEY": self.__coinmarketcap_api_key, "Accept": "application/json"}
+        if base_currency_code != DEFAULT_FIAT and desired_currency_code != DEFAULT_FIAT:
+            # due to API limitations, we must traverse both cryptos through USD
+            params_base = {"symbol": base_currency_code, "convert": DEFAULT_FIAT}
+            sleep(RATE_LIMIT_DELAY_S)
+            response_base = requests.get(
+                COINMARKETCAP_API_URL,
+                headers = headers,
+                params = params_base,
+                timeout = config.web_timeout_s,
+            )
+            response_base.raise_for_status()
 
-        rate = float(data["rate"])
+            params_desired = {"symbol": desired_currency_code, "convert": DEFAULT_FIAT}
+            sleep(RATE_LIMIT_DELAY_S)
+            response_desired = requests.get(
+                COINMARKETCAP_API_URL,
+                headers = headers,
+                params = params_desired,
+                timeout = config.web_timeout_s,
+            )
+            response_desired.raise_for_status()
+
+            base_rate = float(response_base.json()["data"][base_currency_code]["quote"][DEFAULT_FIAT]["price"])
+            desired_rate = float(response_desired.json()["data"][desired_currency_code]["quote"][DEFAULT_FIAT]["price"])
+            rate = base_rate / desired_rate
+        else:
+            # one of the currencies is USD, we can fetch the rate directly
+            symbol = desired_currency_code if base_currency_code == DEFAULT_FIAT else base_currency_code
+            params = {"symbol": symbol, "convert": DEFAULT_FIAT}
+            sleep(RATE_LIMIT_DELAY_S)
+            response = requests.get(
+                COINMARKETCAP_API_URL,
+                headers = headers,
+                params = params,
+                timeout = config.web_timeout_s,
+            )
+            response.raise_for_status()
+
+            rate = float(response.json()["data"][symbol]["quote"][DEFAULT_FIAT]["price"])
+            if base_currency_code == DEFAULT_FIAT:
+                rate = 1 / rate
+
         if rate:
             self.__save_rate_to_cache(base_currency_code, desired_currency_code, rate)
             return rate
-        raise ValueError(f"Invalid rate: {rate}; response data: {json.dumps(json)}")
+        raise ValueError(f"No rate found for {base_currency_code}/{desired_currency_code}")
 
     def get_fiat_conversion_rate(self, base_currency_code: str, desired_currency_code: str) -> float:
         self.sprint(f"Fetching fiat conversion rate {base_currency_code}/{desired_currency_code}")

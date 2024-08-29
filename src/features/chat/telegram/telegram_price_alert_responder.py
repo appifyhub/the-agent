@@ -26,7 +26,7 @@ def respond_with_announcements(
     telegram_bot_api: TelegramBotAPI,
     translations: TranslationsCache,
 ) -> dict:
-    rate_fetcher = ExchangeRateFetcher(config.coin_api_token, config.rapid_api_token, tools_cache_dao)
+    rate_fetcher = ExchangeRateFetcher(config.coinmarketcap_api_token, config.rapid_api_token, tools_cache_dao)
     triggered_alerts = PriceAlertManager.check_triggered_alerts(
         chat_id = None,
         fetcher = rate_fetcher,
