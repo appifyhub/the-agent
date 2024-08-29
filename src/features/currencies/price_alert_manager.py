@@ -7,14 +7,15 @@ from pydantic import BaseModel
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.price_alert import PriceAlertCRUD
 from db.crud.user import UserCRUD
+from db.model.price_alert import PriceAlertDB
 from db.schema.chat_config import ChatConfig
 from db.schema.price_alert import PriceAlert, PriceAlertSave
 from db.schema.user import User
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
 from util.config import config
-from util.safe_printer_mixin import SafePrinterMixin
+from util.safe_printer_mixin import SafePrinterMixin, sprint
 
-DATE_TIME_PRINT_FORMAT = "%Y-%m-%d %H:%M %Z"
+DATETIME_PRINT_FORMAT = "%Y-%m-%d %H:%M %Z"
 
 
 class PriceAlertManager(SafePrinterMixin):
@@ -95,12 +96,18 @@ class PriceAlertManager(SafePrinterMixin):
             desired_currency = price_alert.desired_currency,
             threshold_percent = price_alert.threshold_percent,
             last_price = price_alert.last_price,
-            last_price_time = price_alert.last_price_time.strftime(DATE_TIME_PRINT_FORMAT),
+            last_price_time = price_alert.last_price_time.strftime(DATETIME_PRINT_FORMAT),
         )
 
-    def get_all_alerts(self) -> list[ActiveAlert]:
-        self.sprint(f"Listing price alerts for chat '{self.__chat_config.chat_id}'")
-        price_alerts_db = self.__price_alert_dao.get_alerts_by_chat(self.__chat_config.chat_id)
+    @staticmethod
+    def get_all_alerts_by_chat(chat_id: str | None, price_alert_dao: PriceAlertCRUD) -> list[ActiveAlert]:
+        sprint(f"Listing price alerts for chat '{chat_id}'")
+
+        price_alerts_db: list[PriceAlertDB]
+        if chat_id:
+            price_alerts_db = price_alert_dao.get_alerts_by_chat(chat_id)
+        else:
+            price_alerts_db = price_alert_dao.get_all()
         price_alerts = [PriceAlert.model_validate(alert) for alert in price_alerts_db]
         return [
             PriceAlertManager.ActiveAlert(
@@ -109,10 +116,13 @@ class PriceAlertManager(SafePrinterMixin):
                 desired_currency = alert.desired_currency,
                 threshold_percent = alert.threshold_percent,
                 last_price = alert.last_price,
-                last_price_time = alert.last_price_time.strftime(DATE_TIME_PRINT_FORMAT),
+                last_price_time = alert.last_price_time.strftime(DATETIME_PRINT_FORMAT),
             )
             for alert in price_alerts
         ]
+
+    def get_all_alerts(self) -> list[ActiveAlert]:
+        return PriceAlertManager.get_all_alerts_by_chat(self.__chat_config.chat_id, self.__price_alert_dao)
 
     def delete_alert(self, base_currency: str, desired_currency: str) -> ActiveAlert | None:
         self.sprint(f"Deleting price alert for {base_currency}/{desired_currency}")
@@ -125,18 +135,23 @@ class PriceAlertManager(SafePrinterMixin):
                 desired_currency = deleted_alert.desired_currency,
                 threshold_percent = deleted_alert.threshold_percent,
                 last_price = deleted_alert.last_price,
-                last_price_time = deleted_alert.last_price_time.strftime(DATE_TIME_PRINT_FORMAT),
+                last_price_time = deleted_alert.last_price_time.strftime(DATETIME_PRINT_FORMAT),
             )
         return None
 
-    def check_alerts(self) -> list[TriggeredAlert]:
-        self.sprint(f"Checking price alerts for chat '{self.__chat_config.chat_id}'")
-        active_alerts = self.get_all_alerts()
+    @staticmethod
+    def check_triggered_alerts(
+        chat_id: str | None,
+        fetcher: ExchangeRateFetcher,
+        price_alert_dao: PriceAlertCRUD,
+    ) -> list[TriggeredAlert]:
+        sprint(f"Checking price alerts")
+        active_alerts = PriceAlertManager.get_all_alerts_by_chat(chat_id, price_alert_dao)
         triggered_alerts: list[PriceAlertManager.TriggeredAlert] = []
 
         current_rate: float
         for alert in active_alerts:
-            current_rate = self.__exchange_rate_fetcher.execute(alert.base_currency, alert.desired_currency)["rate"]
+            current_rate = fetcher.execute(alert.base_currency, alert.desired_currency)["rate"]
             price_change_percent: int
             if alert.last_price == 0:
                 price_change_percent = int(math.ceil(current_rate * 100))
@@ -154,11 +169,11 @@ class PriceAlertManager(SafePrinterMixin):
                         old_rate = alert.last_price,
                         old_rate_time = alert.last_price_time,
                         new_rate = current_rate,
-                        new_rate_time = datetime.now().strftime(DATE_TIME_PRINT_FORMAT),
+                        new_rate_time = datetime.now().strftime(DATETIME_PRINT_FORMAT),
                         price_change_percent = price_change_percent,
                     )
                 )
-                self.__price_alert_dao.update(
+                price_alert_dao.update(
                     PriceAlertSave(
                         chat_id = alert.chat_id,
                         base_currency = alert.base_currency,
@@ -169,3 +184,10 @@ class PriceAlertManager(SafePrinterMixin):
                     )
                 )
         return triggered_alerts
+
+    def check_alerts(self) -> list[TriggeredAlert]:
+        return PriceAlertManager.check_triggered_alerts(
+            self.__chat_config.chat_id,
+            self.__exchange_rate_fetcher,
+            self.__price_alert_dao,
+        )
