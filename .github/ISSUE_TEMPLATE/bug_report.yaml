@@ -1,0 +1,73 @@
+name: Bug report
+description: Create a report to help us improve
+title: "But Title Here"
+labels: ["Help", "Bug"]
+
+body:
+  - type: markdown
+    attributes:
+      value: "## Describe the Bug"
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: "Bug Description"
+      description: "A clear and concise description of what the bug is"
+      placeholder: "Detail the bug here. Include what happens."
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: "### Environment"
+  - type: textarea
+    id: environment
+    attributes:
+      label: "Environment Details"
+      description: "Please complete the following information:"
+      placeholder: "- OS: [e.g., Linux, Mac, Windows, iOS, Android]\n- Browser: [e.g., Chrome, Safari]\n- Service Version: [e.g., 1.12.0]\n- Client: [e.g, Telegram, WhatsApp, Web]"
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: "## Steps to Reproduce"
+  - type: textarea
+    id: reproduce-steps
+    attributes:
+      label: "Reproduction Steps"
+      description: "Steps to reproduce the behavior"
+      placeholder: "1. Go to '...'\n2. Click on '...'\n3. Scroll down to '...'\n4. See error"
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: "## Expected Behavior"
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: "Expected Behavior"
+      description: "A clear and concise description of what you expected to happen"
+      placeholder: "Describe what you expected to happen after following the steps above."
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: "### Screenshots"
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: "Upload Screenshots"
+      description: "If applicable, add screenshots to help explain your problem"
+      placeholder: "Attach screenshots or drag them here."
+
+  - type: markdown
+    attributes:
+      value: "#### Additional Context"
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: "Additional Context (optional)"
+      description: "Add any other context about the problem here"
+      placeholder: "Include any other information that might be helpful for diagnosing or fixing the problem."
