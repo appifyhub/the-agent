@@ -2,7 +2,7 @@ from enum import Enum
 
 from db.crud.user import UserCRUD
 from db.schema.user import User, UserSave
-from features.invite_manager import InviteManager
+from features.chat.invite_manager import InviteManager
 from features.prompting.prompt_library import COMMAND_START, TELEGRAM_BOT_USER
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin

@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock
 
 from db.schema.chat_config import ChatConfig
-from features.chat_config_manager import ChatConfigManager
+from features.chat.chat_config_manager import ChatConfigManager
 
 
 class ChatConfigManagerTest(unittest.TestCase):

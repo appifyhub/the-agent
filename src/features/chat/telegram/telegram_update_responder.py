@@ -10,8 +10,8 @@ from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.telegram_chat_bot import TelegramChatBot
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
-from features.command_processor import CommandProcessor
-from features.invite_manager import InviteManager
+from features.chat.command_processor import CommandProcessor
+from features.chat.invite_manager import InviteManager
 from features.prompting import prompt_library
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config

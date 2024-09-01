@@ -351,6 +351,7 @@ def error_general_problem(reason: str, llm_author_organization: str = ORGANIZATI
     clean_reason = clean_reason.replace(config.rapid_api_token, "****")
     clean_reason = clean_reason.replace(config.coinmarketcap_api_token, "****")
     clean_reason = clean_reason.replace(config.replicate_api_token, "****")
+    clean_reason = clean_reason.replace(config.perplexity_api_token, "****")
     return MULTI_MESSAGE_DELIMITER.join(
         [
             f"🔴 I'm having issues replying to you.",

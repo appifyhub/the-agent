@@ -9,7 +9,7 @@ from langchain_openai import ChatOpenAI
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
 from features.chat.tools.tools_library import ToolsLibrary
-from features.command_processor import CommandProcessor
+from features.chat.command_processor import CommandProcessor
 from features.prompting import prompt_library
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config
