@@ -26,6 +26,7 @@ class Config(metaclass = Singleton):
     rapid_api_token: str
     coinmarketcap_api_token: str
     replicate_api_token: str
+    perplexity_api_token: str
 
     def __init__(
         self,
@@ -53,6 +54,7 @@ class Config(metaclass = Singleton):
         def_rapid_api_token: str = "invalid",
         def_coinmarketcap_api_token: str = "invalid",
         def_replicate_api_token: str = "invalid",
+        def_perplexity_api_token: str = "invalid",
     ):
         self.verbose = self.__env("VERBOSE", lambda: str(def_verbose)).lower() == "true"
         self.web_retries = int(self.__env("WEB_RETRIES", lambda: str(def_web_retries)))
@@ -75,6 +77,7 @@ class Config(metaclass = Singleton):
         self.rapid_api_token = self.__env("RAPID_API_TOKEN", lambda: def_rapid_api_token)
         self.coinmarketcap_api_token = self.__env("COINMARKETCAP_API_TOKEN", lambda: def_coinmarketcap_api_token)
         self.replicate_api_token = self.__env("REPLICATE_API_TOKEN", lambda: def_replicate_api_token)
+        self.perplexity_api_token = self.__env("PERPLEXITY_API_TOKEN", lambda: def_perplexity_api_token)
 
     def __set_up_db(self, def_db_user: str, def_db_pass: str, def_db_host: str, def_db_name: str) -> None:
         db_user = self.__env("POSTGRES_USER", lambda: def_db_user)
