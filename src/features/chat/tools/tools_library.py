@@ -19,6 +19,7 @@ from features.chat.tools.base_tool_binder import BaseToolBinder
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
 from features.currencies.price_alert_manager import PriceAlertManager
 from features.images.generative_imaging_manager import GenerativeImagingManager
+from features.web_browsing.ai_web_search import AIWebSearch
 from features.web_browsing.html_content_cleaner import HTMLContentCleaner
 from features.web_browsing.web_fetcher import WebFetcher
 
@@ -155,7 +156,7 @@ def fetch_web_content(url: str) -> str:
     Fetches the text content from the given web page URL.
 
     Args:
-        url: [mandatory] A valid URL of the web page, starting with 'http://' or 'https://'
+        url: [mandatory] A valid URL of the web page, starting with 'http://' or 'https://' provided in the text
     """
     try:
         with get_detached_session() as db:
@@ -289,6 +290,27 @@ def generate_image(chat_id: str, user_id: str, prompt: str) -> str:
         return json.dumps({"result": "Error", "error": str(e)})
 
 
+@tool
+def ai_web_search(user_id: str, search_query: str) -> str:
+    """
+    Searches the web for the given query, and responds using AI.
+
+    Args:
+        user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
+        search_query: [mandatory] The user's search query, in English
+    """
+    try:
+        with get_detached_session() as db:
+            search = AIWebSearch(user_id, search_query, UserCRUD(db))
+            result = search.execute()
+            if not result.content:
+                raise ValueError("Answer not received")
+            return json.dumps({"result": "Success", "content": result.content})
+    except Exception as e:
+        traceback.print_exc()
+        return json.dumps({"result": "Error", "error": str(e)})
+
+
 class ToolsLibrary(BaseToolBinder):
 
     def __init__(self):
@@ -305,5 +327,6 @@ class ToolsLibrary(BaseToolBinder):
                 "remove_currency_price_alerts": remove_currency_price_alerts,
                 "list_currency_price_alerts": list_currency_price_alerts,
                 "generate_image": generate_image,
+                "ai_web_search": ai_web_search,
             }
         )
