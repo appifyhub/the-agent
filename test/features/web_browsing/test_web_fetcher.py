@@ -8,7 +8,7 @@ from requests_mock.mocker import Mocker
 
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.schema.tools_cache import ToolsCache
-from features.web_fetcher import WebFetcher, CACHE_TTL_HTML, CACHE_TTL_JSON
+from features.web_browsing.web_fetcher import WebFetcher, CACHE_TTL_HTML, CACHE_TTL_JSON
 from util.config import config
 
 DEFAULT_URL = "https://example.org"

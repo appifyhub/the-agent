@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from langchain_core.messages import AIMessage
 
-from features.computer_vision_analyzer import ComputerVisionAnalyzer, KNOWN_IMAGE_FORMATS
+from features.images.computer_vision_analyzer import ComputerVisionAnalyzer, KNOWN_IMAGE_FORMATS
 
 
 class ComputerVisionAnalyzerTest(unittest.TestCase):
@@ -62,7 +62,7 @@ class ComputerVisionAnalyzerTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             ComputerVisionAnalyzer(self.job_id, self.image_mime_type, self.open_ai_api_key)
 
-    @patch("features.computer_vision_analyzer.ChatOpenAI")
+    @patch("features.images.computer_vision_analyzer.ChatOpenAI")
     def test_execute_success(self, mock_chat_openai):
         mock_model = MagicMock()
         mock_model.invoke.return_value = AIMessage(content = "Analysis result")
@@ -76,7 +76,7 @@ class ComputerVisionAnalyzerTest(unittest.TestCase):
         result = analyzer.execute()
         self.assertEqual(result, "Analysis result")
 
-    @patch("features.computer_vision_analyzer.ChatOpenAI")
+    @patch("features.images.computer_vision_analyzer.ChatOpenAI")
     def test_execute_failure(self, mock_chat_openai):
         mock_model = MagicMock()
         mock_model.invoke.side_effect = Exception("API error")
@@ -90,7 +90,7 @@ class ComputerVisionAnalyzerTest(unittest.TestCase):
         result = analyzer.execute()
         self.assertEqual(result, None)
 
-    @patch("features.computer_vision_analyzer.ChatOpenAI")
+    @patch("features.images.computer_vision_analyzer.ChatOpenAI")
     def test_execute_non_ai_message(self, mock_chat_openai):
         mock_model = MagicMock()
         mock_model.invoke.return_value = "Not an AIMessage"

@@ -9,6 +9,7 @@ from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.sql import get_session
 from features.auth import verify_api_key
+from features.chat.invite_manager import InviteManager
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
@@ -17,7 +18,6 @@ from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.chat.telegram.telegram_price_alert_responder import respond_with_announcements
 from features.chat.telegram.telegram_summary_responder import respond_with_summary
 from features.chat.telegram.telegram_update_responder import respond_to_update
-from features.invite_manager import InviteManager
 from features.release_summarizer.raw_notes_payload import RawNotesPayload
 from util.config import config
 from util.safe_printer_mixin import sprint

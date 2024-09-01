@@ -5,7 +5,7 @@ from uuid import UUID
 
 from db.model.user import UserDB
 from db.schema.user import User
-from features.command_processor import CommandProcessor
+from features.chat.command_processor import CommandProcessor
 from features.prompting.prompt_library import TELEGRAM_BOT_USER, COMMAND_START
 
 

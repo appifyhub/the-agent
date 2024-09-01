@@ -11,6 +11,7 @@ ANTHROPIC_AI_TEMPERATURE = 0.7
 ANTHROPIC_MAX_TOKENS = 500
 
 
+# Not tested as it's just a proxy
 class InformationAnnouncer(SafePrinterMixin):
     __llm_input: list[BaseMessage]
     __llm: BaseChatModel

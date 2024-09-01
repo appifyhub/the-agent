@@ -17,7 +17,7 @@ from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessage
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from db.schema.user import User
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
-from features.computer_vision_analyzer import KNOWN_IMAGE_FORMATS, ComputerVisionAnalyzer
+from features.images.computer_vision_analyzer import KNOWN_IMAGE_FORMATS, ComputerVisionAnalyzer
 from util.config import config
 from util.functions import nearest_hour_epoch, digest_md5
 from util.safe_printer_mixin import SafePrinterMixin

@@ -6,7 +6,7 @@ from uuid import UUID
 from db.model.user import UserDB
 from db.schema.invite import Invite
 from db.schema.user import User
-from features.invite_manager import InviteManager
+from features.chat.invite_manager import InviteManager
 from util.config import config
 
 
