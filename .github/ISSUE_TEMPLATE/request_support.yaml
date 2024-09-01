@@ -1,0 +1,29 @@
+name: Support Request
+description: Request support or ask questions about using the tools
+title: "Support Request Title"
+labels: ["Help", "Request"]
+
+body:
+  - type: markdown
+    attributes:
+      value: "## Description of the Issue"
+  - type: textarea
+    id: issue-description
+    attributes:
+      label: "Issue Description"
+      description: "Provide a detailed description of the issue or question"
+      placeholder: "Describe what you need help with in as much detail as possible"
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: "### What You Have Tried"
+  - type: textarea
+    id: tried-solutions
+    attributes:
+      label: "Attempted Solutions"
+      description: "Describe what you have tried so far to resolve the issue"
+      placeholder: "List the steps you have taken to try to fix the issue on your own"
+    validations:
+      required: true
