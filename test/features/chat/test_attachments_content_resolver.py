@@ -10,7 +10,7 @@ from db.schema.chat_config import ChatConfig
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.tools_cache import ToolsCache
 from db.schema.user import User
-from features.attachments_content_resolver import AttachmentsContentResolver, CACHE_TTL
+from features.chat.attachments_content_resolver import AttachmentsContentResolver, CACHE_TTL
 from util.config import config
 
 
@@ -85,7 +85,7 @@ class AttachmentsContentResolverTest(unittest.TestCase):
         m.get(self.attachment.last_url, content = b"image data", status_code = 200)
         self.mock_cache_crud.get.return_value = None
 
-        with patch("features.attachments_content_resolver.ComputerVisionAnalyzer") as mock_cv_analyzer:
+        with patch("features.chat.attachments_content_resolver.ComputerVisionAnalyzer") as mock_cv_analyzer:
             # Set up the mock for ComputerVisionAnalyzer
             mock_cv_instance = MagicMock()
             mock_cv_instance.execute.return_value = self.cached_content

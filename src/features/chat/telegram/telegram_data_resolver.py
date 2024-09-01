@@ -14,7 +14,7 @@ from db.schema.chat_message_attachment import ChatMessageAttachmentSave, ChatMes
 from db.schema.user import UserSave, User
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
-from features.computer_vision_analyzer import KNOWN_IMAGE_FORMATS
+from features.images.computer_vision_analyzer import KNOWN_IMAGE_FORMATS
 from util.config import config
 from util.functions import is_the_agent, nearest_hour_epoch
 from util.safe_printer_mixin import SafePrinterMixin

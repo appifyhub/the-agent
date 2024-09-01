@@ -3,13 +3,13 @@ from unittest.mock import Mock, patch
 
 from db.crud.chat_message import ChatMessageCRUD
 from db.crud.user import UserCRUD
+from features.chat.invite_manager import InviteManager
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.chat.telegram.telegram_update_responder import respond_to_update
-from features.invite_manager import InviteManager
 
 
 class TelegramUpdateResponderTest(unittest.TestCase):

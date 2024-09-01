@@ -19,7 +19,9 @@ def create_db_engine(max_retries: int = 7, retry_interval_s: int = 5) -> Engine:
                 return created_engine
         except OperationalError:
             retries += 1
-            sprint(f"Database connection attempt {retries} failed. Retrying in {retry_interval_s} seconds...")
+            message = f"Database connection attempt {retries} failed. Retrying in {retry_interval_s} seconds..."
+            print(message)
+            sprint(message)
             time.sleep(retry_interval_s)
     raise Exception("Failed to connect to the database after multiple attempts")
 

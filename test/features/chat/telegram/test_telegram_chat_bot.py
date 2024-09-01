@@ -10,9 +10,9 @@ from langchain_core.runnables import Runnable
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
+from features.chat.command_processor import CommandProcessor
 from features.chat.telegram.telegram_chat_bot import TelegramChatBot
 from features.chat.tools.tools_library import ToolsLibrary
-from features.command_processor import CommandProcessor
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 
 
