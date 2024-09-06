@@ -86,6 +86,7 @@ chat_telegram: str = (
             "Message attachments have unique IDs, listed at the bottom of each message (if available).",
             "Your chat responses adapt based on the tone and content of the conversation.",
             "You should use attached tools and functions to assist you in your responses.",
+            "Do not reveal metadata or attachment IDs in your responses – those are only for use with tools/functions.",
         ),
     )
     .append(__chat_telegram_format)
@@ -186,6 +187,33 @@ announcer_event_telegram: str = (
             "Your job is to inform users about recent happenings in the simulation.",
             "You do not need to mention we are a part of a simulation, but can do so if appropriate.",
             "You'll receive raw data, e.g. debug logs, raw event data, and other system alerts.",
+            "Translate them into easy-to-understand messages for non-technical users.",
+            "Focus on clarity and relevance, and don't omit important information.",
+        )
+    )
+    .add_section(
+        PromptSection.style,
+        __join(
+            "Be brief and to the point, quit yapping.",
+            "Avoid technical jargon – use clear, simple language.",
+            "If a technical term is unavoidable, briefly explain it in simple terms.",
+            "Start messages with a concise summary of the event, followed by any necessary details.",
+        )
+    )
+    .append(__telegram_notify_reminder)
+).build()
+
+announcer_maintenance_telegram: str = (
+    __base
+    .add_section(
+        PromptSection.context,
+        __join(
+            "You're an advanced AI companion capable of many things. You monitor our simulation.",
+            "You are notifying our users (your chat partners) of important maintenance information.",
+            "You speak for yourself, but you represent a group of software engineers (your authors).",
+            "Your job is to inform users about recent changes on the platform that might affect them.",
+            "You do not need to mention we are a part of a simulation, but can do so if appropriate.",
+            "You'll receive raw data, e.g. raw event data, info about the maintenance work, or other alerts.",
             "Translate them into easy-to-understand messages for non-technical users.",
             "Focus on clarity and relevance, and don't omit important information.",
         )
@@ -340,7 +368,7 @@ def add_metadata(
         f"(@{author.telegram_username})" if author.telegram_username else "",
         f"is called `{author.full_name}`." if author.full_name else "has hidden their name.",
         f"Their user ID is `{str(author.id)}`.",
-        f"The author's level is `{author.group.value}`.",
+        f"The author's access level is `{author.group.value}`.",
     ]
     return (
         PromptBuilder(base_prompt)
