@@ -42,29 +42,36 @@ class SQLUtil:
         self.__is_session_active = False
 
     def chat_config_crud(self) -> ChatConfigCRUD:
-        if not self.__is_session_active: self.start_session()
+        if not self.__is_session_active:
+            self.start_session()
         return ChatConfigCRUD(self.__session)
 
     def chat_message_crud(self) -> ChatMessageCRUD:
-        if not self.__is_session_active: self.start_session()
+        if not self.__is_session_active:
+            self.start_session()
         return ChatMessageCRUD(self.__session)
 
     def chat_message_attachment_crud(self) -> ChatMessageAttachmentCRUD:
-        if not self.__is_session_active: self.start_session()
+        if not self.__is_session_active:
+            self.start_session()
         return ChatMessageAttachmentCRUD(self.__session)
 
     def invite_crud(self) -> InviteCRUD:
-        if not self.__is_session_active: self.start_session()
+        if not self.__is_session_active:
+            self.start_session()
         return InviteCRUD(self.__session)
 
     def tools_cache_crud(self) -> ToolsCacheCRUD:
-        if not self.__is_session_active: self.start_session()
+        if not self.__is_session_active:
+            self.start_session()
         return ToolsCacheCRUD(self.__session)
 
     def user_crud(self) -> UserCRUD:
-        if not self.__is_session_active: self.start_session()
+        if not self.__is_session_active:
+            self.start_session()
         return UserCRUD(self.__session)
 
     def price_alert_crud(self) -> PriceAlertCRUD:
-        if not self.__is_session_active: self.start_session()
+        if not self.__is_session_active:
+            self.start_session()
         return PriceAlertCRUD(self.__session)

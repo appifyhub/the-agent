@@ -50,5 +50,5 @@ class StableDiffusionImageGenerator(SafePrinterMixin):
             )
             return result[0]  # return the first URL
         except Exception as e:
-            self.sprint(f"Failed to generate image", e)
+            self.sprint("Failed to generate image", e)
             return None

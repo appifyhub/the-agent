@@ -384,7 +384,7 @@ def error_general_problem(reason: str, llm_author_organization: str = ORGANIZATI
     clean_reason = clean_reason.replace(config.perplexity_api_token, "****")
     return MULTI_MESSAGE_DELIMITER.join(
         [
-            f"🔴 I'm having issues replying to you.",
+            "🔴 I'm having issues replying to you.",
             f"Maybe it's a problem with your {llm_author_organization} setup, or it's an internal problem on my side.",
             f"Here's what I got:\n\n```{clean_reason}```",
             f"Remember, you can reset your {llm_author_organization} [API key](https://bit.ly/open-api-key-info):",

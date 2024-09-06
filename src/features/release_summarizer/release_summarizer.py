@@ -45,5 +45,5 @@ class ReleaseSummarizer(SafePrinterMixin):
             self.sprint(f"Finished summarizing, summary size is {len(response.content)} characters")
             return response
         except Exception as e:
-            self.sprint(f"Release summarization failed", e)
+            self.sprint("Release summarization failed", e)
             raise e

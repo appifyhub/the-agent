@@ -60,5 +60,5 @@ class AIWebSearch(SafePrinterMixin):
             self.sprint(f"Finished AI web search, result size is {len(response.content)} characters")
             return response
         except Exception as e:
-            self.sprint(f"AI web search failed", e)
+            self.sprint("AI web search failed", e)
             raise e

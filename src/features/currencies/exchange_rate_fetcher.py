@@ -203,9 +203,11 @@ class ExchangeRateFetcher(SafePrinterMixin):
         if desired_currency_code not in SUPPORTED_FIAT:
             raise ValueError(f"Unsupported currency: {desired_currency_code}")
 
-        if base_currency_code == desired_currency_code: return 1.0
+        if base_currency_code == desired_currency_code:
+            return 1.0
         cached_rate = self.__get_cached_rate_of_one(base_currency_code, desired_currency_code)
-        if cached_rate: return cached_rate
+        if cached_rate:
+            return cached_rate
 
         sleep(RATE_LIMIT_DELAY_S)
         params = {"format": "json", "from": base_currency_code, "to": desired_currency_code, "amount": "1.0"}

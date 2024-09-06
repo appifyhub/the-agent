@@ -74,7 +74,8 @@ class TelegramDataResolver(SafePrinterMixin):
         return ChatConfig.model_validate(db.save(mapped_data))
 
     def resolve_author(self, mapped_data: UserSave | None) -> User | None:
-        if not mapped_data: return None
+        if not mapped_data:
+            return None
         self.sprint(f"Resolving user: {mapped_data}")
         db = UserCRUD(self.__session)
         old_user_db = (
@@ -125,7 +126,8 @@ class TelegramDataResolver(SafePrinterMixin):
         return ChatMessageAttachment.model_validate(db.save(mapped_data))
 
     def update_attachment_using_api(self, attachment: ChatMessageAttachmentSave) -> bool:
-        if not attachment.has_stale_data: return False
+        if not attachment.has_stale_data:
+            return False
         self.sprint(f"Updating attachment using API data. URL is now {attachment.last_url}")
         self.sprint(
             f"\tExpires {"<unset>" if not attachment.last_url_until

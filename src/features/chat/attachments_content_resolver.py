@@ -141,7 +141,7 @@ class AttachmentsContentResolver(SafePrinterMixin):
             self.sprint(f"Refreshing attachment '{stale_attachment.id}'")
             fresh_attachment = ChatMessageAttachmentSave(**stale_attachment.model_dump())
             if stale_attachment.has_stale_data:
-                self.sprint(f"\tData is stale, updating")
+                self.sprint("\tData is stale, updating")
                 api_file = self.__bot_api.get_file_info(stale_attachment.id)
                 api_file_path = api_file.file_path
                 if api_file_path:
@@ -151,7 +151,7 @@ class AttachmentsContentResolver(SafePrinterMixin):
                 fresh_attachment.size = api_file.file_size
                 fresh_attachment.last_url_until = nearest_hour_epoch()
             else:
-                self.sprint(f"\tSkipped, data is fresh")
+                self.sprint("\tSkipped, data is fresh")
             fresh_attachments.append(fresh_attachment)
 
             # save the updated attachments

@@ -42,7 +42,8 @@ class UserCRUD:
         return user
 
     def update(self, update_data: UserSave) -> UserDB | None:
-        if not update_data.id: return None  # can be called from 'save'
+        if not update_data.id:
+            return None  # can be called from 'save'
         user = self.get(update_data.id)
         if user:
             for key, value in update_data.model_dump().items():
@@ -53,7 +54,8 @@ class UserCRUD:
 
     def save(self, data: UserSave) -> UserDB:
         updated_user = self.update(data)
-        if updated_user: return updated_user  # available only if update was successful
+        if updated_user:
+            return updated_user  # available only if update was successful
         return self.create(data)
 
     def delete(self, user_id: UUID) -> UserDB | None:

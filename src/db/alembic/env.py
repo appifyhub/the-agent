@@ -5,19 +5,19 @@ from alembic.config import Config as AlembicConfig
 from sqlalchemy import engine_from_config, pool
 
 # noinspection PyUnresolvedReferences
-from db.model.chat_config import ChatConfigDB  # used by alembic
+from db.model.chat_config import ChatConfigDB  # used by alembic  # noqa: F401
 # noinspection PyUnresolvedReferences
-from db.model.chat_message import ChatMessageDB  # used by alembic
+from db.model.chat_message import ChatMessageDB  # used by alembic  # noqa: F401
 # noinspection PyUnresolvedReferences
-from db.model.chat_message_attachment import ChatMessageAttachmentDB  # used by alembic
+from db.model.chat_message_attachment import ChatMessageAttachmentDB  # used by alembic  # noqa: F401
 # noinspection PyUnresolvedReferences
-from db.model.invite import InviteDB  # used by alembic
+from db.model.invite import InviteDB  # used by alembic  # noqa: F401
 # noinspection PyUnresolvedReferences
-from db.model.price_alert import PriceAlertDB  # used by alembic
+from db.model.price_alert import PriceAlertDB  # used by alembic  # noqa: F401
 # noinspection PyUnresolvedReferences
-from db.model.tools_cache import ToolsCacheDB
+from db.model.tools_cache import ToolsCacheDB  # noqa: F401
 # noinspection PyUnresolvedReferences
-from db.model.user import UserDB  # used by alembic
+from db.model.user import UserDB  # used by alembic  # noqa: F401
 # Base model is used by alembic
 from db.sql import BaseModel
 from util.config import config as app_config
@@ -35,6 +35,7 @@ if config.config_file_name is not None:
 target_metadata = BaseModel.metadata
 
 # Get the database URL from an environment variable
+# noinspection PyUnresolvedReferences
 config.set_main_option("sqlalchemy.url", app_config.db_url)
 
 
