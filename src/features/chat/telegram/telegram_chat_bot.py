@@ -126,7 +126,7 @@ class TelegramChatBot(SafePrinterMixin):
                 if not isinstance(self.__last_message, ToolMessage):
                     raise LookupError("Couldn't find tools to invoke!")
         except Exception as e:
-            self.sprint(f"Chat completion failed", e)
+            self.sprint("Chat completion failed", e)
             text = prompt_library.error_general_problem(str(e))
             return AIMessage(text)
 

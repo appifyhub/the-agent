@@ -58,7 +58,7 @@ def respond_with_announcements(
                 announcement_text = translations.save(answer.content, language_name, language_iso_code)
                 announcements_created += 1
         except Exception as e:
-            sprint(f"Price alert announcement failed", e)
+            sprint("Price alert announcement failed", e)
             continue
 
         # now let's send the announcement to each chat

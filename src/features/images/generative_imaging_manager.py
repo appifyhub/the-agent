@@ -90,7 +90,7 @@ class GenerativeImagingManager(SafePrinterMixin):
             prompt = response.content
             self.sprint(f"Finished prompt correction, new size is {len(prompt)} characters")
         except Exception as e:
-            self.sprint(f"Error correcting raw prompt", e)
+            self.sprint("Error correcting raw prompt", e)
             return GenerativeImagingManager.Result.failed
 
         # let's generate the image now using the corrected prompt
@@ -106,7 +106,7 @@ class GenerativeImagingManager(SafePrinterMixin):
                 self.sprint("Failed to generate image (no image found)")
                 return GenerativeImagingManager.Result.failed
         except Exception as e:
-            self.sprint(f"Error generating image", e)
+            self.sprint("Error generating image", e)
             return GenerativeImagingManager.Result.failed
 
         # let's send the image to the chat
@@ -117,14 +117,14 @@ class GenerativeImagingManager(SafePrinterMixin):
                 raise ValueError("No response from Telegram API")
             self.store_bot_photo(result_json)
         except Exception as e:
-            self.sprint(f"Error sending image", e)
+            self.sprint("Error sending image", e)
             return GenerativeImagingManager.Result.failed
 
         self.sprint("Image generated and sent successfully")
         return GenerativeImagingManager.Result.success
 
     def store_bot_photo(self, api_result: dict):
-        self.sprint(f"Storing message data")
+        self.sprint("Storing message data")
         message = Message(**api_result["result"])
         update = Update(update_id = datetime.now().second, message = message)
         mapping_result = TelegramDomainMapper().map_update(update)

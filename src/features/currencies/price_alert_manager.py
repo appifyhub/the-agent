@@ -145,7 +145,7 @@ class PriceAlertManager(SafePrinterMixin):
         fetcher: ExchangeRateFetcher,
         price_alert_dao: PriceAlertCRUD,
     ) -> list[TriggeredAlert]:
-        sprint(f"Checking price alerts")
+        sprint("Checking price alerts")
         active_alerts = PriceAlertManager.get_all_alerts_by_chat(chat_id, price_alert_dao)
         triggered_alerts: list[PriceAlertManager.TriggeredAlert] = []
 

@@ -9,7 +9,8 @@ from util.safe_printer_mixin import sprint
 
 
 def is_the_agent(who: User | UserSave | None) -> bool:
-    if not who: return False
+    if not who:
+        return False
     return who.telegram_username == TELEGRAM_BOT_USER.telegram_username
 
 

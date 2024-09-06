@@ -4,14 +4,14 @@ from langchain_core.messages import AIMessage
 from db.crud.chat_message import ChatMessageCRUD
 from db.crud.user import UserCRUD
 from db.schema.chat_message import ChatMessage
+from features.chat.command_processor import CommandProcessor
+from features.chat.invite_manager import InviteManager
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.telegram_chat_bot import TelegramChatBot
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
-from features.chat.command_processor import CommandProcessor
-from features.chat.invite_manager import InviteManager
 from features.prompting import prompt_library
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config
@@ -29,12 +29,16 @@ def respond_to_update(
     telegram_bot_api: TelegramBotAPI,
     update: Update,
 ) -> bool:
+    def map_to_langchain(message):
+        return domain_langchain_mapper.map_to_langchain(user_dao.get(message.author_id), message)
+
     user_dao.save(TELEGRAM_BOT_USER)  # save is ignored if bot already exists
     resolved_domain_data: TelegramDataResolver.Result | None = None
     try:
         # map to storage models for persistence
         domain_update = telegram_domain_mapper.map_update(update)
-        if not domain_update: raise HTTPException(status_code = 422, detail = "Unable to map the update")
+        if not domain_update:
+            raise HTTPException(status_code = 422, detail = "Unable to map the update")
 
         # store and map to domain models (throws in case of error)
         resolved_domain_data = telegram_data_resolver.resolve(domain_update)
@@ -46,8 +50,8 @@ def respond_to_update(
             limit = config.chat_history_depth,
         )
         past_messages = [ChatMessage.model_validate(chat_message) for chat_message in past_messages_db]
-        map_to_lc = lambda message: domain_langchain_mapper.map_to_langchain(user_dao.get(message.author_id), message)
-        langchain_messages = [map_to_lc(message) for message in past_messages][::-1]  # DB sorting is date descending
+        # DB sorting is date descending
+        langchain_messages = [map_to_langchain(message) for message in past_messages][::-1]
 
         # process the update using LLM
         if not resolved_domain_data.author:

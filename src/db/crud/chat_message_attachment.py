@@ -44,7 +44,8 @@ class ChatMessageAttachmentCRUD:
 
     def save(self, data: ChatMessageAttachmentSave) -> ChatMessageAttachmentDB:
         updated_attachment = self.update(data)
-        if updated_attachment: return updated_attachment  # available only if update was successful
+        if updated_attachment:
+            return updated_attachment  # available only if update was successful
         return self.create(data)
 
     def delete(self, attachment_id: str) -> ChatMessageAttachmentDB | None:
