@@ -79,5 +79,5 @@ class ComputerVisionAnalyzer(SafePrinterMixin):
                 raise AssertionError(f"Received an unexpected content from the model: {answer}")
             return str(answer.content)
         except Exception as e:
-            self.sprint(f"Computer vision analysis failed", e)
+            self.sprint("Computer vision analysis failed", e)
             return None

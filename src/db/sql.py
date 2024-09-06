@@ -15,7 +15,7 @@ def create_db_engine(max_retries: int = 7, retry_interval_s: int = 5) -> Engine:
         try:
             created_engine = create_engine(config.db_url)
             with created_engine.connect():
-                sprint(f"Database connected")
+                sprint("Database connected")
                 return created_engine
         except OperationalError:
             retries += 1

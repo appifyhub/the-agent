@@ -31,7 +31,7 @@ class CommandProcessor(SafePrinterMixin):
                 self.sprint("Nothing to process")
                 return CommandProcessor.Result.unknown
             command_parts = raw_input.split()
-            if command_parts and command_parts[0].startswith(f"/"):
+            if command_parts and command_parts[0].startswith("/"):
                 full_command = command_parts[0]
                 core_command = full_command
                 if "@" in full_command:
@@ -74,5 +74,5 @@ class CommandProcessor(SafePrinterMixin):
             self.__invite_manager.purge_accepted_invites(saved_user)
             return CommandProcessor.Result.success
         except Exception as e:
-            self.sprint(f"Failed to process OpenAI key", e)
+            self.sprint("Failed to process OpenAI key", e)
             return CommandProcessor.Result.failed

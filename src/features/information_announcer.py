@@ -45,5 +45,5 @@ class InformationAnnouncer(SafePrinterMixin):
             self.sprint(f"Finished announcement creation, summary size is {len(response.content)} characters")
             return response
         except Exception as e:
-            self.sprint(f"Information announcement failed", e)
+            self.sprint("Information announcement failed", e)
             raise e

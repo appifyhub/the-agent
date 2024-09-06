@@ -52,7 +52,8 @@ class InviteCRUD:
 
     def save(self, data: InviteSave) -> InviteDB:
         updated_invite = self.update(data)
-        if updated_invite: return updated_invite  # available only if update was successful
+        if updated_invite:
+            return updated_invite  # available only if update was successful
         return self.create(data)
 
     def delete(self, sender_id: UUID, receiver_id: UUID) -> InviteDB | None:

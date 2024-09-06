@@ -31,7 +31,8 @@ class DomainLangchainMapper(SafePrinterMixin):
         content = self.__map_bot_message_text(message)
         parts = content.split(MULTI_MESSAGE_DELIMITER)
         for part in parts:
-            if not part: continue
+            if not part:
+                continue
             sent_at = datetime.now()
             storage_message = ChatMessageSave(
                 chat_id = chat_id,
@@ -62,6 +63,10 @@ class DomainLangchainMapper(SafePrinterMixin):
 
     def __map_bot_message_text(self, message: AIMessage) -> str:
         self.sprint(f"Mapping AI message {message}")
+
+        def pretty_print(raw_dict):
+            return "\n".join(f"{key}: {value}" for key, value in raw_dict.items())
+
         # content can be either a list (of strings or dicts) or a plain string
         if not message.content:
             return ""
@@ -69,6 +74,5 @@ class DomainLangchainMapper(SafePrinterMixin):
             return message.content
         if isinstance(message.content[0], str):
             return MULTI_MESSAGE_DELIMITER.join(message.content)
-        pretty_print = lambda raw_dict: "\n".join(f"{key}: {value}" for key, value in raw_dict.items())
         pretty_dicts = [pretty_print(raw_dict) for raw_dict in message.content]
         return MULTI_MESSAGE_DELIMITER.join(pretty_dicts)

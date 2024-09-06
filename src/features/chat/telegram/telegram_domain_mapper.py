@@ -55,7 +55,8 @@ class TelegramDomainMapper(SafePrinterMixin):
         )
 
     def map_author(self, message: Message) -> UserSave | None:
-        if not message.from_user: return None
+        if not message.from_user:
+            return None
         self.sprint(f"Mapping author {message.from_user}")
         # properties might be updated later when this is stored
         author = message.from_user
@@ -132,7 +133,8 @@ class TelegramDomainMapper(SafePrinterMixin):
 
     def map_attachments_as_text(self, message: Message) -> str | None:
         attachments = self.map_attachments(message)
-        if not attachments: return None
+        if not attachments:
+            return None
         formatted_attachments = [
             f"{attachment.id} ({attachment.mime_type})" if attachment.mime_type else f"{attachment.id}"
             for attachment in attachments

@@ -17,7 +17,7 @@ class PromptBuilderTest(unittest.TestCase):
     def test_add_single_section(self):
         builder = PromptBuilder()
         result = builder.add_section(PromptSection.style, "Write in a formal style").build()
-        expected = f"[Style]\nWrite in a formal style"
+        expected = "[Style]\nWrite in a formal style"
         self.assertEqual(result, expected)
 
     def test_add_multiple_sections(self):

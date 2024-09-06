@@ -19,6 +19,7 @@ uvicorn = "*"
 langchain-anthropic = "*"
 readabilipy = "*"
 replicate = "*"
+ruff = "*"
 
 [dev-packages]
 pytest = "*"

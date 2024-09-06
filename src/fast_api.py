@@ -102,5 +102,5 @@ def clear_expired_cache(
         sprint(f"Cleared expired cache entries: {cleared_count}")
         return {"cleared_entries_count": cleared_count}
     except Exception as e:
-        sprint(f"Failed to clear expired cache", e)
+        sprint("Failed to clear expired cache", e)
         raise HTTPException(status_code = 500, detail = {"reason ": str(e)})

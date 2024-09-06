@@ -35,7 +35,7 @@ def respond_with_summary(
         translations.save(answer.content)
         summaries_created += 1
     except Exception as e:
-        sprint(f"Release summary failed for default language", e)
+        sprint("Release summary failed for default language", e)
 
     # we also need to summarize for each language
     for chat in latest_chats:

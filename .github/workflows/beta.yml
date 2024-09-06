@@ -45,6 +45,9 @@ jobs:
         with:
           python-version: "3.12.3"
 
+      - name: Lint checks
+        uses: chartboost/ruff-action@v1
+
       - name: Build and test service
         env:
           BUILD_QUALITY: "BETA"

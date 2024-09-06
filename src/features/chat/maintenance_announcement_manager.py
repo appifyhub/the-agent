@@ -1,0 +1,133 @@
+from datetime import datetime
+from uuid import UUID
+
+from langchain_anthropic import ChatAnthropic
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+
+from db.crud.chat_config import ChatConfigCRUD
+from db.crud.chat_message import ChatMessageCRUD
+from db.crud.user import UserCRUD
+from db.model.user import UserDB
+from db.schema.chat_config import ChatConfig
+from db.schema.chat_message import ChatMessageSave
+from db.schema.user import User
+from features.chat.telegram.telegram_bot_api import TelegramBotAPI
+from features.prompting import prompt_library
+from util.config import config
+from util.functions import construct_bot_message_id
+from util.safe_printer_mixin import SafePrinterMixin
+from util.translations_cache import TranslationsCache, DEFAULT_LANGUAGE, DEFAULT_ISO_CODE
+
+ANTHROPIC_AI_MODEL = "claude-3-5-sonnet-20240620"
+ANTHROPIC_AI_TEMPERATURE = 0.7
+ANTHROPIC_MAX_TOKENS = 500
+
+
+class MaintenanceAnnouncementManager(SafePrinterMixin):
+    __raw_announcement: str
+    __translations: TranslationsCache
+    __telegram_bot_api: TelegramBotAPI
+    __user_dao: UserCRUD
+    __chat_config_dao: ChatConfigCRUD
+    __chat_message_dao: ChatMessageCRUD
+    __llm: ChatAnthropic
+    __invoker_user: User
+
+    def __init__(
+        self,
+        invoker_user_id_hex: str,
+        raw_announcement: str,
+        translations: TranslationsCache,
+        telegram_bot_api: TelegramBotAPI,
+        user_dao: UserCRUD,
+        chat_config_dao: ChatConfigCRUD,
+        chat_message_dao: ChatMessageCRUD,
+    ):
+        super().__init__(config.verbose)
+        self.__raw_announcement = raw_announcement
+        self.__translations = translations
+        self.__telegram_bot_api = telegram_bot_api
+        self.__user_dao = user_dao
+        self.__chat_config_dao = chat_config_dao
+        self.__chat_message_dao = chat_message_dao
+        # noinspection PyArgumentList
+        self.__llm = ChatAnthropic(
+            model_name = ANTHROPIC_AI_MODEL,
+            temperature = ANTHROPIC_AI_TEMPERATURE,
+            max_tokens = ANTHROPIC_MAX_TOKENS,
+            timeout = float(config.web_timeout_s),
+            max_retries = config.web_retries,
+            api_key = str(config.anthropic_token),
+        )
+        self.validate(invoker_user_id_hex)
+
+    def validate(self, invoker_user_id_hex: str):
+        self.sprint("Validating invoker data")
+        invoker_user_db = self.__user_dao.get(UUID(hex = invoker_user_id_hex))
+        if not invoker_user_db or invoker_user_db.group < UserDB.Group.developer:
+            message = f"Invoker '{invoker_user_id_hex}' not found or not a developer"
+            self.sprint(message)
+            raise ValueError(message)
+        self.__invoker_user = User.model_validate(invoker_user_db)
+
+    def execute(self) -> dict:
+        self.sprint(f"Executing maintenance announcement from {self.__invoker_user.telegram_username}")
+        latest_chats_db = self.__chat_config_dao.get_all(limit = 1024)
+        latest_chats = [ChatConfig.model_validate(chat) for chat in latest_chats_db]
+        summaries_created: int = 0
+        chats_notified: int = 0
+
+        # translate for default language
+        try:
+            answer = self.__create_announcement(DEFAULT_LANGUAGE, DEFAULT_ISO_CODE)
+            self.__translations.save(str(answer.content))
+            summaries_created += 1
+        except Exception as e:
+            self.sprint("Maintenance announcement translation failed for default language", e)
+
+        # translate and notify for each chat
+        for chat in latest_chats:
+            try:
+                summary = self.__translations.get(chat.language_name, chat.language_iso_code)
+                if not summary:
+                    answer = self.__create_announcement(chat.language_name, chat.language_iso_code)
+                    summary = self.__translations.save(str(answer.content), chat.language_name, chat.language_iso_code)
+                    summaries_created += 1
+                self.__notify_chat(chat, summary)
+                chats_notified += 1
+            except Exception as e:
+                self.sprint(f"Announcement failed for chat #{chat.chat_id}", e)
+
+        self.sprint(f"Chats: {len(latest_chats)}, summaries created: {summaries_created}, notified: {chats_notified}")
+        return {
+            "chats_selected": len(latest_chats),
+            "chats_notified": chats_notified,
+            "summaries_created": summaries_created,
+        }
+
+    def __create_announcement(self, language_name: str | None, language_iso_code: str | None) -> AIMessage:
+        prompt = prompt_library.translator_on_response(
+            base_prompt = prompt_library.announcer_maintenance_telegram,
+            language_name = language_name,
+            language_iso_code = language_iso_code,
+        )
+        messages = [
+            SystemMessage(prompt),
+            HumanMessage(self.__raw_announcement)
+        ]
+        response = self.__llm.invoke(messages)
+        if not isinstance(response, AIMessage):
+            raise AssertionError(f"Received a non-AI message from LLM: {response}")
+        return response
+
+    def __notify_chat(self, chat: ChatConfig, summary: str):
+        self.__telegram_bot_api.send_text_message(chat.chat_id, summary)
+        sent_at = datetime.now()
+        message_to_store = ChatMessageSave(
+            chat_id = chat.chat_id,
+            message_id = construct_bot_message_id(chat.chat_id, sent_at),
+            author_id = prompt_library.TELEGRAM_BOT_USER.id,
+            sent_at = sent_at,
+            text = summary,
+        )
+        self.__chat_message_dao.save(message_to_store)
