@@ -185,8 +185,7 @@ def get_exchange_rate(user_id: str, base_currency: str, desired_currency: str, a
     """
     try:
         with get_detached_session() as db:
-            user_dao = UserCRUD(db)
-            fetcher = ExchangeRateFetcher(user_id, user_dao, ToolsCacheCRUD(db))
+            fetcher = ExchangeRateFetcher(user_id, UserCRUD(db), ToolsCacheCRUD(db))
             result = fetcher.execute(base_currency, desired_currency, amount or 1.0)
             return json.dumps({"result": "Success", "exchange_rate": result})
     except Exception as e:

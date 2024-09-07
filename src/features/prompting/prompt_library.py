@@ -254,7 +254,7 @@ sentient_web_explorer: str = (
             "Avoid technical jargon – use clear, simple language.",
             "If a technical term is unavoidable, briefly explain it in simple terms.",
             "You may include web links to sources in your response.",
-            "If adding additional context, use markdown to format web links and message contents.",
+            "If adding additional context, use Telegram's markdown flavor to format web links and message contents.",
         )
     )
     .append(__telegram_notify_reminder)
@@ -407,6 +407,7 @@ def error_general_problem(reason: str, llm_author_organization: str = ORGANIZATI
     clean_reason = clean_reason.replace(config.anthropic_token, "****")
     clean_reason = clean_reason.replace(config.open_ai_token, "****")
     clean_reason = clean_reason.replace(config.rapid_api_token, "****")
+    clean_reason = clean_reason.replace(config.rapid_api_twitter_token, "****")
     clean_reason = clean_reason.replace(config.coinmarketcap_api_token, "****")
     clean_reason = clean_reason.replace(config.replicate_api_token, "****")
     clean_reason = clean_reason.replace(config.perplexity_api_token, "****")
