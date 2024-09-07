@@ -8,7 +8,7 @@ from requests_mock.mocker import Mocker
 
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.schema.tools_cache import ToolsCache
-from features.web_browsing.web_fetcher import WebFetcher, CACHE_TTL_HTML, CACHE_TTL_JSON
+from features.web_browsing.web_fetcher import WebFetcher, CACHE_TTL_HTML, CACHE_TTL_JSON, DEFAULT_HEADERS
 from util.config import config
 
 DEFAULT_URL = "https://example.org"
@@ -119,3 +119,50 @@ class WebFetcherTest(unittest.TestCase):
         self.mock_cache_crud.get.return_value = None
         fetcher = WebFetcher(DEFAULT_URL, self.mock_cache_crud, auto_fetch_json = True)
         self.assertIsNone(fetcher.json)
+
+    @requests_mock.Mocker()
+    def test_custom_headers(self, m: Mocker):
+        custom_headers = {"X-Custom-Header": "test_value"}
+        expected_headers = {**DEFAULT_HEADERS, **custom_headers}
+        m.get(DEFAULT_URL, text = "data", status_code = 200)
+        self.mock_cache_crud.get.return_value = None
+        fetcher = WebFetcher(DEFAULT_URL, self.mock_cache_crud, headers = custom_headers, auto_fetch_html = True)
+        self.assertEqual(fetcher.html, "data")
+        self.assertEqual(m.last_request.headers.get("X-Custom-Header"), "test_value")
+        for key, value in expected_headers.items():
+            self.assertEqual(m.last_request.headers.get(key), value)
+
+    @requests_mock.Mocker()
+    def test_custom_params(self, m: Mocker):
+        custom_params = {"param1": "value1", "param2": "value2"}
+        m.get(DEFAULT_URL, text = "data", status_code = 200)
+        self.mock_cache_crud.get.return_value = None
+        fetcher = WebFetcher(DEFAULT_URL, self.mock_cache_crud, params = custom_params, auto_fetch_html = True)
+        self.assertEqual(fetcher.html, "data")
+        expected_qs = {k: [v] for k, v in custom_params.items()}
+        self.assertEqual(m.last_request.qs, expected_qs)
+
+    @requests_mock.Mocker()
+    def test_fetch_html_with_headers_and_params(self, m: Mocker):
+        custom_headers = {"X-Custom-Header": "test_value"}
+        custom_params = {"param1": "value1", "param2": "value2"}
+        m.get(DEFAULT_URL, text = "data", status_code = 200)
+        self.mock_cache_crud.get.return_value = None
+        fetcher = WebFetcher(DEFAULT_URL, self.mock_cache_crud, headers = custom_headers, params = custom_params)
+        self.assertEqual(fetcher.fetch_html(), "data")
+        self.assertEqual(m.last_request.headers.get("X-Custom-Header"), "test_value")
+        expected_qs = {k: [v] for k, v in custom_params.items()}
+        self.assertEqual(m.last_request.qs, expected_qs)
+
+    @requests_mock.Mocker()
+    def test_fetch_json_with_headers_and_params(self, m: Mocker):
+        custom_headers = {"X-Custom-Header": "test_value"}
+        custom_params = {"param1": "value1", "param2": "value2"}
+        stub = {"value": "data"}
+        m.get(DEFAULT_URL, json = stub, status_code = 200)
+        self.mock_cache_crud.get.return_value = None
+        fetcher = WebFetcher(DEFAULT_URL, self.mock_cache_crud, headers = custom_headers, params = custom_params)
+        self.assertEqual(fetcher.fetch_json(), stub)
+        self.assertEqual(m.last_request.headers.get("X-Custom-Header"), "test_value")
+        expected_qs = {k: [v] for k, v in custom_params.items()}
+        self.assertEqual(m.last_request.qs, expected_qs)

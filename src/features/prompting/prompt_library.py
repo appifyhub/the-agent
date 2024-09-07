@@ -254,7 +254,7 @@ sentient_web_explorer: str = (
             "Avoid technical jargon – use clear, simple language.",
             "If a technical term is unavoidable, briefly explain it in simple terms.",
             "You may include web links to sources in your response.",
-            "If adding additional context, use markdown to format web links and message contents.",
+            "If adding additional context, use Telegram's markdown flavor to format web links and message contents.",
         )
     )
     .append(__telegram_notify_reminder)

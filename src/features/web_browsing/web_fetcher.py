@@ -2,18 +2,20 @@ import json
 import platform
 import time
 from datetime import timedelta, datetime
+from typing import Any
 
 import requests
 from requests.exceptions import RequestException, Timeout
 
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
+from features.web_browsing.uri_cleanup import simplify_url
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
 PLATFORM = f"{platform.python_implementation()}/{platform.python_version()}"
 USER_AGENT = f"Mozilla/5.0 (compatible; TheAgent/1.0; {PLATFORM})"
-HEADERS = {"User-Agent": USER_AGENT}
+DEFAULT_HEADERS = {"User-Agent": USER_AGENT}
 CACHE_PREFIX = "web-fetcher"
 CACHE_TTL_HTML = timedelta(weeks = 3)
 CACHE_TTL_JSON = timedelta(minutes = 5)
@@ -25,11 +27,15 @@ class WebFetcher(SafePrinterMixin):
     json: dict | None
     __cache_dao: ToolsCacheCRUD
     __cache_key: str
+    __headers: dict[str, str]
+    __params: dict[str, Any]
 
     def __init__(
         self,
         url: str,
         cache_dao: ToolsCacheCRUD,
+        headers: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,
         auto_fetch_html: bool = False,
         auto_fetch_json: bool = False,
     ):
@@ -38,7 +44,9 @@ class WebFetcher(SafePrinterMixin):
         self.html = None
         self.json = None
         self.__cache_dao = cache_dao
-        self.__cache_key = cache_dao.create_key(CACHE_PREFIX, url)
+        self.__cache_key = cache_dao.create_key(CACHE_PREFIX, simplify_url(url))
+        self.__headers = {**DEFAULT_HEADERS, **(headers or {})}
+        self.__params = params or {}
         if auto_fetch_html:
             self.fetch_html()
         if auto_fetch_json:
@@ -60,7 +68,12 @@ class WebFetcher(SafePrinterMixin):
         attempts = 0
         for _ in range(config.web_retries):
             try:
-                response = requests.get(self.url, headers = HEADERS, timeout = config.web_timeout_s)
+                response = requests.get(
+                    self.url,
+                    headers = self.__headers,
+                    params = self.__params,
+                    timeout = config.web_timeout_s,
+                )
                 response.raise_for_status()
                 self.html = response.text
                 self.__cache_dao.save(
@@ -94,7 +107,12 @@ class WebFetcher(SafePrinterMixin):
         attempts = 0
         for _ in range(config.web_retries):
             try:
-                response = requests.get(self.url, headers = HEADERS, timeout = config.web_timeout_s)
+                response = requests.get(
+                    self.url,
+                    headers = self.__headers,
+                    params = self.__params,
+                    timeout = config.web_timeout_s,
+                )
                 response.raise_for_status()
                 self.json = response.json()
                 self.__cache_dao.save(
