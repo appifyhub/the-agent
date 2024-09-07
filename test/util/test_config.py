@@ -40,6 +40,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.anthropic_token, "invalid")
         self.assertEqual(config.open_ai_token, "invalid")
         self.assertEqual(config.rapid_api_token, "invalid")
+        self.assertEqual(config.rapid_api_twitter_token, "invalid")
         self.assertEqual(config.coinmarketcap_api_token, "invalid")
         self.assertEqual(config.replicate_api_token, "invalid")
         self.assertEqual(config.perplexity_api_token, "invalid")
@@ -67,6 +68,7 @@ class ConfigTest(unittest.TestCase):
         os.environ["ANTHROPIC_TOKEN"] = "sk-a-valid"
         os.environ["OPEN_AI_TOKEN"] = "sk-o-valid"
         os.environ["RAPID_API_TOKEN"] = "sk-r-valid"
+        os.environ["RAPID_API_TWITTER_TOKEN"] = "sk-rt-valid"
         os.environ["COINMARKETCAP_API_TOKEN"] = "sk-c-valid"
         os.environ["REPLICATE_API_TOKEN"] = "sk-re-valid"
         os.environ["PERPLEXITY_API_TOKEN"] = "sk-p-valid"
@@ -92,6 +94,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.anthropic_token, "sk-a-valid")
         self.assertEqual(config.open_ai_token, "sk-o-valid")
         self.assertEqual(config.rapid_api_token, "sk-r-valid")
+        self.assertEqual(config.rapid_api_twitter_token, "sk-rt-valid")
         self.assertEqual(config.coinmarketcap_api_token, "sk-c-valid")
         self.assertEqual(config.replicate_api_token, "sk-re-valid")
         self.assertEqual(config.perplexity_api_token, "sk-p-valid")

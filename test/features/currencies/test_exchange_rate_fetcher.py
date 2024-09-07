@@ -12,6 +12,7 @@ from db.model.user import UserDB
 from db.schema.tools_cache import ToolsCache
 from db.schema.user import User
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher, CACHE_TTL
+from features.web_browsing.web_fetcher import WebFetcher
 from util.config import config
 
 
@@ -111,14 +112,13 @@ class ExchangeRateFetcherTest(unittest.TestCase):
 
     # noinspection PyUnusedLocal
     @patch("features.currencies.exchange_rate_fetcher.sleep", return_value = None)
-    @patch("features.currencies.exchange_rate_fetcher.requests.get")
-    def test_get_crypto_conversion_rate_cache_miss_crypto_to_crypto(self, mock_get, mock_sleep):
+    @patch.object(WebFetcher, "fetch_json")
+    def test_get_crypto_conversion_rate_cache_miss_crypto_to_crypto(self, mock_fetch_json, mock_sleep):
         self.mock_cache_crud.get.return_value = None
-        mock_response_btc = MagicMock()
-        mock_response_btc.json.return_value = {"data": {"BTC": {"quote": {"USD": {"price": 40000}}}}}
-        mock_response_eth = MagicMock()
-        mock_response_eth.json.return_value = {"data": {"ETH": {"quote": {"USD": {"price": 2000}}}}}
-        mock_get.side_effect = [mock_response_btc, mock_response_eth]
+        mock_fetch_json.side_effect = [
+            {"data": {"BTC": {"quote": {"USD": {"price": 40000}}}}},
+            {"data": {"ETH": {"quote": {"USD": {"price": 2000}}}}},
+        ]
         fetcher = ExchangeRateFetcher(self.user.id.hex, self.mock_user_crud, self.mock_cache_crud)
         rate = fetcher.get_crypto_conversion_rate("BTC", "ETH")
         self.assertEqual(rate, 20)  # 40000 / 2000 = 20
@@ -127,12 +127,10 @@ class ExchangeRateFetcherTest(unittest.TestCase):
 
     # noinspection PyUnusedLocal
     @patch("features.currencies.exchange_rate_fetcher.sleep", return_value = None)
-    @patch("features.currencies.exchange_rate_fetcher.requests.get")
-    def test_get_crypto_conversion_rate_cache_miss_crypto_to_usd(self, mock_get, mock_sleep):
+    @patch.object(WebFetcher, "fetch_json")
+    def test_get_crypto_conversion_rate_cache_miss_crypto_to_usd(self, mock_fetch_json, mock_sleep):
         self.mock_cache_crud.get.return_value = None
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"data": {"BTC": {"quote": {"USD": {"price": 40000}}}}}
-        mock_get.return_value = mock_response
+        mock_fetch_json.return_value = {"data": {"BTC": {"quote": {"USD": {"price": 40000}}}}}
         fetcher = ExchangeRateFetcher(self.user.id.hex, self.mock_user_crud, self.mock_cache_crud)
         rate = fetcher.get_crypto_conversion_rate("BTC", "USD")
         self.assertEqual(rate, 40000)
@@ -152,12 +150,10 @@ class ExchangeRateFetcherTest(unittest.TestCase):
 
     # noinspection PyUnusedLocal
     @patch("features.currencies.exchange_rate_fetcher.sleep", return_value = None)
-    @patch("features.currencies.exchange_rate_fetcher.requests.get")
-    def test_get_fiat_conversion_rate_cache_miss(self, mock_get, mock_sleep):
+    @patch.object(WebFetcher, "fetch_json")
+    def test_get_fiat_conversion_rate_cache_miss(self, mock_fetch_json, mock_sleep):
         self.mock_cache_crud.get.return_value = None
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"rates": {"EUR": {"rate_for_amount": "0.85"}}}
-        mock_get.return_value = mock_response
+        mock_fetch_json.return_value = {"rates": {"EUR": {"rate_for_amount": "0.85"}}}
         fetcher = ExchangeRateFetcher(self.user.id.hex, self.mock_user_crud, self.mock_cache_crud)
         rate = fetcher.get_fiat_conversion_rate("USD", "EUR")
         self.assertEqual(rate, 0.85)
