@@ -9,6 +9,8 @@ from requests.exceptions import RequestException, Timeout
 
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
+from features.web_browsing.twitter_status_fetcher import TwitterStatusFetcher
+from features.web_browsing.twitter_utils import resolve_tweet_id
 from features.web_browsing.uri_cleanup import simplify_url
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
@@ -25,6 +27,7 @@ class WebFetcher(SafePrinterMixin):
     url: str
     html: str | None
     json: dict | None
+    tweed_id: str | None
     __cache_key: str
     __headers: dict[str, str]
     __params: dict[str, Any]
@@ -53,6 +56,7 @@ class WebFetcher(SafePrinterMixin):
         self.__cache_key = self.__generate_cache_key()
         self.__cache_ttl_html = cache_ttl_html or DEFAULT_CACHE_TTL_HTML
         self.__cache_ttl_json = cache_ttl_json or DEFAULT_CACHE_TTL_JSON
+        self.tweed_id = resolve_tweet_id(self.url)
         if auto_fetch_html:
             self.fetch_html()
         if auto_fetch_json:
@@ -80,14 +84,19 @@ class WebFetcher(SafePrinterMixin):
         attempts = 0
         for _ in range(config.web_retries):
             try:
-                response = requests.get(
-                    self.url,
-                    headers = self.__headers,
-                    params = self.__params,
-                    timeout = config.web_timeout_s,
-                )
-                response.raise_for_status()
-                self.html = response.text
+                if self.tweed_id:
+                    tweet_fetcher = TwitterStatusFetcher(self.tweed_id, self.__cache_dao)
+                    response_text = tweet_fetcher.execute()
+                    self.html = f"<html><body>\n<p>\n{response_text}\n</p>\n</body></html>"
+                else:
+                    response = requests.get(
+                        self.url,
+                        headers = self.__headers,
+                        params = self.__params,
+                        timeout = config.web_timeout_s,
+                    )
+                    response.raise_for_status()
+                    self.html = response.text
                 self.__cache_dao.save(
                     ToolsCacheSave(
                         key = self.__cache_key,
@@ -119,14 +128,19 @@ class WebFetcher(SafePrinterMixin):
         attempts = 0
         for _ in range(config.web_retries):
             try:
-                response = requests.get(
-                    self.url,
-                    headers = self.__headers,
-                    params = self.__params,
-                    timeout = config.web_timeout_s,
-                )
-                response.raise_for_status()
-                self.json = response.json()
+                if self.tweed_id:
+                    tweet_fetcher = TwitterStatusFetcher(self.tweed_id, self.__cache_dao)
+                    response_text = tweet_fetcher.execute()
+                    self.json = {"content": response_text}
+                else:
+                    response = requests.get(
+                        self.url,
+                        headers = self.__headers,
+                        params = self.__params,
+                        timeout = config.web_timeout_s,
+                    )
+                    response.raise_for_status()
+                    self.json = response.json()
                 self.__cache_dao.save(
                     ToolsCacheSave(
                         key = self.__cache_key,

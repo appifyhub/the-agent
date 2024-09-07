@@ -1,7 +1,7 @@
 import json
 import unittest
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import requests_mock
 from requests_mock.mocker import Mocker
@@ -229,3 +229,115 @@ class WebFetcherTest(unittest.TestCase):
         self.assertEqual(m.last_request.headers.get("X-Custom-Header"), "test_value")
         expected_qs = {k: [v] for k, v in custom_params.items()}
         self.assertEqual(m.last_request.qs, expected_qs)
+
+    @patch("features.web_browsing.web_fetcher.resolve_tweet_id")
+    @patch("features.web_browsing.web_fetcher.TwitterStatusFetcher")
+    def test_fetch_html_twitter(self, mock_twitter_fetcher, mock_resolve_tweet_id):
+        mock_resolve_tweet_id.return_value = "123456"
+        mock_twitter_fetcher.return_value.execute.return_value = "Tweet content"
+
+        # Test cache miss scenario
+        self.mock_cache_crud.get.return_value = None
+
+        fetcher = WebFetcher("https://twitter.com/user/status/123456", self.mock_cache_crud)
+        result = fetcher.fetch_html()
+
+        expected_html = "<html><body>\n<p>\nTweet content\n</p>\n</body></html>"
+        self.assertEqual(result, expected_html)
+        self.assertEqual(fetcher.html, expected_html)
+        mock_twitter_fetcher.assert_called_once_with("123456", self.mock_cache_crud)
+
+        # Test cache hit scenario
+        mock_cache_entry = {
+            "key": "test_cache_key",
+            "value": expected_html,
+            "expires_at": (datetime.now() + timedelta(hours = 1)).isoformat()
+        }
+        self.mock_cache_crud.get.return_value = mock_cache_entry
+
+        result = fetcher.fetch_html()
+        self.assertEqual(result, expected_html)
+        self.assertEqual(fetcher.html, expected_html)
+
+    @patch("features.web_browsing.web_fetcher.resolve_tweet_id")
+    @patch("features.web_browsing.web_fetcher.TwitterStatusFetcher")
+    def test_fetch_json_twitter(self, mock_twitter_fetcher, mock_resolve_tweet_id):
+        mock_resolve_tweet_id.return_value = "123456"
+        mock_twitter_fetcher.return_value.execute.return_value = "Tweet content"
+
+        # Test cache miss scenario
+        self.mock_cache_crud.get.return_value = None
+
+        fetcher = WebFetcher("https://twitter.com/user/status/123456", self.mock_cache_crud)
+        result = fetcher.fetch_json()
+
+        expected_json = {"content": "Tweet content"}
+        self.assertEqual(result, expected_json)
+        self.assertEqual(fetcher.json, expected_json)
+        mock_twitter_fetcher.assert_called_once_with("123456", self.mock_cache_crud)
+
+        # Test cache hit scenario
+        mock_cache_entry = {
+            "key": "test_cache_key",
+            "value": json.dumps(expected_json),
+            "expires_at": (datetime.now() + timedelta(hours = 1)).isoformat()
+        }
+        self.mock_cache_crud.get.return_value = mock_cache_entry
+
+        result = fetcher.fetch_json()
+        self.assertEqual(result, expected_json)
+        self.assertEqual(fetcher.json, expected_json)
+
+    @patch("features.web_browsing.web_fetcher.resolve_tweet_id")
+    def test_fetch_html_non_twitter(self, mock_resolve_tweet_id):
+        mock_resolve_tweet_id.return_value = None
+
+        # Create a mock cache entry that matches ToolsCache structure
+        mock_cache_entry = {
+            "key": "test_cache_key",
+            "value": "Cached HTML content",
+            "expires_at": (datetime.now() + timedelta(hours = 1)).isoformat()
+        }
+        self.mock_cache_crud.get.return_value = mock_cache_entry
+
+        fetcher = WebFetcher(DEFAULT_URL, self.mock_cache_crud)
+        result = fetcher.fetch_html()
+
+        self.assertEqual(result, "Cached HTML content")
+        self.assertEqual(fetcher.html, "Cached HTML content")
+
+        # Test cache miss scenario
+        self.mock_cache_crud.get.return_value = None
+        with requests_mock.Mocker() as m:
+            m.get(DEFAULT_URL, text = "Regular HTML content", status_code = 200)
+            result = fetcher.fetch_html()
+
+        self.assertEqual(result, "Regular HTML content")
+        self.assertEqual(fetcher.html, "Regular HTML content")
+
+    @patch("features.web_browsing.web_fetcher.resolve_tweet_id")
+    def test_fetch_json_non_twitter(self, mock_resolve_tweet_id):
+        mock_resolve_tweet_id.return_value = None
+
+        # Create a mock cache entry that matches ToolsCache structure
+        mock_cache_entry = {
+            "key": "test_cache_key",
+            "value": json.dumps({"key": "Cached value"}),
+            "expires_at": (datetime.now() + timedelta(hours = 1)).isoformat()
+        }
+        self.mock_cache_crud.get.return_value = mock_cache_entry
+
+        fetcher = WebFetcher(DEFAULT_URL, self.mock_cache_crud)
+        result = fetcher.fetch_json()
+
+        self.assertEqual(result, {"key": "Cached value"})
+        self.assertEqual(fetcher.json, {"key": "Cached value"})
+
+        # Test cache miss scenario
+        self.mock_cache_crud.get.return_value = None
+        with requests_mock.Mocker() as m:
+            m.get(DEFAULT_URL, json = {"key": "Fresh value"}, status_code = 200)
+            result = fetcher.fetch_json()
+
+        self.assertEqual(result, {"key": "Fresh value"})
+        self.assertEqual(fetcher.json, {"key": "Fresh value"})
