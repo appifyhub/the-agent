@@ -17,18 +17,20 @@ PLATFORM = f"{platform.python_implementation()}/{platform.python_version()}"
 USER_AGENT = f"Mozilla/5.0 (compatible; TheAgent/1.0; {PLATFORM})"
 DEFAULT_HEADERS = {"User-Agent": USER_AGENT}
 CACHE_PREFIX = "web-fetcher"
-CACHE_TTL_HTML = timedelta(weeks = 3)
-CACHE_TTL_JSON = timedelta(minutes = 5)
+DEFAULT_CACHE_TTL_HTML = timedelta(weeks = 3)
+DEFAULT_CACHE_TTL_JSON = timedelta(minutes = 5)
 
 
 class WebFetcher(SafePrinterMixin):
     url: str
     html: str | None
     json: dict | None
-    __cache_dao: ToolsCacheCRUD
     __cache_key: str
     __headers: dict[str, str]
     __params: dict[str, Any]
+    __cache_ttl_html: timedelta
+    __cache_ttl_json: timedelta
+    __cache_dao: ToolsCacheCRUD
 
     def __init__(
         self,
@@ -36,6 +38,8 @@ class WebFetcher(SafePrinterMixin):
         cache_dao: ToolsCacheCRUD,
         headers: dict[str, str] | None = None,
         params: dict[str, Any] | None = None,
+        cache_ttl_html: timedelta | None = None,
+        cache_ttl_json: timedelta | None = None,
         auto_fetch_html: bool = False,
         auto_fetch_json: bool = False,
     ):
@@ -44,13 +48,21 @@ class WebFetcher(SafePrinterMixin):
         self.html = None
         self.json = None
         self.__cache_dao = cache_dao
-        self.__cache_key = cache_dao.create_key(CACHE_PREFIX, simplify_url(url))
         self.__headers = {**DEFAULT_HEADERS, **(headers or {})}
         self.__params = params or {}
+        self.__cache_key = self.__generate_cache_key()
+        self.__cache_ttl_html = cache_ttl_html or DEFAULT_CACHE_TTL_HTML
+        self.__cache_ttl_json = cache_ttl_json or DEFAULT_CACHE_TTL_JSON
         if auto_fetch_html:
             self.fetch_html()
         if auto_fetch_json:
             self.fetch_json()
+
+    def __generate_cache_key(self) -> str:
+        headers_str = json.dumps(self.__headers, sort_keys = True)
+        params_str = json.dumps(self.__params, sort_keys = True)
+        key_components = f"{simplify_url(self.url)}|{headers_str}|{params_str}"
+        return self.__cache_dao.create_key(CACHE_PREFIX, key_components)
 
     def fetch_html(self) -> str | None:
         self.html = None  # reset value
@@ -80,7 +92,7 @@ class WebFetcher(SafePrinterMixin):
                     ToolsCacheSave(
                         key = self.__cache_key,
                         value = self.html,
-                        expires_at = datetime.now() + CACHE_TTL_HTML,
+                        expires_at = datetime.now() + self.__cache_ttl_html,
                     )
                 )
                 break
@@ -119,7 +131,7 @@ class WebFetcher(SafePrinterMixin):
                     ToolsCacheSave(
                         key = self.__cache_key,
                         value = json.dumps(self.json),
-                        expires_at = datetime.now() + CACHE_TTL_JSON,
+                        expires_at = datetime.now() + self.__cache_ttl_json,
                     )
                 )
                 break
