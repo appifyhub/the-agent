@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from typing import Dict, Any
 from uuid import UUID
 
-import requests
 from tenacity import sleep
 
 from db.crud.tools_cache import ToolsCacheCRUD
@@ -12,6 +11,7 @@ from db.model.user import UserDB
 from db.schema.tools_cache import ToolsCacheSave, ToolsCache
 from db.schema.user import User
 from features.currencies.supported_currencies import SUPPORTED_FIAT, SUPPORTED_CRYPTO
+from features.web_browsing.web_fetcher import WebFetcher
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
@@ -103,11 +103,12 @@ class ExchangeRateFetcher(SafePrinterMixin):
     def __cache_key_of(self, a: str, b: str) -> str:
         return self.__cache_dao.create_key(CACHE_PREFIX, f"{a}-{b}")
 
+    # when converting exchange rates, the inverse rule applies:  A / B = 1 / (B / A)
     def __get_cached_rate_of_one(self, base_currency_code: str, desired_currency_code: str) -> float | None:
-        self.sprint(f"Fetching cached rate for {base_currency_code}/{desired_currency_code}")
-        # when converting exchange rates, the inverse rule applies:  A / B = 1 / (B / A)
         # let's check the direct requested conversion rate first
+        self.sprint(f"Fetching cached rate for {base_currency_code}/{desired_currency_code}")
         cache_key = self.__cache_key_of(base_currency_code, desired_currency_code)
+        self.sprint(f"    Cache key: '{cache_key}'")
         cache_entry_db = self.__cache_dao.get(cache_key)
         if cache_entry_db:
             cache_entry = ToolsCache.model_validate(cache_entry_db)
@@ -118,7 +119,9 @@ class ExchangeRateFetcher(SafePrinterMixin):
         self.sprint(f"Cache miss for direct conversion and key '{cache_key}'")
 
         # now let's check for the inverse conversion rate
+        self.sprint(f"Fetching cached inverse rate for {base_currency_code}/{desired_currency_code}")
         cache_key = self.__cache_key_of(desired_currency_code, base_currency_code)
+        self.sprint(f"    Cache key: '{cache_key}'")
         cache_entry_db = self.__cache_dao.get(cache_key)
         if cache_entry_db:
             cache_entry = ToolsCache.model_validate(cache_entry_db)
@@ -149,46 +152,49 @@ class ExchangeRateFetcher(SafePrinterMixin):
             return cached_rate
 
         rate: float
-        headers = {"X-CMC_PRO_API_KEY": config.coinmarketcap_api_token, "Accept": "application/json"}
+        headers = {"Accept": "application/json", "X-CMC_PRO_API_KEY": config.coinmarketcap_api_token}
         if base_currency_code != DEFAULT_FIAT and desired_currency_code != DEFAULT_FIAT:
             # due to API limitations, we must traverse both cryptos through USD
             params_base = {"symbol": base_currency_code, "convert": DEFAULT_FIAT}
             sleep(RATE_LIMIT_DELAY_S)
-            response_base = requests.get(
+            fetcher_base = WebFetcher(
                 COINMARKETCAP_API_URL,
+                self.__cache_dao,
                 headers = headers,
                 params = params_base,
-                timeout = config.web_timeout_s,
+                cache_ttl_json = CACHE_TTL,
             )
-            response_base.raise_for_status()
+            response_base = fetcher_base.fetch_json() or {}
 
             params_desired = {"symbol": desired_currency_code, "convert": DEFAULT_FIAT}
             sleep(RATE_LIMIT_DELAY_S)
-            response_desired = requests.get(
+            fetcher_desired = WebFetcher(
                 COINMARKETCAP_API_URL,
+                self.__cache_dao,
                 headers = headers,
                 params = params_desired,
-                timeout = config.web_timeout_s,
+                cache_ttl_json = CACHE_TTL,
             )
-            response_desired.raise_for_status()
+            response_desired = fetcher_desired.fetch_json() or {}
 
-            base_rate = float(response_base.json()["data"][base_currency_code]["quote"][DEFAULT_FIAT]["price"])
-            desired_rate = float(response_desired.json()["data"][desired_currency_code]["quote"][DEFAULT_FIAT]["price"])
+            base_rate = float(response_base["data"][base_currency_code]["quote"][DEFAULT_FIAT]["price"])
+            desired_rate = float(response_desired["data"][desired_currency_code]["quote"][DEFAULT_FIAT]["price"])
             rate = base_rate / desired_rate
         else:
             # one of the currencies is USD, we can fetch the rate directly
             symbol = desired_currency_code if base_currency_code == DEFAULT_FIAT else base_currency_code
             params = {"symbol": symbol, "convert": DEFAULT_FIAT}
             sleep(RATE_LIMIT_DELAY_S)
-            response = requests.get(
+            fetcher = WebFetcher(
                 COINMARKETCAP_API_URL,
+                self.__cache_dao,
                 headers = headers,
                 params = params,
-                timeout = config.web_timeout_s,
+                cache_ttl_json = CACHE_TTL,
             )
-            response.raise_for_status()
+            response = fetcher.fetch_json() or {}
 
-            rate = float(response.json()["data"][symbol]["quote"][DEFAULT_FIAT]["price"])
+            rate = float(response["data"][symbol]["quote"][DEFAULT_FIAT]["price"])
             if base_currency_code == DEFAULT_FIAT:
                 rate = 1 / rate
         if rate:
@@ -212,11 +218,17 @@ class ExchangeRateFetcher(SafePrinterMixin):
         sleep(RATE_LIMIT_DELAY_S)
         params = {"format": "json", "from": base_currency_code, "to": desired_currency_code, "amount": "1.0"}
         headers = {"X-RapidAPI-Key": config.rapid_api_token, "X-RapidAPI-Host": CURRENCY_API_HOST}
-        response = requests.get(CURRENCY_API_URL, params = params, headers = headers, timeout = config.web_timeout_s)
-        response.raise_for_status()
+        fetcher = WebFetcher(
+            CURRENCY_API_URL,
+            self.__cache_dao,
+            headers = headers,
+            params = params,
+            cache_ttl_json = CACHE_TTL,
+        )
+        response = fetcher.fetch_json() or {}
 
-        rate = float(response.json()["rates"][desired_currency_code]["rate_for_amount"])
+        rate = float(response["rates"][desired_currency_code]["rate_for_amount"])
         if rate:
             self.__save_rate_to_cache(base_currency_code, desired_currency_code, rate)
             return rate
-        raise ValueError(f"Invalid rate: {rate}; response data: {json.dumps(json)}")
+        raise ValueError(f"Invalid rate: {rate}; response data: {json.dumps(response)}")
