@@ -1,6 +1,6 @@
 from sqlalchemy import Column, String, Boolean, Integer
 
-from db.sql import BaseModel
+from db.model.base import BaseModel
 
 
 class ChatConfigDB(BaseModel):

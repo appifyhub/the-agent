@@ -1,19 +1,34 @@
 import time
 from contextlib import contextmanager
+from typing import Generator
 
+from requests import Session
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import sessionmaker
 
+from db.model.base import BaseModel
 from util.config import config
 from util.safe_printer_mixin import sprint
 
+engine: Engine
+LocalSession: sessionmaker
 
-def create_db_engine(max_retries: int = 7, retry_interval_s: int = 5) -> Engine:
+
+def initialize_db(db_url: str = config.db_url) -> tuple[Engine, sessionmaker]:
+    global engine, LocalSession
+    engine = __create_db_engine(db_url)
+    # noinspection PyPep8Naming
+    LocalSession = sessionmaker(autocommit = False, autoflush = False, bind = engine)
+    BaseModel.metadata.create_all(bind = engine)
+    return engine, LocalSession
+
+
+def __create_db_engine(db_url: str, max_retries: int = 7, retry_interval_s: int = 5) -> Engine:
     retries = 0
     while retries < max_retries:
         try:
-            created_engine = create_engine(config.db_url)
+            created_engine = create_engine(db_url)
             with created_engine.connect():
                 sprint("Database connected")
                 return created_engine
@@ -26,13 +41,8 @@ def create_db_engine(max_retries: int = 7, retry_interval_s: int = 5) -> Engine:
     raise Exception("Failed to connect to the database after multiple attempts")
 
 
-engine = create_db_engine()
-LocalSession = sessionmaker(autocommit = False, autoflush = False, bind = engine)
-BaseModel = declarative_base()
-BaseModel.metadata.create_all(bind = engine)
-
-
-def get_session():
+# noinspection PyPep8Naming,PyShadowingNames
+def get_session() -> Generator[Session, None, None]:
     db = LocalSession()
     try:
         yield db
@@ -41,7 +51,7 @@ def get_session():
 
 
 @contextmanager
-def get_detached_session():
+def get_detached_session() -> Generator[Session, None, None]:
     session_generator = get_session()
     db = next(session_generator)
     try:

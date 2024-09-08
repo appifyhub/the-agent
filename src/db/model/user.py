@@ -5,7 +5,7 @@ from enum import Enum
 from sqlalchemy import Column, String, Date, Enum as EnumSQL, BigInteger
 from sqlalchemy.dialects.postgresql import UUID
 
-from db.sql import BaseModel
+from db.model.base import BaseModel
 
 
 class UserDB(BaseModel):

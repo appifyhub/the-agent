@@ -1,6 +1,6 @@
 from sqlalchemy import Column, String, Float, DateTime, ForeignKey, PrimaryKeyConstraint, Integer
 
-from db.sql import BaseModel
+from db.model.base import BaseModel
 
 
 class PriceAlertDB(BaseModel):
