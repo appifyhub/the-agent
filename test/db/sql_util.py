@@ -1,5 +1,4 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session
 
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
@@ -8,7 +7,7 @@ from db.crud.invite import InviteCRUD
 from db.crud.price_alert import PriceAlertCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
-from db.model.base import BaseModel
+from db.sql import initialize_db
 
 
 class SQLUtil:
@@ -21,15 +20,13 @@ class SQLUtil:
         self.__is_session_active = True
 
     def start_session(self) -> Session:
-        engine = create_engine("sqlite:///:memory:")
         # noinspection PyPep8Naming
-        TestLocalSession = sessionmaker(autocommit = False, autoflush = False, bind = engine)
-        BaseModel.metadata.create_all(bind = engine)
+        engine, LocalSession = initialize_db("sqlite:///:memory:")
 
         if self.__is_session_active:
             self.end_session()
 
-        self.__session = TestLocalSession()
+        self.__session = LocalSession()
         self.__is_session_active = True
 
         return self.__session

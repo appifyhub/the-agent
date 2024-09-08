@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import Depends, FastAPI, HTTPException
 from starlette.responses import RedirectResponse
 
@@ -7,7 +9,7 @@ from db.crud.invite import InviteCRUD
 from db.crud.price_alert import PriceAlertCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
-from db.sql import get_session
+from db.sql import get_session, initialize_db
 from features.auth import verify_api_key
 from features.chat.invite_manager import InviteManager
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
@@ -23,12 +25,25 @@ from util.config import config
 from util.safe_printer_mixin import sprint
 from util.translations_cache import TranslationsCache
 
+
+# noinspection PyUnusedLocal
+@asynccontextmanager
+async def lifespan(owner: FastAPI):
+    # startup
+    sprint("Starting up endpoints...")
+    initialize_db()
+    yield
+    # shutdown
+    sprint("Shutting down...")
+
+
 app = FastAPI(
     docs_url = None,
     redoc_url = None,
     title = "The Agent's API",
     description = "This is the API service for The Agent.",
     debug = config.verbose,
+    lifespan = lifespan,
 )
 
 
