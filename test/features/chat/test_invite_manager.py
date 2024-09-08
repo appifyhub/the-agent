@@ -114,11 +114,49 @@ class InviteManagerTest(unittest.TestCase):
 
         self.mock_user_dao.get.return_value = self.user
         self.mock_invite_dao.get_all_by_sender.return_value = [Mock()] * (config.max_invites_per_user + 1)
+        self.mock_invite_dao.get_all_by_receiver.return_value = []
 
         result, msg = self.manager.invite_user(sender_user_id_hex, receiver_telegram_username)
 
         self.assertEqual(result, InviteManager.Result.failure)
         self.assertIn("exceeded the maximum number of invites", msg)
+
+    def test_invite_user_success_developer_no_limit(self):
+        sender_user_id_hex = self.user.id.hex
+        receiver_telegram_username = "receiver_username"
+
+        developer_user = self.user.model_copy(update = {"group": UserDB.Group.developer})
+        self.mock_user_dao.get.return_value = developer_user
+        self.mock_invite_dao.get_all_by_sender.return_value = [Mock()] * (config.max_invites_per_user + 1)
+        self.mock_invite_dao.get_all_by_receiver.return_value = []
+        self.mock_user_dao.get_by_telegram_username.return_value = None
+
+        # Create a more specific mock for the new user
+        mock_new_user = Mock(spec = UserDB)
+        mock_new_user.id = UUID(int = 2)
+        mock_new_user.full_name = "New User"
+        mock_new_user.telegram_username = receiver_telegram_username
+        mock_new_user.telegram_chat_id = "new_chat_id"
+        mock_new_user.telegram_user_id = 2
+        mock_new_user.open_ai_key = developer_user.open_ai_key
+        mock_new_user.group = UserDB.Group.standard
+        mock_new_user.created_at = datetime.now().date()
+
+        self.mock_user_dao.save.return_value = mock_new_user
+
+        # Create a more specific mock for the new invite
+        mock_invite = Mock(spec = Invite)
+        mock_invite.sender_id = developer_user.id
+        mock_invite.receiver_id = mock_new_user.id
+        mock_invite.invited_at = datetime.now()
+        mock_invite.accepted_at = None
+
+        self.mock_invite_dao.save.return_value = mock_invite
+
+        result, msg = self.manager.invite_user(sender_user_id_hex, receiver_telegram_username)
+
+        self.assertEqual(result, InviteManager.Result.success)
+        self.assertIn("Invite sent", msg)
 
     def test_invite_user_failure_no_api_key(self):
         sender_user_id_hex = self.user.id.hex
