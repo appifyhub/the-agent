@@ -47,7 +47,8 @@ class InviteManager(SafePrinterMixin):
 
         # check if sender has exceeded the maximum number of invites
         all_sender_invites = self.__invite_dao.get_all_by_sender(sender_user.id)
-        if len(all_sender_invites) >= config.max_invites_per_user:
+        is_sender_developer = sender_user.group == UserDB.Group.developer
+        if len(all_sender_invites) >= config.max_invites_per_user and not is_sender_developer:
             message = f"Sender '{sender_user.id}' has exceeded the maximum number of invites"
             self.sprint(message)
             return InviteManager.Result.failure, message
