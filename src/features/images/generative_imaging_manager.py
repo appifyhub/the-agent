@@ -61,9 +61,9 @@ class GenerativeImagingManager(SafePrinterMixin):
             max_retries = config.web_retries,
             api_key = str(config.anthropic_token),
         )
-        self.validate(invoker_user_id_hex)
+        self.__validate(invoker_user_id_hex)
 
-    def validate(self, invoker_user_id_hex: str):
+    def __validate(self, invoker_user_id_hex: str):
         self.sprint("Validating invoker data")
         invoker_user_db = self.__user_dao.get(UUID(hex = invoker_user_id_hex))
         if not invoker_user_db:

@@ -33,9 +33,9 @@ class ExchangeRateFetcher(SafePrinterMixin):
         self.__user_dao = user_dao
         self.__cache_dao = cache_dao
         if invoker_user_id_hex:  # system invocations don't have an invoker
-            self.validate(invoker_user_id_hex)
+            self.__validate(invoker_user_id_hex)
 
-    def validate(self, invoker_user_id_hex: str):
+    def __validate(self, invoker_user_id_hex: str):
         invoker_user_db = self.__user_dao.get(UUID(hex = invoker_user_id_hex))
         if not invoker_user_db:
             message = f"Invoker '{invoker_user_id_hex}' not found"
