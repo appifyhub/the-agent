@@ -24,7 +24,7 @@ ANTHROPIC_MAX_TOKENS = 500
 
 
 class AnnouncementManager(SafePrinterMixin):
-    __raw_announcement: str
+    __raw_message: str
     __translations: TranslationsCache
     __telegram_bot_api: TelegramBotAPI
     __user_dao: UserCRUD
@@ -32,19 +32,21 @@ class AnnouncementManager(SafePrinterMixin):
     __chat_message_dao: ChatMessageCRUD
     __llm: ChatAnthropic
     __invoker_user: User
+    __target_chat: ChatConfig | None
 
     def __init__(
         self,
         invoker_user_id_hex: str,
-        raw_announcement: str,
+        raw_message: str,
         translations: TranslationsCache,
         telegram_bot_api: TelegramBotAPI,
         user_dao: UserCRUD,
         chat_config_dao: ChatConfigCRUD,
         chat_message_dao: ChatMessageCRUD,
+        target_telegram_username: str | None = None,
     ):
         super().__init__(config.verbose)
-        self.__raw_announcement = raw_announcement
+        self.__raw_message = raw_message
         self.__translations = translations
         self.__telegram_bot_api = telegram_bot_api
         self.__user_dao = user_dao
@@ -59,9 +61,9 @@ class AnnouncementManager(SafePrinterMixin):
             max_retries = config.web_retries,
             api_key = str(config.anthropic_token),
         )
-        self.validate(invoker_user_id_hex)
+        self.__validate(invoker_user_id_hex, target_telegram_username)
 
-    def validate(self, invoker_user_id_hex: str):
+    def __validate(self, invoker_user_id_hex: str, target_telegram_username: str | None):
         self.sprint("Validating invoker data")
         invoker_user_db = self.__user_dao.get(UUID(hex = invoker_user_id_hex))
         if not invoker_user_db or invoker_user_db.group < UserDB.Group.developer:
@@ -70,10 +72,36 @@ class AnnouncementManager(SafePrinterMixin):
             raise ValueError(message)
         self.__invoker_user = User.model_validate(invoker_user_db)
 
+        self.sprint("Validating target user data")
+        self.__target_chat = None
+        if target_telegram_username:
+            target_user_db = self.__user_dao.get_by_telegram_username(target_telegram_username)
+            if not target_user_db:
+                message = f"Target user '{target_telegram_username}' not found"
+                self.sprint(message)
+                raise ValueError(message)
+            target_user = User.model_validate(target_user_db)
+            if not target_user_db.telegram_chat_id:
+                message = f"Target user '{target_telegram_username}' has no private chat ID yet"
+                self.sprint(message)
+                raise ValueError(message)
+            target_chat_db = self.__chat_config_dao.get(target_user.telegram_chat_id)
+            if not target_chat_db:
+                message = f"Target chat '{target_user.telegram_chat_id}' not found"
+                self.sprint(message)
+                raise ValueError(message)
+            self.__target_chat = ChatConfig.model_validate(target_chat_db)
+
     def execute(self) -> dict:
         self.sprint(f"Executing announcement from {self.__invoker_user.telegram_username}")
-        latest_chats_db = self.__chat_config_dao.get_all(limit = 1024)
-        latest_chats = [ChatConfig.model_validate(chat) for chat in latest_chats_db]
+        target_chats: list[ChatConfig]
+        if self.__target_chat:
+            self.sprint(f"Target chat: {self.__target_chat.chat_id}")
+            target_chats = [self.__target_chat]
+        else:
+            self.sprint("Target chats: all")
+            target_chats_db = self.__chat_config_dao.get_all(limit = 1024)
+            target_chats = [ChatConfig.model_validate(chat) for chat in target_chats_db]
         summaries_created: int = 0
         chats_notified: int = 0
 
@@ -86,7 +114,7 @@ class AnnouncementManager(SafePrinterMixin):
             self.sprint("Announcement translation failed for default language", e)
 
         # translate and notify for each chat
-        for chat in latest_chats:
+        for chat in target_chats:
             try:
                 summary = self.__translations.get(chat.language_name, chat.language_iso_code)
                 if not summary:
@@ -98,22 +126,24 @@ class AnnouncementManager(SafePrinterMixin):
             except Exception as e:
                 self.sprint(f"Announcement failed for chat #{chat.chat_id}", e)
 
-        self.sprint(f"Chats: {len(latest_chats)}, summaries created: {summaries_created}, notified: {chats_notified}")
+        self.sprint(f"Chats: {len(target_chats)}, summaries created: {summaries_created}, notified: {chats_notified}")
         return {
-            "chats_selected": len(latest_chats),
+            "chats_selected": len(target_chats),
             "chats_notified": chats_notified,
             "summaries_created": summaries_created,
         }
 
     def __create_announcement(self, language_name: str | None, language_iso_code: str | None) -> AIMessage:
+        base_prompt = prompt_library.developers_announcer_telegram if not self.__target_chat \
+            else prompt_library.developers_message_deliverer
         prompt = prompt_library.translator_on_response(
-            base_prompt = prompt_library.developers_announcer_telegram,
+            base_prompt = base_prompt,
             language_name = language_name,
             language_iso_code = language_iso_code,
         )
         messages = [
             SystemMessage(prompt),
-            HumanMessage(self.__raw_announcement)
+            HumanMessage(self.__raw_message),
         ]
         response = self.__llm.invoke(messages)
         if not isinstance(response, AIMessage):
