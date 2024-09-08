@@ -23,7 +23,7 @@ ANTHROPIC_AI_TEMPERATURE = 0.7
 ANTHROPIC_MAX_TOKENS = 500
 
 
-class MaintenanceAnnouncementManager(SafePrinterMixin):
+class AnnouncementManager(SafePrinterMixin):
     __raw_announcement: str
     __translations: TranslationsCache
     __telegram_bot_api: TelegramBotAPI
@@ -71,7 +71,7 @@ class MaintenanceAnnouncementManager(SafePrinterMixin):
         self.__invoker_user = User.model_validate(invoker_user_db)
 
     def execute(self) -> dict:
-        self.sprint(f"Executing maintenance announcement from {self.__invoker_user.telegram_username}")
+        self.sprint(f"Executing announcement from {self.__invoker_user.telegram_username}")
         latest_chats_db = self.__chat_config_dao.get_all(limit = 1024)
         latest_chats = [ChatConfig.model_validate(chat) for chat in latest_chats_db]
         summaries_created: int = 0
@@ -83,7 +83,7 @@ class MaintenanceAnnouncementManager(SafePrinterMixin):
             self.__translations.save(str(answer.content))
             summaries_created += 1
         except Exception as e:
-            self.sprint("Maintenance announcement translation failed for default language", e)
+            self.sprint("Announcement translation failed for default language", e)
 
         # translate and notify for each chat
         for chat in latest_chats:
@@ -107,7 +107,7 @@ class MaintenanceAnnouncementManager(SafePrinterMixin):
 
     def __create_announcement(self, language_name: str | None, language_iso_code: str | None) -> AIMessage:
         prompt = prompt_library.translator_on_response(
-            base_prompt = prompt_library.announcer_maintenance_telegram,
+            base_prompt = prompt_library.developers_announcer_telegram,
             language_name = language_name,
             language_iso_code = language_iso_code,
         )

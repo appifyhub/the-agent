@@ -14,7 +14,7 @@ from db.sql import get_detached_session
 from features.chat.attachments_content_resolver import AttachmentsContentResolver
 from features.chat.chat_config_manager import ChatConfigManager
 from features.chat.invite_manager import InviteManager
-from features.chat.maintenance_announcement_manager import MaintenanceAnnouncementManager
+from features.chat.announcement_manager import AnnouncementManager
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.tools.base_tool_binder import BaseToolBinder
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
@@ -313,17 +313,17 @@ def ai_web_search(user_id: str, search_query: str) -> str:
 
 
 @tool
-def announce_maintenance(user_id: str, raw_announcement: str) -> str:
+def announce_maintenance_news(user_id: str, raw_announcement: str) -> str:
     """
-    Announces a maintenance message from developers to all chats.
+    [Developers-only] Announces a maintenance or news message from developers to all chats.
 
     Args:
         user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
-        raw_announcement: [mandatory] The raw maintenance announcement message to send to all chats
+        raw_announcement: [mandatory] The raw announcement message to send
     """
     try:
         with get_detached_session() as db:
-            manager = MaintenanceAnnouncementManager(
+            manager = AnnouncementManager(
                 invoker_user_id_hex = user_id,
                 raw_announcement = raw_announcement,
                 translations = TranslationsCache(),
@@ -356,6 +356,6 @@ class ToolsLibrary(BaseToolBinder):
                 "list_currency_price_alerts": list_currency_price_alerts,
                 "generate_image": generate_image,
                 "ai_web_search": ai_web_search,
-                "announce_maintenance": announce_maintenance,
+                "announce_maintenance_news": announce_maintenance_news,
             }
         )
