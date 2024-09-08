@@ -4,6 +4,8 @@ from alembic import context
 from alembic.config import Config as AlembicConfig
 from sqlalchemy import engine_from_config, pool
 
+# Base model is used by alembic
+from db.model.base import BaseModel
 # noinspection PyUnresolvedReferences
 from db.model.chat_config import ChatConfigDB  # used by alembic  # noqa: F401
 # noinspection PyUnresolvedReferences
@@ -18,8 +20,6 @@ from db.model.price_alert import PriceAlertDB  # used by alembic  # noqa: F401
 from db.model.tools_cache import ToolsCacheDB  # noqa: F401
 # noinspection PyUnresolvedReferences
 from db.model.user import UserDB  # used by alembic  # noqa: F401
-# Base model is used by alembic
-from db.sql import BaseModel
 from util.config import config as app_config
 
 # this is the Alembic Config object, which provides

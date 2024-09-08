@@ -3,8 +3,9 @@ from contextlib import contextmanager
 
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import sessionmaker
 
+from db.model.base import BaseModel
 from util.config import config
 from util.safe_printer_mixin import sprint
 
@@ -28,7 +29,6 @@ def create_db_engine(max_retries: int = 7, retry_interval_s: int = 5) -> Engine:
 
 engine = create_db_engine()
 LocalSession = sessionmaker(autocommit = False, autoflush = False, bind = engine)
-BaseModel = declarative_base()
 BaseModel.metadata.create_all(bind = engine)
 
 

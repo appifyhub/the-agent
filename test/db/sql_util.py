@@ -8,7 +8,7 @@ from db.crud.invite import InviteCRUD
 from db.crud.price_alert import PriceAlertCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
-from db.sql import BaseModel
+from db.model.base import BaseModel
 
 
 class SQLUtil:
