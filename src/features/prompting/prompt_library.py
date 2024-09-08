@@ -203,17 +203,17 @@ announcer_event_telegram: str = (
     .append(__telegram_notify_reminder)
 ).build()
 
-announcer_maintenance_telegram: str = (
+developers_announcer_telegram: str = (
     __base
     .add_section(
         PromptSection.context,
         __join(
             "You're an advanced AI companion capable of many things. You monitor our simulation.",
-            "You are notifying our users (your chat partners) of important maintenance information.",
+            "You are notifying our users (your chat partners) of important maintenance information or updates.",
             "You speak for yourself, but you represent a group of software engineers (your authors).",
             "Your job is to inform users about recent changes on the platform that might affect them.",
             "You do not need to mention we are a part of a simulation, but can do so if appropriate.",
-            "You'll receive raw data, e.g. raw event data, info about the maintenance work, or other alerts.",
+            "You'll receive raw data, e.g. raw event data, info about the maintenance work, or other developer news.",
             "Translate them into easy-to-understand messages for non-technical users.",
             "Focus on clarity and relevance, and don't omit important information.",
         )
@@ -225,6 +225,23 @@ announcer_maintenance_telegram: str = (
             "Avoid technical jargon – use clear, simple language.",
             "If a technical term is unavoidable, briefly explain it in simple terms.",
             "Start messages with a concise summary of the event, followed by any necessary details.",
+        )
+    )
+    .append(__telegram_notify_reminder)
+).build()
+
+developers_message_deliverer: str = (
+    __base
+    .add_section(
+        PromptSection.context,
+        __join(
+            "You're an advanced AI companion capable of many things. You monitor our simulation.",
+            "You are touching up a message for one of our users (your chat partners).",
+            "You are not chatting with the user, and you are not expected to reply to the message.",
+            "You'll receive a raw message from the developer; translate the message into easy-to-understand voice.",
+            "Quotes in text usually mean that developers want the message verbatim. Respect that rule.",
+            "If the message already looks good, don't change it for not reason. If it's unclear, make it clear.",
+            "Your final output should contain only the touched up message, with no additional commentary or content.",
         )
     )
     .append(__telegram_notify_reminder)

@@ -11,10 +11,10 @@ from db.crud.price_alert import PriceAlertCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.sql import get_detached_session
+from features.chat.announcement_manager import AnnouncementManager
 from features.chat.attachments_content_resolver import AttachmentsContentResolver
 from features.chat.chat_config_manager import ChatConfigManager
 from features.chat.invite_manager import InviteManager
-from features.chat.maintenance_announcement_manager import MaintenanceAnnouncementManager
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.tools.base_tool_binder import BaseToolBinder
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
@@ -313,19 +313,19 @@ def ai_web_search(user_id: str, search_query: str) -> str:
 
 
 @tool
-def announce_maintenance(user_id: str, raw_announcement: str) -> str:
+def announce_maintenance_or_news(user_id: str, raw_announcement: str) -> str:
     """
-    Announces a maintenance message from developers to all chats.
+    [Developers-only] Announces a maintenance or news message from developers to all chats.
 
     Args:
         user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
-        raw_announcement: [mandatory] The raw maintenance announcement message to send to all chats
+        raw_announcement: [mandatory] The raw announcement message to send to all chats
     """
     try:
         with get_detached_session() as db:
-            manager = MaintenanceAnnouncementManager(
+            manager = AnnouncementManager(
                 invoker_user_id_hex = user_id,
-                raw_announcement = raw_announcement,
+                raw_message = raw_announcement,
                 translations = TranslationsCache(),
                 telegram_bot_api = TelegramBotAPI(),
                 user_dao = UserCRUD(db),
@@ -333,7 +333,48 @@ def announce_maintenance(user_id: str, raw_announcement: str) -> str:
                 chat_message_dao = ChatMessageCRUD(db),
             )
             results = manager.execute()
-            return json.dumps({"result": "Success", "summary": results, "next_step": "Report summary to developer"})
+            return json.dumps(
+                {
+                    "result": "Success",
+                    "summary": results,
+                    "next_step": "Report these summary numbers back to the developer",
+                }
+            )
+    except Exception as e:
+        traceback.print_exc()
+        return json.dumps({"result": "Error", "error": str(e)})
+
+
+@tool
+def deliver_message(author_user_id: str, message: str, target_telegram_username: str) -> str:
+    """
+    [Developers-only] Delivers a personalized message from developers to a specific user.
+
+    Args:
+        author_user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
+        message: [mandatory] The message to deliver to the target user
+        target_telegram_username: [mandatory] Telegram username of the target user to send the message to, without '@'
+    """
+    try:
+        with get_detached_session() as db:
+            manager = AnnouncementManager(
+                invoker_user_id_hex = author_user_id,
+                raw_message = message,
+                translations = TranslationsCache(),
+                telegram_bot_api = TelegramBotAPI(),
+                user_dao = UserCRUD(db),
+                chat_config_dao = ChatConfigCRUD(db),
+                chat_message_dao = ChatMessageCRUD(db),
+                target_telegram_username = target_telegram_username,
+            )
+            results = manager.execute()
+            return json.dumps(
+                {
+                    "result": "Success",
+                    "summary": results,
+                    "next_step": "Report these summary numbers back to the developer",
+                }
+            )
     except Exception as e:
         traceback.print_exc()
         return json.dumps({"result": "Error", "error": str(e)})
@@ -356,6 +397,7 @@ class ToolsLibrary(BaseToolBinder):
                 "list_currency_price_alerts": list_currency_price_alerts,
                 "generate_image": generate_image,
                 "ai_web_search": ai_web_search,
-                "announce_maintenance": announce_maintenance,
+                "announce_maintenance_or_news": announce_maintenance_or_news,
+                "deliver_message": deliver_message,
             }
         )

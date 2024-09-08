@@ -15,7 +15,7 @@ from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
-OPEN_AI_MODEL = "gpt-4o-mini"
+OPEN_AI_MODEL = "gpt-4o"
 OPEN_AI_TEMPERATURE = 0.7
 OPEN_AI_MAX_TOKENS = 600
 
@@ -116,7 +116,7 @@ class TelegramChatBot(SafePrinterMixin):
                     tool_name: Any = tool_call["name"]
                     tool_args: Any = tool_call["args"]
 
-                    self.sprint(f"Processing {tool_id}/'{tool_name}' tool call")
+                    self.sprint(f"  Processing {tool_id} / '{tool_name}' tool call")
                     tool_result: str | None = self.__tools_library.invoke(tool_name, tool_args)
                     if not tool_result:
                         self.sprint(f"Tool {tool_name} not invoked!")
