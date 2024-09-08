@@ -10,13 +10,13 @@ from db.crud.chat_message import ChatMessageCRUD
 from db.crud.user import UserCRUD
 from db.model.user import UserDB
 from db.schema.user import User
-from features.chat.maintenance_announcement_manager import MaintenanceAnnouncementManager
+from features.chat.announcement_manager import AnnouncementManager
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from util.translations_cache import TranslationsCache
 
 
-@patch("features.chat.maintenance_announcement_manager.ChatAnthropic")
-class MaintenanceAnnouncementManagerTest(unittest.TestCase):
+@patch("features.chat.announcement_manager.ChatAnthropic")
+class AnnouncementManagerTest(unittest.TestCase):
     raw_announcement: str
     invoker_user_id: UUID
     user: User
@@ -48,8 +48,9 @@ class MaintenanceAnnouncementManagerTest(unittest.TestCase):
 
         self.mock_user_dao.get.return_value = self.user
 
+    # noinspection PyUnusedLocal
     def test_init_success(self, mock_chat_anthropic):
-        manager = MaintenanceAnnouncementManager(
+        manager = AnnouncementManager(
             str(self.invoker_user_id),
             self.raw_announcement,
             self.mock_translations,
@@ -58,12 +59,13 @@ class MaintenanceAnnouncementManagerTest(unittest.TestCase):
             self.mock_chat_config_dao,
             self.mock_chat_message_dao,
         )
-        self.assertIsInstance(manager, MaintenanceAnnouncementManager)
+        self.assertIsInstance(manager, AnnouncementManager)
 
+    # noinspection PyUnusedLocal
     def test_init_user_not_found(self, mock_chat_anthropic):
         self.mock_user_dao.get.return_value = None
         with self.assertRaises(ValueError):
-            MaintenanceAnnouncementManager(
+            AnnouncementManager(
                 str(self.invoker_user_id),
                 self.raw_announcement,
                 self.mock_translations,
@@ -73,10 +75,11 @@ class MaintenanceAnnouncementManagerTest(unittest.TestCase):
                 self.mock_chat_message_dao,
             )
 
+    # noinspection PyUnusedLocal
     def test_init_user_not_developer(self, mock_chat_anthropic):
         self.user.group = UserDB.Group.standard
         with self.assertRaises(ValueError):
-            MaintenanceAnnouncementManager(
+            AnnouncementManager(
                 str(self.invoker_user_id),
                 self.raw_announcement,
                 self.mock_translations,
@@ -98,7 +101,7 @@ class MaintenanceAnnouncementManagerTest(unittest.TestCase):
         self.mock_translations.get.side_effect = [None, "Translated announcement"]
         self.mock_translations.save.return_value = "Translated announcement"
 
-        manager = MaintenanceAnnouncementManager(
+        manager = AnnouncementManager(
             str(self.invoker_user_id),
             self.raw_announcement,
             self.mock_translations,
@@ -129,7 +132,7 @@ class MaintenanceAnnouncementManagerTest(unittest.TestCase):
         ]
         self.mock_translations.get.return_value = None
 
-        manager = MaintenanceAnnouncementManager(
+        manager = AnnouncementManager(
             str(self.invoker_user_id),
             self.raw_announcement,
             self.mock_translations,
@@ -159,7 +162,7 @@ class MaintenanceAnnouncementManagerTest(unittest.TestCase):
         self.mock_translations.get.return_value = "Translated announcement"
         self.mock_telegram_bot_api.send_text_message.side_effect = Exception("Notification failed")
 
-        manager = MaintenanceAnnouncementManager(
+        manager = AnnouncementManager(
             str(self.invoker_user_id),
             self.raw_announcement,
             self.mock_translations,
@@ -184,7 +187,7 @@ class MaintenanceAnnouncementManagerTest(unittest.TestCase):
         mock_chat_anthropic.return_value = mock_llm
         self.mock_chat_config_dao.get_all.return_value = []
 
-        manager = MaintenanceAnnouncementManager(
+        manager = AnnouncementManager(
             str(self.invoker_user_id),
             self.raw_announcement,
             self.mock_translations,
