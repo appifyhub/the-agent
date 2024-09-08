@@ -8,8 +8,8 @@ from langchain_core.messages import AIMessage
 from db.crud.user import UserCRUD
 from db.model.user import UserDB
 from db.schema.user import User
+from features.chat.generative_imaging_manager import GenerativeImagingManager
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
-from features.images.generative_imaging_manager import GenerativeImagingManager
 from features.images.stable_diffusion_image_generator import StableDiffusionImageGenerator
 
 
@@ -71,7 +71,7 @@ class GenerativeImagingManagerTest(unittest.TestCase):
                 self.mock_user_dao,
             )
 
-    @patch("features.images.generative_imaging_manager.ChatAnthropic")
+    @patch("features.chat.generative_imaging_manager.ChatAnthropic")
     @patch.object(StableDiffusionImageGenerator, "execute")
     @patch.object(GenerativeImagingManager, "store_bot_photo")
     def test_execute_success_with_store_bot_photo(self, mock_store_bot_photo, mock_sd_execute, mock_chat_anthropic):
@@ -97,8 +97,8 @@ class GenerativeImagingManagerTest(unittest.TestCase):
         self.mock_bot_api.send_photo.assert_called_once_with(self.chat_id, "http://example.com/image.png")
         mock_store_bot_photo.assert_called_once_with({"result": {"message_id": 123}})
 
-    @patch("features.images.generative_imaging_manager.TelegramDomainMapper")
-    @patch("features.images.generative_imaging_manager.TelegramDataResolver")
+    @patch("features.chat.generative_imaging_manager.TelegramDomainMapper")
+    @patch("features.chat.generative_imaging_manager.TelegramDataResolver")
     def test_store_bot_photo_success(self, mock_resolver_class, mock_mapper_class):
         mock_mapper = MagicMock()
         mock_mapper.map_update.return_value = {"mapped": "data"}
@@ -140,7 +140,7 @@ class GenerativeImagingManagerTest(unittest.TestCase):
         mock_mapper.map_update.assert_called_once()
         mock_resolver.resolve.assert_called_once_with({"mapped": "data"})
 
-    @patch("features.images.generative_imaging_manager.ChatAnthropic")
+    @patch("features.chat.generative_imaging_manager.ChatAnthropic")
     def test_execute_llm_failure(self, mock_chat_anthropic):
         mock_llm = MagicMock()
         mock_llm.invoke.side_effect = Exception("LLM error")
@@ -159,7 +159,7 @@ class GenerativeImagingManagerTest(unittest.TestCase):
         mock_llm.invoke.assert_called_once()
         self.mock_bot_api.send_photo.assert_not_called()
 
-    @patch("features.images.generative_imaging_manager.ChatAnthropic")
+    @patch("features.chat.generative_imaging_manager.ChatAnthropic")
     @patch.object(StableDiffusionImageGenerator, "execute")
     def test_execute_image_generation_failure(self, mock_sd_execute, mock_chat_anthropic):
         mock_llm = MagicMock()
@@ -182,7 +182,7 @@ class GenerativeImagingManagerTest(unittest.TestCase):
         mock_sd_execute.assert_called_once()
         self.mock_bot_api.send_photo.assert_not_called()
 
-    @patch("features.images.generative_imaging_manager.ChatAnthropic")
+    @patch("features.chat.generative_imaging_manager.ChatAnthropic")
     @patch.object(StableDiffusionImageGenerator, "execute")
     def test_execute_send_photo_failure(self, mock_sd_execute, mock_chat_anthropic):
         mock_llm = MagicMock()
@@ -206,7 +206,7 @@ class GenerativeImagingManagerTest(unittest.TestCase):
         mock_sd_execute.assert_called_once()
         self.mock_bot_api.send_photo.assert_called_once()
 
-    @patch("features.images.generative_imaging_manager.ChatAnthropic")
+    @patch("features.chat.generative_imaging_manager.ChatAnthropic")
     def test_execute_non_ai_message(self, mock_chat_anthropic):
         mock_llm = MagicMock()
         mock_llm.invoke.return_value = "Not an AIMessage"
