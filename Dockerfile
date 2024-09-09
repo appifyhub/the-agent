@@ -5,6 +5,7 @@ RUN apk add --no-cache \
       libffi \
       openssl \
       ca-certificates \
+      ffmpeg \
     && \
     pip install --no-cache-dir \
       pipenv
