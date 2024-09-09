@@ -10,8 +10,8 @@ from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.price_alert import PriceAlert
 from db.schema.user import User
+from features.chat.price_alert_manager import PriceAlertManager
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
-from features.currencies.price_alert_manager import PriceAlertManager
 
 
 class PriceAlertManagerTest(unittest.TestCase):

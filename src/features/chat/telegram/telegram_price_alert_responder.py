@@ -8,9 +8,9 @@ from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.schema.chat_config import ChatConfig
 from db.schema.chat_message import ChatMessageSave
+from features.chat.price_alert_manager import PriceAlertManager
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
-from features.currencies.price_alert_manager import PriceAlertManager
 from features.information_announcer import InformationAnnouncer
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.functions import construct_bot_message_id

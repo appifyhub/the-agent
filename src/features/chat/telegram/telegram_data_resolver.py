@@ -12,12 +12,15 @@ from db.schema.chat_config import ChatConfigSave, ChatConfig
 from db.schema.chat_message import ChatMessageSave, ChatMessage
 from db.schema.chat_message_attachment import ChatMessageAttachmentSave, ChatMessageAttachment
 from db.schema.user import UserSave, User
+from features.audio.audio_transcriber import KNOWN_AUDIO_FORMATS
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.images.computer_vision_analyzer import KNOWN_IMAGE_FORMATS
 from util.config import config
-from util.functions import is_the_agent, nearest_hour_epoch
+from util.functions import is_the_agent, nearest_hour_epoch, first_key_with_value
 from util.safe_printer_mixin import SafePrinterMixin
+
+KNOWN_FILE_FORMATS = KNOWN_IMAGE_FORMATS | KNOWN_AUDIO_FORMATS
 
 
 class TelegramDataResolver(SafePrinterMixin):
@@ -139,12 +142,19 @@ class TelegramDataResolver(SafePrinterMixin):
         last_url: str | None = None
         last_url_until: int | None = None
         mime_type: str | None = attachment.mime_type
-        if api_file.file_path and ("." in api_file.file_path):
-            extension = api_file.file_path.lower().split(".")[-1]
+        if api_file.file_path:
             last_url = f"{config.telegram_api_base_url}/file/bot{config.telegram_bot_token}/{api_file.file_path}"
             last_url_until = nearest_hour_epoch()
-            if not attachment.mime_type:
-                mime_type = KNOWN_IMAGE_FORMATS.get(extension, None)
+            if "." in api_file.file_path:
+                # file path includes an extension
+                extension = api_file.file_path.lower().split(".")[-1]
+                if not attachment.mime_type:
+                    mime_type = KNOWN_FILE_FORMATS.get(extension)
+            else:
+                # file path is without extension
+                if attachment.mime_type:
+                    extension = first_key_with_value(KNOWN_FILE_FORMATS, attachment.mime_type)
+
         self.sprint(f"Resolved:\n\textension '.{extension}'\n\tmime-type '{mime_type}'")
         attachment.size = api_file.file_size
         attachment.last_url = last_url

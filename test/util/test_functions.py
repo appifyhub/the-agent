@@ -4,7 +4,7 @@ from uuid import UUID
 
 from db.schema.user import User
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
-from util.functions import is_the_agent, construct_bot_message_id, silent
+from util.functions import is_the_agent, construct_bot_message_id, silent, first_key_with_value
 
 
 class FunctionsTest(unittest.TestCase):
@@ -34,7 +34,7 @@ class FunctionsTest(unittest.TestCase):
         chat_id = "chat123"
         sent_at = datetime(2023, 5, 15, 10, 30, 45)
         result = construct_bot_message_id(chat_id, sent_at)
-        self.assertRegex(result, r'^chat123-230515103045-\d{4}$')
+        self.assertRegex(result, r"^chat123-230515103045-\d{4}$")
 
     def test_different_chat_ids(self):
         sent_at = datetime(2023, 5, 15, 10, 30, 45)
@@ -76,3 +76,23 @@ class FunctionsTest(unittest.TestCase):
     def test_silent_lambda_with_exception(self):
         result = silent(lambda: 10 / 0)()
         self.assertIsNone(result)
+
+    def test_first_key_with_value_returns_correct_key(self):
+        source = {1: "a", 2: "b", 3: "c"}
+        value = "b"
+        self.assertEqual(first_key_with_value(source, value), 2)
+
+    def test_first_key_with_value_returns_none_for_nonexistent_value(self):
+        source = {1: "a", 2: "b", 3: "c"}
+        value = "d"
+        self.assertIsNone(first_key_with_value(source, value))
+
+    def test_first_key_with_value_returns_none_for_empty_dict(self):
+        source = {}
+        value = "a"
+        self.assertIsNone(first_key_with_value(source, value))
+
+    def test_first_key_with_value_returns_first_key_for_duplicate_values(self):
+        source = {1: "a", 2: "b", 3: "b"}
+        value = "b"
+        self.assertEqual(first_key_with_value(source, value), 2)
