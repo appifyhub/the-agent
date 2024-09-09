@@ -128,7 +128,6 @@ class AudioTranscriber(SafePrinterMixin):
                 response_format = "text",
             )
             raw_transcription = str(transcript)
-            self.sprint(f"Raw transcription: `{raw_transcription}`")
 
             # then fix the transcription using the copywriter
             self.__copywriter_messages.append(HumanMessage(raw_transcription))
@@ -137,7 +136,9 @@ class AudioTranscriber(SafePrinterMixin):
                 raise AssertionError(f"Received a non-AI message from the model: {answer}")
             if not answer.content or not isinstance(answer.content, str):
                 raise AssertionError(f"Received an unexpected content from the model: {answer}")
-            return str(answer.content)
+            transcription = str(answer.content)
+            self.sprint(f"Raw transcription: `{transcription}`")
+            return transcription
         except Exception as e:
             self.sprint("Audio analysis failed", e)
             return None

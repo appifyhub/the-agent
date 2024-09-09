@@ -126,7 +126,7 @@ def resolve_attachments(chat_id: str, user_id: str, attachment_ids: str, context
     """
     try:
         with get_detached_session() as db:
-            attachments_content_resolver = AttachmentsContentResolver(
+            content_resolver = AttachmentsContentResolver(
                 chat_id = chat_id,
                 invoker_user_id_hex = user_id,
                 additional_context = context,
@@ -138,13 +138,13 @@ def resolve_attachments(chat_id: str, user_id: str, attachment_ids: str, context
                 chat_message_attachment_dao = ChatMessageAttachmentCRUD(db),
                 cache_dao = ToolsCacheCRUD(db),
             )
-            status = attachments_content_resolver.execute()
+            status = content_resolver.execute()
             if status == AttachmentsContentResolver.Result.failed:
                 raise ValueError("Failed to resolve attachments")
             return json.dumps(
                 {
                     "result": status.value,
-                    "attachments": attachments_content_resolver.resolution_result,
+                    "attachments": content_resolver.resolution_result,
                 }
             )
     except Exception as e:

@@ -349,6 +349,7 @@ transcription_copywriter: str = __base.add_section(
         "You must ensure that the following names of products, bots, organizations and people are spelled correctly:",
         f"{config.parent_organization}, {config.telegram_bot_username}, {config.telegram_bot_name}.",
         "Only add necessary punctuation such as periods / commas / capitalization, and use only the context provided.",
+        "Do not converse or reply to the message, you are only copywriting and spell-checking.",
     )
 ).build()
 
