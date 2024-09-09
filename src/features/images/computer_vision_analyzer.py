@@ -18,7 +18,7 @@ KNOWN_IMAGE_FORMATS = {
     "tif": "image/tiff",
 }
 
-OPEN_AI_MODEL = "gpt-4o-mini"
+OPEN_AI_MODEL = "gpt-4o"
 OPEN_AI_TEMPERATURE = 0.5
 OPEN_AI_MAX_TOKENS = 2048
 
