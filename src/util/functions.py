@@ -1,11 +1,14 @@
 import hashlib
 import random
 from datetime import datetime, timedelta
-from typing import Callable, Any
+from typing import Callable, Any, TypeVar
 
 from db.schema.user import User, UserSave
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.safe_printer_mixin import sprint
+
+K = TypeVar("K")
+V = TypeVar("V")
 
 
 def is_the_agent(who: User | UserSave | None) -> bool:
@@ -29,6 +32,13 @@ def silent(func: Callable[..., Any]) -> Callable[..., Any]:
             return None
 
     return wrapper
+
+
+def first_key_with_value(source: dict[K, V], value: V) -> K | None:
+    for k, v in source.items():
+        if v == value:
+            return k
+    return None
 
 
 ###           U N T E S T E D           ###
