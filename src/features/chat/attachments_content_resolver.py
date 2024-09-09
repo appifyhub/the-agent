@@ -96,7 +96,7 @@ class AttachmentsContentResolver(SafePrinterMixin):
             if attachment is not None:
                 attachment_data = {
                     "id": attachment.id,
-                    "contents": content if content is not None else "<unresolved>",
+                    "text_content": content if content is not None else "<unresolved>",
                     "type": attachment.mime_type if attachment.mime_type else "<unknown>",
                 }
                 result.append(attachment_data)
