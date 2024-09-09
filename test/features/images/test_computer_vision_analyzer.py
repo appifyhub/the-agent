@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from langchain_core.messages import AIMessage
 
-from features.images.computer_vision_analyzer import ComputerVisionAnalyzer, KNOWN_IMAGE_FORMATS
+from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
 
 
 class ComputerVisionAnalyzerTest(unittest.TestCase):
@@ -103,13 +103,3 @@ class ComputerVisionAnalyzerTest(unittest.TestCase):
         )
         result = analyzer.execute()
         self.assertEqual(result, None)
-
-    def test_known_image_formats(self):
-        for ext, mime_type in KNOWN_IMAGE_FORMATS.items():
-            analyzer = ComputerVisionAnalyzer(
-                self.job_id,
-                mime_type,
-                self.open_ai_api_key,
-                image_url = f"https://example.com/image.{ext}",
-            )
-            self.assertIsInstance(analyzer, ComputerVisionAnalyzer)

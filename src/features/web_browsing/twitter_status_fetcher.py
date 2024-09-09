@@ -106,10 +106,11 @@ class TwitterStatusFetcher(SafePrinterMixin):
                 type = attachment.get("type") or None
                 if url and type == "photo":
                     extension = url.lower().split(".")[-1]
-                    mime_type = KNOWN_IMAGE_FORMATS.get(extension)
+                    mime_type = KNOWN_IMAGE_FORMATS.get(extension) if extension \
+                        else KNOWN_IMAGE_FORMATS.get("png")  # default to PNG
                     analyzer = ComputerVisionAnalyzer(
                         job_id = f"tweet-{self.tweet_id}",
-                        image_mime_type = mime_type or "image/png",
+                        image_mime_type = mime_type,
                         open_ai_api_key = config.open_ai_token,
                         image_url = url,
                         additional_context = f"[[ Tweet / X Post ]]\n\n{additional_context}",

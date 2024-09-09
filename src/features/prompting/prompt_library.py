@@ -10,7 +10,7 @@ from util.translations_cache import DEFAULT_LANGUAGE, DEFAULT_ISO_CODE
 TELEGRAM_BOT_USER = UserSave(
     full_name = config.telegram_bot_name,
     telegram_username = config.telegram_bot_username,
-    telegram_chat_id = config.telegram_bot_username,
+    telegram_chat_id = str(config.telegram_bot_id),
     telegram_user_id = config.telegram_bot_id,
     open_ai_key = None,
     group = UserDB.Group.standard,
@@ -338,6 +338,17 @@ observer_computer_vision: str = __base.add_section(
         "If you're unable to analyze the image, say that, and don't shy away from being technical about it.",
         "There might be additional text or context provided by your partners, usually copied from a chat.",
         "Chat messages sometimes contain quotations ('>>') or attachment IDs ('📎').",
+    )
+).build()
+
+transcription_copywriter: str = __base.add_section(
+    PromptSection.context,
+    __join(
+        "You're an advanced AI companion capable of many things. You monitor our simulation.",
+        "You are correcting spelling discrepancies in the transcribed text.",
+        "You must ensure that the following names of products, bots, organizations and people are spelled correctly:",
+        f"{config.parent_organization}, {config.telegram_bot_username}, {config.telegram_bot_name}.",
+        "Only add necessary punctuation such as periods / commas / capitalization, and use only the context provided.",
     )
 ).build()
 

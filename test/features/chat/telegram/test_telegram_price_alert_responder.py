@@ -7,9 +7,9 @@ from db.crud.chat_message import ChatMessageCRUD
 from db.crud.price_alert import PriceAlertCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
+from features.chat.price_alert_manager import PriceAlertManager, DATETIME_PRINT_FORMAT
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.telegram_price_alert_responder import respond_with_announcements
-from features.currencies.price_alert_manager import PriceAlertManager, DATETIME_PRINT_FORMAT
 from util.translations_cache import TranslationsCache
 
 

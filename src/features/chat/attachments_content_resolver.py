@@ -16,6 +16,7 @@ from db.schema.chat_config import ChatConfig
 from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessageAttachmentSave
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from db.schema.user import User
+from features.audio.audio_transcriber import KNOWN_AUDIO_FORMATS, AudioTranscriber
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.images.computer_vision_analyzer import KNOWN_IMAGE_FORMATS, ComputerVisionAnalyzer
 from util.config import config
@@ -201,20 +202,30 @@ class AttachmentsContentResolver(SafePrinterMixin):
     def fetch_text_content(self, attachment: ChatMessageAttachment) -> str | None:
         self.sprint(f"Resolving text content for attachment '{attachment.id}'")
 
-        if (not attachment.mime_type) or (attachment.mime_type not in KNOWN_IMAGE_FORMATS.values()):
-            self.sprint("Attachment is not supported")
-            return None
+        # fetching binary contents will also validate the URL
+        contents = requests.get(attachment.last_url).content
 
-        image_response = requests.get(attachment.last_url)
-        if image_response.status_code != 200:
-            self.sprint("Failed to retrieve the image")
-            return None
-        image_b64 = base64.b64encode(image_response.content).decode("utf-8")
+        # handle images
+        if attachment.mime_type in KNOWN_IMAGE_FORMATS.values() or attachment.extension in KNOWN_IMAGE_FORMATS.keys():
+            return ComputerVisionAnalyzer(
+                job_id = attachment.id,
+                image_mime_type = attachment.mime_type,
+                open_ai_api_key = self.__invoker.open_ai_key,
+                image_b64 = base64.b64encode(contents).decode("utf-8"),
+                additional_context = self.__additional_context,
+            ).execute()
 
-        return ComputerVisionAnalyzer(
-            job_id = attachment.id,
-            image_mime_type = attachment.mime_type,
-            open_ai_api_key = self.__invoker.open_ai_key,
-            image_b64 = image_b64,
-            additional_context = self.__additional_context,
-        ).execute()
+        # handle audio
+        if attachment.mime_type in KNOWN_AUDIO_FORMATS.values() or attachment.extension in KNOWN_AUDIO_FORMATS.keys():
+            return AudioTranscriber(
+                job_id = attachment.id,
+                audio_url = attachment.last_url,
+                open_ai_api_key = self.__invoker.open_ai_key,
+                def_extension = attachment.extension,
+                audio_content = contents,
+                language_name = self.__chat_config.language_name,
+                language_iso_code = self.__chat_config.language_iso_code,
+            ).execute()
+
+        self.sprint(f"Unsupported attachment '{attachment.id}': {attachment.mime_type}; '.{attachment.extension}'")
+        return None
