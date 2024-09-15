@@ -1,11 +1,12 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "707ce48775f574be5a124beb6446212e964de3662f1185134d92a8066ad3f1a2"
+            "sha256": "b261e9aa8d8b6125331c397365d567512799725a4fe619e222a16d73da997cf5"
         },
         "pipfile-spec": 6,
         "requires": {
-            "python_version": "3.12.3"
+            "python_full_version": "3.12.6",
+            "python_version": "3.12"
         },
         "sources": [
             {
@@ -1057,7 +1058,7 @@
                 "sha256:f870204a840a60da0b12273ef34f7051e98c3b5961b61b0c2c1be6dfd64fbcd3",
                 "sha256:ffa75af20b44f8dba823498024771d5ac50620e6915abac414251bd971b4529f"
             ],
-            "markers": "python_version >= '3.12'",
+            "markers": "python_version >= '3.9'",
             "version": "==1.26.4"
         },
         "onnxruntime": {
