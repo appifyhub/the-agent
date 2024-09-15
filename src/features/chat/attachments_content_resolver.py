@@ -18,6 +18,7 @@ from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from db.schema.user import User
 from features.audio.audio_transcriber import KNOWN_AUDIO_FORMATS, AudioTranscriber
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
+from features.documents.document_search import KNOWN_DOCS_FORMATS, DocumentSearch
 from features.images.computer_vision_analyzer import KNOWN_IMAGE_FORMATS, ComputerVisionAnalyzer
 from util.config import config
 from util.functions import nearest_hour_epoch, digest_md5
@@ -225,6 +226,15 @@ class AttachmentsContentResolver(SafePrinterMixin):
                 audio_content = contents,
                 language_name = self.__chat_config.language_name,
                 language_iso_code = self.__chat_config.language_iso_code,
+            ).execute()
+
+        # handle documents
+        if attachment.mime_type in KNOWN_DOCS_FORMATS.values() or attachment.extension in KNOWN_DOCS_FORMATS.keys():
+            return DocumentSearch(
+                job_id = attachment.id,
+                document_url = attachment.last_url,
+                open_ai_api_key = self.__invoker.open_ai_key,
+                additional_context = self.__additional_context,
             ).execute()
 
         self.sprint(f"Unsupported attachment '{attachment.id}': {attachment.mime_type}; '.{attachment.extension}'")

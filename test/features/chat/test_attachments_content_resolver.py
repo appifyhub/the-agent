@@ -218,14 +218,55 @@ class AttachmentsContentResolverTest(unittest.TestCase):
             mock_audio_instance.execute.assert_called_once()
 
     @requests_mock.Mocker()
+    def test_fetch_text_content_with_pdf_document(self, m: requests_mock.Mocker):
+        pdf_attachment = ChatMessageAttachment(
+            id = "4",
+            chat_id = "1",
+            message_id = "4",
+            mime_type = "application/pdf",
+            extension = "pdf",
+            last_url = "http://test.com/document.pdf",
+            last_url_until = int((datetime.now() + timedelta(days = 1)).timestamp()),
+        )
+        m.get(pdf_attachment.last_url, content = b"pdf data", status_code = 200)
+
+        with patch("features.chat.attachments_content_resolver.DocumentSearch") as mock_document_search:
+            mock_document_instance = MagicMock()
+            mock_document_instance.execute.return_value = "Document search results"
+            mock_document_search.return_value = mock_document_instance
+
+            resolver = AttachmentsContentResolver(
+                chat_id = "1",
+                invoker_user_id_hex = "00000000-0000-0000-0000-000000000001",
+                additional_context = "context",
+                attachment_ids = ["4"],
+                bot_api = self.mock_bot_api,
+                user_dao = self.mock_user_crud,
+                chat_config_dao = self.mock_chat_config_crud,
+                chat_message_dao = self.mock_chat_message_crud,
+                chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
+                cache_dao = self.mock_cache_crud,
+            )
+            content = resolver.fetch_text_content(pdf_attachment)
+
+            self.assertEqual(content, "Document search results")
+            mock_document_search.assert_called_once_with(
+                job_id = "4",
+                document_url = "http://test.com/document.pdf",
+                open_ai_api_key = "test_open_ai_key",
+                additional_context = "context",
+            )
+            mock_document_instance.execute.assert_called_once()
+
+    @requests_mock.Mocker()
     def test_fetch_text_content_with_unsupported_type(self, m: requests_mock.Mocker):
         unsupported_attachment = ChatMessageAttachment(
             id = "3",
             chat_id = "1",
             message_id = "3",
-            mime_type = "application/pdf",
-            extension = "pdf",
-            last_url = "http://test.com/document.pdf",
+            mime_type = "application/xxx",
+            extension = "xxx",
+            last_url = "http://test.com/document.xxx",
             last_url_until = int((datetime.now() + timedelta(days = 1)).timestamp()),
         )
         m.get(unsupported_attachment.last_url, content = b"pdf data", status_code = 200)
