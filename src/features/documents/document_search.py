@@ -1,9 +1,9 @@
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.vectorstores import FAISS
+from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
+from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from pydantic import SecretStr
 
@@ -41,7 +41,8 @@ class DocumentSearch(SafePrinterMixin):
     ):
         super().__init__(config.verbose)
         self.__job_id = job_id
-        self.__loaded_pages = PyPDFLoader(document_url, extract_images = True).load_and_split()
+        self.__loaded_pages = PyMuPDFLoader(document_url).load()
+        self.sprint(f"Loaded document pages: {len(self.__loaded_pages)}")
         self.__embeddings = OpenAIEmbeddings(openai_api_key = SecretStr(open_ai_api_key))
         self.__additional_context = additional_context or DEFAULT_QUESTION
         self.__copywriter_messages = []
@@ -60,7 +61,8 @@ class DocumentSearch(SafePrinterMixin):
         self.sprint(f"Starting document search for job '{self.__job_id}'")
         try:
             # run the raw search first
-            document_index = FAISS.from_documents(documents = self.__loaded_pages, embedding = self.__embeddings)
+            document_index = InMemoryVectorStore(self.__embeddings)
+            document_index.add_documents(self.__loaded_pages)
             results = document_index.similarity_search(query = self.__additional_context, k = SEARCH_RESULT_PAGES)
             self.sprint(f"Document search returned {len(results)} similarity search results")
             search_results: str = ""
@@ -68,7 +70,7 @@ class DocumentSearch(SafePrinterMixin):
                 for result in results:
                     page_number = result.metadata.get("page") or "Unknown"
                     content = result.page_content or "<No result>"
-                    search_results += f"[Page {page_number}]\n{content}\n\n---\n\n"
+                    search_results += f"[Chunk {page_number}]\n{content}\n\n---\n\n"
                 search_results = search_results.strip()
             if not search_results:
                 search_results = "<No results>"

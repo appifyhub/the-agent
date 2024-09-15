@@ -21,9 +21,7 @@ readabilipy = "*"
 replicate = "*"
 ruff = "*"
 pydub = "*"
-pypdf = "*"
-faiss-cpu = "*"
-rapidocr-onnxruntime = "*"
+pymupdf = "*"
 
 [dev-packages]
 pytest = "*"
