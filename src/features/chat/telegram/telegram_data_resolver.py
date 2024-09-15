@@ -15,12 +15,13 @@ from db.schema.user import UserSave, User
 from features.audio.audio_transcriber import KNOWN_AUDIO_FORMATS
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
+from features.documents.document_search import KNOWN_DOCS_FORMATS
 from features.images.computer_vision_analyzer import KNOWN_IMAGE_FORMATS
 from util.config import config
 from util.functions import is_the_agent, nearest_hour_epoch, first_key_with_value
 from util.safe_printer_mixin import SafePrinterMixin
 
-KNOWN_FILE_FORMATS = KNOWN_IMAGE_FORMATS | KNOWN_AUDIO_FORMATS
+KNOWN_FILE_FORMATS = KNOWN_IMAGE_FORMATS | KNOWN_AUDIO_FORMATS | KNOWN_DOCS_FORMATS
 
 
 class TelegramDataResolver(SafePrinterMixin):

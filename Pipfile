@@ -21,10 +21,12 @@ readabilipy = "*"
 replicate = "*"
 ruff = "*"
 pydub = "*"
+pymupdf = "*"
 
 [dev-packages]
 pytest = "*"
 requests-mock = "*"
 
 [requires]
-python_version = "3.12.3"
+python_version = "3.12"
+python_full_version = "3.12.6"
