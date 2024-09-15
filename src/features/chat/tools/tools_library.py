@@ -122,7 +122,7 @@ def resolve_attachments(chat_id: str, user_id: str, attachment_ids: str, context
         chat_id: [mandatory] A unique identifier of the chat, usually found in the metadata
         user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
         attachment_ids: [mandatory] A comma-separated list of unique 📎 attachment IDs that need to be resolved (located in each message)
-        context: [optional] Additional context translated to English, e.g. the user's message/question, if available
+        context: [optional] Additional task context, e.g. the user's message or question, if available
     """
     try:
         with get_detached_session() as db:
