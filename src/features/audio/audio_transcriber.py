@@ -79,7 +79,7 @@ class AudioTranscriber(SafePrinterMixin):
             model = COPYWRITER_OPEN_AI_MODEL,
             temperature = COPYWRITER_OPEN_AI_TEMPERATURE,
             max_tokens = COPYWRITER_OPEN_AI_MAX_TOKENS,
-            timeout = float(config.web_timeout_s),
+            timeout = float(config.web_timeout_s) * 2,  # increase timeout for transcription copywriting
             max_retries = config.web_retries,
             api_key = str(open_ai_api_key),
         )
