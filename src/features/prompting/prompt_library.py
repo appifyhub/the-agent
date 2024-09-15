@@ -354,18 +354,26 @@ transcription_copywriter: str = __base.add_section(
     )
 ).build()
 
-document_search_copywriter: str = __base.add_section(
-    PromptSection.context,
-    __join(
-        "You're an advanced AI companion capable of many things. You monitor our simulation.",
-        "You are correcting spelling discrepancies and grammar issues in a document search output.",
-        "You must ensure that the following names of products, bots, organizations and people are spelled correctly:",
-        f"{config.parent_organization}, {config.telegram_bot_username}, {config.telegram_bot_name}.",
-        "Only add necessary punctuation such as periods / commas / capitalization, and use only the context provided.",
-        "Aim to reduce newlines and keep the text concise and readable. Use array formatting for long lists.",
-        "Do not converse or reply to the message, you are only copywriting and spell-checking.",
+
+def document_search_copywriter(search_query: str | None = None) -> str:
+    context_info = (
+        f"Additional context / user's query is given, in their language: `{search_query}`. "
+        f"You are allowed to filter out content that is completely unrelated, but don't filter out too much."
     )
-).build()
+    context_rule = context_info if search_query else "No additional context is given, so do not filter out any content."
+    return __base.add_section(
+        PromptSection.context,
+        __join(
+            "You're an advanced AI companion capable of many things. You monitor our simulation.",
+            "You are correcting spelling discrepancies and grammar issues in a document search output.",
+            "You must ensure that the following names of products, bots, organizations and people are spelled correctly:",
+            f"{config.parent_organization}, {config.telegram_bot_username}, {config.telegram_bot_name}.",
+            "Only add necessary punctuation such as periods / commas / capitalization, and use only the context provided.",
+            context_rule,
+            "Aim to reduce newlines and keep the text concise and readable. Use array formatting for long lists.",
+            "Do not converse or reply to the message, you are only copywriting and spell-checking.",
+        )
+    ).build()
 
 
 def translator_on_response(

@@ -46,13 +46,14 @@ class DocumentSearch(SafePrinterMixin):
         self.__embeddings = OpenAIEmbeddings(openai_api_key = SecretStr(open_ai_api_key))
         self.__additional_context = additional_context or DEFAULT_QUESTION
         self.__copywriter_messages = []
-        self.__copywriter_messages.append(SystemMessage(prompt_library.document_search_copywriter))
+        copywriter_prompt = prompt_library.document_search_copywriter(additional_context)
+        self.__copywriter_messages.append(SystemMessage(copywriter_prompt))
         # noinspection PyArgumentList
         self.__copywriter = ChatOpenAI(
             model = COPYWRITER_OPEN_AI_MODEL,
             temperature = COPYWRITER_OPEN_AI_TEMPERATURE,
             max_tokens = COPYWRITER_OPEN_AI_MAX_TOKENS,
-            timeout = float(config.web_timeout_s),
+            timeout = float(config.web_timeout_s) * 2,  # increase timeout for document copywriting
             max_retries = config.web_retries,
             api_key = str(open_ai_api_key),
         )
