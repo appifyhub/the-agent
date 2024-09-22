@@ -44,6 +44,9 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.coinmarketcap_api_token, "invalid")
         self.assertEqual(config.replicate_api_token, "invalid")
         self.assertEqual(config.perplexity_api_token, "invalid")
+        self.assertEqual(config.github_issues_token, "invalid")
+        self.assertEqual(config.github_issues_repo, "appifyhub/the-agent")
+        self.assertEqual(config.issue_templates_abs_path, ".github/ISSUE_TEMPLATE")
 
     def test_custom_config(self):
         os.environ["VERBOSE"] = "true"
@@ -72,6 +75,9 @@ class ConfigTest(unittest.TestCase):
         os.environ["COINMARKETCAP_API_TOKEN"] = "sk-c-valid"
         os.environ["REPLICATE_API_TOKEN"] = "sk-re-valid"
         os.environ["PERPLEXITY_API_TOKEN"] = "sk-p-valid"
+        os.environ["THE_AGENT_ISSUES_TOKEN"] = "sk-gi-valid"
+        os.environ["THE_AGENT_ISSUES_REPO"] = "appifyhub/the-new-agent"
+        os.environ["THE_AGENT_ISSUE_TEMPLATES_PATH"] = "issue_templates"
 
         config = Config()
 
@@ -98,3 +104,6 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.coinmarketcap_api_token, "sk-c-valid")
         self.assertEqual(config.replicate_api_token, "sk-re-valid")
         self.assertEqual(config.perplexity_api_token, "sk-p-valid")
+        self.assertEqual(config.github_issues_token, "sk-gi-valid")
+        self.assertEqual(config.github_issues_repo, "appifyhub/the-new-agent")
+        self.assertEqual(config.issue_templates_abs_path, "issue_templates")

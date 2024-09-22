@@ -28,6 +28,9 @@ class Config(metaclass = Singleton):
     coinmarketcap_api_token: str
     replicate_api_token: str
     perplexity_api_token: str
+    github_issues_token: str
+    github_issues_repo: str
+    issue_templates_abs_path: str
 
     def __init__(
         self,
@@ -57,6 +60,9 @@ class Config(metaclass = Singleton):
         def_coinmarketcap_api_token: str = "invalid",
         def_replicate_api_token: str = "invalid",
         def_perplexity_api_token: str = "invalid",
+        def_github_issues_token: str = "invalid",
+        def_github_issues_repo: str = "appifyhub/the-agent",
+        def_issue_templates_path: str = ".github/ISSUE_TEMPLATE",
     ):
         self.verbose = self.__env("VERBOSE", lambda: str(def_verbose)).lower() == "true"
         self.web_retries = int(self.__env("WEB_RETRIES", lambda: str(def_web_retries)))
@@ -81,6 +87,9 @@ class Config(metaclass = Singleton):
         self.coinmarketcap_api_token = self.__env("COINMARKETCAP_API_TOKEN", lambda: def_coinmarketcap_api_token)
         self.replicate_api_token = self.__env("REPLICATE_API_TOKEN", lambda: def_replicate_api_token)
         self.perplexity_api_token = self.__env("PERPLEXITY_API_TOKEN", lambda: def_perplexity_api_token)
+        self.github_issues_token = self.__env("THE_AGENT_ISSUES_TOKEN", lambda: def_github_issues_token)
+        self.github_issues_repo = self.__env("THE_AGENT_ISSUES_REPO", lambda: def_github_issues_repo)
+        self.issue_templates_abs_path = self.__env("THE_AGENT_ISSUE_TEMPLATES_PATH", lambda: def_issue_templates_path)
 
     def __set_up_db(self, def_db_user: str, def_db_pass: str, def_db_host: str, def_db_name: str) -> None:
         db_user = self.__env("POSTGRES_USER", lambda: def_db_user)
