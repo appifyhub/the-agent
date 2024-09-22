@@ -10,6 +10,7 @@ WORKDIR /app
 
 # Copy the contents over (respecting .dockerignore)
 COPY . .
+RUN mv .github/ISSUE_TEMPLATE src/templates && rm -rf .github
 
 # Install the dependencies
 RUN pipenv install --deploy --ignore-pipfile --verbose \

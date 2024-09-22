@@ -20,6 +20,7 @@ from features.chat.price_alert_manager import PriceAlertManager
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.tools.base_tool_binder import BaseToolBinder
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
+from features.support.user_support_manager import UserSupportManager
 from features.web_browsing.ai_web_search import AIWebSearch
 from features.web_browsing.html_content_cleaner import HTMLContentCleaner
 from features.web_browsing.web_fetcher import WebFetcher
@@ -337,7 +338,7 @@ def announce_maintenance_or_news(user_id: str, raw_announcement: str) -> str:
                 {
                     "result": "Success",
                     "summary": results,
-                    "next_step": "Report these summary numbers back to the developer",
+                    "next_step": "Report these summary numbers back",
                 }
             )
     except Exception as e:
@@ -372,6 +373,53 @@ def deliver_message(author_user_id: str, message: str, target_telegram_username:
                 {
                     "result": "Success",
                     "summary": results,
+                    "next_step": "Report these summary numbers back",
+                }
+            )
+    except Exception as e:
+        traceback.print_exc()
+        return json.dumps({"result": "Error", "error": str(e)})
+
+
+@tool
+def request_feature_bug_or_support(
+    author_user_id: str,
+    user_request_details: str,
+    request_type: str | None = None,
+    include_full_name: bool = False,
+    include_telegram_username: bool = False,
+    author_github_username: str | None = None,
+) -> str:
+    """
+    Allows the user to request a feature, report a bug, or ask for support. As a result, a GitHub issue is created.
+    You are allowed to converse with the user to gather more details (based on this function arguments) before creating.
+    Make sure to explicitly call this function once the user is ready to submit the request.
+
+    Args:
+        author_user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
+        user_request_details: [mandatory] The user's request, bug report, or support question
+        include_full_name: [mandatory] Whether to include the user's full name in the GitHub issue
+        include_telegram_username: [mandatory] Whether to include the user's Telegram username in the GitHub issue
+        request_type: [optional] The type of the request: [ 'feature', 'bug', 'request' ]
+        author_github_username: [optional] The GitHub username of the author, if available and shared
+    """
+    try:
+        with get_detached_session() as db:
+            user_dao = UserCRUD(db)
+            manager = UserSupportManager(
+                invoker_user_id_hex = author_user_id,
+                user_input = user_request_details,
+                invoker_github_username = author_github_username,
+                include_telegram_username = include_telegram_username,
+                include_full_name = include_full_name,
+                request_type_str = request_type,
+                user_dao = user_dao,
+            )
+            issue_url = manager.execute()
+            return json.dumps(
+                {
+                    "result": "Success",
+                    "github_issue_url": issue_url,
                     "next_step": "Report these summary numbers back to the developer",
                 }
             )
@@ -399,5 +447,6 @@ class ToolsLibrary(BaseToolBinder):
                 "ai_web_search": ai_web_search,
                 "announce_maintenance_or_news": announce_maintenance_or_news,
                 "deliver_message": deliver_message,
+                "request_feature_bug_or_support": request_feature_bug_or_support,
             }
         )

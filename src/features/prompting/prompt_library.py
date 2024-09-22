@@ -86,7 +86,7 @@ chat_telegram: str = (
             "Message attachments have unique IDs, listed at the bottom of each message (if available).",
             "Your chat responses adapt based on the tone and content of the conversation.",
             "You should use attached tools and functions to assist you in your responses.",
-            "Do not reveal metadata or attachment IDs in your responses – those are only for use with tools/functions.",
+            "Do not send metadata or attachment IDs in your responses – those are only for use with tools/functions.",
         ),
     )
     .append(__chat_telegram_format)
@@ -354,6 +354,33 @@ transcription_copywriter: str = __base.add_section(
     )
 ).build()
 
+support_request_title_generator: str = (
+    __base
+    .add_section(
+        PromptSection.context,
+        __join(
+            "You're an advanced AI companion capable of many things. You monitor our simulation.",
+            "You are generating a support request title from the description data.",
+            "You must use the provided description to create a support request title that fits well.",
+            "The description contains information on what the issue is, or what kind of support is required.",
+            "You must ensure that the following products, bots, organizations and people are spelled correctly:",
+            f"{config.parent_organization}, {config.telegram_bot_username}, {config.telegram_bot_name}.",
+            "Use only the context provided and do not add any new information.",
+            "Do not converse or reply to the message, you are only generating a support request title.",
+        )
+    )
+    .add_section(
+        PromptSection.style,
+        __join(
+            "Be meticulous and precise in your approach. Use simple, clear language, and keep it really short.",
+            "The request title must be in English, regardless of the input language.",
+            "Prefix the title with the support request type, e.g. '[BUG] ...', '[FEATURE] ...', etc.",
+            "To generate a good title, you should not mention what the project is or who the user is.",
+            "Take into account that this support request will appear on GitHub in a public space.",
+        )
+    )
+).build()
+
 
 def document_search_copywriter(search_query: str | None = None) -> str:
     context_info = (
@@ -372,6 +399,61 @@ def document_search_copywriter(search_query: str | None = None) -> str:
             context_rule,
             "Aim to reduce newlines and keep the text concise and readable. Use array formatting for long lists.",
             "Do not converse or reply to the message, you are only copywriting and spell-checking.",
+        )
+    ).build()
+
+
+def support_request_generator(request_type: str, request_template: str) -> str:
+    return (
+        __base
+        .add_section(
+            PromptSection.context,
+            __join(
+                "You're an advanced AI companion capable of many things. You monitor our simulation.",
+                "You are generating a support request from the raw data given by our chat partner.",
+                "You must use the provided template to create a support request that fits well.",
+                "The template contains information on how to prepare a nice support request.",
+                "You must ensure that the following products, bots, organizations and people are spelled correctly:",
+                f"{config.parent_organization}, {config.telegram_bot_username}, {config.telegram_bot_name}.",
+                "Use only the context provided. When information from the template is missing, describe it as such.",
+                "The support is coming from a Telegram chat, which you can mention in the support request if needed.",
+                f"You can mention the chat bot if needed: {config.telegram_bot_name}, @{config.telegram_bot_username}.",
+                "Do not converse with the user, do not reply to the message or explain your thought process.",
+                "Your output should only contain a fully generated support request and nothing else.",
+            )
+        )
+        .add_section(
+            PromptSection.style,
+            __join(
+                "Be meticulous and precise in your approach to filling in the requirements from the template.",
+                "Ensure that you provide as much of the necessary information in the correct format.",
+                "Use simple, clear language to enhance the user's original request without overshadowing it.",
+                "When appropriate, craft multiple sentences instead of one super long sentence with commas.",
+                "All support requests must be in English, regardless of the input language.",
+            )
+        )
+        .add_section(
+            PromptSection.format,
+            __join(
+                "Use GitHub's markdown flavor to format the final output. Use link formatting for URLs when needed.",
+                "Make sure to clearly separate sections and use bullet points or numbered lists when necessary.",
+                "If the template contains placeholders, replace them with the appropriate information.",
+                "You may introduce additional formatting if it helps to structure the support request better.",
+                "You should not explicitly mention what the project is in the support request, as it's already known.",
+                "For privacy reasons, you must not include the original report or any message metadata in the output.",
+                "Do not include the title of the support request in the final output, as it's generated later.",
+                "This will be a public request on GitHub, so make sure it's easy to understand for the public.",
+                "Do not include any additional commentary from you. The support request should be self-contained.",
+                "Make sure to mention the reporter's information if it's provided in the raw user message.",
+            )
+        )
+        .add_section(
+            PromptSection.meta,
+            __join(
+                f"The support request type is: `{request_type}`.",
+                "The template for this request is given below:\n\n",
+                f"```\n{request_template}\n```",
+            )
         )
     ).build()
 
@@ -462,6 +544,7 @@ def error_general_problem(reason: str, llm_author_organization: str = ORGANIZATI
     clean_reason = clean_reason.replace(config.coinmarketcap_api_token, "****")
     clean_reason = clean_reason.replace(config.replicate_api_token, "****")
     clean_reason = clean_reason.replace(config.perplexity_api_token, "****")
+    clean_reason = clean_reason.replace(config.github_issues_token, "****")
     return MULTI_MESSAGE_DELIMITER.join(
         [
             "🔴 I'm having issues replying to you.",
