@@ -22,7 +22,6 @@ replicate = "*"
 ruff = "*"
 pydub = "*"
 pymupdf = "*"
-rembg = "*"
 
 [dev-packages]
 pytest = "*"
