@@ -15,6 +15,7 @@ from features.chat.announcement_manager import AnnouncementManager
 from features.chat.attachments_content_resolver import AttachmentsContentResolver
 from features.chat.chat_config_manager import ChatConfigManager
 from features.chat.generative_imaging_manager import GenerativeImagingManager
+from features.chat.image_edit_manager import ImageEditManager
 from features.chat.invite_manager import InviteManager
 from features.chat.price_alert_manager import PriceAlertManager
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
@@ -115,39 +116,65 @@ def change_chat_reply_chance(chat_id: str, reply_chance_percent: int) -> str:
 
 
 @tool
-def resolve_attachments(chat_id: str, user_id: str, attachment_ids: str, context: str | None = None) -> str:
+def process_attachments(
+    chat_id: str,
+    user_id: str,
+    attachment_ids: str,
+    operation: str = "describe",
+    context: str | None = None,
+) -> str:
     """
-    Resolves the contents of the given attachments into text, e.g. analyzing a photo, audio, etc.
+    Processes the contents of the given attachments. Allowed operations are:
+        - 'describe' (default): Describes the contents of the attachments, e.g. describe images, transcribe audio, etc.
+        - 'remove-background': Removes background from the images, leaving it transparent
 
     Args:
         chat_id: [mandatory] A unique identifier of the chat, usually found in the metadata
         user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
         attachment_ids: [mandatory] A comma-separated list of unique 📎 attachment IDs that need to be resolved (located in each message)
-        context: [optional] Additional task context, e.g. the user's message or question, if available
+        operation: [mandatory] The action to perform on the attachments
+        context: [optional] Additional task context, e.g. the user's message/question/caption, if available
     """
     try:
+        allowed_operations = ["describe", "remove-background"]
+        operation = operation.lower().strip()
         with get_detached_session() as db:
-            content_resolver = AttachmentsContentResolver(
-                chat_id = chat_id,
-                invoker_user_id_hex = user_id,
-                additional_context = context,
-                attachment_ids = attachment_ids.split(','),
-                bot_api = TelegramBotAPI(),
-                user_dao = UserCRUD(db),
-                chat_config_dao = ChatConfigCRUD(db),
-                chat_message_dao = ChatMessageCRUD(db),
-                chat_message_attachment_dao = ChatMessageAttachmentCRUD(db),
-                cache_dao = ToolsCacheCRUD(db),
-            )
-            status = content_resolver.execute()
-            if status == AttachmentsContentResolver.Result.failed:
-                raise ValueError("Failed to resolve attachments")
-            return json.dumps(
-                {
-                    "result": status.value,
-                    "attachments": content_resolver.resolution_result,
-                }
-            )
+            if operation == "describe":
+                # Resolve the attachments into text
+                content_resolver = AttachmentsContentResolver(
+                    chat_id = chat_id,
+                    invoker_user_id_hex = user_id,
+                    additional_context = context,
+                    attachment_ids = attachment_ids.split(','),
+                    bot_api = TelegramBotAPI(),
+                    user_dao = UserCRUD(db),
+                    chat_config_dao = ChatConfigCRUD(db),
+                    chat_message_dao = ChatMessageCRUD(db),
+                    chat_message_attachment_dao = ChatMessageAttachmentCRUD(db),
+                    cache_dao = ToolsCacheCRUD(db),
+                )
+                status = content_resolver.execute()
+                if status == AttachmentsContentResolver.Result.failed:
+                    raise ValueError("Failed to resolve attachments")
+                return json.dumps({"result": status.value, "attachments": content_resolver.resolution_result})
+            elif operation == "remove-background":
+                # Remove background from the attachments
+                manager = ImageEditManager(
+                    chat_id = chat_id,
+                    attachment_ids = attachment_ids.split(','),
+                    invoker_user_id_hex = user_id,
+                    operation_name = operation,
+                    bot_api = TelegramBotAPI(),
+                    user_dao = UserCRUD(db),
+                    chat_message_attachment_dao = ChatMessageAttachmentCRUD(db),
+                )
+                status = manager.execute()
+                if status == ImageEditManager.Result.failed:
+                    raise ValueError("Failed to remove background from the images")
+                return json.dumps({"result": status.value, "next_step": "Relay this status update to the partner"})
+            else:
+                # Unknown operation, must report back
+                raise ValueError(f"Unknown operation '{operation}'; try one of: [{', '.join(allowed_operations)}]")
     except Exception as e:
         traceback.print_exc()
         return json.dumps({"result": "Error", "error": str(e)})
@@ -438,7 +465,7 @@ class ToolsLibrary(BaseToolBinder):
                 "change_chat_language": change_chat_language,
                 "change_chat_reply_chance": change_chat_reply_chance,
                 "fetch_web_content": fetch_web_content,
-                "resolve_attachments": resolve_attachments,
+                "process_attachments": process_attachments,
                 "get_exchange_rate": get_exchange_rate,
                 "set_up_currency_price_alert": set_up_currency_price_alert,
                 "remove_currency_price_alerts": remove_currency_price_alerts,
