@@ -86,7 +86,8 @@ chat_telegram: str = (
             "Message attachments have unique IDs, listed at the bottom of each message (if available).",
             "Your chat responses adapt based on the tone and content of the conversation.",
             "You should use attached tools and functions to assist you in your responses.",
-            "Do not send metadata or attachment IDs in your responses – those are only for use with tools/functions.",
+            "When you're missing information to complete tool/function calls, ask your partner for more information.",
+            "DO NOT reveal metadata or attachment IDs in your responses – those are only for use with tools/functions.",
         ),
     )
     .append(__chat_telegram_format)
