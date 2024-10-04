@@ -22,7 +22,7 @@ from features.documents.document_search import KNOWN_DOCS_FORMATS, DocumentSearc
 from features.images.computer_vision_analyzer import KNOWN_IMAGE_FORMATS, ComputerVisionAnalyzer
 from util.config import config
 from util.functions import nearest_hour_epoch, digest_md5
-from util.safe_printer_mixin import SafePrinterMixin
+from util.safe_printer_mixin import SafePrinterMixin, sprint
 
 CACHE_PREFIX = "attachments-content-resolver"
 CACHE_TTL = timedelta(weeks = 13)
@@ -72,7 +72,72 @@ class AttachmentsContentResolver(SafePrinterMixin):
         self.__chat_message_dao = chat_message_dao
         self.__chat_message_attachment_dao = chat_message_attachment_dao
         self.__cache_dao = cache_dao
-        self.refresh_attachments(chat_id, invoker_user_id_hex, attachment_ids)
+        self.__validate(chat_id, invoker_user_id_hex)
+        self.attachments = AttachmentsContentResolver.refresh_attachment_files(
+            attachment_ids, self.__chat_message_attachment_dao, self.__bot_api,
+        )
+
+    def __validate(self, chat_id: str, invoker_user_id_hex: str):
+        self.sprint(f"Validating user '{invoker_user_id_hex}' and attachment resolution for chat '{chat_id}'")
+        # check if chat exists
+        chat_config_db = self.__chat_config_dao.get(chat_id)
+        if not chat_config_db:
+            message = f"Chat '{chat_id}' not found"
+            self.sprint(message)
+            raise ValueError(message)
+        self.__chat_config = ChatConfig.model_validate(chat_config_db)
+        # check if invoker exists
+        invoker_user_db = self.__user_dao.get(UUID(hex = invoker_user_id_hex))
+        if not invoker_user_db:
+            message = f"Invoker '{invoker_user_id_hex}' not found"
+            self.sprint(message)
+            raise ValueError(message)
+        self.__invoker = User.model_validate(invoker_user_db)
+        # check if invoker has enough access rights
+        if self.__invoker.group < UserDB.Group.beta:
+            message = f"Invoker '{invoker_user_id_hex}' is not allowed to resolve attachments"
+            self.sprint(message)
+            raise ValueError(message)
+
+    @staticmethod
+    def refresh_attachment_files(
+        attachment_ids: list[str],
+        chat_message_attachment_dao: ChatMessageAttachmentCRUD,
+        bot_api: TelegramBotAPI,
+    ) -> list[ChatMessageAttachment]:
+        # fetch all attachments (with potentially stale data)
+        sprint(f"Refreshing attachment files {len(attachment_ids)}: [ {", ".join(attachment_ids)} ]")
+        stale_attachments_db: list[ChatMessageAttachmentDB] = [
+            chat_message_attachment_dao.get(attachment_id) for attachment_id in attachment_ids
+        ]
+        stale_attachments: list[ChatMessageAttachment] = [
+            ChatMessageAttachment.model_validate(stale_attachment_db) for stale_attachment_db in stale_attachments_db
+        ]
+        # update the file locator for each attachment (and the locator expiration date, if needed)
+        fresh_attachments: list[ChatMessageAttachmentSave] = []
+        for stale_attachment in stale_attachments:
+            sprint(f"Refreshing attachment '{stale_attachment.id}'")
+            fresh_attachment = ChatMessageAttachmentSave(**stale_attachment.model_dump())
+            if stale_attachment.has_stale_data:
+                sprint("\tData is stale, updating")
+                api_file = bot_api.get_file_info(stale_attachment.id)
+                api_file_path = api_file.file_path
+                if api_file_path:
+                    last_url = f"{config.telegram_api_base_url}/file/bot{config.telegram_bot_token}/{api_file_path}"
+                    fresh_attachment.last_url = last_url
+                # extension, mime type, etc. are not updated here because they are not expected to change
+                fresh_attachment.size = api_file.file_size
+                fresh_attachment.last_url_until = nearest_hour_epoch()
+            else:
+                sprint("\tSkipped, data is fresh")
+            fresh_attachments.append(fresh_attachment)
+            # save the updated attachments
+            sprint("Saving updated attachments")
+            attachments = [
+                ChatMessageAttachment.model_validate(chat_message_attachment_dao.save(fresh_attachment))
+                for fresh_attachment in fresh_attachments
+            ]
+            return attachments
 
     @property
     def resolution_status(self) -> Result:
@@ -102,66 +167,6 @@ class AttachmentsContentResolver(SafePrinterMixin):
                 }
                 result.append(attachment_data)
         return result
-
-    def refresh_attachments(self, chat_id: str, invoker_user_id_hex: str, attachment_ids: list[str]):
-        self.sprint(f"User '{invoker_user_id_hex}' is refreshing {len(attachment_ids)} attachments in '{chat_id}'")
-
-        # check if invoker exists
-        invoker_user_db = self.__user_dao.get(UUID(hex = invoker_user_id_hex))
-        if not invoker_user_db:
-            message = f"Invoker '{invoker_user_id_hex}' not found"
-            self.sprint(message)
-            raise ValueError(message)
-        self.__invoker = User.model_validate(invoker_user_db)
-
-        # check if invoker has enough access rights
-        if self.__invoker.group < UserDB.Group.beta:
-            message = f"Invoker '{invoker_user_id_hex}' is not allowed to resolve attachments"
-            self.sprint(message)
-            raise ValueError(message)
-
-        # check if chat exists
-        chat_config_db = self.__chat_config_dao.get(chat_id)
-        if not chat_config_db:
-            message = f"Chat '{chat_id}' not found"
-            self.sprint(message)
-            raise ValueError(message)
-        self.__chat_config = ChatConfig.model_validate(chat_config_db)
-
-        # fetch all attachments (with potentially stale data)
-        self.sprint(f"Fetching all attachments: [ {", ".join(attachment_ids)} ]")
-        stale_attachments_db: list[ChatMessageAttachmentDB] = [
-            self.__chat_message_attachment_dao.get(attachment_id) for attachment_id in attachment_ids
-        ]
-        stale_attachments: list[ChatMessageAttachment] = [
-            ChatMessageAttachment.model_validate(stale_attachment_db) for stale_attachment_db in stale_attachments_db
-        ]
-
-        # update the file locator for each attachment (and the locator expiration date, if needed)
-        fresh_attachments: list[ChatMessageAttachmentSave] = []
-        for stale_attachment in stale_attachments:
-            self.sprint(f"Refreshing attachment '{stale_attachment.id}'")
-            fresh_attachment = ChatMessageAttachmentSave(**stale_attachment.model_dump())
-            if stale_attachment.has_stale_data:
-                self.sprint("\tData is stale, updating")
-                api_file = self.__bot_api.get_file_info(stale_attachment.id)
-                api_file_path = api_file.file_path
-                if api_file_path:
-                    last_url = f"{config.telegram_api_base_url}/file/bot{config.telegram_bot_token}/{api_file_path}"
-                    fresh_attachment.last_url = last_url
-                # extension, mime type, etc. are not updated here because they are not expected to change
-                fresh_attachment.size = api_file.file_size
-                fresh_attachment.last_url_until = nearest_hour_epoch()
-            else:
-                self.sprint("\tSkipped, data is fresh")
-            fresh_attachments.append(fresh_attachment)
-
-            # save the updated attachments
-            self.sprint("Saving updated attachments")
-            self.attachments = [
-                ChatMessageAttachment.model_validate(self.__chat_message_attachment_dao.save(fresh_attachment))
-                for fresh_attachment in fresh_attachments
-            ]
 
     def execute(self) -> Result:
         self.sprint("Resolving attachments content")
