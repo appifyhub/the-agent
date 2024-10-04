@@ -15,6 +15,7 @@ from features.chat.announcement_manager import AnnouncementManager
 from features.chat.attachments_content_resolver import AttachmentsContentResolver
 from features.chat.chat_config_manager import ChatConfigManager
 from features.chat.generative_imaging_manager import GenerativeImagingManager
+from features.chat.image_edit_manager import ImageEditManager
 from features.chat.invite_manager import InviteManager
 from features.chat.price_alert_manager import PriceAlertManager
 from features.chat.telegram.telegram_bot_api import TelegramBotAPI
@@ -123,13 +124,15 @@ def process_attachments(
     context: str | None = None,
 ) -> str:
     """
-    Processes the contents of the given attachments, e.g. describing images, transcribing audio, manipulating attachments, etc.
+    Processes the contents of the given attachments. Allowed operations are:
+        - 'describe' (default): Describes the contents of the attachments, e.g. describe images, transcribe audio, etc.
+        - 'remove-background': Removes background from the images, leaving it transparent
 
     Args:
         chat_id: [mandatory] A unique identifier of the chat, usually found in the metadata
         user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
         attachment_ids: [mandatory] A comma-separated list of unique 📎 attachment IDs that need to be resolved (located in each message)
-        operation: [mandatory] What to perform on the attachments: ['describe', 'remove-background']. Defaults to 'describe'
+        operation: [mandatory] The action to perform on the attachments
         context: [optional] Additional task context, e.g. the user's message/question/caption, if available
     """
     try:
@@ -156,7 +159,19 @@ def process_attachments(
                 return json.dumps({"result": status.value, "attachments": content_resolver.resolution_result})
             elif operation == "remove-background":
                 # Remove background from the attachments
-                raise ValueError(f"Operation {operation} is not yet supported")
+                manager = ImageEditManager(
+                    chat_id = chat_id,
+                    attachment_ids = attachment_ids.split(','),
+                    invoker_user_id_hex = user_id,
+                    operation_name = operation,
+                    bot_api = TelegramBotAPI(),
+                    user_dao = UserCRUD(db),
+                    chat_message_attachment_dao = ChatMessageAttachmentCRUD(db),
+                )
+                status = manager.execute()
+                if status == ImageEditManager.Result.failed:
+                    raise ValueError("Failed to remove background from the images")
+                return json.dumps({"result": status.value, "next_step": "Relay this status update to the partner"})
             else:
                 # Unknown operation, must report back
                 raise ValueError(f"Unknown operation '{operation}'; try one of: [{', '.join(allowed_operations)}]")
