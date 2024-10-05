@@ -13,7 +13,7 @@ from util.functions import first_key_with_value
 from util.safe_printer_mixin import SafePrinterMixin
 
 BACKGROUND_REMOVER_MODEL = "cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003"
-BOOT_AND_RUN_TIMEOUT_S = 100
+BOOT_AND_RUN_TIMEOUT_S = 120
 
 
 # Not tested as it's just a proxy

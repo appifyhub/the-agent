@@ -108,7 +108,7 @@ class ImageEditManager(SafePrinterMixin):
             result, urls = self.__remove_background()
             for image_url in urls:
                 self.sprint(f"Sending edited image to chat '{self.__chat_id}'")
-                result_json = self.__bot_api.send_photo(self.__chat_id, image_url)
+                result_json = self.__bot_api.send_document(self.__chat_id, image_url, thumbnail = image_url)
                 if not result_json:
                     raise ValueError("No response from Telegram API")
                 self.__store_bot_photo(result_json)
