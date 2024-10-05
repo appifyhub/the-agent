@@ -117,7 +117,7 @@ class ImageEditManagerTest(unittest.TestCase):
     def test_execute_remove_background_success(self, mock_remove_bg, mock_refresh):
         mock_refresh.return_value = [self.attachment]
         mock_remove_bg.return_value = "http://test.com/edited_image.png"
-        self.mock_bot_api.send_photo.return_value = {"result": {"message_id": 123}}
+        self.mock_bot_api.send_document.return_value = {"result": {"message_id": 123}}
 
         with patch.object(ImageEditManager, "_ImageEditManager__store_bot_photo") as mock_store_photo:
             manager = ImageEditManager(
@@ -133,7 +133,11 @@ class ImageEditManagerTest(unittest.TestCase):
 
             self.assertEqual(result, ImageEditManager.Result.success)
             mock_remove_bg.assert_called_once()
-            self.mock_bot_api.send_photo.assert_called_once_with(self.chat_id, "http://test.com/edited_image.png")
+            self.mock_bot_api.send_document.assert_called_once_with(
+                self.chat_id,
+                "http://test.com/edited_image.png",
+                thumbnail = "http://test.com/edited_image.png",
+            )
             mock_store_photo.assert_called_once()
 
     @patch.object(AttachmentsContentResolver, "refresh_attachment_files")
@@ -141,7 +145,7 @@ class ImageEditManagerTest(unittest.TestCase):
     def test_execute_remove_background_partial(self, mock_remove_bg, mock_refresh):
         mock_refresh.return_value = [self.attachment, self.attachment]
         mock_remove_bg.side_effect = ["http://test.com/edited_image.png", None]
-        self.mock_bot_api.send_photo.return_value = {"result": {"message_id": 123}}
+        self.mock_bot_api.send_document.return_value = {"result": {"message_id": 123}}
 
         with patch.object(ImageEditManager, "_ImageEditManager__store_bot_photo") as mock_store_photo:
             manager = ImageEditManager(
@@ -157,7 +161,11 @@ class ImageEditManagerTest(unittest.TestCase):
 
             self.assertEqual(result, ImageEditManager.Result.partial)
             self.assertEqual(mock_remove_bg.call_count, 2)
-            self.mock_bot_api.send_photo.assert_called_once_with(self.chat_id, "http://test.com/edited_image.png")
+            self.mock_bot_api.send_document.assert_called_once_with(
+                self.chat_id,
+                "http://test.com/edited_image.png",
+                thumbnail = "http://test.com/edited_image.png",
+            )
             mock_store_photo.assert_called_once()
 
     @patch.object(AttachmentsContentResolver, "refresh_attachment_files")
@@ -179,7 +187,7 @@ class ImageEditManagerTest(unittest.TestCase):
 
         self.assertEqual(result, ImageEditManager.Result.failed)
         mock_remove_bg.assert_called_once()
-        self.mock_bot_api.send_photo.assert_not_called()
+        self.mock_bot_api.send_document.assert_not_called()
 
     @patch.object(AttachmentsContentResolver, "refresh_attachment_files")
     @patch.object(ImageBackgroundRemover, "execute")
