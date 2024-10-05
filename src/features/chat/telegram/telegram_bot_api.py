@@ -71,3 +71,28 @@ class TelegramBotAPI(SafePrinterMixin):
         response = requests.post(url, json = payload, timeout = config.web_timeout_s)
         response.raise_for_status()
         return response.json()
+
+    def send_document(
+        self,
+        chat_id: int | str,
+        document_url: str,
+        parse_mode: str = "markdown",
+        thumbnail: str | None = None,
+        caption: str | None = None,
+        disable_notification: bool = False,
+    ) -> dict:
+        self.sprint(f"Sending document to chat #{chat_id}")
+        url = f"{self.__bot_api_url}/sendDocument"
+        payload = {
+            "chat_id": chat_id,
+            "document": document_url,
+            "disable_notification": disable_notification,
+        }
+        if thumbnail:
+            payload["thumbnail"] = thumbnail
+        if caption:
+            payload["caption"] = re.sub(r'(?<!\b)_(?!\b)', r'\\_', caption)
+            payload["parse_mode"] = parse_mode
+        response = requests.post(url, json = payload, timeout = config.web_timeout_s)
+        response.raise_for_status()
+        return response.json()
