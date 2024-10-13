@@ -39,6 +39,7 @@ class ImageBackgroundRemover(SafePrinterMixin):
     def execute(self) -> str | None:
         self.sprint("Starting background removal")
         try:
+            # not using the URL directly because it contains the bot token in its path
             with tempfile.NamedTemporaryFile(delete = True, suffix = self.__get_suffix()) as temp_file:
                 response = requests.get(self.__image_url)
                 temp_file.write(response.content)
