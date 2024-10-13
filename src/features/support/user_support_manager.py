@@ -4,6 +4,7 @@ from uuid import UUID
 
 import requests
 from langchain_anthropic import ChatAnthropic
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
 from db.crud.user import UserCRUD
@@ -32,7 +33,7 @@ class UserSupportManager(SafePrinterMixin):
     request_type: RequestType
     invoker: User
     user_dao: UserCRUD
-    __llm: ChatAnthropic
+    __llm: BaseChatModel
 
     def __init__(
         self,

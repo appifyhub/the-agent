@@ -123,8 +123,6 @@ class TwitterStatusFetcherTest(unittest.TestCase):
         if not m.request_history:
             self.fail("No requests were made")
         last_request = m.last_request
-        print(f"Debug: Last request URL: {last_request.url}")
-        print(f"Debug: Last request headers: {last_request.headers}")
 
         # Check URL
         self.assertTrue(last_request.url.startswith(TWITTER_API_URL))
