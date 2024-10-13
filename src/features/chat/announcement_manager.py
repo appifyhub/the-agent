@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import UUID
 
 from langchain_anthropic import ChatAnthropic
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
 from db.crud.chat_config import ChatConfigCRUD
@@ -30,7 +31,7 @@ class AnnouncementManager(SafePrinterMixin):
     __user_dao: UserCRUD
     __chat_config_dao: ChatConfigCRUD
     __chat_message_dao: ChatMessageCRUD
-    __llm: ChatAnthropic
+    __llm: BaseChatModel
     __invoker_user: User
     __target_chat: ChatConfig | None
 

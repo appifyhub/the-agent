@@ -1,5 +1,4 @@
 import json
-import traceback
 
 from langchain_core.tools import tool
 
@@ -25,6 +24,7 @@ from features.support.user_support_manager import UserSupportManager
 from features.web_browsing.ai_web_search import AIWebSearch
 from features.web_browsing.html_content_cleaner import HTMLContentCleaner
 from features.web_browsing.web_fetcher import WebFetcher
+from util.safe_printer_mixin import sprint
 from util.translations_cache import TranslationsCache
 
 TOOL_TRUNCATE_LENGTH = 8192  # to save some tokens
@@ -47,7 +47,7 @@ def invite_friend(user_id: str, friend_telegram_username: str) -> str:
                 return json.dumps({"result": "Failure", "reason": message})
             return json.dumps({"result": "Success", "next_step": message})
     except Exception as e:
-        traceback.print_exc()
+        sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})
 
 
@@ -68,7 +68,7 @@ def uninvite_friend(user_id: str, friend_telegram_username: str) -> str:
                 return json.dumps({"result": "Failure", "reason": message})
             return json.dumps({"result": "Success", "next_step": message})
     except Exception as e:
-        traceback.print_exc()
+        sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})
 
 
@@ -90,7 +90,7 @@ def change_chat_language(chat_id: str, language_name: str, language_iso_code: st
                 return json.dumps({"result": "Failure", "reason": message})
             return json.dumps({"result": "Success", "message": message, "next_step": "Notify the user"})
     except Exception as e:
-        traceback.print_exc()
+        sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})
 
 
@@ -111,7 +111,7 @@ def change_chat_reply_chance(chat_id: str, reply_chance_percent: int) -> str:
                 return json.dumps({"result": "Failure", "reason": message})
             return json.dumps({"result": "Success", "message": message, "next_step": "Notify the user"})
     except Exception as e:
-        traceback.print_exc()
+        sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})
 
 
@@ -126,18 +126,21 @@ def process_attachments(
     """
     Processes the contents of the given attachments. Allowed operations are:
         - 'describe' (default): Describes the contents of the attachments, e.g. describe images, transcribe audio, etc.
-        - 'remove-background': Removes background from the images, leaving it transparent
+        - 'remove-background': Removes background from the images
+        - 'restore-image': Restores an old/broken image to its former glory (primarily faces)
+        - 'replace-background': Replaces the image background; requires guidance/context on what to replace it with
 
     Args:
         chat_id: [mandatory] A unique identifier of the chat, usually found in the metadata
         user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
         attachment_ids: [mandatory] A comma-separated list of unique 📎 attachment IDs that need to be resolved (located in each message)
         operation: [mandatory] The action to perform on the attachments
-        context: [optional] Additional task context, e.g. the user's message/question/caption, if available
+        context: [optional] Additional task context or guidance, e.g. the user's message/question/caption, if available
     """
     try:
-        allowed_operations = ["describe", "remove-background"]
         operation = operation.lower().strip()
+        editing_operations = ImageEditManager.Operation.values()
+        allowed_operations = ["describe"] + editing_operations
         with get_detached_session() as db:
             if operation == "describe":
                 # Resolve the attachments into text
@@ -153,30 +156,36 @@ def process_attachments(
                     chat_message_attachment_dao = ChatMessageAttachmentCRUD(db),
                     cache_dao = ToolsCacheCRUD(db),
                 )
-                status = content_resolver.execute()
-                if status == AttachmentsContentResolver.Result.failed:
+                result = content_resolver.execute()
+                if result == AttachmentsContentResolver.Result.failed:
                     raise ValueError("Failed to resolve attachments")
-                return json.dumps({"result": status.value, "attachments": content_resolver.resolution_result})
-            elif operation == "remove-background":
-                # Remove background from the attachments
+                return json.dumps({"result": result.value, "attachments": content_resolver.resolution_result})
+            elif operation in editing_operations:
                 manager = ImageEditManager(
                     chat_id = chat_id,
                     attachment_ids = attachment_ids.split(','),
                     invoker_user_id_hex = user_id,
                     operation_name = operation,
+                    operation_guidance = context,
                     bot_api = TelegramBotAPI(),
                     user_dao = UserCRUD(db),
                     chat_message_attachment_dao = ChatMessageAttachmentCRUD(db),
                 )
-                status = manager.execute()
-                if status == ImageEditManager.Result.failed:
+                result, stats = manager.execute()
+                if result == ImageEditManager.Result.failed:
                     raise ValueError("Failed to remove background from the images")
-                return json.dumps({"result": status.value, "next_step": "Relay this status update to the partner"})
+                return json.dumps(
+                    {
+                        "result": result.value,
+                        "stats": stats,
+                        "next_step": "Relay this status update to the partner",
+                    }
+                )
             else:
                 # Unknown operation, must report back
                 raise ValueError(f"Unknown operation '{operation}'; try one of: [{', '.join(allowed_operations)}]")
     except Exception as e:
-        traceback.print_exc()
+        sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})
 
 
@@ -196,7 +205,7 @@ def fetch_web_content(url: str) -> str:
             result = text[:TOOL_TRUNCATE_LENGTH] + '...' if len(text) > TOOL_TRUNCATE_LENGTH else text
             return json.dumps({"result": "Success", "content": result})
     except Exception as e:
-        traceback.print_exc()
+        sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})
 
 
@@ -217,7 +226,7 @@ def get_exchange_rate(user_id: str, base_currency: str, desired_currency: str, a
             result = fetcher.execute(base_currency, desired_currency, amount or 1.0)
             return json.dumps({"result": "Success", "exchange_rate": result})
     except Exception as e:
-        traceback.print_exc()
+        sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})
 
 
@@ -245,7 +254,7 @@ def set_up_currency_price_alert(
             alert = alert_manager.create_alert(base_currency, desired_currency, threshold_percent)
             return json.dumps({"result": "Success", "created_alert_data": alert.model_dump()})
     except Exception as e:
-        traceback.print_exc()
+        sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})
 
 
@@ -270,7 +279,7 @@ def remove_currency_price_alerts(chat_id: str, user_id: str, base_currency: str,
             alert = alert_manager.delete_alert(base_currency, desired_currency)
             return json.dumps({"result": "Success", "deleted_alert_data": alert.model_dump()})
     except Exception as e:
-        traceback.print_exc()
+        sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})
 
 
@@ -293,7 +302,7 @@ def list_currency_price_alerts(chat_id: str, user_id: str) -> str:
             alerts = alert_manager.get_all_alerts()
             return json.dumps({"result": "Success", "alerts": [alert.model_dump() for alert in alerts]})
     except Exception as e:
-        traceback.print_exc()
+        sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})
 
 
@@ -315,7 +324,7 @@ def generate_image(chat_id: str, user_id: str, prompt: str) -> str:
                 raise ValueError("Failed to generate the image")
         return json.dumps({"result": "Success", "next_step": "Confirm to partner that the image has been sent"})
     except Exception as e:
-        traceback.print_exc()
+        sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})
 
 
@@ -336,7 +345,7 @@ def ai_web_search(user_id: str, search_query: str) -> str:
                 raise ValueError("Answer not received")
             return json.dumps({"result": "Success", "content": result.content})
     except Exception as e:
-        traceback.print_exc()
+        sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})
 
 
@@ -369,7 +378,7 @@ def announce_maintenance_or_news(user_id: str, raw_announcement: str) -> str:
                 }
             )
     except Exception as e:
-        traceback.print_exc()
+        sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})
 
 
@@ -404,7 +413,7 @@ def deliver_message(author_user_id: str, message: str, target_telegram_username:
                 }
             )
     except Exception as e:
-        traceback.print_exc()
+        sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})
 
 
@@ -451,7 +460,7 @@ def request_feature_bug_or_support(
                 }
             )
     except Exception as e:
-        traceback.print_exc()
+        sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})
 
 
