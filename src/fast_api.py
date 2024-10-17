@@ -67,7 +67,7 @@ def telegram_chat_update(
     return respond_to_update(
         user_dao = user_dao,
         invite_manager = InviteManager(user_dao, invite_dao),
-        chat_messages_dao = ChatMessageCRUD(db),
+        chat_message_dao = ChatMessageCRUD(db),
         telegram_domain_mapper = TelegramDomainMapper(),
         telegram_data_resolver = TelegramDataResolver(db, telegram_bot_api),
         domain_langchain_mapper = DomainLangchainMapper(),

@@ -29,7 +29,7 @@ class TelegramDomainMapper(SafePrinterMixin):
         super().__init__(config.verbose)
 
     def map_update(self, update: Update) -> Result | None:
-        self.sprint(f"Mapping update: {update}")
+        # self.sprint(f"Mapping update: {update}")
         message = update.edited_message or update.message
         if not message:
             self.sprint(f"Nothing to map in update: {update}")
@@ -46,7 +46,7 @@ class TelegramDomainMapper(SafePrinterMixin):
         )
 
     def map_message(self, message: Message) -> ChatMessageSave:
-        self.sprint(f"Mapping message: {message}")
+        # self.sprint(f"Mapping message: {message}")
         return ChatMessageSave(
             chat_id = str(message.chat.id),
             message_id = str(message.message_id),
@@ -54,10 +54,11 @@ class TelegramDomainMapper(SafePrinterMixin):
             text = self.map_text(message),
         )
 
+    # noinspection PyMethodMayBeStatic
     def map_author(self, message: Message) -> UserSave | None:
         if not message.from_user:
             return None
-        self.sprint(f"Mapping author {message.from_user}")
+        # self.sprint(f"Mapping author {message.from_user}")
         # properties might be updated later when this is stored
         author = message.from_user
         return UserSave(
@@ -76,7 +77,7 @@ class TelegramDomainMapper(SafePrinterMixin):
         attachments_as_text = self.map_attachments_as_text(message)
         if attachments_as_text:
             parts.append(f">>>> 📎 {attachments_as_text}")
-        self.sprint(f"Mapping reply message text: {parts}")
+        # self.sprint(f"Mapping reply message text: {parts}")
         return "\n\n".join(parts)
 
     def map_text(self, message: Message) -> str:
@@ -94,12 +95,12 @@ class TelegramDomainMapper(SafePrinterMixin):
         attachments_as_text = self.map_attachments_as_text(message)
         if attachments_as_text:
             parts.append(f"📎 {attachments_as_text}")
-        self.sprint(f"Mapping message text: {parts}")
+        # self.sprint(f"Mapping message text: {parts}")
         return "\n\n".join(parts)
 
     def map_chat(self, message: Message) -> ChatConfigSave:
         chat = message.chat
-        self.sprint(f"Mapping chat: {chat}")
+        # self.sprint(f"Mapping chat: {chat}")
         title = self.resolve_chat_name(str(chat.id), chat.title, chat.username, chat.first_name, chat.last_name)
         return ChatConfigSave(
             chat_id = str(chat.id),
@@ -107,6 +108,7 @@ class TelegramDomainMapper(SafePrinterMixin):
             is_private = chat.type == "private",
         )
 
+    # noinspection PyMethodMayBeStatic
     def resolve_chat_name(
         self,
         chat_id: str,
@@ -128,7 +130,7 @@ class TelegramDomainMapper(SafePrinterMixin):
         if username:
             parts.append(f"@{username}")
         result = " · ".join(parts) if parts else f"#{chat_id}"
-        self.sprint(f"Resolved chat name {result}")
+        # self.sprint(f"Resolved chat name {result}")
         return result
 
     def map_attachments_as_text(self, message: Message) -> str | None:
@@ -139,13 +141,13 @@ class TelegramDomainMapper(SafePrinterMixin):
             f"{attachment.id} ({attachment.mime_type})" if attachment.mime_type else f"{attachment.id}"
             for attachment in attachments
         ]
-        self.sprint(f"Mapping attachments: {formatted_attachments}")
+        # self.sprint(f"Mapping attachments: {formatted_attachments}")
         return f"[ {', '.join(formatted_attachments)} ]"
 
     def map_attachments(self, message: Message) -> List[ChatMessageAttachmentSave]:
         attachments: List[ChatMessageAttachmentSave] = []
         if message.audio:
-            self.sprint(f"Mapping audio: {message.audio}")
+            # self.sprint(f"Mapping audio: {message.audio}")
             dummy_file = File(
                 file_id = message.audio.file_id,
                 file_unique_id = message.audio.file_unique_id,
@@ -160,7 +162,7 @@ class TelegramDomainMapper(SafePrinterMixin):
                 )
             )
         if message.document:
-            self.sprint(f"Mapping document: {message.document}")
+            # self.sprint(f"Mapping document: {message.document}")
             dummy_file = File(
                 file_id = message.document.file_id,
                 file_unique_id = message.document.file_unique_id,
@@ -176,7 +178,7 @@ class TelegramDomainMapper(SafePrinterMixin):
             )
         if message.photo:
             largest_photo = max(message.photo, key = lambda size: size.width * size.height)
-            self.sprint(f"Mapping photo: {largest_photo}")
+            # self.sprint(f"Mapping photo: {largest_photo}")
             dummy_file = File(
                 file_id = largest_photo.file_id,
                 file_unique_id = largest_photo.file_unique_id,
@@ -191,7 +193,7 @@ class TelegramDomainMapper(SafePrinterMixin):
                 )
             )
         if message.voice:
-            self.sprint(f"Mapping voice: {message.voice}")
+            # self.sprint(f"Mapping voice: {message.voice}")
             dummy_file = File(
                 file_id = message.voice.file_id,
                 file_unique_id = message.voice.file_unique_id,
@@ -207,6 +209,7 @@ class TelegramDomainMapper(SafePrinterMixin):
             )
         return attachments
 
+    # noinspection PyMethodMayBeStatic
     def map_to_attachment(
         self,
         file: File,
@@ -214,7 +217,7 @@ class TelegramDomainMapper(SafePrinterMixin):
         message_id: str,
         mime_type: str | None,
     ) -> ChatMessageAttachmentSave:
-        self.sprint(f"Creating attachment from file: {file}")
+        # self.sprint(f"Creating attachment from file: {file}")
         last_url = f"{config.telegram_api_base_url}/file/bot{config.telegram_bot_token}/{file.file_path}"
         return ChatMessageAttachmentSave(
             id = file.file_id,

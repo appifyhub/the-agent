@@ -19,14 +19,14 @@ class DomainLangchainMapper(SafePrinterMixin):
         super().__init__(config.verbose)
 
     def map_to_langchain(self, author: User | None, message: ChatMessage) -> HumanMessage | AIMessage:
-        self.sprint(f"Mapping {message} by {author} to Langchain message")
+        # self.sprint(f"Mapping {message} by {author} to Langchain message")
         content = self.__map_stored_message_text(author, message)
         if not author or is_the_agent(author):
             return AIMessage(content)
         return HumanMessage(content)
 
     def map_bot_message_to_storage(self, chat_id: str, message: AIMessage) -> list[ChatMessageSave]:
-        self.sprint(f"Mapping AI message '{message}' to storage message")
+        # self.sprint(f"Mapping AI message '{message}' to storage message")
         result: list[ChatMessageSave] = []
         content = self.__map_bot_message_text(message)
         parts = content.split(MULTI_MESSAGE_DELIMITER)
@@ -44,6 +44,7 @@ class DomainLangchainMapper(SafePrinterMixin):
             result.append(storage_message)
         return result
 
+    # noinspection PyMethodMayBeStatic
     def __map_stored_message_text(self, author: User | None, message: ChatMessage) -> str:
         parts = []
         if author:
@@ -58,12 +59,12 @@ class DomainLangchainMapper(SafePrinterMixin):
                 name_tag = " ".join(name_parts)
                 parts.append(f"{name_tag}:")
         parts.append(message.text)
-        self.sprint(f"Mapped message parts: {parts}, joining...")
+        # self.sprint(f"Mapped message parts: {parts}, joining...")
         return "\n".join(parts)
 
+    # noinspection PyMethodMayBeStatic
     def __map_bot_message_text(self, message: AIMessage) -> str:
-        self.sprint(f"Mapping AI message {message}")
-
+        # self.sprint(f"Mapping AI message {message}")
         def pretty_print(raw_dict):
             return "\n".join(f"{key}: {value}" for key, value in raw_dict.items())
 
