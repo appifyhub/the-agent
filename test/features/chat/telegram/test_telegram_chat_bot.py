@@ -12,6 +12,7 @@ from db.schema.chat_config import ChatConfig
 from db.schema.user import User
 from features.chat.command_processor import CommandProcessor
 from features.chat.telegram.telegram_chat_bot import TelegramChatBot
+from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
 from features.chat.tools.tools_library import ToolsLibrary
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 
@@ -20,6 +21,7 @@ class TelegramChatBotTest(unittest.TestCase):
     user: User
     chat_config: ChatConfig
     command_processor_mock: CommandProcessor
+    progress_notifier_mock: TelegramProgressNotifier
     tools_library_mock: ToolsLibrary
     llm_base_mock: BaseChatModel
     llm_tools_mock: Runnable
@@ -45,6 +47,7 @@ class TelegramChatBotTest(unittest.TestCase):
             reply_chance_percent = 50,
         )
         self.command_processor_mock = Mock(spec = CommandProcessor)
+        self.progress_notifier_mock = Mock(spec = TelegramProgressNotifier)
         self.tools_library_mock = Mock(spec = ToolsLibrary)
         self.llm_base_mock = Mock(spec = BaseChatModel)
         self.llm_tools_mock = Mock(spec = Runnable)
@@ -55,6 +58,7 @@ class TelegramChatBotTest(unittest.TestCase):
             [HumanMessage("Test message")],
             "Test message",
             self.command_processor_mock,
+            self.progress_notifier_mock,
         )
         self.bot._TelegramChatBot__tools_library = self.tools_library_mock
         self.bot._TelegramChatBot__llm_base = self.llm_base_mock

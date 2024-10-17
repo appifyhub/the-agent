@@ -8,8 +8,9 @@ from langchain_openai import ChatOpenAI
 
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
-from features.chat.tools.tools_library import ToolsLibrary
 from features.chat.command_processor import CommandProcessor
+from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
+from features.chat.tools.tools_library import ToolsLibrary
 from features.prompting import prompt_library
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config
@@ -30,6 +31,7 @@ class TelegramChatBot(SafePrinterMixin):
     __messages: list[BaseMessage]
     __raw_last_message: str
     __command_processor: CommandProcessor
+    __progress_notifier: TelegramProgressNotifier
     __llm_base: BaseChatModel
     __llm_tools: TooledChatModel
 
@@ -40,6 +42,7 @@ class TelegramChatBot(SafePrinterMixin):
         messages: list[BaseMessage],
         raw_last_message: str,
         command_processor: CommandProcessor,
+        progress_notifier: TelegramProgressNotifier,
     ):
         super().__init__(config.verbose)
         self.__chat = chat
@@ -64,6 +67,7 @@ class TelegramChatBot(SafePrinterMixin):
         self.__messages.extend(messages)
         self.__raw_last_message = raw_last_message
         self.__command_processor = command_processor
+        self.__progress_notifier = progress_notifier
         # noinspection PyArgumentList
         self.__llm_base = ChatOpenAI(
             model = OPEN_AI_MODEL,
@@ -98,6 +102,7 @@ class TelegramChatBot(SafePrinterMixin):
         # main flow: process the messages using LLM AI
         try:
             iteration = 1
+            self.__progress_notifier.start()
             while True:
                 answer = self.__add_message(self.__llm_tools.invoke(self.__messages))
                 # noinspection Pydantic
@@ -129,6 +134,8 @@ class TelegramChatBot(SafePrinterMixin):
             self.sprint("Chat completion failed", e)
             text = prompt_library.error_general_problem(str(e))
             return AIMessage(text)
+        finally:
+            self.__progress_notifier.stop()
 
     def process_commands(self) -> Tuple[AIMessage, CommandProcessor.Result]:
         if not self.__invoker.open_ai_key:

@@ -12,6 +12,7 @@ from features.chat.telegram.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.telegram_chat_bot import TelegramChatBot
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
+from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
 from features.prompting import prompt_library
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config
@@ -22,7 +23,7 @@ from util.safe_printer_mixin import sprint
 def respond_to_update(
     user_dao: UserCRUD,
     invite_manager: InviteManager,
-    chat_messages_dao: ChatMessageCRUD,
+    chat_message_dao: ChatMessageCRUD,
     telegram_domain_mapper: TelegramDomainMapper,
     telegram_data_resolver: TelegramDataResolver,
     domain_langchain_mapper: DomainLangchainMapper,
@@ -42,10 +43,10 @@ def respond_to_update(
 
         # store and map to domain models (throws in case of error)
         resolved_domain_data = telegram_data_resolver.resolve(domain_update)
-        sprint(f"Imported updates from Telegram: {resolved_domain_data}")
+        # sprint(f"Imported updates from Telegram: {resolved_domain_data}")
 
         # fetch latest messages to prepare a response
-        past_messages_db = chat_messages_dao.get_latest_chat_messages(
+        past_messages_db = chat_message_dao.get_latest_chat_messages(
             chat_id = resolved_domain_data.chat.chat_id,
             limit = config.chat_history_depth,
         )
@@ -58,12 +59,20 @@ def respond_to_update(
             sprint("Not responding to messages without author")
             return False
         command_processor = CommandProcessor(resolved_domain_data.author, user_dao, invite_manager)
+        progress_notifier = TelegramProgressNotifier(
+            resolved_domain_data.chat,
+            domain_update.message.message_id,
+            telegram_bot_api,
+            chat_message_dao,
+            auto_start = False,
+        )
         telegram_chat_bot = TelegramChatBot(
             resolved_domain_data.chat,
             resolved_domain_data.author,
             langchain_messages,
-            domain_update.message.text,
+            domain_update.message.text,  # excluding the resolver formatting
             command_processor,
+            progress_notifier,
         )
         answer = telegram_chat_bot.execute()
         if not answer.content:
@@ -80,14 +89,14 @@ def respond_to_update(
         for message in domain_messages:
             telegram_bot_api.send_text_message(message.chat_id, message.text)
             sent_messages += 1
-            chat_messages_dao.save(message)
+            chat_message_dao.save(message)
             saved_messages += 1
         sprint(f"Finished responding to updates. \n[{TELEGRAM_BOT_USER.full_name}]: {answer.content}")
         sprint(f"Used {len(past_messages_db)}, saved {saved_messages}, sent {sent_messages} messages")
         return True
     except Exception as e:
         sprint(f"Failed to ingest: {update}", e)
-        __notify_of_errors(chat_messages_dao, domain_langchain_mapper, telegram_bot_api, resolved_domain_data, e)
+        __notify_of_errors(chat_message_dao, domain_langchain_mapper, telegram_bot_api, resolved_domain_data, e)
         return False
 
 
