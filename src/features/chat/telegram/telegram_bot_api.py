@@ -96,3 +96,35 @@ class TelegramBotAPI(SafePrinterMixin):
         response = requests.post(url, json = payload, timeout = config.web_timeout_s)
         response.raise_for_status()
         return response.json()
+
+    def set_status_typing(self, chat_id: int | str):
+        url = f"{self.__bot_api_url}/sendChatAction"
+        payload = {
+            "chat_id": chat_id,
+            "action": "typing",
+        }
+        response = requests.post(url, json = payload, timeout = config.web_timeout_s)
+        response.raise_for_status()
+        return response.json()
+
+    def set_status_uploading_image(self, chat_id: int | str):
+        url = f"{self.__bot_api_url}/sendChatAction"
+        payload = {
+            "chat_id": chat_id,
+            "action": "upload_photo",
+        }
+        response = requests.post(url, json = payload, timeout = config.web_timeout_s)
+        response.raise_for_status()
+        return response.json()
+
+    def set_reaction(self, chat_id: int | str, message_id: int | str, reaction: str | None):
+        url = f"{self.__bot_api_url}/setMessageReaction"
+        reactions_list = [{"type": "emoji", "emoji": reaction}] if reaction else []
+        payload = {
+            "chat_id": chat_id,
+            "message_id": message_id,
+            "reaction": reactions_list,
+        }
+        response = requests.post(url, json = payload, timeout = config.web_timeout_s)
+        response.raise_for_status()
+        return response.json()

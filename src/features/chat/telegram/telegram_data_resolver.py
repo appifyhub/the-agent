@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import List
 
 from pydantic import BaseModel
@@ -45,7 +44,7 @@ class TelegramDataResolver(SafePrinterMixin):
         self.__bot_api = api
 
     def resolve(self, mapping_result: TelegramDomainMapper.Result) -> Result:
-        self.sprint(f"Resolving mapping result: {mapping_result}")
+        # self.sprint(f"Resolving mapping result: {mapping_result}")
         resolved_chat_config = self.resolve_chat_config(mapping_result.chat)
         resolved_author: User | None = None
         if mapping_result.author:
@@ -65,7 +64,7 @@ class TelegramDataResolver(SafePrinterMixin):
         )
 
     def resolve_chat_config(self, mapped_data: ChatConfigSave) -> ChatConfig:
-        self.sprint(f"Resolving chat config: {mapped_data}")
+        # self.sprint(f"Resolving chat config: {mapped_data}")
         db = ChatConfigCRUD(self.__session)
         old_chat_config_db = db.get(mapped_data.chat_id)
         if old_chat_config_db:
@@ -80,7 +79,7 @@ class TelegramDataResolver(SafePrinterMixin):
     def resolve_author(self, mapped_data: UserSave | None) -> User | None:
         if not mapped_data:
             return None
-        self.sprint(f"Resolving user: {mapped_data}")
+        # self.sprint(f"Resolving user: {mapped_data}")
         db = UserCRUD(self.__session)
         old_user_db = (
             db.get_by_telegram_user_id(mapped_data.telegram_user_id) or
@@ -103,7 +102,7 @@ class TelegramDataResolver(SafePrinterMixin):
         return User.model_validate(db.save(mapped_data))
 
     def resolve_chat_message(self, mapped_data: ChatMessageSave) -> ChatMessage:
-        self.sprint(f"Resolving chat message: {mapped_data}")
+        # self.sprint(f"Resolving chat message: {mapped_data}")
         db = ChatMessageCRUD(self.__session)
         old_chat_message_db = db.get(mapped_data.chat_id, mapped_data.message_id)
         if old_chat_message_db:
@@ -114,7 +113,7 @@ class TelegramDataResolver(SafePrinterMixin):
         return ChatMessage.model_validate(db.save(mapped_data))
 
     def resolve_chat_message_attachment(self, mapped_data: ChatMessageAttachmentSave) -> ChatMessageAttachment:
-        self.sprint(f"Resolving chat message attachment: {mapped_data}")
+        # self.sprint(f"Resolving chat message attachment: {mapped_data}")
         db = ChatMessageAttachmentCRUD(self.__session)
         old_attachment_db = db.get(mapped_data.id)
         if old_attachment_db:
@@ -125,18 +124,18 @@ class TelegramDataResolver(SafePrinterMixin):
             mapped_data.last_url_until = mapped_data.last_url_until or old_attachment.last_url_until
             mapped_data.extension = mapped_data.extension or old_attachment.extension
             mapped_data.mime_type = mapped_data.mime_type or old_attachment.mime_type
-        is_updated = self.update_attachment_using_api(mapped_data)
-        self.sprint(f"Is attachment updated via API? {is_updated}")
+        _ = self.update_attachment_using_api(mapped_data)  # _ was 'is_updated'
+        # self.sprint(f"Is attachment updated via API? {is_updated}")
         return ChatMessageAttachment.model_validate(db.save(mapped_data))
 
     def update_attachment_using_api(self, attachment: ChatMessageAttachmentSave) -> bool:
         if not attachment.has_stale_data:
             return False
-        self.sprint(f"Updating attachment using API data. URL is now {attachment.last_url}")
-        self.sprint(
-            f"\tExpires {"<unset>" if not attachment.last_url_until
-            else f"at {datetime.fromtimestamp(attachment.last_url_until)}"}"
-        )
+        # self.sprint(f"Updating attachment using API data. URL is now {attachment.last_url}")
+        # self.sprint(
+        #     f"\tExpires {"<unset>" if not attachment.last_url_until
+        #     else f"at {datetime.fromtimestamp(attachment.last_url_until)}"}"
+        # )
 
         api_file = self.__bot_api.get_file_info(attachment.id)
         extension: str | None = None
@@ -156,7 +155,7 @@ class TelegramDataResolver(SafePrinterMixin):
                 if attachment.mime_type:
                     extension = first_key_with_value(KNOWN_FILE_FORMATS, attachment.mime_type)
 
-        self.sprint(f"Resolved:\n\textension '.{extension}'\n\tmime-type '{mime_type}'")
+        # self.sprint(f"Resolved:\n\textension '.{extension}'\n\tmime-type '{mime_type}'")
         attachment.size = api_file.file_size
         attachment.last_url = last_url
         attachment.last_url_until = last_url_until
