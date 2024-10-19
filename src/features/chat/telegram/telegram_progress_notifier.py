@@ -181,7 +181,7 @@ class TelegramProgressNotifier(SafePrinterMixin):
             text_update = f"""
                 [To the user, your buddy]
                 Your requested operation is in it's work cycle number-{self.__total_cycles}.
-                You've been waiting {elapse_time_text} already, and I know - it really sucks.
+                You've been waiting {elapse_time_text} already, and I know mate - it really sucks.
                 I hope your request won't take much longer to complete. I apologize.
                 Wait a while longer and I'll get back to you!
             """.strip()
