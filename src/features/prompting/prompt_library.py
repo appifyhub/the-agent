@@ -471,6 +471,31 @@ support_request_title_generator: str = (
     )
 ).build()
 
+emotion_resolver: str = (
+    __base
+    .add_section(
+        PromptSection.context,
+        __join(
+            "You're an advanced AI companion capable of many things. You monitor our simulation.",
+            "You are inferring the emotion from the user's given request.",
+            "You must use the provided messages to create a short output that fits well emotionally.",
+            "Use only the context provided and do not add any new information.",
+            "Do not converse or reply to the message, you are only generating a single emotion.",
+        )
+    )
+    .add_section(
+        PromptSection.format,
+        __join(
+            "Be meticulous and precise in your approach. Use simple, clear words, and keep it really short.",
+            "The emotion generated must be in English and lowercase, regardless of the input language.",
+            "For example, if the user says \"Ich möchte, dass dieser Aufkleber wütend aussieht\",",
+            "you should generate the word 'angry' and nothing else.",
+            "The context of this word is to describe a person or their facial expression.",
+            "When emotion is unclear or not present, you should default to 'neutral'.",
+        )
+    )
+).build()
+
 
 def document_search_copywriter(search_query: str | None = None) -> str:
     context_info = (

@@ -16,6 +16,7 @@ from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.images.image_background_remover import ImageBackgroundRemover
 from features.images.image_background_replacer import ImageBackgroundReplacer
 from features.images.image_contents_restorer import ImageContentsRestorer
+from features.images.stickerizer import Stickerizer
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
@@ -30,6 +31,7 @@ class ImageEditManager(SafePrinterMixin):
         remove_background = "remove-background"
         replace_background = "replace-background"
         restore_image = "restore-image"
+        stickerize = "stickerize"
 
         @staticmethod
         def values():
@@ -110,6 +112,35 @@ class ImageEditManager(SafePrinterMixin):
                 result = ImageEditManager.Result.partial
         if not urls:
             self.sprint("Failed to remove background from all images")
+            result = ImageEditManager.Result.failed
+        return result, urls
+
+    def __stickerize(self) -> tuple[Result, list[str]]:
+        self.sprint(f"Stickerizing {len(self.__attachments)} images")
+        result = ImageEditManager.Result.success
+        urls: list[str] = []
+        for attachment in self.__attachments:
+            try:
+                stickerizer = Stickerizer(
+                    image_url = attachment.last_url,
+                    mime_type = attachment.mime_type,
+                    face_name = self.__invoker_user.full_name,
+                    operation_guidance = self.__operation_guidance,
+                    replicate_api_key = config.replicate_api_token,
+                    anthropic_api_key = config.anthropic_token,
+                )
+                image_url = stickerizer.execute()
+                if not image_url:
+                    self.sprint(f"Failed to stickerize attachment '{attachment.id}'")
+                    result = ImageEditManager.Result.partial
+                    continue
+                self.sprint(f"Stickerized attachment '{attachment.id}'")
+                urls.append(image_url)
+            except Exception as e:
+                self.sprint(f"Failed to stickerize attachment '{attachment.id}'", e)
+                result = ImageEditManager.Result.partial
+        if not urls:
+            self.sprint("Failed to stickerize all images")
             result = ImageEditManager.Result.failed
         return result, urls
 
@@ -209,6 +240,18 @@ class ImageEditManager(SafePrinterMixin):
                 self.__store_bot_message(result_json)
                 self.sprint("Backgrounds replaced and images sent successfully")
             return result, {"image_backgrounds_replaced": len(urls)}
+
+        elif self.__operation == ImageEditManager.Operation.stickerize:
+            result, urls = self.__stickerize()
+            for image_url in urls:
+                self.sprint(f"Sending stickerized image to chat '{self.__chat_id}'")
+                result_json = self.__bot_api.send_document(self.__chat_id, image_url, thumbnail = image_url)
+                if not result_json:
+                    raise ValueError("No response from Telegram API")
+                self.__store_bot_message(result_json)
+                self.sprint("Image stickerized and sent successfully")
+            return result, {"images_stickerized": len(urls)}
+
         else:
             raise ValueError(f"Unknown operation '{self.__operation.value}'")
 
