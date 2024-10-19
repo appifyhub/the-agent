@@ -1,6 +1,8 @@
+import json
 import re
 
 import requests
+from requests import Response, RequestException
 
 from features.chat.telegram.model.attachment.file import File
 from util.config import config
@@ -19,7 +21,7 @@ class TelegramBotAPI(SafePrinterMixin):
         self.sprint(f"Getting file info for file_id: {file_id}")
         url = f"{self.__bot_api_url}/getFile"
         response = requests.get(url, params = {"file_id": file_id})
-        response.raise_for_status()
+        self.__raise_for_status(response)
         return File(**response.json()["result"])
 
     def send_text_message(
@@ -47,7 +49,7 @@ class TelegramBotAPI(SafePrinterMixin):
             "link_preview_options": link_preview_options,
         }
         response = requests.post(url, json = payload, timeout = config.web_timeout_s)
-        response.raise_for_status()
+        self.__raise_for_status(response)
         return response.json()
 
     def send_photo(
@@ -69,7 +71,7 @@ class TelegramBotAPI(SafePrinterMixin):
             payload["caption"] = re.sub(r'(?<!\b)_(?!\b)', r'\\_', caption)
             payload["parse_mode"] = parse_mode
         response = requests.post(url, json = payload, timeout = config.web_timeout_s)
-        response.raise_for_status()
+        self.__raise_for_status(response)
         return response.json()
 
     def send_document(
@@ -94,7 +96,7 @@ class TelegramBotAPI(SafePrinterMixin):
             payload["caption"] = re.sub(r'(?<!\b)_(?!\b)', r'\\_', caption)
             payload["parse_mode"] = parse_mode
         response = requests.post(url, json = payload, timeout = config.web_timeout_s)
-        response.raise_for_status()
+        self.__raise_for_status(response)
         return response.json()
 
     def set_status_typing(self, chat_id: int | str):
@@ -104,7 +106,7 @@ class TelegramBotAPI(SafePrinterMixin):
             "action": "typing",
         }
         response = requests.post(url, json = payload, timeout = config.web_timeout_s)
-        response.raise_for_status()
+        self.__raise_for_status(response)
         return response.json()
 
     def set_status_uploading_image(self, chat_id: int | str):
@@ -114,7 +116,7 @@ class TelegramBotAPI(SafePrinterMixin):
             "action": "upload_photo",
         }
         response = requests.post(url, json = payload, timeout = config.web_timeout_s)
-        response.raise_for_status()
+        self.__raise_for_status(response)
         return response.json()
 
     def set_reaction(self, chat_id: int | str, message_id: int | str, reaction: str | None):
@@ -126,5 +128,16 @@ class TelegramBotAPI(SafePrinterMixin):
             "reaction": reactions_list,
         }
         response = requests.post(url, json = payload, timeout = config.web_timeout_s)
-        response.raise_for_status()
+        print(json.dumps(response.json(), indent = 2))
+        self.__raise_for_status(response)
         return response.json()
+
+    def __raise_for_status(self, response: Response | None):
+        if not response:
+            message = "No response received"
+            self.sprint(f"  {message}")
+            raise RequestException(message)
+        if response.status_code != 200:
+            self.sprint(f"  Status is not '200': HTTP_{response.status_code}!")
+            self.sprint(json.dumps(response.json(), indent = 2))
+            response.raise_for_status()

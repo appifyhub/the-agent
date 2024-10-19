@@ -154,6 +154,7 @@ class TelegramChatBot(SafePrinterMixin):
 
     def should_reply(self) -> bool:
         has_content = bool(self.__raw_last_message.strip())
+        is_not_recursive = self.__invoker.id.hex != TELEGRAM_BOT_USER.id.hex
         is_bot_mentioned = f"@{TELEGRAM_BOT_USER.telegram_username}" in self.__raw_last_message
         if self.__chat.reply_chance_percent == 100:
             should_reply_at_random = True
@@ -161,13 +162,18 @@ class TelegramChatBot(SafePrinterMixin):
             should_reply_at_random = False
         else:
             should_reply_at_random = random.randint(0, 100) <= self.__chat.reply_chance_percent
-        should_reply = has_content and (self.__chat.is_private or is_bot_mentioned or should_reply_at_random)
+        should_reply = (
+            has_content and
+            is_not_recursive and
+            (self.__chat.is_private or is_bot_mentioned or should_reply_at_random)
+        )
         self.sprint(
             f"Reply decision: {"REPLY" if should_reply else "NO REPLY"}. Conditions:\n"
-            f"  has_content      = {has_content}\n"
-            f"  is_private_chat  = {self.__chat.is_private}\n"
-            f"  is_bot_mentioned = {is_bot_mentioned}\n"
-            f"  reply_at_random  = {should_reply_at_random}\n"
-            f"  reply_chance     = {self.__chat.reply_chance_percent}%"
+            f"  · has_content      = {has_content}\n"
+            f"  · is_not_recursive = {is_not_recursive}\n"
+            f"  · is_private_chat  = {self.__chat.is_private}\n"
+            f"  · is_bot_mentioned = {is_bot_mentioned}\n"
+            f"  · reply_at_random  = {should_reply_at_random}\n"
+            f"  · reply_chance     = {self.__chat.reply_chance_percent}%"
         )
         return should_reply
