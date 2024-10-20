@@ -147,6 +147,24 @@ class TelegramChatBotTest(unittest.TestCase):
 
         self.assertTrue(self.bot.should_reply())
 
+    # noinspection PyUnresolvedReferences
+    def test_should_not_reply_to_self(self):
+        self.chat_config.is_private = False
+        self.chat_config.reply_chance_percent = 100
+        self.bot._TelegramChatBot__raw_last_message = "Hello"
+        self.bot._TelegramChatBot__invoker.telegram_username = TELEGRAM_BOT_USER.telegram_username
+
+        self.assertFalse(self.bot.should_reply())
+
+    # noinspection PyUnresolvedReferences
+    def test_should_reply_to_other_user(self):
+        self.chat_config.is_private = False
+        self.chat_config.reply_chance_percent = 100
+        self.bot._TelegramChatBot__raw_last_message = "Hello"
+        self.bot._TelegramChatBot__invoker.telegram_username = "other_user"
+
+        self.assertTrue(self.bot.should_reply())
+
     @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.should_reply")
     def test_execute_no_reply_needed(self, mock_should_reply):
         mock_should_reply.return_value = False
