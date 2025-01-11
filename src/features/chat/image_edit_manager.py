@@ -1,4 +1,3 @@
-from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
@@ -7,12 +6,8 @@ from db.crud.user import UserCRUD
 from db.model.user import UserDB
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.user import User
-from features.chat.attachments_content_resolver import AttachmentsContentResolver
-from features.chat.telegram.model.message import Message
-from features.chat.telegram.model.update import Update
-from features.chat.telegram.telegram_bot_api import TelegramBotAPI
-from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
-from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from features.chat.telegram.sdk.telegram_bot_sdk_utils import TelegramBotSDKUtils
 from features.images.image_background_remover import ImageBackgroundRemover
 from features.images.image_background_replacer import ImageBackgroundReplacer
 from features.images.image_contents_restorer import ImageContentsRestorer
@@ -48,7 +43,7 @@ class ImageEditManager(SafePrinterMixin):
     __attachments: list[ChatMessageAttachment]
     __operation: Operation
     __operation_guidance: str | None
-    __bot_api: TelegramBotAPI
+    __bot_sdk: TelegramBotSDK
     __invoker_user: User
     __user_dao: UserCRUD
     __chat_message_attachment_dao: ChatMessageAttachmentCRUD
@@ -59,7 +54,7 @@ class ImageEditManager(SafePrinterMixin):
         attachment_ids: list[str],
         invoker_user_id_hex: str,
         operation_name: str,
-        bot_api: TelegramBotAPI,
+        bot_sdk: TelegramBotSDK,
         user_dao: UserCRUD,
         chat_message_attachment_dao: ChatMessageAttachmentCRUD,
         operation_guidance: str | None = None,
@@ -68,12 +63,14 @@ class ImageEditManager(SafePrinterMixin):
         self.__chat_id = chat_id
         self.__operation = ImageEditManager.Operation.resolve(operation_name)
         self.__operation_guidance = operation_guidance
-        self.__bot_api = bot_api
+        self.__bot_sdk = bot_sdk
         self.__user_dao = user_dao
         self.__chat_message_attachment_dao = chat_message_attachment_dao
         self.__validate(invoker_user_id_hex)
-        self.__attachments = AttachmentsContentResolver.refresh_attachment_files(
-            attachment_ids, chat_message_attachment_dao, bot_api,
+        self.__attachments = TelegramBotSDKUtils.refresh_attachments(
+            sources = attachment_ids,
+            bot_api = bot_sdk.api,
+            chat_message_attachment_dao = chat_message_attachment_dao,
         )
 
     def __validate(self, invoker_user_id_hex: str):
@@ -212,10 +209,7 @@ class ImageEditManager(SafePrinterMixin):
             result, urls = self.__remove_background()
             for image_url in urls:
                 self.sprint(f"Sending edited image to chat '{self.__chat_id}'")
-                result_json = self.__bot_api.send_document(self.__chat_id, image_url, thumbnail = image_url)
-                if not result_json:
-                    raise ValueError("No response from Telegram API")
-                self.__store_bot_message(result_json)
+                self.__bot_sdk.send_document(self.__chat_id, image_url, thumbnail = image_url)
                 self.sprint("Image edited and sent successfully")
             return result, {"image_backgrounds_removed": len(urls)}
 
@@ -223,10 +217,7 @@ class ImageEditManager(SafePrinterMixin):
             result, urls = self.__restore_image()
             for image_url in urls:
                 self.sprint(f"Sending restored image to chat '{self.__chat_id}': {image_url}")
-                result_json = self.__bot_api.send_document(self.__chat_id, image_url, thumbnail = image_url)
-                if not result_json:
-                    raise ValueError("No response from Telegram API")
-                self.__store_bot_message(result_json)
+                self.__bot_sdk.send_document(self.__chat_id, image_url, thumbnail = image_url)
                 self.sprint("Image restored and sent successfully")
             return result, {"images_restored": len(urls)}
 
@@ -234,10 +225,7 @@ class ImageEditManager(SafePrinterMixin):
             result, urls = self.__replace_background()
             for image_url in urls:
                 self.sprint(f"Sending images with replaced backgrounds to chat '{self.__chat_id}'")
-                result_json = self.__bot_api.send_document(self.__chat_id, image_url, thumbnail = image_url)
-                if not result_json:
-                    raise ValueError("No response from Telegram API")
-                self.__store_bot_message(result_json)
+                self.__bot_sdk.send_document(self.__chat_id, image_url, thumbnail = image_url)
                 self.sprint("Backgrounds replaced and images sent successfully")
             return result, {"image_backgrounds_replaced": len(urls)}
 
@@ -245,25 +233,9 @@ class ImageEditManager(SafePrinterMixin):
             result, urls = self.__stickerize()
             for image_url in urls:
                 self.sprint(f"Sending stickerized image to chat '{self.__chat_id}'")
-                result_json = self.__bot_api.send_document(self.__chat_id, image_url, thumbnail = image_url)
-                if not result_json:
-                    raise ValueError("No response from Telegram API")
-                self.__store_bot_message(result_json)
+                self.__bot_sdk.send_document(self.__chat_id, image_url, thumbnail = image_url)
                 self.sprint("Image stickerized and sent successfully")
             return result, {"images_stickerized": len(urls)}
 
         else:
             raise ValueError(f"Unknown operation '{self.__operation.value}'")
-
-    def __store_bot_message(self, api_result: dict):
-        self.sprint("Storing message data")
-        message = Message(**api_result["result"])
-        update = Update(update_id = datetime.now().second, message = message)
-        mapping_result = TelegramDomainMapper().map_update(update)
-        if not mapping_result:
-            raise ValueError("No mapping result from Telegram API")
-        # noinspection PyProtectedMember
-        resolver = TelegramDataResolver(self.__user_dao._db, self.__bot_api)
-        resolution_result = resolver.resolve(mapping_result)
-        if not resolution_result.message or not resolution_result.attachments:
-            raise ValueError("No resolution result from storing new data")

@@ -6,7 +6,8 @@ import requests
 
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.schema.tools_cache import ToolsCacheSave, ToolsCache
-from features.images.computer_vision_analyzer import ComputerVisionAnalyzer, KNOWN_IMAGE_FORMATS
+from features.chat.supported_files import KNOWN_IMAGE_FORMATS
+from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
