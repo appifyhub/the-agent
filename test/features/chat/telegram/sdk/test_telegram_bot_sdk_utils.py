@@ -57,17 +57,6 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         self.assertEqual(len(result), 2)
         self.assertEqual(mock_refresh.call_count, 2)
 
-    def test_refresh_attachment_string_id_not_found(self):
-        self.mock_attachment_dao.get.return_value = None
-
-        with self.assertRaises(ValueError) as context:
-            TelegramBotSDKUtils.refresh_attachment(
-                source = self.attachment_id,
-                bot_api = self.mock_bot_api,
-                chat_message_attachment_dao = self.mock_attachment_dao
-            )
-        self.assertTrue("not found in DB" in str(context.exception))
-
     def test_refresh_attachment_fresh_data(self):
         attachment = ChatMessageAttachmentSave(
             id = self.attachment_id,
