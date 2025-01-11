@@ -33,7 +33,8 @@ def respond_to_update(
     def map_to_langchain(message):
         return domain_langchain_mapper.map_to_langchain(user_dao.get(message.author_id), message)
 
-    sprint(f"Received a Telegram update: `{update}`")
+    if config.log_telegram_update:
+        sprint(f"Received a Telegram update: `{update}`")
 
     user_dao.save(TELEGRAM_BOT_USER)  # save is ignored if bot already exists
     resolved_domain_data: TelegramDataResolver.Result | None = None

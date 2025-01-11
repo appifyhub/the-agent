@@ -22,6 +22,7 @@ class ConfigTest(unittest.TestCase):
         config = Config()
 
         self.assertEqual(config.verbose, False)
+        self.assertEqual(config.log_telegram_update, False)
         self.assertEqual(config.web_retries, 3)
         self.assertEqual(config.web_retry_delay_s, 1)
         self.assertEqual(config.web_timeout_s, 10)
@@ -50,6 +51,7 @@ class ConfigTest(unittest.TestCase):
 
     def test_custom_config(self):
         os.environ["VERBOSE"] = "true"
+        os.environ["LOG_TG_UPDATE"] = "true"
         os.environ["WEB_RETRIES"] = "5"
         os.environ["WEB_RETRY_DELAY_S"] = "2"
         os.environ["WEB_TIMEOUT_S"] = "20"
@@ -82,6 +84,7 @@ class ConfigTest(unittest.TestCase):
         config = Config()
 
         self.assertEqual(config.verbose, True)
+        self.assertEqual(config.log_telegram_update, True)
         self.assertEqual(config.web_retries, 5)
         self.assertEqual(config.web_retry_delay_s, 2)
         self.assertEqual(config.web_timeout_s, 20)
