@@ -11,6 +11,8 @@ from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.tools_cache import ToolsCache
 from db.schema.user import User
 from features.chat.attachments_content_resolver import AttachmentsContentResolver, CACHE_TTL
+from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from util.config import config
 
 
@@ -26,7 +28,8 @@ class AttachmentsContentResolverTest(unittest.TestCase):
         self.mock_chat_config_crud = MagicMock()
         self.mock_chat_message_crud = MagicMock()
         self.mock_chat_message_attachment_crud = MagicMock()
-        self.mock_bot_api = MagicMock()
+        self.mock_bot_sdk = MagicMock(spec = TelegramBotSDK)
+        self.mock_bot_sdk.api = MagicMock(spec = TelegramBotAPI)
 
         self.cached_content = "resolved content"
         self.cache_entry = ToolsCache(
@@ -77,7 +80,7 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 invoker_user_id_hex = "00000000-0000-0000-0000-000000000001",
                 additional_context = "context",
                 attachment_ids = ["1"],
-                bot_api = self.mock_bot_api,
+                bot_sdk = self.mock_bot_sdk,
                 user_dao = self.mock_user_crud,
                 chat_config_dao = self.mock_chat_config_crud,
                 chat_message_dao = self.mock_chat_message_crud,
@@ -106,7 +109,7 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 invoker_user_id_hex = "00000000-0000-0000-0000-000000000001",
                 additional_context = "context",
                 attachment_ids = ["1"],
-                bot_api = self.mock_bot_api,
+                bot_sdk = self.mock_bot_sdk,
                 user_dao = self.mock_user_crud,
                 chat_config_dao = self.mock_chat_config_crud,
                 chat_message_dao = self.mock_chat_message_crud,
@@ -129,7 +132,7 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 invoker_user_id_hex = "00000000-0000-0000-0000-000000000001",
                 additional_context = "context",
                 attachment_ids = ["1"],
-                bot_api = self.mock_bot_api,
+                bot_sdk = self.mock_bot_sdk,
                 user_dao = self.mock_user_crud,
                 chat_config_dao = self.mock_chat_config_crud,
                 chat_message_dao = self.mock_chat_message_crud,
@@ -147,7 +150,7 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 invoker_user_id_hex = "00000000-0000-0000-0000-000000000001",
                 additional_context = "context",
                 attachment_ids = ["1"],
-                bot_api = self.mock_bot_api,
+                bot_sdk = self.mock_bot_sdk,
                 user_dao = self.mock_user_crud,
                 chat_config_dao = self.mock_chat_config_crud,
                 chat_message_dao = self.mock_chat_message_crud,
@@ -165,7 +168,7 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 invoker_user_id_hex = "00000000-0000-0000-0000-000000000001",
                 additional_context = "context",
                 attachment_ids = ["1"],
-                bot_api = self.mock_bot_api,
+                bot_sdk = self.mock_bot_sdk,
                 user_dao = self.mock_user_crud,
                 chat_config_dao = self.mock_chat_config_crud,
                 chat_message_dao = self.mock_chat_message_crud,
@@ -196,7 +199,7 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 invoker_user_id_hex = "00000000-0000-0000-0000-000000000001",
                 additional_context = "context",
                 attachment_ids = ["2"],
-                bot_api = self.mock_bot_api,
+                bot_sdk = self.mock_bot_sdk,
                 user_dao = self.mock_user_crud,
                 chat_config_dao = self.mock_chat_config_crud,
                 chat_message_dao = self.mock_chat_message_crud,
@@ -240,7 +243,7 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 invoker_user_id_hex = "00000000-0000-0000-0000-000000000001",
                 additional_context = "context",
                 attachment_ids = ["4"],
-                bot_api = self.mock_bot_api,
+                bot_sdk = self.mock_bot_sdk,
                 user_dao = self.mock_user_crud,
                 chat_config_dao = self.mock_chat_config_crud,
                 chat_message_dao = self.mock_chat_message_crud,
@@ -276,7 +279,7 @@ class AttachmentsContentResolverTest(unittest.TestCase):
             invoker_user_id_hex = "00000000-0000-0000-0000-000000000001",
             additional_context = "context",
             attachment_ids = ["3"],
-            bot_api = self.mock_bot_api,
+            bot_sdk = self.mock_bot_sdk,
             user_dao = self.mock_user_crud,
             chat_config_dao = self.mock_chat_config_crud,
             chat_message_dao = self.mock_chat_message_crud,

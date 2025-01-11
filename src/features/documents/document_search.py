@@ -11,11 +11,6 @@ from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
-# Based on popularity and support in model embeddings
-KNOWN_DOCS_FORMATS = {
-    "pdf": "application/pdf",
-}
-
 COPYWRITER_OPEN_AI_MODEL = "gpt-4o-mini"
 COPYWRITER_OPEN_AI_TEMPERATURE = 0.3
 COPYWRITER_OPEN_AI_MAX_TOKENS = 4096

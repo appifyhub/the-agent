@@ -14,7 +14,7 @@ from features.auth import verify_api_key
 from features.chat.invite_manager import InviteManager
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
 from features.chat.telegram.model.update import Update
-from features.chat.telegram.telegram_bot_api import TelegramBotAPI
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.chat.telegram.telegram_price_alert_responder import respond_with_announcements
@@ -61,17 +61,17 @@ def telegram_chat_update(
     update: Update,
     db = Depends(get_session),
 ) -> bool:
-    telegram_bot_api = TelegramBotAPI()
     user_dao = UserCRUD(db)
     invite_dao = InviteCRUD(db)
+    telegram_bot_sdk = TelegramBotSDK(db)
     return respond_to_update(
         user_dao = user_dao,
         invite_manager = InviteManager(user_dao, invite_dao),
         chat_message_dao = ChatMessageCRUD(db),
         telegram_domain_mapper = TelegramDomainMapper(),
-        telegram_data_resolver = TelegramDataResolver(db, telegram_bot_api),
+        telegram_data_resolver = TelegramDataResolver(db, telegram_bot_sdk.api),
         domain_langchain_mapper = DomainLangchainMapper(),
-        telegram_bot_api = telegram_bot_api,
+        telegram_bot_sdk = telegram_bot_sdk,
         update = update,
     )
 
@@ -84,10 +84,9 @@ def notify_of_price_alerts(
     return respond_with_announcements(
         user_dao = UserCRUD(db),
         chat_config_dao = ChatConfigCRUD(db),
-        chat_message_dao = ChatMessageCRUD(db),
         price_alert_dao = PriceAlertCRUD(db),
         tools_cache_dao = ToolsCacheCRUD(db),
-        telegram_bot_api = TelegramBotAPI(),
+        telegram_bot_sdk = TelegramBotSDK(db),
         translations = TranslationsCache(),
     )
 
@@ -100,8 +99,7 @@ def notify_of_release(
 ) -> dict:
     return respond_with_summary(
         chat_config_dao = ChatConfigCRUD(db),
-        chat_message_dao = ChatMessageCRUD(db),
-        telegram_bot_api = TelegramBotAPI(),
+        telegram_bot_sdk = TelegramBotSDK(db),
         translations = TranslationsCache(),
         payload = payload,
     )

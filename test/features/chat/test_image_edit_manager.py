@@ -9,9 +9,10 @@ from db.model.chat_message_attachment import ChatMessageAttachmentDB
 from db.model.user import UserDB
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.user import User
-from features.chat.attachments_content_resolver import AttachmentsContentResolver
 from features.chat.image_edit_manager import ImageEditManager
-from features.chat.telegram.telegram_bot_api import TelegramBotAPI
+from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from features.chat.telegram.sdk.telegram_bot_sdk_utils import TelegramBotSDKUtils
 from features.images.image_background_remover import ImageBackgroundRemover
 from features.images.image_contents_restorer import ImageContentsRestorer
 
@@ -23,7 +24,8 @@ class ImageEditManagerTest(unittest.TestCase):
         self.attachment_ids = ["attachment1", "attachment2"]
         self.invoker_user_id_hex = "123e4567-e89b-12d3-a456-426614174000"
         self.operation_name = "remove-background"
-        self.mock_bot_api = MagicMock(spec = TelegramBotAPI)
+        self.mock_bot_sdk = MagicMock(spec = TelegramBotSDK)
+        self.mock_bot_sdk.api = MagicMock(spec = TelegramBotAPI)
         self.mock_user_dao = MagicMock(spec = UserCRUD)
         self.mock_chat_message_attachment_dao = MagicMock(spec = ChatMessageAttachmentCRUD)
 
@@ -53,8 +55,8 @@ class ImageEditManagerTest(unittest.TestCase):
         self.mock_chat_message_attachment_dao.get.return_value = self.mock_attachment_db
         self.attachment = ChatMessageAttachment.model_validate(self.mock_attachment_db)
 
-        # Mock the refresh_attachment_files method
-        self.patcher = patch.object(AttachmentsContentResolver, 'refresh_attachment_files')
+        # Mock the refresh_attachments method
+        self.patcher = patch.object(TelegramBotSDKUtils, "refresh_attachments")
         self.mock_refresh = self.patcher.start()
         self.mock_refresh.return_value = [ChatMessageAttachment.model_validate(self.mock_attachment_db)]
 
@@ -62,13 +64,13 @@ class ImageEditManagerTest(unittest.TestCase):
         self.patcher.stop()
 
     def test_init_success(self):
-        with patch.object(AttachmentsContentResolver, "refresh_attachment_files", return_value = [self.attachment]):
+        with patch.object(TelegramBotSDKUtils, "refresh_attachments", return_value = [self.attachment]):
             manager = ImageEditManager(
                 self.chat_id,
                 self.attachment_ids,
                 self.invoker_user_id_hex,
                 self.operation_name,
-                self.mock_bot_api,
+                self.mock_bot_sdk,
                 self.mock_user_dao,
                 self.mock_chat_message_attachment_dao,
             )
@@ -82,7 +84,7 @@ class ImageEditManagerTest(unittest.TestCase):
                 self.attachment_ids,
                 self.invoker_user_id_hex,
                 self.operation_name,
-                self.mock_bot_api,
+                self.mock_bot_sdk,
                 self.mock_user_dao,
                 self.mock_chat_message_attachment_dao,
             )
@@ -96,7 +98,7 @@ class ImageEditManagerTest(unittest.TestCase):
                 self.attachment_ids,
                 self.invoker_user_id_hex,
                 self.operation_name,
-                self.mock_bot_api,
+                self.mock_bot_sdk,
                 self.mock_user_dao,
                 self.mock_chat_message_attachment_dao,
             )
@@ -108,41 +110,39 @@ class ImageEditManagerTest(unittest.TestCase):
                 self.attachment_ids,
                 self.invoker_user_id_hex,
                 "invalid-operation",
-                self.mock_bot_api,
+                self.mock_bot_sdk,
                 self.mock_user_dao,
                 self.mock_chat_message_attachment_dao,
             )
 
-    @patch.object(AttachmentsContentResolver, "refresh_attachment_files")
+    @patch.object(TelegramBotSDKUtils, "refresh_attachments")
     @patch.object(ImageBackgroundRemover, "execute")
     def test_execute_remove_background_partial(self, mock_remove_bg, mock_refresh):
         mock_refresh.return_value = [self.attachment, self.attachment]
         mock_remove_bg.side_effect = ["http://test.com/edited_image.png", None]
-        self.mock_bot_api.send_document.return_value = {"result": {"message_id": 123}}
+        self.mock_bot_sdk.send_document.return_value = {"result": {"message_id": 123}}
 
-        with patch.object(ImageEditManager, "_ImageEditManager__store_bot_message") as mock_store_message:
-            manager = ImageEditManager(
-                self.chat_id,
-                self.attachment_ids,
-                self.invoker_user_id_hex,
-                "remove-background",
-                self.mock_bot_api,
-                self.mock_user_dao,
-                self.mock_chat_message_attachment_dao,
-            )
-            result, stats = manager.execute()
+        manager = ImageEditManager(
+            self.chat_id,
+            self.attachment_ids,
+            self.invoker_user_id_hex,
+            "remove-background",
+            self.mock_bot_sdk,
+            self.mock_user_dao,
+            self.mock_chat_message_attachment_dao,
+        )
+        result, stats = manager.execute()
 
-            self.assertEqual(result, ImageEditManager.Result.partial)
-            self.assertEqual(stats, {"image_backgrounds_removed": 1})
-            self.assertEqual(mock_remove_bg.call_count, 2)
-            self.mock_bot_api.send_document.assert_called_once_with(
-                self.chat_id,
-                "http://test.com/edited_image.png",
-                thumbnail = "http://test.com/edited_image.png",
-            )
-            mock_store_message.assert_called_once()
+        self.assertEqual(result, ImageEditManager.Result.partial)
+        self.assertEqual(stats, {"image_backgrounds_removed": 1})
+        self.assertEqual(mock_remove_bg.call_count, 2)
+        self.mock_bot_sdk.send_document.assert_called_once_with(
+            self.chat_id,
+            "http://test.com/edited_image.png",
+            thumbnail = "http://test.com/edited_image.png",
+        )
 
-    @patch.object(AttachmentsContentResolver, "refresh_attachment_files")
+    @patch.object(TelegramBotSDKUtils, "refresh_attachments")
     @patch.object(ImageBackgroundRemover, "execute")
     def test_execute_remove_background_failed(self, mock_remove_bg, mock_refresh):
         mock_refresh.return_value = [self.attachment]
@@ -153,7 +153,7 @@ class ImageEditManagerTest(unittest.TestCase):
             self.attachment_ids,
             self.invoker_user_id_hex,
             "remove-background",
-            self.mock_bot_api,
+            self.mock_bot_sdk,
             self.mock_user_dao,
             self.mock_chat_message_attachment_dao,
         )
@@ -162,9 +162,9 @@ class ImageEditManagerTest(unittest.TestCase):
         self.assertEqual(result, ImageEditManager.Result.failed)
         self.assertEqual(stats, {"image_backgrounds_removed": 0})
         mock_remove_bg.assert_called_once()
-        self.mock_bot_api.send_document.assert_not_called()
+        self.mock_bot_sdk.send_document.assert_not_called()
 
-    @patch.object(AttachmentsContentResolver, "refresh_attachment_files")
+    @patch.object(TelegramBotSDKUtils, "refresh_attachments")
     @patch.object(ImageBackgroundRemover, "execute")
     def test_execute_remove_background_exception(self, mock_remove_bg, mock_refresh):
         mock_refresh.return_value = [self.attachment]
@@ -175,7 +175,7 @@ class ImageEditManagerTest(unittest.TestCase):
             self.attachment_ids,
             self.invoker_user_id_hex,
             "remove-background",
-            self.mock_bot_api,
+            self.mock_bot_sdk,
             self.mock_user_dao,
             self.mock_chat_message_attachment_dao,
         )
@@ -184,9 +184,9 @@ class ImageEditManagerTest(unittest.TestCase):
         self.assertEqual(result, ImageEditManager.Result.failed)
         self.assertEqual(stats, {"image_backgrounds_removed": 0})
         mock_remove_bg.assert_called_once()
-        self.mock_bot_api.send_document.assert_not_called()
+        self.mock_bot_sdk.send_document.assert_not_called()
 
-    @patch.object(AttachmentsContentResolver, "refresh_attachment_files")
+    @patch.object(TelegramBotSDKUtils, "refresh_attachments")
     def test_execute_unknown_operation(self, mock_refresh):
         mock_refresh.return_value = [self.attachment]
 
@@ -195,7 +195,7 @@ class ImageEditManagerTest(unittest.TestCase):
             self.attachment_ids,
             self.invoker_user_id_hex,
             "remove-background",  # This is set to a valid operation to pass initialization
-            self.mock_bot_api,
+            self.mock_bot_sdk,
             self.mock_user_dao,
             self.mock_chat_message_attachment_dao,
         )
@@ -206,82 +206,34 @@ class ImageEditManagerTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             manager.execute()
 
-    @patch("features.chat.image_edit_manager.TelegramDomainMapper")
-    @patch("features.chat.image_edit_manager.TelegramDataResolver")
-    def test_store_bot_message(self, mock_resolver_class, mock_mapper_class):
-        mock_mapper = MagicMock()
-        mock_mapper.map_update.return_value = {"mapped": "data"}
-        mock_mapper_class.return_value = mock_mapper
-
-        mock_resolver = MagicMock()
-        mock_resolver.resolve.return_value = MagicMock(message = "test_message", attachments = ["test_attachment"])
-        mock_resolver_class.return_value = mock_resolver
-
-        mock_db = MagicMock()
-        self.mock_user_dao._db = mock_db
+    @patch.object(TelegramBotSDKUtils, "refresh_attachments")
+    @patch.object(ImageBackgroundRemover, "execute")
+    def test_execute_remove_background_success(self, mock_remove_bg, mock_refresh):
+        mock_refresh.return_value = [self.attachment]
+        mock_remove_bg.return_value = "http://test.com/edited_image.png"
+        self.mock_bot_sdk.send_document.return_value = {"result": {"message_id": 123}}
 
         manager = ImageEditManager(
             self.chat_id,
             self.attachment_ids,
             self.invoker_user_id_hex,
-            self.operation_name,
-            self.mock_bot_api,
+            "remove-background",
+            self.mock_bot_sdk,
             self.mock_user_dao,
             self.mock_chat_message_attachment_dao,
         )
+        result, stats = manager.execute()
 
-        api_result = {
-            "result": {
-                "message_id": 123,
-                "from": {"id": 12345, "is_bot": True, "first_name": "TestBot", "username": "testbot"},
-                "chat": {
-                    "id": 67890, "type": "private", "username": "testuser", "first_name": "Test", "last_name": "User"
-                },
-                "date": int(datetime.now().timestamp()),
-                "document": {
-                    "file_id": "test_file_id",
-                    "file_unique_id": "test_unique_id",
-                    "file_size": 1234,
-                    "file_name": "test_document.png"
-                }
-            }
-        }
-        # noinspection PyUnresolvedReferences
-        manager._ImageEditManager__store_bot_message(api_result)
+        self.assertEqual(result, ImageEditManager.Result.success)
+        self.assertEqual(stats, {"image_backgrounds_removed": 1})
+        mock_remove_bg.assert_called_once()
+        self.mock_bot_sdk.send_document.assert_called_once_with(
+            self.chat_id,
+            "http://test.com/edited_image.png",
+            thumbnail = "http://test.com/edited_image.png",
+        )
 
-        mock_mapper.map_update.assert_called_once()
-        mock_resolver.resolve.assert_called_once_with({"mapped": "data"})
-
-    @patch.object(AttachmentsContentResolver, "refresh_attachment_files")
-    @patch.object(ImageBackgroundRemover, "execute")
-    def test_execute_remove_background_success(self, mock_remove_bg, mock_refresh):
-        mock_refresh.return_value = [self.attachment]
-        mock_remove_bg.return_value = "http://test.com/edited_image.png"
-        self.mock_bot_api.send_document.return_value = {"result": {"message_id": 123}}
-
-        with patch.object(ImageEditManager, "_ImageEditManager__store_bot_message") as mock_store_message:
-            manager = ImageEditManager(
-                self.chat_id,
-                self.attachment_ids,
-                self.invoker_user_id_hex,
-                "remove-background",
-                self.mock_bot_api,
-                self.mock_user_dao,
-                self.mock_chat_message_attachment_dao,
-            )
-            result, stats = manager.execute()
-
-            self.assertEqual(result, ImageEditManager.Result.success)
-            self.assertEqual(stats, {"image_backgrounds_removed": 1})
-            mock_remove_bg.assert_called_once()
-            self.mock_bot_api.send_document.assert_called_once_with(
-                self.chat_id,
-                "http://test.com/edited_image.png",
-                thumbnail = "http://test.com/edited_image.png",
-            )
-            mock_store_message.assert_called_once()
-
-    @patch.object(AttachmentsContentResolver, "refresh_attachment_files")
+    @patch.object(TelegramBotSDKUtils, "refresh_attachments")
     @patch.object(ImageContentsRestorer, "execute")
     def test_execute_restore_image_success(self, mock_restore, mock_refresh):
         mock_refresh.return_value = [self.attachment]
@@ -289,35 +241,33 @@ class ImageEditManagerTest(unittest.TestCase):
             restored_url = "http://test.com/restored_image.png",
             inpainted_url = "http://test.com/inpainted_image.png"
         )
-        self.mock_bot_api.send_document.return_value = {"result": {"message_id": 123}}
+        self.mock_bot_sdk.send_document.return_value = {"result": {"message_id": 123}}
 
-        with patch.object(ImageEditManager, "_ImageEditManager__store_bot_message") as mock_store_message:
-            manager = ImageEditManager(
-                self.chat_id,
-                self.attachment_ids,
-                self.invoker_user_id_hex,
-                "restore-image",
-                self.mock_bot_api,
-                self.mock_user_dao,
-                self.mock_chat_message_attachment_dao,
-            )
-            result, stats = manager.execute()
+        manager = ImageEditManager(
+            self.chat_id,
+            self.attachment_ids,
+            self.invoker_user_id_hex,
+            "restore-image",
+            self.mock_bot_sdk,
+            self.mock_user_dao,
+            self.mock_chat_message_attachment_dao,
+        )
+        result, stats = manager.execute()
 
-            self.assertEqual(result, ImageEditManager.Result.success)
-            self.assertEqual(stats, {"images_restored": 2})
-            mock_restore.assert_called_once()
-            self.assertEqual(self.mock_bot_api.send_document.call_count, 2)
-            mock_store_message.assert_called()
+        self.assertEqual(result, ImageEditManager.Result.success)
+        self.assertEqual(stats, {"images_restored": 2})
+        mock_restore.assert_called_once()
+        self.assertEqual(self.mock_bot_sdk.send_document.call_count, 2)
 
     # noinspection PyPep8Naming
-    @patch('features.chat.image_edit_manager.ImageBackgroundReplacer')
-    @patch.object(AttachmentsContentResolver, "refresh_attachment_files")
+    @patch("features.chat.image_edit_manager.ImageBackgroundReplacer")
+    @patch.object(TelegramBotSDKUtils, "refresh_attachments")
     def test_execute_replace_background_success(self, mock_refresh, MockReplacer):
         # Setup
         mock_refresh.return_value = [self.attachment]
         mock_replacer_instance = MockReplacer.return_value
         mock_replacer_instance.execute.return_value = ["http://test.com/replaced_background.png"]
-        self.mock_bot_api.send_document.return_value = {"result": {"message_id": 123}}
+        self.mock_bot_sdk.send_document.return_value = {"result": {"message_id": 123}}
 
         # Execute
         manager = ImageEditManager(
@@ -325,22 +275,19 @@ class ImageEditManagerTest(unittest.TestCase):
             self.attachment_ids,
             self.invoker_user_id_hex,
             "replace-background",
-            self.mock_bot_api,
+            self.mock_bot_sdk,
             self.mock_user_dao,
             self.mock_chat_message_attachment_dao,
             operation_guidance = "Replace with a beach background"
         )
 
-        with patch.object(ImageEditManager, "_ImageEditManager__store_bot_message"):
-            result, stats = manager.execute()
-
-        # Assert
+        result, stats = manager.execute()
         self.assertEqual(result, ImageEditManager.Result.success)
         self.assertEqual(stats, {"image_backgrounds_replaced": 1})
 
         MockReplacer.assert_called_once()
         mock_replacer_instance.execute.assert_called_once()
-        self.mock_bot_api.send_document.assert_called_once_with(
+        self.mock_bot_sdk.send_document.assert_called_once_with(
             self.chat_id,
             "http://test.com/replaced_background.png",
             thumbnail = "http://test.com/replaced_background.png"
@@ -348,7 +295,7 @@ class ImageEditManagerTest(unittest.TestCase):
 
         # Check that ImageBackgroundReplacer was initialized with correct parameters
         _, kwargs = MockReplacer.call_args
-        self.assertEqual(kwargs['job_id'], self.attachment.id)
-        self.assertEqual(kwargs['image_url'], self.attachment.last_url)
-        self.assertEqual(kwargs['mime_type'], self.attachment.mime_type)
-        self.assertEqual(kwargs['change_request'], "Replace with a beach background")
+        self.assertEqual(kwargs["job_id"], self.attachment.id)
+        self.assertEqual(kwargs["image_url"], self.attachment.last_url)
+        self.assertEqual(kwargs["mime_type"], self.attachment.mime_type)
+        self.assertEqual(kwargs["change_request"], "Replace with a beach background")

@@ -11,7 +11,8 @@ from db.crud.user import UserCRUD
 from db.model.user import UserDB
 from db.schema.user import User
 from features.chat.announcement_manager import AnnouncementManager
-from features.chat.telegram.telegram_bot_api import TelegramBotAPI
+from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from util.translations_cache import TranslationsCache
 
 
@@ -23,7 +24,7 @@ class AnnouncementManagerTest(unittest.TestCase):
     mock_user_dao: UserCRUD
     mock_chat_config_dao: ChatConfigCRUD
     mock_chat_message_dao: ChatMessageCRUD
-    mock_telegram_bot_api: TelegramBotAPI
+    mock_telegram_bot_sdk: TelegramBotSDK
     mock_translations: TranslationsCache
 
     def setUp(self):
@@ -43,7 +44,8 @@ class AnnouncementManagerTest(unittest.TestCase):
         self.mock_user_dao = MagicMock(spec = UserCRUD)
         self.mock_chat_config_dao = MagicMock(spec = ChatConfigCRUD)
         self.mock_chat_message_dao = MagicMock(spec = ChatMessageCRUD)
-        self.mock_telegram_bot_api = MagicMock(spec = TelegramBotAPI)
+        self.mock_telegram_bot_sdk = MagicMock(spec = TelegramBotSDK)
+        self.mock_telegram_bot_sdk.api = MagicMock(spec = TelegramBotAPI)
         self.mock_translations = MagicMock(spec = TranslationsCache)
 
         self.mock_user_dao.get.return_value = self.user
@@ -54,7 +56,7 @@ class AnnouncementManagerTest(unittest.TestCase):
             str(self.invoker_user_id),
             self.raw_announcement,
             self.mock_translations,
-            self.mock_telegram_bot_api,
+            self.mock_telegram_bot_sdk,
             self.mock_user_dao,
             self.mock_chat_config_dao,
             self.mock_chat_message_dao,
@@ -69,7 +71,7 @@ class AnnouncementManagerTest(unittest.TestCase):
                 str(self.invoker_user_id),
                 self.raw_announcement,
                 self.mock_translations,
-                self.mock_telegram_bot_api,
+                self.mock_telegram_bot_sdk,
                 self.mock_user_dao,
                 self.mock_chat_config_dao,
                 self.mock_chat_message_dao,
@@ -83,7 +85,7 @@ class AnnouncementManagerTest(unittest.TestCase):
                 str(self.invoker_user_id),
                 self.raw_announcement,
                 self.mock_translations,
-                self.mock_telegram_bot_api,
+                self.mock_telegram_bot_sdk,
                 self.mock_user_dao,
                 self.mock_chat_config_dao,
                 self.mock_chat_message_dao,
@@ -105,7 +107,7 @@ class AnnouncementManagerTest(unittest.TestCase):
             str(self.invoker_user_id),
             self.raw_announcement,
             self.mock_translations,
-            self.mock_telegram_bot_api,
+            self.mock_telegram_bot_sdk,
             self.mock_user_dao,
             self.mock_chat_config_dao,
             self.mock_chat_message_dao,
@@ -116,9 +118,9 @@ class AnnouncementManagerTest(unittest.TestCase):
         self.assertEqual(result["chats_notified"], 2)
         self.assertEqual(result["chats_selected"], 2)
         # noinspection PyUnresolvedReferences
-        self.mock_telegram_bot_api.send_text_message.assert_any_call("123", "Translated announcement")
+        self.mock_telegram_bot_sdk.send_text_message.assert_any_call("123", "Translated announcement")
         # noinspection PyUnresolvedReferences
-        self.mock_telegram_bot_api.send_text_message.assert_any_call("456", "Translated announcement")
+        self.mock_telegram_bot_sdk.send_text_message.assert_any_call("456", "Translated announcement")
         # noinspection PyUnresolvedReferences
         self.assertEqual(self.mock_chat_message_dao.save.call_count, 2)
 
@@ -136,7 +138,7 @@ class AnnouncementManagerTest(unittest.TestCase):
             str(self.invoker_user_id),
             self.raw_announcement,
             self.mock_translations,
-            self.mock_telegram_bot_api,
+            self.mock_telegram_bot_sdk,
             self.mock_user_dao,
             self.mock_chat_config_dao,
             self.mock_chat_message_dao,
@@ -147,7 +149,7 @@ class AnnouncementManagerTest(unittest.TestCase):
         self.assertEqual(result["chats_notified"], 0)
         self.assertEqual(result["chats_selected"], 1)
         # noinspection PyUnresolvedReferences
-        self.mock_telegram_bot_api.send_text_message.assert_not_called()
+        self.mock_telegram_bot_sdk.send_text_message.assert_not_called()
         # noinspection PyUnresolvedReferences
         self.mock_chat_message_dao.save.assert_not_called()
 
@@ -160,13 +162,13 @@ class AnnouncementManagerTest(unittest.TestCase):
             {"chat_id": "123", "language_name": "English", "language_iso_code": "en"},
         ]
         self.mock_translations.get.return_value = "Translated announcement"
-        self.mock_telegram_bot_api.send_text_message.side_effect = Exception("Notification failed")
+        self.mock_telegram_bot_sdk.send_text_message.side_effect = Exception("Notification failed")
 
         manager = AnnouncementManager(
             str(self.invoker_user_id),
             self.raw_announcement,
             self.mock_translations,
-            self.mock_telegram_bot_api,
+            self.mock_telegram_bot_sdk,
             self.mock_user_dao,
             self.mock_chat_config_dao,
             self.mock_chat_message_dao,
@@ -177,7 +179,7 @@ class AnnouncementManagerTest(unittest.TestCase):
         self.assertEqual(result["chats_notified"], 0)
         self.assertEqual(result["chats_selected"], 1)
         # noinspection PyUnresolvedReferences
-        self.mock_telegram_bot_api.send_text_message.assert_called_once()
+        self.mock_telegram_bot_sdk.send_text_message.assert_called_once()
         # noinspection PyUnresolvedReferences
         self.mock_chat_message_dao.save.assert_not_called()
 
@@ -191,7 +193,7 @@ class AnnouncementManagerTest(unittest.TestCase):
             str(self.invoker_user_id),
             self.raw_announcement,
             self.mock_translations,
-            self.mock_telegram_bot_api,
+            self.mock_telegram_bot_sdk,
             self.mock_user_dao,
             self.mock_chat_config_dao,
             self.mock_chat_message_dao,
@@ -202,7 +204,7 @@ class AnnouncementManagerTest(unittest.TestCase):
         self.assertEqual(result["chats_notified"], 0)
         self.assertEqual(result["chats_selected"], 0)
         # noinspection PyUnresolvedReferences
-        self.mock_telegram_bot_api.send_text_message.assert_not_called()
+        self.mock_telegram_bot_sdk.send_text_message.assert_not_called()
         # noinspection PyUnresolvedReferences
         self.mock_chat_message_dao.save.assert_not_called()
 
@@ -232,7 +234,7 @@ class AnnouncementManagerTest(unittest.TestCase):
             str(self.invoker_user_id),
             self.raw_announcement,
             self.mock_translations,
-            self.mock_telegram_bot_api,
+            self.mock_telegram_bot_sdk,
             self.mock_user_dao,
             self.mock_chat_config_dao,
             self.mock_chat_message_dao,
@@ -244,13 +246,14 @@ class AnnouncementManagerTest(unittest.TestCase):
         self.assertEqual(result["chats_notified"], 1)
         self.assertEqual(result["chats_selected"], 1)
         # noinspection PyUnresolvedReferences
-        self.mock_telegram_bot_api.send_text_message.assert_called_once_with(
+        self.mock_telegram_bot_sdk.send_text_message.assert_called_once_with(
             "target_chat_id",
             "Translated announcement",
         )
         # noinspection PyUnresolvedReferences
         self.mock_chat_message_dao.save.assert_called_once()
 
+    # noinspection PyUnusedLocal
     def test_targeted_announcement_invalid_username(self, mock_chat_anthropic):
         self.mock_user_dao.get_by_telegram_username.return_value = None
 
@@ -259,7 +262,7 @@ class AnnouncementManagerTest(unittest.TestCase):
                 str(self.invoker_user_id),
                 self.raw_announcement,
                 self.mock_translations,
-                self.mock_telegram_bot_api,
+                self.mock_telegram_bot_sdk,
                 self.mock_user_dao,
                 self.mock_chat_config_dao,
                 self.mock_chat_message_dao,
@@ -268,6 +271,7 @@ class AnnouncementManagerTest(unittest.TestCase):
 
         self.assertIn("Target user 'nonexistent_user' not found", str(context.exception))
 
+    # noinspection PyUnusedLocal
     def test_targeted_announcement_no_chat_id(self, mock_chat_anthropic):
         target_user = User(
             id = UUID("223e4567-e89b-12d3-a456-426614174001"),
@@ -285,7 +289,7 @@ class AnnouncementManagerTest(unittest.TestCase):
                 str(self.invoker_user_id),
                 self.raw_announcement,
                 self.mock_translations,
-                self.mock_telegram_bot_api,
+                self.mock_telegram_bot_sdk,
                 self.mock_user_dao,
                 self.mock_chat_config_dao,
                 self.mock_chat_message_dao,
@@ -294,6 +298,7 @@ class AnnouncementManagerTest(unittest.TestCase):
 
         self.assertIn("Target user 'target_user' has no private chat ID yet", str(context.exception))
 
+    # noinspection PyUnusedLocal
     def test_targeted_announcement_chat_not_found(self, mock_chat_anthropic):
         target_user = User(
             id = UUID("223e4567-e89b-12d3-a456-426614174001"),
@@ -312,7 +317,7 @@ class AnnouncementManagerTest(unittest.TestCase):
                 str(self.invoker_user_id),
                 self.raw_announcement,
                 self.mock_translations,
-                self.mock_telegram_bot_api,
+                self.mock_telegram_bot_sdk,
                 self.mock_user_dao,
                 self.mock_chat_config_dao,
                 self.mock_chat_message_dao,

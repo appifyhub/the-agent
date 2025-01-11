@@ -1,11 +1,10 @@
 import hashlib
 import random
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Callable, Any, TypeVar
 
 from db.schema.user import User, UserSave
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
-from util.safe_printer_mixin import sprint
 
 K = TypeVar("K")
 V = TypeVar("V")
@@ -43,14 +42,6 @@ def first_key_with_value(source: dict[K, V], value: V) -> K | None:
 
 ###           U N T E S T E D           ###
 # No idea how to test other than manually #
-
-def nearest_hour_epoch() -> int:
-    now = datetime.now()
-    last_hour_mark: datetime = now.replace(minute = 0, second = 0, microsecond = 0)
-    next_hour_mark: datetime = last_hour_mark + timedelta(hours = 1)
-    sprint(f"Nearest hour at {now} is {next_hour_mark}")
-    return int(next_hour_mark.timestamp())
-
 
 def digest_md5(content: str) -> str:
     # noinspection InsecureHash

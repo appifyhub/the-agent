@@ -5,7 +5,8 @@ from unittest.mock import patch, MagicMock, ANY, call
 import requests_mock
 from langchain_core.messages import AIMessage
 
-from features.audio.audio_transcriber import AudioTranscriber, SUPPORTED_AUDIO_FORMATS
+from features.audio.audio_transcriber import AudioTranscriber
+from features.chat.supported_files import SUPPORTED_AUDIO_FORMATS
 
 
 class AudioTranscriberTest(unittest.TestCase):

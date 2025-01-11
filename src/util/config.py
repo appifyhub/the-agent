@@ -6,6 +6,7 @@ from util.singleton import Singleton
 
 class Config(metaclass = Singleton):
     verbose: bool
+    log_telegram_update: bool
     web_retries: int
     web_retry_delay_s: int
     web_timeout_s: int
@@ -35,6 +36,7 @@ class Config(metaclass = Singleton):
     def __init__(
         self,
         def_verbose: bool = False,
+        def_log_telegram_update: bool = False,
         def_web_retries: int = 3,
         def_web_retry_delay_s: int = 1,
         def_web_timeout_s: int = 10,
@@ -65,6 +67,7 @@ class Config(metaclass = Singleton):
         def_issue_templates_path: str = ".github/ISSUE_TEMPLATE",
     ):
         self.verbose = self.__env("VERBOSE", lambda: str(def_verbose)).lower() == "true"
+        self.log_telegram_update = self.__env("LOG_TG_UPDATE", lambda: str(def_log_telegram_update)).lower() == "true"
         self.web_retries = int(self.__env("WEB_RETRIES", lambda: str(def_web_retries)))
         self.web_retry_delay_s = int(self.__env("WEB_RETRY_DELAY_S", lambda: str(def_web_retry_delay_s)))
         self.web_timeout_s = int(self.__env("WEB_TIMEOUT_S", lambda: str(def_web_timeout_s)))

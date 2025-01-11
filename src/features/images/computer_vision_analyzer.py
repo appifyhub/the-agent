@@ -2,21 +2,10 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
 
+from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
-
-# Based on popularity and support in vision models
-KNOWN_IMAGE_FORMATS = {
-    "png": "image/png",
-    "jpg": "image/jpeg",
-    "jpeg": "image/jpeg",
-    "gif": "image/gif",
-    "webp": "image/webp",
-    "bmp": "image/bmp",
-    "tiff": "image/tiff",
-    "tif": "image/tiff",
-}
 
 OPEN_AI_MODEL = "gpt-4o"
 OPEN_AI_TEMPERATURE = 0.5

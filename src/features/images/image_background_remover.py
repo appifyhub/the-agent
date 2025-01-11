@@ -7,7 +7,7 @@ import requests
 from httpx import Timeout
 from replicate import Client
 
-from features.images.computer_vision_analyzer import KNOWN_IMAGE_FORMATS
+from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from util.config import config
 from util.functions import first_key_with_value
 from util.safe_printer_mixin import SafePrinterMixin

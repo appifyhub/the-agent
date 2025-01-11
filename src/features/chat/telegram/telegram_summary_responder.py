@@ -1,23 +1,17 @@
 import base64
-from datetime import datetime
 
 from db.crud.chat_config import ChatConfigCRUD
-from db.crud.chat_message import ChatMessageCRUD
 from db.schema.chat_config import ChatConfig
-from db.schema.chat_message import ChatMessageSave
-from features.chat.telegram.telegram_bot_api import TelegramBotAPI
-from features.prompting.prompt_library import TELEGRAM_BOT_USER
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.release_summarizer.raw_notes_payload import RawNotesPayload
 from features.release_summarizer.release_summarizer import ReleaseSummarizer
-from util.functions import construct_bot_message_id
 from util.safe_printer_mixin import sprint
 from util.translations_cache import TranslationsCache, DEFAULT_LANGUAGE, DEFAULT_ISO_CODE
 
 
 def respond_with_summary(
     chat_config_dao: ChatConfigCRUD,
-    chat_message_dao: ChatMessageCRUD,
-    telegram_bot_api: TelegramBotAPI,
+    telegram_bot_sdk: TelegramBotSDK,
     translations: TranslationsCache,
     payload: RawNotesPayload,
 ) -> dict:
@@ -54,16 +48,7 @@ def respond_with_summary(
 
         # let's send a notification to each chat
         try:
-            telegram_bot_api.send_text_message(chat.chat_id, summary)
-            sent_at = datetime.now()
-            message_to_store = ChatMessageSave(
-                chat_id = chat.chat_id,
-                message_id = construct_bot_message_id(chat.chat_id, sent_at),
-                author_id = TELEGRAM_BOT_USER.id,
-                sent_at = sent_at,
-                text = summary,
-            )
-            chat_message_dao.save(message_to_store)
+            telegram_bot_sdk.send_text_message(chat.chat_id, summary)
             chats_notified += 1
         except Exception as e:
             sprint(f"Chat notification failed for chat #{chat.chat_id}", e)

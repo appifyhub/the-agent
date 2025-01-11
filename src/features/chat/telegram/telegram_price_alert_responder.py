@@ -1,19 +1,14 @@
 import json
-from datetime import datetime
 
 from db.crud.chat_config import ChatConfigCRUD
-from db.crud.chat_message import ChatMessageCRUD
 from db.crud.price_alert import PriceAlertCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.schema.chat_config import ChatConfig
-from db.schema.chat_message import ChatMessageSave
 from features.chat.price_alert_manager import PriceAlertManager
-from features.chat.telegram.telegram_bot_api import TelegramBotAPI
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
 from features.information_announcer import InformationAnnouncer
-from features.prompting.prompt_library import TELEGRAM_BOT_USER
-from util.functions import construct_bot_message_id
 from util.safe_printer_mixin import sprint
 from util.translations_cache import TranslationsCache, DEFAULT_LANGUAGE, DEFAULT_ISO_CODE
 
@@ -21,10 +16,9 @@ from util.translations_cache import TranslationsCache, DEFAULT_LANGUAGE, DEFAULT
 def respond_with_announcements(
     user_dao: UserCRUD,
     chat_config_dao: ChatConfigCRUD,
-    chat_message_dao: ChatMessageCRUD,
     price_alert_dao: PriceAlertCRUD,
     tools_cache_dao: ToolsCacheCRUD,
-    telegram_bot_api: TelegramBotAPI,
+    telegram_bot_sdk: TelegramBotSDK,
     translations: TranslationsCache,
 ) -> dict:
     rate_fetcher = ExchangeRateFetcher(None, user_dao, tools_cache_dao)
@@ -63,16 +57,7 @@ def respond_with_announcements(
 
         # now let's send the announcement to each chat
         try:
-            telegram_bot_api.send_text_message(alert.chat_id, announcement_text)
-            sent_at = datetime.now()
-            message_to_store = ChatMessageSave(
-                chat_id = alert.chat_id,
-                message_id = construct_bot_message_id(alert.chat_id, sent_at),
-                author_id = TELEGRAM_BOT_USER.id,
-                sent_at = sent_at,
-                text = announcement_text,
-            )
-            chat_message_dao.save(message_to_store)
+            telegram_bot_sdk.send_text_message(alert.chat_id, announcement_text)
             chats_notified += 1
         except Exception as e:
             sprint(f"Chat notification failed for chat #{alert.chat_id}", e)

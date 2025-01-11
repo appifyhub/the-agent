@@ -8,8 +8,7 @@ from db.schema.chat_message import ChatMessageSave, ChatMessage
 from db.schema.chat_message_attachment import ChatMessageAttachmentSave, ChatMessageAttachment
 from db.schema.user import UserSave, User
 from db.sql_util import SQLUtil
-from features.chat.telegram.model.attachment.file import File
-from features.chat.telegram.telegram_bot_api import TelegramBotAPI
+from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
@@ -403,70 +402,6 @@ class TelegramDataResolverTest(unittest.TestCase):
         self.assertEqual(result.last_url_until, old_attachment_data.last_url_until)
         self.assertEqual(result.extension, old_attachment_data.extension)
         self.assertEqual(result.mime_type, old_attachment_data.mime_type)
-
-    def test_update_attachment_using_api_url_valid(self):
-        mapped_data = ChatMessageAttachmentSave(
-            id = "i1",
-            chat_id = "c1",
-            message_id = "m1",
-            size = 2,
-            last_url = "old/url/to/file.jpg",
-            last_url_until = self.valid_url_timestamp(),
-            mime_type = "image/jpeg",
-            extension = "jpg",
-        )
-
-        result = self.resolver.update_attachment_using_api(mapped_data)
-
-        self.assertFalse(result)
-        self.assertEqual(mapped_data.id, "i1")
-        self.assertEqual(mapped_data.chat_id, "c1")
-        self.assertEqual(mapped_data.message_id, "m1")
-        self.assertEqual(mapped_data.size, 2)
-        self.assertEqual(mapped_data.last_url, "old/url/to/file.jpg")
-        self.assertIsNotNone(mapped_data.last_url_until)
-        self.assertEqual(mapped_data.extension, "jpg")
-        self.assertEqual(mapped_data.mime_type, "image/jpeg")
-
-    def test_update_attachment_using_api_url_expired(self):
-        api_file = File(file_id = "i1", file_unique_id = "ui1", file_size = 1, file_path = "path/to/file.png")
-        mapped_data = ChatMessageAttachmentSave(
-            id = "i1",
-            chat_id = "c1",
-            message_id = "m1",
-            last_url = "old/url/to/file.jpg",
-            last_url_until = self.expired_url_timestamp(),
-        )
-        self.bot_api.get_file_info.return_value = api_file
-
-        result = self.resolver.update_attachment_using_api(mapped_data)
-
-        self.assertTrue(result)
-        self.assertEqual(mapped_data.id, "i1")
-        self.assertEqual(mapped_data.chat_id, "c1")
-        self.assertEqual(mapped_data.message_id, "m1")
-        self.assertEqual(mapped_data.size, 1)
-        self.assertTrue(mapped_data.last_url.endswith("path/to/file.png"))
-        self.assertIsNotNone(mapped_data.last_url_until)
-        self.assertEqual(mapped_data.extension, "png")
-        self.assertEqual(mapped_data.mime_type, "image/png")
-
-    def test_update_attachment_using_api_url_missing(self):
-        api_file = File(file_id = "i1", file_unique_id = "ui1", file_size = 1, file_path = "path/to/file.png")
-        mapped_data = ChatMessageAttachmentSave(id = "i1", chat_id = "c1", message_id = "m1")
-        self.bot_api.get_file_info.return_value = api_file
-
-        result = self.resolver.update_attachment_using_api(mapped_data)
-
-        self.assertTrue(result)
-        self.assertEqual(mapped_data.id, "i1")
-        self.assertEqual(mapped_data.chat_id, "c1")
-        self.assertEqual(mapped_data.message_id, "m1")
-        self.assertEqual(mapped_data.size, 1)
-        self.assertTrue(mapped_data.last_url.endswith("path/to/file.png"))
-        self.assertIsNotNone(mapped_data.last_url_until)
-        self.assertEqual(mapped_data.extension, "png")
-        self.assertEqual(mapped_data.mime_type, "image/png")
 
     @staticmethod
     def valid_url_timestamp():
