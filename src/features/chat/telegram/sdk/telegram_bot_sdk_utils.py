@@ -48,13 +48,10 @@ class TelegramBotSDKUtils:
         # try to get from DB if missing core data or data is stale
         if should_fetch_from_db:
             fresh_data_db = chat_message_attachment_dao.get(source_id)
-            if not fresh_data_db:
-                message = f"Attachment {source_id} not found in DB"
-                sprint(message)
-                raise ValueError(message)
-            fresh_data = ChatMessageAttachment.model_validate(fresh_data_db)
-            clone = ChatMessageAttachmentSave(**fresh_data.model_dump())
-        # if data is not stale, just store it and exit (can also be first store)
+            if fresh_data_db:
+                fresh_data = ChatMessageAttachment.model_validate(fresh_data_db)
+                clone = ChatMessageAttachmentSave(**fresh_data.model_dump())
+        # if data is not stale anymore, store and exit (can also be first store)
         if not clone.has_stale_data:
             sprint("\tAttachment data is fresh")
             result_db = chat_message_attachment_dao.save(clone)
@@ -78,6 +75,7 @@ class TelegramBotSDKUtils:
                 # reverse engineer the extension
                 clone.extension = first_key_with_value(KNOWN_FILE_FORMATS, clone.mime_type) or clone.extension
 
+        # final version of the attachment is ready, store it
         result_db = chat_message_attachment_dao.save(clone)
         return ChatMessageAttachment.model_validate(result_db)
 
