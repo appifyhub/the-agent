@@ -9,34 +9,14 @@ from langchain_openai import ChatOpenAI
 from openai import OpenAI
 from pydub import AudioSegment
 
+from features.chat.supported_files import (
+    SUPPORTED_AUDIO_FORMATS,
+    EXTENSION_FORMAT_MAP,
+    TARGET_AUDIO_FORMAT,
+)
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
-
-# Based on popularity and support in audio models
-SUPPORTED_AUDIO_FORMATS = {
-    "mp3": "audio/mpeg",
-    "mp4": "video/mp4",
-    "mpeg": "video/mpeg",
-    "mpga": "audio/mpeg",
-    "m4a": "audio/mp4",
-    "wav": "audio/wav",
-    "webm": "video/webm",
-}
-# File extension -> Audio format
-EXTENSION_FORMAT_MAP = {
-    **{ext: ext for ext in SUPPORTED_AUDIO_FORMATS.keys()},
-    "oga": "ogg",
-    "ogg": "ogg",
-}
-# Formats we know how to convert from
-CONVERTIBLE_AUDIO_FORMATS = {
-    "oga": "audio/ogg",
-    "ogg": "audio/ogg",
-}
-TARGET_AUDIO_FORMAT = "wav"
-# And the union of all known formats
-KNOWN_AUDIO_FORMATS = SUPPORTED_AUDIO_FORMATS | CONVERTIBLE_AUDIO_FORMATS
 
 TRANSCRIBER_AUDIO_MODEL_NAME = "whisper-1"
 COPYWRITER_OPEN_AI_MODEL = "gpt-4o-mini"

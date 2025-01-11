@@ -3,12 +3,12 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 
 from db.crud.chat_config import ChatConfigCRUD
-from db.crud.chat_message import ChatMessageCRUD
 from db.crud.price_alert import PriceAlertCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from features.chat.price_alert_manager import PriceAlertManager, DATETIME_PRINT_FORMAT
-from features.chat.telegram.telegram_bot_api import TelegramBotAPI
+from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.telegram_price_alert_responder import respond_with_announcements
 from util.translations_cache import TranslationsCache
 
@@ -16,19 +16,18 @@ from util.translations_cache import TranslationsCache
 class TelegramPriceAlertResponderTest(unittest.TestCase):
     user_dao: UserCRUD
     chat_config_dao: ChatConfigCRUD
-    chat_message_dao: ChatMessageCRUD
     price_alert_dao: PriceAlertCRUD
     tools_cache_dao: ToolsCacheCRUD
-    telegram_bot_api: TelegramBotAPI
+    telegram_bot_sdk: TelegramBotSDK
     translations: TranslationsCache
 
     def setUp(self):
         self.user_dao = Mock(spec = UserCRUD)
         self.chat_config_dao = Mock(spec = ChatConfigCRUD)
-        self.chat_message_dao = Mock(spec = ChatMessageCRUD)
         self.price_alert_dao = Mock(spec = PriceAlertCRUD)
         self.tools_cache_dao = Mock(spec = ToolsCacheCRUD)
-        self.telegram_bot_api = Mock(spec = TelegramBotAPI)
+        self.telegram_bot_sdk = Mock(spec = TelegramBotSDK)
+        self.telegram_bot_sdk.api = Mock(spec = TelegramBotAPI)
         self.translations = Mock(spec = TranslationsCache)
 
     # noinspection PyUnusedLocal
@@ -68,10 +67,9 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         result = respond_with_announcements(
             self.user_dao,
             self.chat_config_dao,
-            self.chat_message_dao,
             self.price_alert_dao,
             self.tools_cache_dao,
-            self.telegram_bot_api,
+            self.telegram_bot_sdk,
             self.translations,
         )
 
@@ -82,9 +80,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
 
         self.assertEqual(mock_announcer.call_count, 2)
         # noinspection PyUnresolvedReferences
-        self.assertEqual(self.telegram_bot_api.send_text_message.call_count, 2)
-        # noinspection PyUnresolvedReferences
-        self.assertEqual(self.chat_message_dao.save.call_count, 2)
+        self.assertEqual(self.telegram_bot_sdk.send_text_message.call_count, 2)
 
     # noinspection PyUnusedLocal
     @patch('features.chat.telegram.telegram_price_alert_responder.ExchangeRateFetcher')
@@ -95,10 +91,9 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         result = respond_with_announcements(
             self.user_dao,
             self.chat_config_dao,
-            self.chat_message_dao,
             self.price_alert_dao,
             self.tools_cache_dao,
-            self.telegram_bot_api,
+            self.telegram_bot_sdk,
             self.translations,
         )
 
@@ -107,9 +102,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         self.assertEqual(result["chats_affected"], 0)
         self.assertEqual(result["chats_notified"], 0)
         # noinspection PyUnresolvedReferences
-        self.telegram_bot_api.send_text_message.assert_not_called()
-        # noinspection PyUnresolvedReferences
-        self.chat_message_dao.save.assert_not_called()
+        self.telegram_bot_sdk.send_text_message.assert_not_called()
 
     # noinspection PyUnusedLocal
     @patch('features.chat.telegram.telegram_price_alert_responder.ExchangeRateFetcher')
@@ -135,10 +128,9 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         result = respond_with_announcements(
             self.user_dao,
             self.chat_config_dao,
-            self.chat_message_dao,
             self.price_alert_dao,
             self.tools_cache_dao,
-            self.telegram_bot_api,
+            self.telegram_bot_sdk,
             self.translations,
         )
 
@@ -147,9 +139,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         self.assertEqual(result["chats_affected"], 1)
         self.assertEqual(result["chats_notified"], 0)
         # noinspection PyUnresolvedReferences
-        self.telegram_bot_api.send_text_message.assert_not_called()
-        # noinspection PyUnresolvedReferences
-        self.chat_message_dao.save.assert_not_called()
+        self.telegram_bot_sdk.send_text_message.assert_not_called()
 
     # noinspection PyUnusedLocal
     @patch('features.chat.telegram.telegram_price_alert_responder.ExchangeRateFetcher')
@@ -165,15 +155,14 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
             "language_iso_code": "en"
         }
         self.translations.get.return_value = "Cached announcement"
-        self.telegram_bot_api.send_text_message.side_effect = Exception("Notification failed")
+        self.telegram_bot_sdk.send_text_message.side_effect = Exception("Notification failed")
 
         result = respond_with_announcements(
             self.user_dao,
             self.chat_config_dao,
-            self.chat_message_dao,
             self.price_alert_dao,
             self.tools_cache_dao,
-            self.telegram_bot_api,
+            self.telegram_bot_sdk,
             self.translations,
         )
 
@@ -182,9 +171,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         self.assertEqual(result["chats_affected"], 1)
         self.assertEqual(result["chats_notified"], 0)
         # noinspection PyUnresolvedReferences
-        self.telegram_bot_api.send_text_message.assert_called_once()
-        # noinspection PyUnresolvedReferences
-        self.chat_message_dao.save.assert_not_called()
+        self.telegram_bot_sdk.send_text_message.assert_called_once()
 
     # noinspection PyUnusedLocal
     @patch('features.chat.telegram.telegram_price_alert_responder.ExchangeRateFetcher')
@@ -204,10 +191,9 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         result = respond_with_announcements(
             self.user_dao,
             self.chat_config_dao,
-            self.chat_message_dao,
             self.price_alert_dao,
             self.tools_cache_dao,
-            self.telegram_bot_api,
+            self.telegram_bot_sdk,
             self.translations,
         )
 
@@ -216,6 +202,4 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         self.assertEqual(result["chats_affected"], 1)
         self.assertEqual(result["chats_notified"], 1)
         # noinspection PyUnresolvedReferences
-        self.telegram_bot_api.send_text_message.assert_called_once_with("123", "Cached announcement")
-        # noinspection PyUnresolvedReferences
-        self.chat_message_dao.save.assert_called_once()
+        self.telegram_bot_sdk.send_text_message.assert_called_once_with("123", "Cached announcement")

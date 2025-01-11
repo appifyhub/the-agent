@@ -128,7 +128,6 @@ class TelegramBotAPI(SafePrinterMixin):
             "reaction": reactions_list,
         }
         response = requests.post(url, json = payload, timeout = config.web_timeout_s)
-        print(json.dumps(response.json(), indent = 2))
         self.__raise_for_status(response)
         return response.json()
 

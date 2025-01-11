@@ -1,4 +1,3 @@
-from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
@@ -9,11 +8,7 @@ from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AI
 from db.crud.user import UserCRUD
 from db.model.user import UserDB
 from db.schema.user import User
-from features.chat.telegram.model.message import Message
-from features.chat.telegram.model.update import Update
-from features.chat.telegram.telegram_bot_api import TelegramBotAPI
-from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
-from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.images.stable_diffusion_image_generator import StableDiffusionImageGenerator
 from features.prompting import prompt_library
 from util.config import config
@@ -31,7 +26,7 @@ class GenerativeImagingManager(SafePrinterMixin):
 
     __chat_id: str
     __use_advanced_model: bool
-    __bot_api: TelegramBotAPI
+    __bot_sdk: TelegramBotSDK
     __invoker_user: User
     __llm_input: list[BaseMessage]
     __llm: BaseChatModel
@@ -42,12 +37,12 @@ class GenerativeImagingManager(SafePrinterMixin):
         chat_id: str,
         raw_prompt: str,
         invoker_user_id_hex: str,
-        bot_api: TelegramBotAPI,
+        bot_sdk: TelegramBotSDK,
         user_dao: UserCRUD,
     ):
         super().__init__(config.verbose)
         self.__chat_id = chat_id
-        self.__bot_api = bot_api
+        self.__bot_sdk = bot_sdk
         self.__user_dao = user_dao
         self.__llm_input = []
         self.__llm_input.append(SystemMessage(prompt_library.generator_stable_diffusion))
@@ -112,26 +107,10 @@ class GenerativeImagingManager(SafePrinterMixin):
         # let's send the image to the chat
         try:
             self.sprint("Starting image sending")
-            result_json = self.__bot_api.send_photo(self.__chat_id, image_url)
-            if not result_json:
-                raise ValueError("No response from Telegram API")
-            self.store_bot_photo(result_json)
+            self.__bot_sdk.send_photo(self.__chat_id, image_url)
         except Exception as e:
             self.sprint("Error sending image", e)
             return GenerativeImagingManager.Result.failed
 
         self.sprint("Image generated and sent successfully")
         return GenerativeImagingManager.Result.success
-
-    def store_bot_photo(self, api_result: dict):
-        self.sprint("Storing message data")
-        message = Message(**api_result["result"])
-        update = Update(update_id = datetime.now().second, message = message)
-        mapping_result = TelegramDomainMapper().map_update(update)
-        if not mapping_result:
-            raise ValueError("No mapping result from Telegram API")
-        # noinspection PyProtectedMember
-        resolver = TelegramDataResolver(self.__user_dao._db, self.__bot_api)
-        resolution_result = resolver.resolve(mapping_result)
-        if not resolution_result.message or not resolution_result.attachments:
-            raise ValueError("No resolution result from storing new data")

@@ -12,7 +12,8 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from replicate import Client
 
-from features.images.computer_vision_analyzer import KNOWN_IMAGE_FORMATS, ComputerVisionAnalyzer
+from features.chat.supported_files import KNOWN_IMAGE_FORMATS
+from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
 from features.images.image_contents_restorer import ImageContentsRestorer
 from features.prompting import prompt_library
 from util.config import config

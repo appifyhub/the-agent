@@ -5,8 +5,8 @@ from unittest.mock import Mock, patch, call
 from langchain_core.messages import AIMessage
 
 from db.crud.chat_config import ChatConfigCRUD
-from db.crud.chat_message import ChatMessageCRUD
-from features.chat.telegram.telegram_bot_api import TelegramBotAPI
+from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.telegram_summary_responder import respond_with_summary
 from features.release_summarizer.raw_notes_payload import RawNotesPayload
 from util.translations_cache import TranslationsCache
@@ -16,8 +16,8 @@ class TelegramSummaryResponderTest(unittest.TestCase):
 
     def setUp(self):
         self.chat_config_dao = Mock(spec = ChatConfigCRUD)
-        self.chat_message_dao = Mock(spec = ChatMessageCRUD)
-        self.telegram_bot_api = Mock(spec = TelegramBotAPI)
+        self.telegram_bot_sdk = Mock(spec = TelegramBotSDK)
+        self.telegram_bot_sdk.api = Mock(spec = TelegramBotAPI)
         self.translations = Mock(spec = TranslationsCache)
         self.payload = Mock(spec = RawNotesPayload)
         self.payload.raw_notes_b64 = base64.b64encode("Test notes".encode()).decode()
@@ -32,8 +32,7 @@ class TelegramSummaryResponderTest(unittest.TestCase):
 
         result = respond_with_summary(
             self.chat_config_dao,
-            self.chat_message_dao,
-            self.telegram_bot_api,
+            self.telegram_bot_sdk,
             self.translations,
             self.payload,
         )
@@ -42,8 +41,7 @@ class TelegramSummaryResponderTest(unittest.TestCase):
         self.assertEqual(result["chats_notified"], 1)
         self.assertEqual(result["chats_selected"], 1)
         self.assertEqual(result["summary"], "Test summary")
-        self.telegram_bot_api.send_text_message.assert_called_once_with("123", "Test summary")
-        self.chat_message_dao.save.assert_called_once()
+        self.telegram_bot_sdk.send_text_message.assert_called_once_with("123", "Test summary")
 
     @patch("features.chat.telegram.telegram_summary_responder.ReleaseSummarizer")
     def test_multiple_languages(self, mock_summarizer_class):
@@ -59,8 +57,7 @@ class TelegramSummaryResponderTest(unittest.TestCase):
 
         result = respond_with_summary(
             self.chat_config_dao,
-            self.chat_message_dao,
-            self.telegram_bot_api,
+            self.telegram_bot_sdk,
             self.translations,
             self.payload,
         )
@@ -74,9 +71,8 @@ class TelegramSummaryResponderTest(unittest.TestCase):
             "en",
         )
         mock_summarizer.execute.assert_called_once()
-        self.telegram_bot_api.send_text_message.assert_any_call("123", "Test summary")
-        self.telegram_bot_api.send_text_message.assert_any_call("456", "Test summary")
-        self.assertEqual(self.chat_message_dao.save.call_count, 2)
+        self.telegram_bot_sdk.send_text_message.assert_any_call("123", "Test summary")
+        self.telegram_bot_sdk.send_text_message.assert_any_call("456", "Test summary")
 
     @patch("features.chat.telegram.telegram_summary_responder.ReleaseSummarizer")
     def test_summarization_failure(self, mock_summarizer_class):
@@ -91,8 +87,7 @@ class TelegramSummaryResponderTest(unittest.TestCase):
 
         result = respond_with_summary(
             self.chat_config_dao,
-            self.chat_message_dao,
-            self.telegram_bot_api,
+            self.telegram_bot_sdk,
             self.translations,
             self.payload
         )
@@ -111,12 +106,8 @@ class TelegramSummaryResponderTest(unittest.TestCase):
             "en"
         )
         self.assertEqual(mock_summarizer_class.call_args_list, [expected_call, expected_call])
-
-        # Check that execute was called twice
         self.assertEqual(mock_summarizer.execute.call_count, 2)
-
-        self.telegram_bot_api.send_text_message.assert_not_called()
-        self.chat_message_dao.save.assert_not_called()
+        self.telegram_bot_sdk.send_text_message.assert_not_called()
 
     @patch("features.chat.telegram.telegram_summary_responder.ReleaseSummarizer.execute")
     def test_notification_failure(self, mock_execute):
@@ -125,12 +116,11 @@ class TelegramSummaryResponderTest(unittest.TestCase):
         self.chat_config_dao.get_all.return_value = [
             {"chat_id": "123", "language_name": "English", "language_iso_code": "en"},
         ]
-        self.telegram_bot_api.send_text_message.side_effect = Exception("Notification failed")
+        self.telegram_bot_sdk.send_text_message.side_effect = Exception("Notification failed")
 
         result = respond_with_summary(
             self.chat_config_dao,
-            self.chat_message_dao,
-            self.telegram_bot_api,
+            self.telegram_bot_sdk,
             self.translations,
             self.payload,
         )
@@ -138,4 +128,3 @@ class TelegramSummaryResponderTest(unittest.TestCase):
         self.assertEqual(result["summaries_created"], 1)
         self.assertEqual(result["chats_notified"], 0)
         self.assertEqual(result["chats_selected"], 1)
-        self.chat_message_dao.save.assert_not_called()

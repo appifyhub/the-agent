@@ -10,19 +10,20 @@ from db.crud.chat_message import ChatMessageCRUD
 from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
-from db.model.chat_message_attachment import ChatMessageAttachmentDB
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
-from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessageAttachmentSave
+from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from db.schema.user import User
-from features.audio.audio_transcriber import KNOWN_AUDIO_FORMATS, AudioTranscriber
-from features.chat.telegram.telegram_bot_api import TelegramBotAPI
-from features.documents.document_search import KNOWN_DOCS_FORMATS, DocumentSearch
-from features.images.computer_vision_analyzer import KNOWN_IMAGE_FORMATS, ComputerVisionAnalyzer
+from features.audio.audio_transcriber import AudioTranscriber
+from features.chat.supported_files import KNOWN_IMAGE_FORMATS, KNOWN_AUDIO_FORMATS, KNOWN_DOCS_FORMATS
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from features.chat.telegram.sdk.telegram_bot_sdk_utils import TelegramBotSDKUtils
+from features.documents.document_search import DocumentSearch
+from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
 from util.config import config
-from util.functions import nearest_hour_epoch, digest_md5
-from util.safe_printer_mixin import SafePrinterMixin, sprint
+from util.functions import digest_md5
+from util.safe_printer_mixin import SafePrinterMixin
 
 CACHE_PREFIX = "attachments-content-resolver"
 CACHE_TTL = timedelta(weeks = 13)
@@ -34,7 +35,7 @@ class AttachmentsContentResolver(SafePrinterMixin):
         partial = "Partial"
         success = "Success"
 
-    # these lists are in sync
+    # the following two lists are in sync
     attachments: list[ChatMessageAttachment | None]
     contents: list[str | None]
 
@@ -42,7 +43,7 @@ class AttachmentsContentResolver(SafePrinterMixin):
     __additional_context: str | None
     __invoker: User
 
-    __bot_api: TelegramBotAPI
+    __bot_sdk: TelegramBotSDK
     __user_dao: UserCRUD
     __chat_config_dao: ChatConfigCRUD
     __chat_message_dao: ChatMessageCRUD
@@ -55,7 +56,7 @@ class AttachmentsContentResolver(SafePrinterMixin):
         invoker_user_id_hex: str,
         additional_context: str | None,
         attachment_ids: list[str],
-        bot_api: TelegramBotAPI,
+        bot_sdk: TelegramBotSDK,
         user_dao: UserCRUD,
         chat_config_dao: ChatConfigCRUD,
         chat_message_dao: ChatMessageCRUD,
@@ -66,15 +67,17 @@ class AttachmentsContentResolver(SafePrinterMixin):
         self.attachments = []
         self.contents = []
         self.__additional_context = additional_context
-        self.__bot_api = bot_api
+        self.__bot_sdk = bot_sdk
         self.__user_dao = user_dao
         self.__chat_config_dao = chat_config_dao
         self.__chat_message_dao = chat_message_dao
         self.__chat_message_attachment_dao = chat_message_attachment_dao
         self.__cache_dao = cache_dao
         self.__validate(chat_id, invoker_user_id_hex)
-        self.attachments = AttachmentsContentResolver.refresh_attachment_files(
-            attachment_ids, self.__chat_message_attachment_dao, self.__bot_api,
+        self.attachments = TelegramBotSDKUtils.refresh_attachments(
+            sources = attachment_ids,
+            chat_message_attachment_dao = chat_message_attachment_dao,
+            bot_api = bot_sdk.api,
         )
 
     def __validate(self, chat_id: str, invoker_user_id_hex: str):
@@ -98,46 +101,6 @@ class AttachmentsContentResolver(SafePrinterMixin):
             message = f"Invoker '{invoker_user_id_hex}' is not allowed to resolve attachments"
             self.sprint(message)
             raise ValueError(message)
-
-    @staticmethod
-    def refresh_attachment_files(
-        attachment_ids: list[str],
-        chat_message_attachment_dao: ChatMessageAttachmentCRUD,
-        bot_api: TelegramBotAPI,
-    ) -> list[ChatMessageAttachment]:
-        # fetch all attachments (with potentially stale data)
-        sprint(f"Refreshing attachment files {len(attachment_ids)}: [ {", ".join(attachment_ids)} ]")
-        stale_attachments_db: list[ChatMessageAttachmentDB] = [
-            chat_message_attachment_dao.get(attachment_id) for attachment_id in attachment_ids
-        ]
-        stale_attachments: list[ChatMessageAttachment] = [
-            ChatMessageAttachment.model_validate(stale_attachment_db) for stale_attachment_db in stale_attachments_db
-        ]
-        # update the file locator for each attachment (and the locator expiration date, if needed)
-        fresh_attachments: list[ChatMessageAttachmentSave] = []
-        for stale_attachment in stale_attachments:
-            sprint(f"Refreshing attachment '{stale_attachment.id}'")
-            fresh_attachment = ChatMessageAttachmentSave(**stale_attachment.model_dump())
-            if stale_attachment.has_stale_data:
-                sprint("\tData is stale, updating")
-                api_file = bot_api.get_file_info(stale_attachment.id)
-                api_file_path = api_file.file_path
-                if api_file_path:
-                    last_url = f"{config.telegram_api_base_url}/file/bot{config.telegram_bot_token}/{api_file_path}"
-                    fresh_attachment.last_url = last_url
-                # extension, mime type, etc. are not updated here because they are not expected to change
-                fresh_attachment.size = api_file.file_size
-                fresh_attachment.last_url_until = nearest_hour_epoch()
-            else:
-                sprint("\tSkipped, data is fresh")
-            fresh_attachments.append(fresh_attachment)
-            # save the updated attachments
-            sprint("Saving updated attachments")
-            attachments = [
-                ChatMessageAttachment.model_validate(chat_message_attachment_dao.save(fresh_attachment))
-                for fresh_attachment in fresh_attachments
-            ]
-            return attachments
 
     @property
     def resolution_status(self) -> Result:

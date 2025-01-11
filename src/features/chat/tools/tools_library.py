@@ -17,7 +17,7 @@ from features.chat.generative_imaging_manager import GenerativeImagingManager
 from features.chat.image_edit_manager import ImageEditManager
 from features.chat.invite_manager import InviteManager
 from features.chat.price_alert_manager import PriceAlertManager
-from features.chat.telegram.telegram_bot_api import TelegramBotAPI
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.tools.base_tool_binder import BaseToolBinder
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
 from features.support.user_support_manager import UserSupportManager
@@ -150,7 +150,7 @@ def process_attachments(
                     invoker_user_id_hex = user_id,
                     additional_context = context,
                     attachment_ids = attachment_ids.split(','),
-                    bot_api = TelegramBotAPI(),
+                    bot_sdk = TelegramBotSDK(db),
                     user_dao = UserCRUD(db),
                     chat_config_dao = ChatConfigCRUD(db),
                     chat_message_dao = ChatMessageCRUD(db),
@@ -168,7 +168,7 @@ def process_attachments(
                     invoker_user_id_hex = user_id,
                     operation_name = operation,
                     operation_guidance = context,
-                    bot_api = TelegramBotAPI(),
+                    bot_sdk = TelegramBotSDK(db),
                     user_dao = UserCRUD(db),
                     chat_message_attachment_dao = ChatMessageAttachmentCRUD(db),
                 )
@@ -319,7 +319,7 @@ def generate_image(chat_id: str, user_id: str, prompt: str) -> str:
     """
     try:
         with get_detached_session() as db:
-            imaging = GenerativeImagingManager(chat_id, prompt, user_id, TelegramBotAPI(), UserCRUD(db))
+            imaging = GenerativeImagingManager(chat_id, prompt, user_id, TelegramBotSDK(db), UserCRUD(db))
             result = imaging.execute()
             if result == GenerativeImagingManager.Result.failed:
                 raise ValueError("Failed to generate the image")
@@ -365,7 +365,7 @@ def announce_maintenance_or_news(user_id: str, raw_announcement: str) -> str:
                 invoker_user_id_hex = user_id,
                 raw_message = raw_announcement,
                 translations = TranslationsCache(),
-                telegram_bot_api = TelegramBotAPI(),
+                telegram_bot_sdk = TelegramBotSDK(db),
                 user_dao = UserCRUD(db),
                 chat_config_dao = ChatConfigCRUD(db),
                 chat_message_dao = ChatMessageCRUD(db),
@@ -399,7 +399,7 @@ def deliver_message(author_user_id: str, message: str, target_telegram_username:
                 invoker_user_id_hex = author_user_id,
                 raw_message = message,
                 translations = TranslationsCache(),
-                telegram_bot_api = TelegramBotAPI(),
+                telegram_bot_sdk = TelegramBotSDK(db),
                 user_dao = UserCRUD(db),
                 chat_config_dao = ChatConfigCRUD(db),
                 chat_message_dao = ChatMessageCRUD(db),

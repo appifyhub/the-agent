@@ -12,7 +12,7 @@ from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.chat_message import ChatMessageSave
 from db.schema.user import User
-from features.chat.telegram.telegram_bot_api import TelegramBotAPI
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.prompting import prompt_library
 from util.config import config
 from util.functions import construct_bot_message_id
@@ -27,7 +27,7 @@ ANTHROPIC_MAX_TOKENS = 500
 class AnnouncementManager(SafePrinterMixin):
     __raw_message: str
     __translations: TranslationsCache
-    __telegram_bot_api: TelegramBotAPI
+    __telegram_bot_sdk: TelegramBotSDK
     __user_dao: UserCRUD
     __chat_config_dao: ChatConfigCRUD
     __chat_message_dao: ChatMessageCRUD
@@ -40,7 +40,7 @@ class AnnouncementManager(SafePrinterMixin):
         invoker_user_id_hex: str,
         raw_message: str,
         translations: TranslationsCache,
-        telegram_bot_api: TelegramBotAPI,
+        telegram_bot_sdk: TelegramBotSDK,
         user_dao: UserCRUD,
         chat_config_dao: ChatConfigCRUD,
         chat_message_dao: ChatMessageCRUD,
@@ -49,7 +49,7 @@ class AnnouncementManager(SafePrinterMixin):
         super().__init__(config.verbose)
         self.__raw_message = raw_message
         self.__translations = translations
-        self.__telegram_bot_api = telegram_bot_api
+        self.__telegram_bot_sdk = telegram_bot_sdk
         self.__user_dao = user_dao
         self.__chat_config_dao = chat_config_dao
         self.__chat_message_dao = chat_message_dao
@@ -152,7 +152,7 @@ class AnnouncementManager(SafePrinterMixin):
         return response
 
     def __notify_chat(self, chat: ChatConfig, summary: str):
-        self.__telegram_bot_api.send_text_message(chat.chat_id, summary)
+        self.__telegram_bot_sdk.send_text_message(chat.chat_id, summary)
         sent_at = datetime.now()
         message_to_store = ChatMessageSave(
             chat_id = chat.chat_id,

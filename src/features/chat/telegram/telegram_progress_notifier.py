@@ -1,19 +1,15 @@
 import random
 import time
-from datetime import datetime
 from threading import Thread, Lock, Event
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
 
-from db.crud.chat_message import ChatMessageCRUD
 from db.schema.chat_config import ChatConfig
-from db.schema.chat_message import ChatMessageSave
-from features.chat.telegram.telegram_bot_api import TelegramBotAPI
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.prompting import prompt_library
 from util.config import config
-from util.functions import construct_bot_message_id
 from util.safe_printer_mixin import SafePrinterMixin
 
 DEFAULT_REACTION_INTERVAL_S = 15
@@ -28,10 +24,9 @@ ANTHROPIC_MAX_TOKENS = 500
 # subset of features.prompting.prompt_library.ALLOWED_TELEGRAM_EMOJIS
 # sorted by intensity (later ones emote more about the delay)
 ESCALATING_REACTIONS = [
-    "🫡", "👨‍💻", "⚡", "🔥", "👀", "🤔",
-    "🤨", "😐", "🥱", "😴", "🥴", "😨",
-    "😱", "🤯", "😢", "😭", "🙈", "💩",
-    "💅",
+    "🫡", "👨‍💻", "⚡", "🔥", "👀", "🤔", "🤨",
+    "😐", "🥱", "😴", "🥴", "😨", "😱", "🤯",
+    "😢", "😭", "🙈", "💩", "💅",
 ]
 
 
@@ -47,15 +42,13 @@ class TelegramProgressNotifier(SafePrinterMixin):
     __lock: Lock
     __thread: Thread | None
     __signal: Event
-    __bot_api: TelegramBotAPI
-    __chat_message_dao: ChatMessageCRUD
+    __bot_sdk: TelegramBotSDK
 
     def __init__(
         self,
         chat_config: ChatConfig,
         message_id: str,
-        bot_api: TelegramBotAPI,
-        chat_message_dao: ChatMessageCRUD,
+        bot_sdk: TelegramBotSDK,
         auto_start: bool = True,
         reaction_interval_s: int = DEFAULT_REACTION_INTERVAL_S,
         text_update_interval_s: int = DEFAULT_TEXT_UPDATE_INTERVAL_S,
@@ -87,8 +80,7 @@ class TelegramProgressNotifier(SafePrinterMixin):
             language_iso_code = self.__chat_config.language_iso_code,
         )
         self.__llm_input = [SystemMessage(prompt)]
-        self.__bot_api = bot_api
-        self.__chat_message_dao = chat_message_dao
+        self.__bot_sdk = bot_sdk
         if auto_start:
             self.start()
         print(f"Text update interval: {self.__text_update_interval_s}")
@@ -122,7 +114,7 @@ class TelegramProgressNotifier(SafePrinterMixin):
                 self.__total_cycles = MAX_CYCLES
             self.sprint(f"  Stopped thread {self.__thread.name}")
         # remove the stale reaction
-        self.__bot_api.set_reaction(self.__chat_config.chat_id, self.__message_id, None)
+        self.__bot_sdk.set_reaction(self.__chat_config.chat_id, self.__message_id, None)
 
     def __run(self):
         current_time_s = time.time()
@@ -154,9 +146,9 @@ class TelegramProgressNotifier(SafePrinterMixin):
         self.sprint(f"Setting \"{status}\" status")
         try:
             if is_long:
-                self.__bot_api.set_status_uploading_image(self.__chat_config.chat_id)
+                self.__bot_sdk.set_status_uploading_image(self.__chat_config.chat_id)
             else:
-                self.__bot_api.set_status_typing(self.__chat_config.chat_id)
+                self.__bot_sdk.set_status_typing(self.__chat_config.chat_id)
         except Exception as e:
             self.sprint(f"Failed to set \"{status}\" status", e)
 
@@ -166,7 +158,7 @@ class TelegramProgressNotifier(SafePrinterMixin):
         try:
             next_reaction = ESCALATING_REACTIONS[self.__next_reaction_index]
             self.__next_reaction_index = (self.__next_reaction_index + 1) % len(ESCALATING_REACTIONS)
-            self.__bot_api.set_reaction(self.__chat_config.chat_id, self.__message_id, next_reaction)
+            self.__bot_sdk.set_reaction(self.__chat_config.chat_id, self.__message_id, next_reaction)
         except Exception as e:
             self.sprint(f"Failed to send reaction: {e}")
 
@@ -193,20 +185,8 @@ class TelegramProgressNotifier(SafePrinterMixin):
             if not isinstance(response, AIMessage) or not response.content:
                 raise ValueError(f"Got a complex AI response: {response}")
 
-            # get rid of the old reaction
-            self.__bot_api.set_reaction(self.__chat_config.chat_id, self.__message_id, None)
-            # send the actual message
-            message_to_send = str(response.content)
-            self.__bot_api.send_text_message(self.__chat_config.chat_id, message_to_send)
-            # and store the new text
-            sent_at = datetime.now()
-            message_to_store = ChatMessageSave(
-                chat_id = self.__chat_config.chat_id,
-                message_id = construct_bot_message_id(self.__chat_config.chat_id, sent_at),
-                author_id = prompt_library.TELEGRAM_BOT_USER.id,
-                sent_at = sent_at,
-                text = message_to_send,
-            )
-            self.__chat_message_dao.save(message_to_store)
+            # get rid of the old reaction and send the update message
+            self.__bot_sdk.set_reaction(self.__chat_config.chat_id, self.__message_id, None)
+            self.__bot_sdk.send_text_message(self.__chat_config.chat_id, str(response.content))
         except Exception as e:
             self.sprint("Failed to send message", e)

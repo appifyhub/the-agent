@@ -8,7 +8,7 @@ from features.chat.command_processor import CommandProcessor
 from features.chat.invite_manager import InviteManager
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
 from features.chat.telegram.model.update import Update
-from features.chat.telegram.telegram_bot_api import TelegramBotAPI
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.telegram_chat_bot import TelegramChatBot
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
@@ -27,11 +27,14 @@ def respond_to_update(
     telegram_domain_mapper: TelegramDomainMapper,
     telegram_data_resolver: TelegramDataResolver,
     domain_langchain_mapper: DomainLangchainMapper,
-    telegram_bot_api: TelegramBotAPI,
+    telegram_bot_sdk: TelegramBotSDK,
     update: Update,
 ) -> bool:
     def map_to_langchain(message):
         return domain_langchain_mapper.map_to_langchain(user_dao.get(message.author_id), message)
+
+    if config.log_telegram_update:
+        sprint(f"Received a Telegram update: `{update}`")
 
     user_dao.save(TELEGRAM_BOT_USER)  # save is ignored if bot already exists
     resolved_domain_data: TelegramDataResolver.Result | None = None
@@ -62,8 +65,7 @@ def respond_to_update(
         progress_notifier = TelegramProgressNotifier(
             resolved_domain_data.chat,
             domain_update.message.message_id,
-            telegram_bot_api,
-            chat_message_dao,
+            telegram_bot_sdk,
             auto_start = False,
         )
         telegram_chat_bot = TelegramChatBot(
@@ -81,30 +83,26 @@ def respond_to_update(
 
         # send and store the response[s]
         sent_messages: int = 0
-        saved_messages: int = 0
         domain_messages = domain_langchain_mapper.map_bot_message_to_storage(
             resolved_domain_data.chat.chat_id,
             answer,
         )
         for message in domain_messages:
-            telegram_bot_api.send_text_message(message.chat_id, message.text)
+            telegram_bot_sdk.send_text_message(message.chat_id, message.text)
             sent_messages += 1
-            chat_message_dao.save(message)
-            saved_messages += 1
         sprint(f"Finished responding to updates. \n[{TELEGRAM_BOT_USER.full_name}]: {answer.content}")
-        sprint(f"Used {len(past_messages_db)}, saved {saved_messages}, sent {sent_messages} messages")
+        sprint(f"Used {len(past_messages_db)}, sent {sent_messages} messages")
         return True
     except Exception as e:
         sprint(f"Failed to ingest: {update}", e)
-        __notify_of_errors(chat_message_dao, domain_langchain_mapper, telegram_bot_api, resolved_domain_data, e)
+        __notify_of_errors(domain_langchain_mapper, telegram_bot_sdk, resolved_domain_data, e)
         return False
 
 
 @silent
 def __notify_of_errors(
-    chat_messages_dao: ChatMessageCRUD,
     domain_langchain_mapper: DomainLangchainMapper,
-    telegram_bot_api: TelegramBotAPI,
+    telegram_bot_sdk: TelegramBotSDK,
     resolved_domain_data: TelegramDataResolver.Result | None,
     error: Exception,
 ):
@@ -112,6 +110,5 @@ def __notify_of_errors(
         answer = AIMessage(prompt_library.error_general_problem(str(error)))
         messages = domain_langchain_mapper.map_bot_message_to_storage(resolved_domain_data.chat.chat_id, answer)
         for message in messages:
-            telegram_bot_api.send_text_message(message.chat_id, message.text)
-            chat_messages_dao.save(message)
+            telegram_bot_sdk.send_text_message(message.chat_id, message.text)
         sprint("Replied with the error")
