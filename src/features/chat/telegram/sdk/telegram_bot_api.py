@@ -133,7 +133,7 @@ class TelegramBotAPI(SafePrinterMixin):
 
     def __raise_for_status(self, response: Response | None):
         if not response:
-            message = "No response received"
+            message = "No API response received"
             self.sprint(f"  {message}")
             raise RequestException(message)
         if response.status_code != 200:
