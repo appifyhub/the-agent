@@ -113,8 +113,12 @@ class TelegramProgressNotifier(SafePrinterMixin):
                 self.sprint("  Thread did not stop in time, proceeding...")
                 self.__total_cycles = MAX_CYCLES
             self.sprint(f"  Stopped thread {self.__thread.name}")
-        # remove the stale reaction
-        self.__bot_sdk.set_reaction(self.__chat_config.chat_id, self.__message_id, None)
+        # noinspection TryExceptPass
+        # remove the stale reaction (sometimes fails due to API race condition but doesn't matter)
+        try:
+            self.__bot_sdk.set_reaction(self.__chat_config.chat_id, self.__message_id, None)
+        except:  # noqa: E722
+            pass
 
     def __run(self):
         current_time_s = time.time()
@@ -126,11 +130,11 @@ class TelegramProgressNotifier(SafePrinterMixin):
             reaction_elapsed_s = current_time_s - self.__last_reaction_time
             text_update_elapsed_s = current_time_s - self.__last_text_update_time
 
-            if text_update_elapsed_s >= self.__text_update_interval_s:
+            if text_update_elapsed_s >= float(self.__text_update_interval_s):
                 # check if a message update is needed
                 self.__send_message()
                 self.__last_text_update_time = current_time_s
-            elif reaction_elapsed_s >= self.__reaction_interval_s:
+            elif reaction_elapsed_s >= float(self.__reaction_interval_s):
                 # check if reaction update is needed
                 self.__send_reaction()
                 self.__last_reaction_time = current_time_s
