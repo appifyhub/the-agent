@@ -83,7 +83,7 @@ class TelegramProgressNotifier(SafePrinterMixin):
         self.__bot_sdk = bot_sdk
         if auto_start:
             self.start()
-        print(f"Text update interval: {self.__text_update_interval_s}")
+        self.sprint(f"Text update interval: {self.__text_update_interval_s}")
 
     def start(self):
         self.sprint("Acquiring start lock...")
