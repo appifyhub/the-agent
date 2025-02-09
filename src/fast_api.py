@@ -10,7 +10,7 @@ from db.crud.price_alert import PriceAlertCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.sql import get_session, initialize_db
-from features.auth import verify_api_key
+from features.auth import verify_api_key, verify_telegram_auth_key
 from features.chat.invite_manager import InviteManager
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
 from features.chat.telegram.model.update import Update
@@ -60,6 +60,7 @@ def health() -> dict: return {"status": "ok"}
 def telegram_chat_update(
     update: Update,
     db = Depends(get_session),
+    _ = Depends(verify_telegram_auth_key),
 ) -> bool:
     user_dao = UserCRUD(db)
     invite_dao = InviteCRUD(db)
@@ -78,8 +79,8 @@ def telegram_chat_update(
 
 @app.post("/notify/price-alerts")
 def notify_of_price_alerts(
-    _ = Depends(verify_api_key),
     db = Depends(get_session),
+    _ = Depends(verify_api_key),
 ) -> dict:
     return respond_with_announcements(
         user_dao = UserCRUD(db),
@@ -94,8 +95,8 @@ def notify_of_price_alerts(
 @app.post("/notify/release")
 def notify_of_release(
     payload: RawNotesPayload,
-    _ = Depends(verify_api_key),
     db = Depends(get_session),
+    _ = Depends(verify_api_key),
 ) -> dict:
     return respond_with_summary(
         chat_config_dao = ChatConfigCRUD(db),
@@ -107,8 +108,8 @@ def notify_of_release(
 
 @app.post("/task/clear-expired-cache")
 def clear_expired_cache(
-    _ = Depends(verify_api_key),
     db = Depends(get_session),
+    _ = Depends(verify_api_key),
 ) -> dict:
     try:
         cleared_count = ToolsCacheCRUD(db).delete_expired()
