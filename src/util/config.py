@@ -21,6 +21,8 @@ class Config(metaclass = Singleton):
     telegram_bot_id: int
     telegram_bot_token: str
     telegram_api_base_url: str
+    telegram_auth_key: str
+    telegram_must_auth: bool
     chat_history_depth: int
     anthropic_token: str
     open_ai_token: str
@@ -54,6 +56,8 @@ class Config(metaclass = Singleton):
         def_telegram_bot_id: int = 1234567890,
         def_telegram_bot_token: str = "invalid",
         def_telegram_api_base_url: str = "https://api.telegram.org",
+        def_telegram_auth_key: str = "it_is_really_telegram",
+        def_telegram_must_auth: bool = False,
         def_chat_history_depth: int = 30,
         def_anthropic_token: str = "invalid",
         def_open_ai_token: str = "invalid",
@@ -82,6 +86,8 @@ class Config(metaclass = Singleton):
         self.telegram_bot_id = int(self.__env("TELEGRAM_BOT_ID", lambda: str(def_telegram_bot_id)))
         self.telegram_bot_token = self.__env("TELEGRAM_BOT_TOKEN", lambda: def_telegram_bot_token)
         self.telegram_api_base_url = self.__env("TELEGRAM_API_BASE_URL", lambda: def_telegram_api_base_url)
+        self.telegram_auth_key = self.__env("TELEGRAM_API_UPDATE_AUTH_TOKEN", lambda: def_telegram_auth_key)
+        self.telegram_must_auth = self.__env("TELEGRAM_AUTH_ON", lambda: str(def_telegram_must_auth)).lower() == "true"
         self.chat_history_depth = int(self.__env("CHAT_HISTORY_DEPTH", lambda: str(def_chat_history_depth)))
         self.anthropic_token = self.__env("ANTHROPIC_TOKEN", lambda: def_anthropic_token)
         self.open_ai_token = self.__env("OPEN_AI_TOKEN", lambda: def_open_ai_token)

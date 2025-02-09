@@ -37,6 +37,8 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.telegram_bot_id, 1234567890)
         self.assertEqual(config.telegram_bot_token, "invalid")
         self.assertEqual(config.telegram_api_base_url, "https://api.telegram.org")
+        self.assertEqual(config.telegram_auth_key, "it_is_really_telegram")
+        self.assertEqual(config.telegram_must_auth, False)
         self.assertEqual(config.chat_history_depth, 30)
         self.assertEqual(config.anthropic_token, "invalid")
         self.assertEqual(config.open_ai_token, "invalid")
@@ -69,6 +71,8 @@ class ConfigTest(unittest.TestCase):
         os.environ["TELEGRAM_BOT_ID"] = "1234"
         os.environ["TELEGRAM_BOT_TOKEN"] = "id:sha"
         os.environ["TELEGRAM_API_BASE_URL"] = "https://new.api.telegram.org"
+        os.environ["TELEGRAM_API_UPDATE_AUTH_TOKEN"] = "abcd1234"
+        os.environ["TELEGRAM_AUTH_ON"] = "true"
         os.environ["CHAT_HISTORY_DEPTH"] = "10"
         os.environ["ANTHROPIC_TOKEN"] = "sk-a-valid"
         os.environ["OPEN_AI_TOKEN"] = "sk-o-valid"
@@ -99,6 +103,8 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.telegram_bot_id, 1234)
         self.assertEqual(config.telegram_bot_token, "id:sha")
         self.assertEqual(config.telegram_api_base_url, "https://new.api.telegram.org")
+        self.assertEqual(config.telegram_auth_key, "abcd1234")
+        self.assertEqual(config.telegram_must_auth, True)
         self.assertEqual(config.chat_history_depth, 10)
         self.assertEqual(config.anthropic_token, "sk-a-valid")
         self.assertEqual(config.open_ai_token, "sk-o-valid")
