@@ -1,5 +1,6 @@
 import json
 import re
+from typing import Literal
 
 import requests
 from requests import Response, RequestException
@@ -128,6 +129,36 @@ class TelegramBotAPI(SafePrinterMixin):
             "reaction": reactions_list,
         }
         response = requests.post(url, json = payload, timeout = config.web_timeout_s)
+        self.__raise_for_status(response)
+        return response.json()
+
+    def send_button_link(
+        self,
+        chat_id: int | str,
+        link_url: str,
+        url_type: Literal["user_settings", "chat_settings"]
+    ) -> dict:
+        button_text: str
+        if url_type == "user_settings":
+            button_text = "👤 ⚙️"
+        elif url_type == "chat_settings":
+            button_text = "💬 ⚙️"
+        else:
+            # shouldn't happen due to typing, but let's be safe
+            raise ValueError(f"Invalid URL type: '{url_type}'")
+        payload = {
+            "chat_id": chat_id,
+            "text": "👇",
+            "reply_markup": {
+                "inline_keyboard": [[
+                    {
+                        "text": button_text,
+                        "url": link_url,
+                    }
+                ]]
+            }
+        }
+        response = requests.post(f"{self.__bot_api_url}/sendMessage", json = payload, timeout = config.web_timeout_s)
         self.__raise_for_status(response)
         return response.json()
 
