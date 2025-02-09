@@ -30,6 +30,7 @@ class TelegramBotSDKTest(unittest.TestCase):
         self.mock_api.send_text_message.return_value = self.api_response
         self.mock_api.send_photo.return_value = self.api_response
         self.mock_api.send_document.return_value = self.api_response
+        self.mock_api.send_button_link.return_value = self.api_response
 
     @patch.object(TelegramDomainMapper, "map_update")
     @patch.object(TelegramDataResolver, "resolve")
@@ -118,6 +119,42 @@ class TelegramBotSDKTest(unittest.TestCase):
             message_id = self.message_id,
             reaction = reaction
         )
+
+    @patch.object(TelegramDomainMapper, "map_update")
+    @patch.object(TelegramDataResolver, "resolve")
+    def test_send_button_link(self, mock_resolve, mock_map_update):
+        link_url = "https://test.com"
+        expected_message = Mock()
+        mock_map_update.return_value = Mock()
+        mock_resolve.return_value = Mock(message = expected_message, attachments = [Mock()])
+
+        # Test user settings button
+        result = self.sdk.send_button_link(
+            chat_id = self.chat_id,
+            link_url = link_url,
+            url_type = "user_settings",
+        )
+
+        self.mock_api.send_button_link.assert_called_with(
+            self.chat_id,
+            link_url,
+            "user_settings",
+        )
+        self.assertEqual(result, expected_message)
+
+        # Test chat settings button
+        result = self.sdk.send_button_link(
+            chat_id = self.chat_id,
+            link_url = link_url,
+            url_type = "chat_settings",
+        )
+
+        self.mock_api.send_button_link.assert_called_with(
+            self.chat_id,
+            link_url,
+            "chat_settings",
+        )
+        self.assertEqual(result, expected_message)
 
     @patch.object(TelegramDomainMapper, "map_update")
     def test_store_api_response_mapping_failure(self, mock_map_update):
