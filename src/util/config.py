@@ -34,6 +34,7 @@ class Config(metaclass = Singleton):
     github_issues_token: str
     github_issues_repo: str
     issue_templates_abs_path: str
+    jwt_secret_key: str
 
     def __init__(
         self,
@@ -69,6 +70,7 @@ class Config(metaclass = Singleton):
         def_github_issues_token: str = "invalid",
         def_github_issues_repo: str = "appifyhub/the-agent",
         def_issue_templates_path: str = ".github/ISSUE_TEMPLATE",
+        def_jwt_secret_key: str = "default",
     ):
         self.verbose = self.__env("VERBOSE", lambda: str(def_verbose)).lower() == "true"
         self.log_telegram_update = self.__env("LOG_TG_UPDATE", lambda: str(def_log_telegram_update)).lower() == "true"
@@ -99,6 +101,7 @@ class Config(metaclass = Singleton):
         self.github_issues_token = self.__env("THE_AGENT_ISSUES_TOKEN", lambda: def_github_issues_token)
         self.github_issues_repo = self.__env("THE_AGENT_ISSUES_REPO", lambda: def_github_issues_repo)
         self.issue_templates_abs_path = self.__env("THE_AGENT_ISSUE_TEMPLATES_PATH", lambda: def_issue_templates_path)
+        self.jwt_secret_key = self.__env("JWT_SECRET_KEY", lambda: def_jwt_secret_key)
 
     def __set_up_db(self, def_db_user: str, def_db_pass: str, def_db_host: str, def_db_name: str) -> None:
         db_user = self.__env("POSTGRES_USER", lambda: def_db_user)
