@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 from starlette.status import HTTP_403_FORBIDDEN, HTTP_401_UNAUTHORIZED
 
-from features.auth import verify_api_key, verify_telegram_auth_key, verify_jwt_token, create_jwt_token
+from features.auth import verify_api_key, verify_telegram_auth_key, verify_jwt_credentials, create_jwt_token
 
 
 class AuthTest(unittest.TestCase):
@@ -62,7 +62,7 @@ class AuthTest(unittest.TestCase):
     def test_missing_jwt_token(self):
         with self.assertRaises(HTTPException) as context:
             # noinspection PyTypeChecker
-            verify_jwt_token(None)
+            verify_jwt_credentials(None)
         self.assertEqual(context.exception.status_code, HTTP_401_UNAUTHORIZED)
         self.assertEqual(context.exception.detail, "Could not validate access credentials")
 
@@ -70,7 +70,7 @@ class AuthTest(unittest.TestCase):
     def test_invalid_jwt_token(self, mock_jwt: MagicMock):
         mock_jwt.decode.side_effect = Exception()
         with self.assertRaises(HTTPException) as context:
-            verify_jwt_token(HTTPAuthorizationCredentials(scheme = "Bearer", credentials = "invalid-token"))
+            verify_jwt_credentials(HTTPAuthorizationCredentials(scheme = "Bearer", credentials = "invalid-token"))
         self.assertEqual(context.exception.status_code, HTTP_401_UNAUTHORIZED)
         self.assertEqual(context.exception.detail, "Could not validate access credentials")
 
@@ -81,7 +81,7 @@ class AuthTest(unittest.TestCase):
         expected_payload = {"sub": "1234"}
         mock_jwt.decode.return_value = expected_payload
 
-        result = verify_jwt_token(HTTPAuthorizationCredentials(scheme = "Bearer", credentials = "valid-token"))
+        result = verify_jwt_credentials(HTTPAuthorizationCredentials(scheme = "Bearer", credentials = "valid-token"))
         self.assertEqual(result, expected_payload)
 
     def test_create_jwt_token(self):
