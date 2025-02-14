@@ -661,6 +661,7 @@ def error_general_problem(reason: str, llm_author_organization: str = ORGANIZATI
     clean_reason = clean_reason.replace(config.replicate_api_token, "****")
     clean_reason = clean_reason.replace(config.perplexity_api_token, "****")
     clean_reason = clean_reason.replace(config.github_issues_token, "****")
+    clean_reason = clean_reason.replace(config.jwt_secret_key, "****")
     return MULTI_MESSAGE_DELIMITER.join(
         [
             "🔴 I'm having issues replying to you.",
