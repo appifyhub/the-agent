@@ -40,6 +40,15 @@ def first_key_with_value(source: dict[K, V], value: V) -> K | None:
     return None
 
 
+def mask_secret(secret: str | None = None, mask: str = "*") -> str | None:
+    if secret is None:
+        return None
+    length = len(secret)
+    if length < 5:
+        return mask * length
+    return secret[:2] + mask * (length - 4) + secret[-2:]
+
+
 ###           U N T E S T E D           ###
 # No idea how to test other than manually #
 
