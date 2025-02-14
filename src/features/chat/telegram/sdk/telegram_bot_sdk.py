@@ -4,6 +4,7 @@ from typing import Literal
 from sqlalchemy.orm import Session
 
 from db.schema.chat_message import ChatMessage
+from features.chat.telegram.model.chat_member import ChatMember
 from features.chat.telegram.model.message import Message
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
@@ -96,6 +97,13 @@ class TelegramBotSDK(SafePrinterMixin):
     ) -> ChatMessage:
         sent_message = self.api.send_button_link(chat_id, link_url, url_type)
         return self.__store_api_response_as_message(sent_message)
+
+    def get_chat_member(self, chat_id: int | str, user_id: int | str) -> ChatMember | None:
+        try:
+            return self.api.get_chat_member(chat_id, user_id)
+        except Exception as e:
+            self.sprint(f"Failed to get chat member '{user_id}' from chat '{chat_id}'", e)
+            return None
 
     def __store_api_response_as_message(self, raw_api_response: dict) -> ChatMessage:
         self.sprint("Storing API message data...")

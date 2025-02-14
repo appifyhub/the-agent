@@ -102,10 +102,12 @@ class TelegramDomainMapper(SafePrinterMixin):
         chat = message.chat
         # self.sprint(f"Mapping chat: {chat}")
         title = self.resolve_chat_name(str(chat.id), chat.title, chat.username, chat.first_name, chat.last_name)
+        language_code = message.from_user.language_code if message.from_user else None
         return ChatConfigSave(
             chat_id = str(chat.id),
             title = title,
             is_private = chat.type == "private",
+            language_iso_code = language_code,
         )
 
     # noinspection PyMethodMayBeStatic
