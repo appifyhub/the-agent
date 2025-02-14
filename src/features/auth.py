@@ -3,10 +3,11 @@ from typing import Dict, Any
 
 from fastapi import HTTPException, Security
 from fastapi.security import APIKeyHeader, HTTPBearer, HTTPAuthorizationCredentials
-from jose import jwt
+from jose import jwt, ExpiredSignatureError
 from starlette.status import HTTP_403_FORBIDDEN, HTTP_401_UNAUTHORIZED
 
 from util.config import config
+from util.safe_printer_mixin import sprint
 
 __JWT_ALGORITHM = "HS256"
 
@@ -27,15 +28,29 @@ def verify_telegram_auth_key(auth_key: str = Security(telegram_auth_key_header))
     return auth_key
 
 
-def verify_jwt_token(authorization: HTTPAuthorizationCredentials = Security(jwt_header)) -> Dict[str, Any]:
+def verify_jwt_credentials(authorization: HTTPAuthorizationCredentials = Security(jwt_header)) -> Dict[str, Any]:
     try:
-        return jwt.decode(authorization.credentials, config.jwt_secret_key, algorithms = [__JWT_ALGORITHM])
-    except Exception as _:
+        return verify_jwt_token(authorization.credentials)
+    except ExpiredSignatureError as e:
+        message = "Token has expired"
+        sprint(message, e)
         raise HTTPException(
             status_code = HTTP_401_UNAUTHORIZED,
-            detail = "Could not validate access credentials",
+            detail = message,
             headers = {"WWW-Authenticate": "Bearer"},
         )
+    except Exception as e:
+        message = "Could not validate access credentials"
+        sprint(message, e)
+        raise HTTPException(
+            status_code = HTTP_401_UNAUTHORIZED,
+            detail = message,
+            headers = {"WWW-Authenticate": "Bearer"},
+        )
+
+
+def verify_jwt_token(token: str) -> Dict[str, Any]:
+    return jwt.decode(token, config.jwt_secret_key, algorithms = [__JWT_ALGORITHM], options = {"verify_aud": False})
 
 
 def create_jwt_token(payload: Dict[str, Any], expires_in: timedelta = timedelta(minutes = 5)) -> str:
