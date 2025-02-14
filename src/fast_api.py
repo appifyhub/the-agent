@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from typing import Literal, Any
 
 from fastapi import Depends, FastAPI, HTTPException
 from starlette.responses import RedirectResponse
@@ -10,8 +11,9 @@ from db.crud.price_alert import PriceAlertCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.sql import get_session, initialize_db
-from features.auth import verify_api_key, verify_telegram_auth_key
+from features.auth import verify_api_key, verify_telegram_auth_key, verify_jwt_credentials
 from features.chat.invite_manager import InviteManager
+from features.chat.settings_manager import SettingsManager
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
@@ -118,3 +120,34 @@ def clear_expired_cache(
     except Exception as e:
         sprint("Failed to clear expired cache", e)
         raise HTTPException(status_code = 500, detail = {"reason ": str(e)})
+
+
+@app.get("/settings/{settings_type}/{resource_id}")
+def get_settings(
+    settings_type: Literal["user", "chat"],
+    resource_id: str,
+    db = Depends(get_session),
+    token = Depends(verify_jwt_credentials),
+) -> dict[str, Any]:
+    try:
+        sprint(f"Fetching {settings_type} settings for {resource_id}")
+        user_id_hex, chat_id = SettingsManager.resolve_user_id_hex_and_chat_id(token)
+        sprint(f"  User ID: {user_id_hex}, Chat ID: {chat_id}")
+        settings_literal = "user_settings" if settings_type == "user" else "chat_settings"
+        user_dao = UserCRUD(db)
+        chat_config_dao = ChatConfigCRUD(db)
+        settings_manager = SettingsManager(
+            invoker_user_id_hex = user_id_hex,
+            target_chat_id = chat_id,
+            telegram_sdk = TelegramBotSDK(db),
+            user_dao = user_dao,
+            chat_config_dao = chat_config_dao,
+            settings_type = settings_literal,
+        )
+        if settings_literal == "user_settings":
+            return settings_manager.fetch_user_settings(resource_id)
+        else:
+            return settings_manager.fetch_chat_settings(resource_id)
+    except Exception as e:
+        sprint("Failed to get settings", e)
+        raise HTTPException(status_code = 500, detail = {"reason": str(e)})
