@@ -4,8 +4,9 @@ from uuid import UUID
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.user import UserCRUD
 from db.schema.chat_config import ChatConfig
-from db.schema.user import User
+from db.schema.user import User, UserSave
 from features.auth import create_jwt_token
+from features.chat.chat_config_manager import ChatConfigManager
 from features.chat.telegram.model.chat_member import ChatMemberOwner, ChatMemberAdministrator
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from util.config import config
@@ -20,6 +21,7 @@ class SettingsManager(SafePrinterMixin):
     __settings_type: Literal["user_settings", "chat_settings"] | None
 
     __telegram_sdk: TelegramBotSDK
+    __chat_config_manager: ChatConfigManager
     __user_dao: UserCRUD
     __chat_config_dao: ChatConfigCRUD
 
@@ -50,6 +52,7 @@ class SettingsManager(SafePrinterMixin):
         self.__telegram_sdk = telegram_sdk
         self.__user_dao = user_dao
         self.__chat_config_dao = chat_config_dao
+        self.__chat_config_manager = ChatConfigManager(chat_config_dao)
         self.__validate(invoker_user_id_hex, target_chat_id, settings_type)
 
     def __validate(self, invoker_user_id_hex: str, target_chat_id: str, settings_type: str | None):
@@ -154,5 +157,32 @@ class SettingsManager(SafePrinterMixin):
         user = self.authorize_for_user(user_id_hex)
         output = User.model_dump(user)
         output["id"] = user.id.hex
-        output["open_ai_key"] = mask_secret(output["open_ai_key"])
+        output["open_ai_key"] = mask_secret(output.get("open_ai_key"))
         return output
+
+    def save_chat_settings(self, chat_id: str, language_name: str, language_iso_code: str, reply_chance_percent: int):
+        self.sprint(f"Saving chat settings for chat '{chat_id}'")
+        chat_config = self.authorize_for_chat(chat_id)
+        result, message = self.__chat_config_manager.change_chat_language(
+            chat_id = chat_config.chat_id,
+            language_name = language_name,
+            language_iso_code = language_iso_code,
+        )
+        if result == ChatConfigManager.Result.failure:
+            raise ValueError(message)
+        self.sprint("  Chat language changed")
+        result, message = self.__chat_config_manager.change_chat_reply_chance(
+            chat_id = chat_config.chat_id,
+            reply_chance_percent = reply_chance_percent,
+        )
+        if result == ChatConfigManager.Result.failure:
+            raise ValueError(message)
+        self.sprint("  Reply chance changed")
+
+    def save_user_settings(self, user_id_hex: str, open_ai_key: str):
+        self.sprint(f"Saving user settings for user '{user_id_hex}'")
+        user = self.authorize_for_user(user_id_hex)
+        user.open_ai_key = open_ai_key
+        user_db = self.__user_dao.save(UserSave(**user.model_dump()))
+        User.model_validate(user_db)
+        self.sprint("  User settings saved")
