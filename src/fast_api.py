@@ -151,3 +151,53 @@ def get_settings(
     except Exception as e:
         sprint("Failed to get settings", e)
         raise HTTPException(status_code = 500, detail = {"reason": str(e)})
+
+
+@app.patch("/settings/{settings_type}/{resource_id}")
+def save_settings(
+    settings_type: Literal["user", "chat"],
+    resource_id: str,
+    request_data: dict[str, Any],
+    db = Depends(get_session),
+    token = Depends(verify_jwt_credentials),
+):
+    try:
+        sprint(f"Saving {settings_type} settings for {resource_id}")
+        user_id_hex, chat_id = SettingsManager.resolve_user_id_hex_and_chat_id(token)
+        sprint(f"  User ID: {user_id_hex}, Chat ID: {chat_id}")
+        settings_literal = "user_settings" if settings_type == "user" else "chat_settings"
+        user_dao = UserCRUD(db)
+        chat_config_dao = ChatConfigCRUD(db)
+        settings_manager = SettingsManager(
+            invoker_user_id_hex = user_id_hex,
+            target_chat_id = chat_id,
+            telegram_sdk = TelegramBotSDK(db),
+            user_dao = user_dao,
+            chat_config_dao = chat_config_dao,
+            settings_type = settings_literal,
+        )
+        if settings_literal == "user_settings":
+            open_ai_key = request_data.get("open_ai_key")
+            if not open_ai_key:
+                raise ValueError("Missing or invalid 'open_ai_key'")
+            settings_manager.save_user_settings(resource_id, open_ai_key)
+        else:
+            language_name = request_data.get("language_name")
+            if not language_name:
+                raise ValueError("No language name provided")
+            language_iso_code = request_data.get("language_iso_code")
+            if not language_iso_code:
+                raise ValueError("No language ISO code provided")
+            reply_chance_percent = request_data.get("reply_chance_percent") or -1
+            if reply_chance_percent is None:
+                raise ValueError("No reply chance percent provided")
+            settings_manager.save_chat_settings(
+                chat_id = resource_id,
+                language_name = language_name,
+                language_iso_code = language_iso_code,
+                reply_chance_percent = reply_chance_percent,
+            )
+        return {"status": "OK"}
+    except Exception as e:
+        sprint("Failed to save settings", e)
+        raise HTTPException(status_code = 500, detail = {"reason": str(e)})

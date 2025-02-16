@@ -7,7 +7,8 @@ from db.crud.chat_config import ChatConfigCRUD
 from db.crud.user import UserCRUD
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
-from db.schema.user import User
+from db.schema.user import User, UserSave
+from features.chat.chat_config_manager import ChatConfigManager
 from features.chat.settings_manager import SettingsManager
 from features.chat.telegram.model.chat_member import ChatMemberAdministrator, ChatMemberMember
 from features.chat.telegram.model.user import User as TelegramUser
@@ -348,3 +349,120 @@ class SettingsManagerTest(unittest.TestCase):
         self.assertEqual(settings["open_ai_key"], "in***********ey")
         # noinspection PyUnresolvedReferences
         self.assertEqual(self.mock_user_dao.get.call_count, 2)
+
+    @patch.object(ChatConfigManager, 'change_chat_language', return_value = (ChatConfigManager.Result.success, ""))
+    @patch.object(ChatConfigManager, 'change_chat_reply_chance', return_value = (ChatConfigManager.Result.success, ""))
+    def test_save_chat_settings_success(self, mock_change_chat_reply_chance, mock_change_chat_language):
+        self.mock_user_dao.get.return_value = self.invoker_user
+        self.mock_chat_config_dao.get.return_value = self.chat_config
+
+        manager = SettingsManager(
+            invoker_user_id_hex = self.invoker_user.id.hex,
+            target_chat_id = self.chat_config.chat_id,
+            telegram_sdk = self.mock_telegram_sdk,
+            user_dao = self.mock_user_dao,
+            chat_config_dao = self.mock_chat_config_dao,
+        )
+
+        manager.save_chat_settings(
+            chat_id = self.chat_config.chat_id,
+            language_name = "Spanish",
+            language_iso_code = "es",
+            reply_chance_percent = 50,
+        )
+
+        mock_change_chat_language.assert_called_once_with(
+            chat_id = self.chat_config.chat_id,
+            language_name = "Spanish",
+            language_iso_code = "es",
+        )
+        mock_change_chat_reply_chance.assert_called_once_with(
+            chat_id = self.chat_config.chat_id,
+            reply_chance_percent = 50,
+        )
+
+    def test_save_user_settings_success(self):
+        self.mock_user_dao.get.return_value = self.invoker_user
+        self.mock_chat_config_dao.get.return_value = self.chat_config
+
+        # Configure mock to return a proper UserDB instance
+        self.mock_user_dao.save.return_value = UserDB(
+            id = self.invoker_user.id,
+            full_name = self.invoker_user.full_name,
+            telegram_username = self.invoker_user.telegram_username,
+            telegram_chat_id = self.invoker_user.telegram_chat_id,
+            telegram_user_id = self.invoker_user.telegram_user_id,
+            open_ai_key = "new_open_ai_key",
+            group = self.invoker_user.group,
+            created_at = self.invoker_user.created_at,
+        )
+
+        manager = SettingsManager(
+            invoker_user_id_hex = self.invoker_user.id.hex,
+            target_chat_id = self.chat_config.chat_id,
+            telegram_sdk = self.mock_telegram_sdk,
+            user_dao = self.mock_user_dao,
+            chat_config_dao = self.mock_chat_config_dao,
+        )
+
+        manager.save_user_settings(
+            user_id_hex = self.invoker_user.id.hex,
+            open_ai_key = "new_open_ai_key",
+        )
+
+        self.invoker_user.open_ai_key = "new_open_ai_key"
+        # noinspection PyUnresolvedReferences
+        self.mock_user_dao.save.assert_called_once_with(UserSave(**self.invoker_user.model_dump()))
+
+    # noinspection PyUnusedLocal
+    @patch.object(ChatConfigManager, 'change_chat_language', return_value = (ChatConfigManager.Result.failure, "Error"))
+    def test_save_chat_settings_failure_language(self, mock_change_chat_language):
+        self.mock_user_dao.get.return_value = self.invoker_user
+        self.mock_chat_config_dao.get.return_value = self.chat_config
+
+        manager = SettingsManager(
+            invoker_user_id_hex = self.invoker_user.id.hex,
+            target_chat_id = self.chat_config.chat_id,
+            telegram_sdk = self.mock_telegram_sdk,
+            user_dao = self.mock_user_dao,
+            chat_config_dao = self.mock_chat_config_dao,
+        )
+
+        with self.assertRaises(ValueError) as context:
+            manager.save_chat_settings(
+                chat_id = self.chat_config.chat_id,
+                language_name = "Spanish",
+                language_iso_code = "es",
+                reply_chance_percent = 50,
+            )
+        self.assertIn("Error", str(context.exception))
+
+    @patch.object(ChatConfigManager, 'change_chat_language', return_value = (ChatConfigManager.Result.success, ""))
+    @patch.object(
+        ChatConfigManager,
+        'change_chat_reply_chance',
+        return_value = (ChatConfigManager.Result.failure, "Error")
+    )
+    def test_save_chat_settings_failure_reply_chance(self, mock_change_chat_reply_chance, mock_change_chat_language):
+        self.mock_user_dao.get.return_value = self.invoker_user
+        self.mock_chat_config_dao.get.return_value = self.chat_config
+        # Configure mock to return the same chat config structure
+        mock_change_chat_language.return_value = (ChatConfigManager.Result.success, "")
+        mock_change_chat_reply_chance.return_value = (ChatConfigManager.Result.failure, "Error")
+
+        manager = SettingsManager(
+            invoker_user_id_hex = self.invoker_user.id.hex,
+            target_chat_id = self.chat_config.chat_id,
+            telegram_sdk = self.mock_telegram_sdk,
+            user_dao = self.mock_user_dao,
+            chat_config_dao = self.mock_chat_config_dao,
+        )
+
+        with self.assertRaises(ValueError) as context:
+            manager.save_chat_settings(
+                chat_id = self.chat_config.chat_id,
+                language_name = "Spanish",
+                language_iso_code = "es",
+                reply_chance_percent = 50,
+            )
+        self.assertIn("Error", str(context.exception))
