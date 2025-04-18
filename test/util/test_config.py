@@ -28,7 +28,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.web_timeout_s, 10)
         self.assertEqual(config.max_invites_per_user, 2)
         self.assertEqual(config.max_users, 100)
-        self.assertEqual(config.website_url, "https://the-agent.appifyhub.com")
+        self.assertEqual(config.website_url, "https://agent.appifyhub.com")
         self.assertTrue(config.api_key)  # Check if API key is generated
         self.assertEqual(config.parent_organization, "AppifyHub")
         self.assertEqual(config.db_url, "postgresql://root:root@localhost:5432/agent")
@@ -59,7 +59,7 @@ class ConfigTest(unittest.TestCase):
         os.environ["WEB_TIMEOUT_S"] = "20"
         os.environ["MAX_INVITES_PER_USER"] = "5"
         os.environ["MAX_USERS"] = "10"
-        os.environ["WEBSITE_URL"] = "https://new.the-agent.appifyhub.com"
+        os.environ["WEBSITE_URL"] = "https://new.agent.appifyhub.com"
         os.environ["POSTGRES_USER"] = "admin"
         os.environ["POSTGRES_PASS"] = "admin123"
         os.environ["POSTGRES_HOST"] = "db.example.com"
@@ -94,7 +94,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.web_timeout_s, 20)
         self.assertEqual(config.max_invites_per_user, 5)
         self.assertEqual(config.max_users, 10)
-        self.assertEqual(config.website_url, "https://new.the-agent.appifyhub.com")
+        self.assertEqual(config.website_url, "https://new.agent.appifyhub.com")
         self.assertEqual(config.db_url, "postgresql://admin:admin123@db.example.com:5432/test_db")
         self.assertEqual(config.api_key, "1111-2222-3333-4444")
         self.assertEqual(config.parent_organization, "New")
