@@ -46,7 +46,7 @@ class Config(metaclass = Singleton):
         def_web_timeout_s: int = 10,
         def_max_invites_per_user: int = 2,
         def_max_users: int = 100,
-        def_website_url: str = "https://the-agent.appifyhub.com",
+        def_website_url: str = "https://agent.appifyhub.com",
         def_db_user: str = "root",
         def_db_pass: str = "root",
         def_db_host: str = "localhost",
@@ -72,7 +72,7 @@ class Config(metaclass = Singleton):
         def_github_issues_repo: str = "appifyhub/the-agent",
         def_issue_templates_path: str = ".github/ISSUE_TEMPLATE",
         def_jwt_secret_key: str = "default",
-        def_backoffice_url_base: str = "https://web.the-agent.appifyhub.com",
+        def_backoffice_url_base: str = "https://web.agent.appifyhub.com",
     ):
         self.verbose = self.__env("VERBOSE", lambda: str(def_verbose)).lower() == "true"
         self.log_telegram_update = self.__env("LOG_TG_UPDATE", lambda: str(def_log_telegram_update)).lower() == "true"
