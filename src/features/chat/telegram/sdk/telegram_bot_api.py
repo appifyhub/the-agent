@@ -1,10 +1,13 @@
 import json
 import re
+from typing import Literal
 
 import requests
+from pydantic import TypeAdapter
 from requests import Response, RequestException
 
 from features.chat.telegram.model.attachment.file import File
+from features.chat.telegram.model.chat_member import ChatMember
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
@@ -99,7 +102,7 @@ class TelegramBotAPI(SafePrinterMixin):
         self.__raise_for_status(response)
         return response.json()
 
-    def set_status_typing(self, chat_id: int | str):
+    def set_status_typing(self, chat_id: int | str) -> dict:
         url = f"{self.__bot_api_url}/sendChatAction"
         payload = {
             "chat_id": chat_id,
@@ -109,7 +112,7 @@ class TelegramBotAPI(SafePrinterMixin):
         self.__raise_for_status(response)
         return response.json()
 
-    def set_status_uploading_image(self, chat_id: int | str):
+    def set_status_uploading_image(self, chat_id: int | str) -> dict:
         url = f"{self.__bot_api_url}/sendChatAction"
         payload = {
             "chat_id": chat_id,
@@ -119,7 +122,7 @@ class TelegramBotAPI(SafePrinterMixin):
         self.__raise_for_status(response)
         return response.json()
 
-    def set_reaction(self, chat_id: int | str, message_id: int | str, reaction: str | None):
+    def set_reaction(self, chat_id: int | str, message_id: int | str, reaction: str | None) -> dict:
         url = f"{self.__bot_api_url}/setMessageReaction"
         reactions_list = [{"type": "emoji", "emoji": reaction}] if reaction else []
         payload = {
@@ -131,12 +134,49 @@ class TelegramBotAPI(SafePrinterMixin):
         self.__raise_for_status(response)
         return response.json()
 
+    def send_button_link(
+        self,
+        chat_id: int | str,
+        link_url: str,
+        url_type: Literal["user_settings", "chat_settings"]
+    ) -> dict:
+        button_text: str
+        if url_type == "user_settings":
+            button_text = "👤 ⚙️"
+        elif url_type == "chat_settings":
+            button_text = "💬 ⚙️"
+        else:
+            # shouldn't happen due to typing, but let's be safe
+            raise ValueError(f"Invalid URL type: '{url_type}'")
+        payload = {
+            "chat_id": chat_id,
+            "text": "👇",
+            "reply_markup": {
+                "inline_keyboard": [[
+                    {
+                        "text": button_text,
+                        "url": link_url,
+                    }
+                ]]
+            }
+        }
+        response = requests.post(f"{self.__bot_api_url}/sendMessage", json = payload, timeout = config.web_timeout_s)
+        self.__raise_for_status(response)
+        return response.json()
+
+    def get_chat_member(self, chat_id: int | str, user_id: int | str) -> ChatMember:
+        url = f"{self.__bot_api_url}/getChatMember"
+        response = requests.get(url, params = {"chat_id": chat_id, "user_id": user_id})
+        self.__raise_for_status(response)
+        member_info = response.json()["result"]
+        return TypeAdapter(ChatMember).validate_python(member_info)
+
     def __raise_for_status(self, response: Response | None):
-        if not response:
+        if response is None:
             message = "No API response received"
             self.sprint(f"  {message}")
             raise RequestException(message)
-        if response.status_code != 200:
+        if response.status_code < 200 or response.status_code > 299:
             self.sprint(f"  Status is not '200': HTTP_{response.status_code}!")
             self.sprint(json.dumps(response.json(), indent = 2))
             response.raise_for_status()

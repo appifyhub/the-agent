@@ -18,7 +18,7 @@ jobs:
         run: echo "$GITHUB_ACTOR is building '$GITHUB_REPOSITORY' (commit $GITHUB_SHA)"
 
       - name: Cache dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/pip
@@ -79,6 +79,7 @@ jobs:
           echo ::set-output name=the_agent_version::"$VERSION"
 
       - name: Publish to GitHub Releases
+        id: github_releases_publish
         env:
           ARTIFACT: "the-agent"
           BUILD_QUALITY: "BETA"
@@ -89,6 +90,18 @@ jobs:
         run: |
           pip install -r tools/github-release/requirements.txt
           python tools/github-release/main.py
+
+      - name: Notify of release
+        env:
+          NOTIFICATION_AUTH_KEY: ${{ secrets.NOTIFICATION_AUTH_KEY_STAGING }}
+          NOTIFICATION_ENDPOINT: ${{ secrets.NOTIFICATION_URL_STAGING }}
+          CHANGE_LOG_B64: ${{ steps.github_releases_publish.outputs.encoded_change_log }} # stored from Python
+        run: |
+          curl -X POST \
+            -L "${{ secrets.NOTIFICATION_URL_STAGING }}" \
+            -H "X-API-Key: ${{ secrets.NOTIFICATION_AUTH_KEY_STAGING }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"raw_notes_b64\": \"$CHANGE_LOG_B64\"}"
 
       - name: Comment build information
         env:

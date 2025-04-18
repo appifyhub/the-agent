@@ -51,6 +51,7 @@ class ChatConfigManagerTest(unittest.TestCase):
         self.mock_chat_config_dao.save.assert_called()
 
     def test_change_chat_reply_chance_failure_invalid_percent(self):
+        self.mock_chat_config_dao.get.return_value = self.chat_config
         result, message = self.manager.change_chat_reply_chance("test_chat_id", 101)
 
         self.assertEqual(result, ChatConfigManager.Result.failure)

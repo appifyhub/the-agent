@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 
 class User(BaseModel):
-    """https://core.telegram.org/bots/api#messageentity"""
+    """https://core.telegram.org/bots/api#user"""
     id: int
     is_bot: bool
     first_name: str

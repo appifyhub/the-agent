@@ -232,12 +232,15 @@ class TelegramDomainMapperTest(unittest.TestCase):
             message_id = 100,
             date = int(datetime.now().timestamp()),
         )
+        message.from_user = User(
+            id = 1, is_bot = False, first_name = "F", last_name = "L", username = "U", language_code = "de",
+        )
 
         result = self.mapper.map_chat(message)
 
         self.assertEqual(result.chat_id, "10")
         self.assertEqual(result.title, "#10")
-        self.assertIsNone(result.language_iso_code)
+        self.assertEqual(result.language_iso_code, "de")
         self.assertIsNone(result.language_name)
         self.assertFalse(result.is_private)
         self.assertEqual(result.reply_chance_percent, 100)

@@ -54,20 +54,20 @@ class ChatConfigManager(SafePrinterMixin):
     def change_chat_reply_chance(self, chat_id: str, reply_chance_percent: int) -> tuple[Result, str]:
         self.sprint(f"Changing reply chance for chat '{chat_id}' to '{reply_chance_percent}%'")
 
-        if reply_chance_percent < 0 or reply_chance_percent > 100:
-            message = "Invalid reply chance percent, must be in [0-100]"
-            self.sprint(message)
-            return ChatConfigManager.Result.failure, message
-
         chat_config_db = self.__chat_config_dao.get(chat_id)
         if not chat_config_db:
             message = f"Chat '{chat_id}' not found"
             self.sprint(message)
             return ChatConfigManager.Result.failure, message
-
         chat_config = ChatConfig.model_validate(chat_config_db)
-        if chat_config.is_private:
+
+        if chat_config.is_private and reply_chance_percent != 100:
             message = "Chat is private, reply chance cannot be changed"
+            self.sprint(message)
+            return ChatConfigManager.Result.failure, message
+
+        if reply_chance_percent < 0 or reply_chance_percent > 100:
+            message = "Invalid reply chance percent, must be in [0-100]"
             self.sprint(message)
             return ChatConfigManager.Result.failure, message
 
