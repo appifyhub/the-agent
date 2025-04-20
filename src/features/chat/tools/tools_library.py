@@ -17,6 +17,7 @@ from features.chat.generative_imaging_manager import GenerativeImagingManager
 from features.chat.image_edit_manager import ImageEditManager
 from features.chat.invite_manager import InviteManager
 from features.chat.price_alert_manager import PriceAlertManager
+from features.chat.settings_manager import SettingsManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.tools.base_tool_binder import BaseToolBinder
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
@@ -442,7 +443,6 @@ def request_feature_bug_or_support(
     """
     try:
         with get_detached_session() as db:
-            user_dao = UserCRUD(db)
             manager = UserSupportManager(
                 invoker_user_id_hex = author_user_id,
                 user_input = user_request_details,
@@ -450,7 +450,7 @@ def request_feature_bug_or_support(
                 include_telegram_username = include_telegram_username,
                 include_full_name = include_full_name,
                 request_type_str = request_type,
-                user_dao = user_dao,
+                user_dao = UserCRUD(db),
             )
             issue_url = manager.execute()
             return json.dumps(
@@ -458,6 +458,46 @@ def request_feature_bug_or_support(
                     "result": "Success",
                     "github_issue_url": issue_url,
                     "next_step": "Report these summary numbers back to the developer",
+                }
+            )
+    except Exception as e:
+        sprint("Tool call failed", e)
+        return json.dumps({"result": "Error", "error": str(e)})
+
+
+@tool
+def configure_settings(
+    author_user_id: str,
+    chat_id: str,
+    setting_type: str,
+) -> str:
+    """
+    Launches the configuration screen for either the user's settings (profile, payments, tokens, etc) or current
+    chat's settings (language, response rate, etc). User settings also serve the initial setup for the agent (bot).
+    In group chats we default to chat settings, as user settings are not applicable. In private chats, user settings
+    are the default. The user will probably not know what they want.
+
+    Args:
+        author_user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
+        chat_id: [mandatory] A unique identifier of the chat, usually found in the metadata
+        setting_type: [mandatory] The type of setting to configure: [ 'user_settings', 'chat_settings' ].
+    """
+    try:
+        with get_detached_session() as db:
+            manager = SettingsManager(
+                invoker_user_id_hex = author_user_id,
+                target_chat_id = chat_id,
+                telegram_sdk = TelegramBotSDK(db),
+                user_dao = UserCRUD(db),
+                chat_config_dao = ChatConfigCRUD(db),
+                settings_type = setting_type,
+            )
+            settings_link = manager.create_settings_link()
+            manager.send_settings_link(settings_link)
+            return json.dumps(
+                {
+                    "result": "Success",
+                    "next_step": "Notify the user that the settings link has been sent to their private chat",
                 }
             )
     except Exception as e:
@@ -485,5 +525,6 @@ class ToolsLibrary(BaseToolBinder):
                 "announce_maintenance_or_news": announce_maintenance_or_news,
                 "deliver_message": deliver_message,
                 "request_feature_bug_or_support": request_feature_bug_or_support,
+                "configure_settings": configure_settings,
             }
         )
