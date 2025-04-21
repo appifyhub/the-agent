@@ -1,6 +1,8 @@
 import unittest
 from unittest.mock import Mock, patch
 
+from sqlalchemy.orm import Session
+
 from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
@@ -8,12 +10,16 @@ from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 
 
 class TelegramBotSDKTest(unittest.TestCase):
+    sdk: TelegramBotSDK
+    mock_db: Session
+    mock_api: TelegramBotAPI
 
     def setUp(self):
-        self.mock_db = Mock()
+        self.mock_db = Mock(spec = Session)
         self.mock_api = Mock(spec = TelegramBotAPI)
         self.sdk = TelegramBotSDK(db = self.mock_db, override_bot_api = self.mock_api)
 
+        self.user_id = "001"
         self.chat_id = "123"
         self.message_id = "456"
         self.api_response = {
@@ -30,6 +36,8 @@ class TelegramBotSDKTest(unittest.TestCase):
         self.mock_api.send_text_message.return_value = self.api_response
         self.mock_api.send_photo.return_value = self.api_response
         self.mock_api.send_document.return_value = self.api_response
+        self.mock_api.send_button_link.return_value = self.api_response
+        self.mock_api.get_chat_member.return_value = self.api_response
 
     @patch.object(TelegramDomainMapper, "map_update")
     @patch.object(TelegramDataResolver, "resolve")
@@ -41,6 +49,7 @@ class TelegramBotSDKTest(unittest.TestCase):
 
         result = self.sdk.send_text_message(chat_id = self.chat_id, text = text)
 
+        # noinspection PyUnresolvedReferences
         self.mock_api.send_text_message.assert_called_once_with(
             chat_id = self.chat_id,
             text = text,
@@ -65,6 +74,7 @@ class TelegramBotSDKTest(unittest.TestCase):
             caption = caption
         )
 
+        # noinspection PyUnresolvedReferences
         self.mock_api.send_photo.assert_called_once_with(
             chat_id = self.chat_id,
             photo_url = photo_url,
@@ -92,6 +102,7 @@ class TelegramBotSDKTest(unittest.TestCase):
             caption = caption
         )
 
+        # noinspection PyUnresolvedReferences
         self.mock_api.send_document.assert_called_once_with(
             chat_id = self.chat_id,
             document_url = doc_url,
@@ -104,20 +115,66 @@ class TelegramBotSDKTest(unittest.TestCase):
 
     def test_set_status_typing(self):
         self.sdk.set_status_typing(self.chat_id)
+        # noinspection PyUnresolvedReferences
         self.mock_api.set_status_typing.assert_called_once_with(self.chat_id)
 
     def test_set_status_uploading_image(self):
         self.sdk.set_status_uploading_image(self.chat_id)
+        # noinspection PyUnresolvedReferences
         self.mock_api.set_status_uploading_image.assert_called_once_with(self.chat_id)
 
     def test_set_reaction(self):
         reaction = "👍"
         self.sdk.set_reaction(self.chat_id, self.message_id, reaction)
+        # noinspection PyUnresolvedReferences
         self.mock_api.set_reaction.assert_called_once_with(
             chat_id = self.chat_id,
             message_id = self.message_id,
             reaction = reaction
         )
+
+    @patch.object(TelegramDomainMapper, "map_update")
+    @patch.object(TelegramDataResolver, "resolve")
+    def test_send_button_link(self, mock_resolve, mock_map_update):
+        link_url = "https://test.com"
+        expected_message = Mock()
+        mock_map_update.return_value = Mock()
+        mock_resolve.return_value = Mock(message = expected_message, attachments = [Mock()])
+
+        # Test user settings button
+        result = self.sdk.send_button_link(
+            chat_id = self.chat_id,
+            link_url = link_url,
+            url_type = "user_settings",
+        )
+
+        # noinspection PyUnresolvedReferences
+        self.mock_api.send_button_link.assert_called_with(
+            self.chat_id,
+            link_url,
+            "user_settings",
+        )
+        self.assertEqual(result, expected_message)
+
+        # Test chat settings button
+        result = self.sdk.send_button_link(
+            chat_id = self.chat_id,
+            link_url = link_url,
+            url_type = "chat_settings",
+        )
+
+        # noinspection PyUnresolvedReferences
+        self.mock_api.send_button_link.assert_called_with(
+            self.chat_id,
+            link_url,
+            "chat_settings",
+        )
+        self.assertEqual(result, expected_message)
+
+    def test_get_chat_member(self):
+        self.sdk.get_chat_member(self.chat_id, self.user_id)
+        # noinspection PyUnresolvedReferences
+        self.mock_api.get_chat_member.assert_called_once_with(self.chat_id, self.user_id)
 
     @patch.object(TelegramDomainMapper, "map_update")
     def test_store_api_response_mapping_failure(self, mock_map_update):

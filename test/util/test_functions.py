@@ -4,7 +4,7 @@ from uuid import UUID
 
 from db.schema.user import User
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
-from util.functions import is_the_agent, construct_bot_message_id, silent, first_key_with_value
+from util.functions import is_the_agent, construct_bot_message_id, silent, first_key_with_value, mask_secret
 
 
 class FunctionsTest(unittest.TestCase):
@@ -96,3 +96,63 @@ class FunctionsTest(unittest.TestCase):
         source = {1: "a", 2: "b", 3: "b"}
         value = "b"
         self.assertEqual(first_key_with_value(source, value), 2)
+
+    def test_mask_secret_none(self):
+        # noinspection HardcodedPassword
+        secret = None
+        result = mask_secret(secret)
+        self.assertEqual(result, None)
+
+    def test_mask_secret_empty_string(self):
+        # noinspection HardcodedPassword
+        secret = ""
+        result = mask_secret(secret)
+        self.assertEqual(result, "")
+
+    def test_mask_secret_single_char(self):
+        # noinspection HardcodedPassword
+        secret = "a"
+        result = mask_secret(secret)
+        self.assertEqual(result, "*")
+
+    def test_mask_secret_two_chars(self):
+        # noinspection HardcodedPassword
+        secret = "ab"
+        result = mask_secret(secret)
+        self.assertEqual(result, "**")
+
+    def test_mask_secret_three_chars(self):
+        # noinspection HardcodedPassword
+        secret = "abc"
+        result = mask_secret(secret)
+        self.assertEqual(result, "***")
+
+    def test_mask_secret_four_chars(self):
+        # noinspection HardcodedPassword
+        secret = "abcd"
+        result = mask_secret(secret)
+        self.assertEqual(result, "****")
+
+    def test_mask_secret_min_length(self):
+        # noinspection HardcodedPassword
+        secret = "abcde"
+        result = mask_secret(secret)
+        self.assertEqual(result, "ab*de")
+
+    def test_mask_secret_short_secret(self):
+        # noinspection HardcodedPassword
+        secret = "abcd"
+        result = mask_secret(secret)
+        self.assertEqual(result, "****")
+
+    def test_mask_secret_long_secret(self):
+        # noinspection HardcodedPassword
+        secret = "abcdefghij"
+        result = mask_secret(secret)
+        self.assertEqual(result, "ab******ij")
+
+    def test_mask_secret_custom_mask(self):
+        # noinspection HardcodedPassword
+        secret = "abcdefghij"
+        result = mask_secret(secret, mask = "#")
+        self.assertEqual(result, "ab######ij")
