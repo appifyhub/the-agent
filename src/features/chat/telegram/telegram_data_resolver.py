@@ -95,6 +95,9 @@ class TelegramDataResolver(SafePrinterMixin):
             if user_count >= config.max_users:
                 self.sprint(f"User limit reached: {user_count}/{config.max_users}")
                 raise ValueError("User limit reached, try again later")
+        # reset the token value to None so that there's no confusion going forward
+        if not mapped_data.open_ai_key or not mapped_data.open_ai_key.strip():
+            mapped_data.open_ai_key = None
         return User.model_validate(db.save(mapped_data))
 
     def resolve_chat_message(self, mapped_data: ChatMessageSave) -> ChatMessage:
