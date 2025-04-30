@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from typing import Literal, Any
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import RedirectResponse
 
 from db.crud.chat_config import ChatConfigCRUD
@@ -46,6 +47,15 @@ app = FastAPI(
     description = "This is the API service for The Agent.",
     debug = config.verbose,
     lifespan = lifespan,
+)
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins = ["*"],
+    allow_credentials = False,
+    allow_methods = ["*"],
+    allow_headers = ["*"],
 )
 
 
