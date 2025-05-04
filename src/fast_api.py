@@ -187,9 +187,7 @@ def save_settings(
             settings_type = settings_literal,
         )
         if settings_literal == "user_settings":
-            open_ai_key = request_data.get("open_ai_key")
-            if not open_ai_key:
-                raise ValueError("Missing or invalid 'open_ai_key'")
+            open_ai_key = request_data.get("open_ai_key") or ""
             settings_manager.save_user_settings(resource_id, open_ai_key)
         else:
             language_name = request_data.get("language_name")
