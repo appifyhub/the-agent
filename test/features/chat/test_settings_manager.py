@@ -13,6 +13,7 @@ from features.chat.settings_manager import SettingsManager
 from features.chat.telegram.model.chat_member import ChatMemberAdministrator, ChatMemberMember
 from features.chat.telegram.model.user import User as TelegramUser
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from util.functions import mask_secret
 
 
 class SettingsManagerTest(unittest.TestCase):
@@ -346,7 +347,7 @@ class SettingsManagerTest(unittest.TestCase):
         settings = manager.fetch_user_settings(self.invoker_user.id.hex)
 
         self.assertEqual(settings["id"], self.invoker_user.id.hex)
-        self.assertEqual(settings["open_ai_key"], "in***********ey")
+        self.assertEqual(settings["open_ai_key"], mask_secret(self.invoker_user.open_ai_key))
         # noinspection PyUnresolvedReferences
         self.assertEqual(self.mock_user_dao.get.call_count, 2)
 

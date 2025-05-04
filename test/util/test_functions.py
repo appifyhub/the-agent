@@ -133,26 +133,32 @@ class FunctionsTest(unittest.TestCase):
         result = mask_secret(secret)
         self.assertEqual(result, "****")
 
-    def test_mask_secret_min_length(self):
+    def test_mask_secret_medium_length_short(self):
         # noinspection HardcodedPassword
         secret = "abcde"
         result = mask_secret(secret)
-        self.assertEqual(result, "ab*de")
+        self.assertEqual(result, "a***e")
 
-    def test_mask_secret_short_secret(self):
+    def test_mask_secret_medium_length_long(self):
         # noinspection HardcodedPassword
-        secret = "abcd"
+        secret = "abcdefgh"
         result = mask_secret(secret)
-        self.assertEqual(result, "****")
+        self.assertEqual(result, "a******h")
 
-    def test_mask_secret_long_secret(self):
+    def test_mask_secret_large_length_short(self):
         # noinspection HardcodedPassword
-        secret = "abcdefghij"
+        secret = "abcdefghi"
         result = mask_secret(secret)
-        self.assertEqual(result, "ab******ij")
+        self.assertEqual(result, "abc*****ghi")
+
+    def test_mask_secret_large_length_long(self):
+        # noinspection HardcodedPassword
+        secret = "abcdefghijklmnopqrstuvwxyz"
+        result = mask_secret(secret)
+        self.assertEqual(result, "abc*****xyz")
 
     def test_mask_secret_custom_mask(self):
         # noinspection HardcodedPassword
-        secret = "abcdefghij"
+        secret = "abcdefghijklmnopqrstuvwxyz"
         result = mask_secret(secret, mask = "#")
-        self.assertEqual(result, "ab######ij")
+        self.assertEqual(result, "abc#####xyz")
