@@ -40,6 +40,19 @@ def first_key_with_value(source: dict[K, V], value: V) -> K | None:
     return None
 
 
+def mask_secret(secret: str | None = None, mask: str = "*") -> str | None:
+    if secret is None:
+        return None
+    # short strings: mask all
+    if len(secret) <= 4:
+        return mask * len(secret)
+    # medium strings: show one char on each side
+    if len(secret) <= 8:
+        return secret[0] + (mask * (len(secret) - 2)) + secret[-1:]
+    # long strings: show 3 chars on each end with 5 masks in the middle
+    return secret[:3] + (mask * 5) + secret[-3:]
+
+
 ###           U N T E S T E D           ###
 # No idea how to test other than manually #
 

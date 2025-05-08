@@ -15,20 +15,35 @@ engine: Engine
 LocalSession: sessionmaker
 
 
-def initialize_db(db_url: str = config.db_url) -> tuple[Engine, sessionmaker]:
+def initialize_db(db_url: str = config.db_url, multi_connection_setup: bool = True) -> tuple[Engine, sessionmaker]:
     global engine, LocalSession
-    engine = __create_db_engine(db_url)
+    engine = __create_db_engine(db_url, multi_connection_setup = multi_connection_setup)
     # noinspection PyPep8Naming
     LocalSession = sessionmaker(autocommit = False, autoflush = False, bind = engine)
     BaseModel.metadata.create_all(bind = engine)
     return engine, LocalSession
 
 
-def __create_db_engine(db_url: str, max_retries: int = 7, retry_interval_s: int = 5) -> Engine:
+def __create_db_engine(
+    db_url: str,
+    max_retries: int = 7,
+    retry_interval_s: int = 5,
+    multi_connection_setup: bool = True,
+) -> Engine:
     retries = 0
     while retries < max_retries:
         try:
-            created_engine = create_engine(db_url)
+            if multi_connection_setup:
+                created_engine = create_engine(
+                    url = db_url,         # where the DB is at
+                    pool_pre_ping = True, # check connections before using them
+                    pool_recycle = 300,   # recycle connections after 5 minutes
+                    pool_size = 3,        # start with a modest pool size
+                    max_overflow = 10,    # allow more connections as requirements grow
+                    pool_timeout = 10,    # wait for a few seconds for available connections
+                )
+            else:
+                created_engine = create_engine(db_url)
             with created_engine.connect():
                 sprint("Database connected")
                 return created_engine

@@ -108,3 +108,7 @@ For more information on how to run it using Docker, see the `Dockerfile` and the
 ### License
 
 Check out the license [here](LICENSE).
+
+---
+
+For frontend and user interface details, see the [web app repository](https://github.com/appifyhub/the-agent-web-app).

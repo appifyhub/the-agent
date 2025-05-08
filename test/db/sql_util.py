@@ -21,7 +21,7 @@ class SQLUtil:
 
     def start_session(self) -> Session:
         # noinspection PyPep8Naming
-        engine, LocalSession = initialize_db("sqlite:///:memory:")
+        engine, LocalSession = initialize_db("sqlite:///:memory:", multi_connection_setup = False)
 
         if self.__is_session_active:
             self.end_session()

@@ -50,6 +50,8 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.github_issues_token, "invalid")
         self.assertEqual(config.github_issues_repo, "appifyhub/the-agent")
         self.assertEqual(config.issue_templates_abs_path, ".github/ISSUE_TEMPLATE")
+        self.assertEqual(config.jwt_secret_key, "default")
+        self.assertEqual(config.backoffice_url_base, "https://web.agent.appifyhub.com")
 
     def test_custom_config(self):
         os.environ["VERBOSE"] = "true"
@@ -84,6 +86,8 @@ class ConfigTest(unittest.TestCase):
         os.environ["THE_AGENT_ISSUES_TOKEN"] = "sk-gi-valid"
         os.environ["THE_AGENT_ISSUES_REPO"] = "appifyhub/the-new-agent"
         os.environ["THE_AGENT_ISSUE_TEMPLATES_PATH"] = "issue_templates"
+        os.environ["JWT_SECRET_KEY"] = "custom"
+        os.environ["BACKOFFICE_URL_BASE"] = "https://example.com"
 
         config = Config()
 
@@ -116,3 +120,5 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.github_issues_token, "sk-gi-valid")
         self.assertEqual(config.github_issues_repo, "appifyhub/the-new-agent")
         self.assertEqual(config.issue_templates_abs_path, "issue_templates")
+        self.assertEqual(config.jwt_secret_key, "custom")
+        self.assertEqual(config.backoffice_url_base, "https://example.com")
