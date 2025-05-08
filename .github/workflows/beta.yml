@@ -47,7 +47,7 @@ jobs:
         env:
           USER: ${{ secrets.PACKAGES_USER }}
           TOKEN: ${{ secrets.PACKAGES_TOKEN }}
-        run: docker login docker.pkg.github.com -u $USER -p $TOKEN
+        run: echo $TOKEN | docker login docker.pkg.github.com --username $USER --password-stdin
 
       - name: Tag Docker image
         run: |
