@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
-
+from uuid import UUID
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfigSave, ChatConfig
 from db.schema.chat_message import ChatMessageSave, ChatMessage
@@ -255,7 +255,7 @@ class TelegramDataResolverTest(unittest.TestCase):
         self.assertEqual(result.group, existing_user.group)
         self.assertEqual(result.created_at, existing_user.created_at)
 
-    @patch('db.crud.user.UserCRUD.count')
+    @patch("db.crud.user.UserCRUD.count")
     def test_resolve_author_user_limit_reached(self, mock_count):
         mock_count.return_value = config.max_users  # reach maximum immediately
         mapped_data = UserSave(
@@ -300,6 +300,51 @@ class TelegramDataResolverTest(unittest.TestCase):
         self.assertEqual(result.open_ai_key, existing_user.open_ai_key)
         self.assertEqual(result.group, existing_user.group)
         self.assertEqual(result.created_at, existing_user.created_at)
+
+    @patch("db.crud.user.UserCRUD.get_by_telegram_user_id")
+    @patch("db.crud.user.UserCRUD.get_by_telegram_username")
+    def test_resolve_author_open_ai_key_reset(self, mock_get_by_username, mock_get_by_user_id):
+        fake_user = User(
+            id = UUID("123e4567-e89b-12d3-a456-426614174000"),
+            full_name = "Existing User",
+            telegram_username = "test_username",
+            telegram_chat_id = "c1",
+            telegram_user_id = 1,
+            open_ai_key = None,
+            group = UserDB.Group.alpha,
+            created_at = datetime.now().date(),
+        )
+
+        mock_get_by_user_id.return_value = fake_user
+        mock_get_by_username.return_value = None
+
+        # test the no-key behavior
+        mapped_data = UserSave(
+            telegram_user_id = 1,
+            full_name = "Test User",
+            telegram_chat_id = "c1",
+            open_ai_key = None,
+        )
+        result = self.resolver.resolve_author(mapped_data)
+        self.assertIsNone(result.open_ai_key, "open_ai_key should be remain None when already None")
+
+        # test the empty key behavior
+        mapped_data.open_ai_key = ""
+        fake_user.open_ai_key = ""
+        result = self.resolver.resolve_author(mapped_data)
+        self.assertIsNone(result.open_ai_key, "open_ai_key should be reset to None if empty")
+
+        # test the whitespace behavior
+        mapped_data.open_ai_key = "    "
+        fake_user.open_ai_key = "    "
+        result = self.resolver.resolve_author(mapped_data)
+        self.assertIsNone(result.open_ai_key, "open_ai_key should be reset to None if whitespace")
+
+        # test the valid key behavior
+        mapped_data.open_ai_key = "valid_key"
+        fake_user.open_ai_key = "valid_key"
+        result = self.resolver.resolve_author(mapped_data)
+        self.assertEqual(result.open_ai_key, "valid_key", "open_ai_key should remain unchanged if valid")
 
     def test_resolve_chat_message_new(self):
         mapped_data = ChatMessageSave(
