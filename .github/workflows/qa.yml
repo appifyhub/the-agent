@@ -40,15 +40,18 @@ jobs:
           ./tools/run_tests.sh
 
       - name: Build Docker image
+        if: github.actor != 'dependabot[bot]'
         run: docker build . --file Dockerfile --tag the-agent
 
       - name: Auth for GitHub's Docker repository
+        if: github.actor != 'dependabot[bot]'
         env:
           USER: ${{ secrets.PACKAGES_USER }}
           TOKEN: ${{ secrets.PACKAGES_TOKEN }}
         run: echo $TOKEN | docker login docker.pkg.github.com --username $USER --password-stdin
 
       - name: Tag Docker image
+        if: github.actor != 'dependabot[bot]'
         env:
           PR_NUMBER: ${{ github.event.number }}
         run: |
@@ -60,6 +63,7 @@ jobs:
           docker tag the-agent appifyhub/the-agent:latest_pr
 
       - name: Publish Docker images to GitHub
+        if: github.actor != 'dependabot[bot]'
         env:
           PR_NUMBER: ${{ github.event.number }}
         run: |
@@ -69,6 +73,7 @@ jobs:
           docker push docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:latest_pr
 
       - name: Publish Docker images to DockerHub
+        if: github.actor != 'dependabot[bot]'
         id: docker_publish
         env:
           USER: ${{ secrets.DOCKER_HUB_USER }}
@@ -95,6 +100,7 @@ jobs:
           python tools/github-release/main.py
 
       - name: Comment build information
+        if: github.actor != 'dependabot[bot]'
         env:
           GITHUB_SHA: ${{ env.GITHUB_SHA }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
