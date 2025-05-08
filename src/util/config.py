@@ -36,6 +36,7 @@ class Config(metaclass = Singleton):
     issue_templates_abs_path: str
     jwt_secret_key: str
     backoffice_url_base: str
+    version: str
 
     def __init__(
         self,
@@ -73,6 +74,7 @@ class Config(metaclass = Singleton):
         def_issue_templates_path: str = ".github/ISSUE_TEMPLATE",
         def_jwt_secret_key: str = "default",
         def_backoffice_url_base: str = "https://web.agent.appifyhub.com",
+        def_version: str = "dev",
     ):
         self.verbose = self.__env("VERBOSE", lambda: str(def_verbose)).lower() == "true"
         self.log_telegram_update = self.__env("LOG_TG_UPDATE", lambda: str(def_log_telegram_update)).lower() == "true"
@@ -105,6 +107,7 @@ class Config(metaclass = Singleton):
         self.issue_templates_abs_path = self.__env("THE_AGENT_ISSUE_TEMPLATES_PATH", lambda: def_issue_templates_path)
         self.jwt_secret_key = self.__env("JWT_SECRET_KEY", lambda: def_jwt_secret_key)
         self.backoffice_url_base = self.__env("BACKOFFICE_URL_BASE", lambda: def_backoffice_url_base)
+        self.version = self.__env("VERSION", lambda: def_version)
 
     def __set_up_db(self, def_db_user: str, def_db_pass: str, def_db_host: str, def_db_name: str) -> None:
         db_user = self.__env("POSTGRES_USER", lambda: def_db_user)

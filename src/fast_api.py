@@ -65,7 +65,7 @@ def root() -> RedirectResponse:
 
 
 @app.get("/health")
-def health() -> dict: return {"status": "ok"}
+def health() -> dict: return {"status": "ok", "version": config.version}
 
 
 @app.post("/telegram/chat-update")

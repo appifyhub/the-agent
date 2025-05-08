@@ -52,6 +52,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.issue_templates_abs_path, ".github/ISSUE_TEMPLATE")
         self.assertEqual(config.jwt_secret_key, "default")
         self.assertEqual(config.backoffice_url_base, "https://web.agent.appifyhub.com")
+        self.assertEqual(config.version, "dev")
 
     def test_custom_config(self):
         os.environ["VERBOSE"] = "true"
@@ -88,6 +89,7 @@ class ConfigTest(unittest.TestCase):
         os.environ["THE_AGENT_ISSUE_TEMPLATES_PATH"] = "issue_templates"
         os.environ["JWT_SECRET_KEY"] = "custom"
         os.environ["BACKOFFICE_URL_BASE"] = "https://example.com"
+        os.environ["VERSION"] = "custom"
 
         config = Config()
 
@@ -122,3 +124,4 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.issue_templates_abs_path, "issue_templates")
         self.assertEqual(config.jwt_secret_key, "custom")
         self.assertEqual(config.backoffice_url_base, "https://example.com")
+        self.assertEqual(config.version, "custom")
