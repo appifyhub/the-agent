@@ -35,6 +35,7 @@ class Config(metaclass = Singleton):
     github_issues_repo: str
     issue_templates_abs_path: str
     jwt_secret_key: str
+    jwt_expires_in_minutes: int
     backoffice_url_base: str
     version: str
 
@@ -73,6 +74,7 @@ class Config(metaclass = Singleton):
         def_github_issues_repo: str = "appifyhub/the-agent",
         def_issue_templates_path: str = ".github/ISSUE_TEMPLATE",
         def_jwt_secret_key: str = "default",
+        def_jwt_expires_in_minutes: int = 5,
         def_backoffice_url_base: str = "https://web.agent.appifyhub.com",
         def_version: str = "dev",
     ):
@@ -106,6 +108,7 @@ class Config(metaclass = Singleton):
         self.github_issues_repo = self.__env("THE_AGENT_ISSUES_REPO", lambda: def_github_issues_repo)
         self.issue_templates_abs_path = self.__env("THE_AGENT_ISSUE_TEMPLATES_PATH", lambda: def_issue_templates_path)
         self.jwt_secret_key = self.__env("JWT_SECRET_KEY", lambda: def_jwt_secret_key)
+        self.jwt_expires_in_minutes = int(self.__env("JWT_EXPIRES_IN_MINUTES", lambda: str(def_jwt_expires_in_minutes)))
         self.backoffice_url_base = self.__env("BACKOFFICE_URL_BASE", lambda: def_backoffice_url_base)
         self.version = self.__env("VERSION", lambda: def_version)
 

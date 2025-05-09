@@ -6,6 +6,7 @@ from util.config import Config
 
 
 class ConfigTest(unittest.TestCase):
+    # noinspection PyTypeHints
     original_env: dict[AnyStr, AnyStr]
 
     def setUp(self):
@@ -51,6 +52,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.github_issues_repo, "appifyhub/the-agent")
         self.assertEqual(config.issue_templates_abs_path, ".github/ISSUE_TEMPLATE")
         self.assertEqual(config.jwt_secret_key, "default")
+        self.assertEqual(config.jwt_expires_in_minutes, 5)
         self.assertEqual(config.backoffice_url_base, "https://web.agent.appifyhub.com")
         self.assertEqual(config.version, "dev")
 
@@ -88,6 +90,7 @@ class ConfigTest(unittest.TestCase):
         os.environ["THE_AGENT_ISSUES_REPO"] = "appifyhub/the-new-agent"
         os.environ["THE_AGENT_ISSUE_TEMPLATES_PATH"] = "issue_templates"
         os.environ["JWT_SECRET_KEY"] = "custom"
+        os.environ["JWT_EXPIRES_IN_MINUTES"] = "10"
         os.environ["BACKOFFICE_URL_BASE"] = "https://example.com"
         os.environ["VERSION"] = "custom"
 
@@ -123,5 +126,6 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.github_issues_repo, "appifyhub/the-new-agent")
         self.assertEqual(config.issue_templates_abs_path, "issue_templates")
         self.assertEqual(config.jwt_secret_key, "custom")
+        self.assertEqual(config.jwt_expires_in_minutes, 10)
         self.assertEqual(config.backoffice_url_base, "https://example.com")
         self.assertEqual(config.version, "custom")
