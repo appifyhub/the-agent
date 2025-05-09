@@ -33,11 +33,11 @@ from util.translations_cache import TranslationsCache
 @asynccontextmanager
 async def lifespan(owner: FastAPI):
     # startup
-    sprint("Starting up endpoints...")
+    sprint("Lifecycle: Starting up endpoints...")
     initialize_db()
     yield
     # shutdown
-    sprint("Shutting down...")
+    sprint("Lifecycle: Shutting down...")
 
 
 app = FastAPI(
@@ -196,14 +196,20 @@ def save_settings(
             language_iso_code = request_data.get("language_iso_code")
             if not language_iso_code:
                 raise ValueError("No language ISO code provided")
-            reply_chance_percent = request_data.get("reply_chance_percent") or -1
+            reply_chance_percent = request_data.get("reply_chance_percent")
             if reply_chance_percent is None:
                 raise ValueError("No reply chance percent provided")
+            if not isinstance(reply_chance_percent, int):
+                raise ValueError("Reply chance percent must be an integer")
+            release_notifications = request_data.get("release_notifications")
+            if not release_notifications:
+                raise ValueError("No release notifications selection provided")
             settings_manager.save_chat_settings(
                 chat_id = resource_id,
                 language_name = language_name,
                 language_iso_code = language_iso_code,
                 reply_chance_percent = reply_chance_percent,
+                release_notifications = str(release_notifications),
             )
         return {"status": "OK"}
     except Exception as e:

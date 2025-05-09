@@ -4,6 +4,7 @@ from db.crud.chat_config import ChatConfigCRUD
 from db.schema.chat_config import ChatConfig, ChatConfigSave
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
+from db.model.chat_config import ChatConfigDB
 
 
 class ChatConfigManager(SafePrinterMixin):
@@ -76,5 +77,29 @@ class ChatConfigManager(SafePrinterMixin):
         chat_config = ChatConfig.model_validate(chat_config_db)
 
         message = f"Reply chance is now set to {chat_config.reply_chance_percent}%"
+        self.sprint(message)
+        return ChatConfigManager.Result.success, message
+
+    def change_chat_release_notifications(self, chat_id: str, raw_selection: str) -> tuple[Result, str]:
+        release_notifications = ChatConfigDB.ReleaseNotifications.lookup(raw_selection)
+        if not release_notifications:
+            message = f"Invalid release notifications value '{raw_selection}'"
+            self.sprint(message)
+            return ChatConfigManager.Result.failure, message
+
+        self.sprint(f"Changing release notifications for chat '{chat_id}' to '{release_notifications.value}'")
+
+        chat_config_db = self.__chat_config_dao.get(chat_id)
+        if not chat_config_db:
+            message = f"Chat '{chat_id}' not found"
+            self.sprint(message)
+            return ChatConfigManager.Result.failure, message
+        chat_config = ChatConfig.model_validate(chat_config_db)
+
+        chat_config.release_notifications = release_notifications
+        chat_config_db = self.__chat_config_dao.save(ChatConfigSave(**chat_config.model_dump()))
+        chat_config = ChatConfig.model_validate(chat_config_db)
+
+        message = f"Release notifications are now set to {chat_config.release_notifications.value}"
         self.sprint(message)
         return ChatConfigManager.Result.success, message
