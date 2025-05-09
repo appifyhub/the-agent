@@ -12,7 +12,6 @@ from db.crud.user import UserCRUD
 from db.sql import get_detached_session
 from features.chat.announcement_manager import AnnouncementManager
 from features.chat.attachments_content_resolver import AttachmentsContentResolver
-from features.chat.chat_config_manager import ChatConfigManager
 from features.chat.generative_imaging_manager import GenerativeImagingManager
 from features.chat.image_edit_manager import ImageEditManager
 from features.chat.invite_manager import InviteManager
@@ -25,6 +24,7 @@ from features.support.user_support_manager import UserSupportManager
 from features.web_browsing.ai_web_search import AIWebSearch
 from features.web_browsing.html_content_cleaner import HTMLContentCleaner
 from features.web_browsing.web_fetcher import WebFetcher
+from util.config import config
 from util.safe_printer_mixin import sprint
 from util.translations_cache import TranslationsCache
 
@@ -68,49 +68,6 @@ def uninvite_friend(user_id: str, friend_telegram_username: str) -> str:
             if result == InviteManager.Result.failure:
                 return json.dumps({"result": "Failure", "reason": message})
             return json.dumps({"result": "Success", "next_step": message})
-    except Exception as e:
-        sprint("Tool call failed", e)
-        return json.dumps({"result": "Error", "error": str(e)})
-
-
-@tool
-def change_chat_language(chat_id: str, language_name: str, language_iso_code: str | None = None) -> str:
-    """
-    Changes the chat's main language, whether directly or indirectly requested by a user.
-
-    Args:
-        chat_id: [mandatory] A unique identifier of the chat, usually found in the metadata
-        language_name: [mandatory] The name of the preferred language, in English
-        language_iso_code: [optional] The 2-character ISO code of the preferred language, if known
-    """
-    try:
-        with get_detached_session() as db:
-            chat_config_manager = ChatConfigManager(ChatConfigCRUD(db))
-            result, message = chat_config_manager.change_chat_language(chat_id, language_name, language_iso_code)
-            if result == ChatConfigManager.Result.failure:
-                return json.dumps({"result": "Failure", "reason": message})
-            return json.dumps({"result": "Success", "message": message, "next_step": "Notify the user"})
-    except Exception as e:
-        sprint("Tool call failed", e)
-        return json.dumps({"result": "Error", "error": str(e)})
-
-
-@tool
-def change_chat_reply_chance(chat_id: str, reply_chance_percent: int) -> str:
-    """
-    Changes the bot's chance (in percent) to reply to this chat.
-
-    Args:
-        chat_id: [mandatory] A unique identifier of the chat, usually found in the metadata
-        reply_chance_percent: [mandatory] The chance, in percent [0-100], for the bot to reply to this chat
-    """
-    try:
-        with get_detached_session() as db:
-            chat_config_manager = ChatConfigManager(ChatConfigCRUD(db))
-            result, message = chat_config_manager.change_chat_reply_chance(chat_id, reply_chance_percent)
-            if result == ChatConfigManager.Result.failure:
-                return json.dumps({"result": "Failure", "reason": message})
-            return json.dumps({"result": "Success", "message": message, "next_step": "Notify the user"})
     except Exception as e:
         sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})
@@ -376,7 +333,7 @@ def announce_maintenance_or_news(user_id: str, raw_announcement: str) -> str:
                 {
                     "result": "Success",
                     "summary": results,
-                    "next_step": "Report these summary numbers back",
+                    "next_step": "Report these summary numbers back to the developer-user",
                 }
             )
     except Exception as e:
@@ -411,7 +368,7 @@ def deliver_message(author_user_id: str, message: str, target_telegram_username:
                 {
                     "result": "Success",
                     "summary": results,
-                    "next_step": "Report these summary numbers back",
+                    "next_step": "Report these summary numbers back to the developer-user",
                 }
             )
     except Exception as e:
@@ -457,7 +414,7 @@ def request_feature_bug_or_support(
                 {
                     "result": "Success",
                     "github_issue_url": issue_url,
-                    "next_step": "Report these summary numbers back to the developer",
+                    "next_step": "Report this resolution back to the partner",
                 }
             )
     except Exception as e:
@@ -472,10 +429,10 @@ def configure_settings(
     setting_type: str,
 ) -> str:
     """
-    Launches the configuration screen for either the user's settings (profile, payments, tokens, etc) or current
-    chat's settings (language, response rate, etc). User settings also serve the initial setup for the agent (bot).
-    In group chats we default to chat settings, as user settings are not applicable. In private chats, user settings
-    are the default. The user will probably not know what they want.
+    Launches the configuration screen for either the user's settings (profile, payments, API tokens and keys, etc), or
+    the current chat's settings (language, response rate, release notifications, etc). User settings also serve as the
+    initial setup for the agent (bot). In group chats we default to chat settings, as user settings are not applicable.
+    In private chats, user settings are the default. The user will probably not know which settings they need.
 
     Args:
         author_user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
@@ -497,9 +454,27 @@ def configure_settings(
             return json.dumps(
                 {
                     "result": "Success",
-                    "next_step": "Notify the user that the settings link has been sent to their private chat",
+                    "next_step": "Notify the user that these links always and only go to their private chat",
                 }
             )
+    except Exception as e:
+        sprint("Tool call failed", e)
+        return json.dumps({"result": "Error", "error": str(e)})
+
+
+@tool
+def get_version() -> str:
+    """
+    Checks the current version of the bot (the latest version available to the users).
+    """
+    try:
+        return json.dumps(
+            {
+                "result": "Success",
+                "version": f"v{config.version}",
+                "next_step": "Notify the user of the current (latest) version",
+            }
+        )
     except Exception as e:
         sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})
@@ -512,8 +487,6 @@ class ToolsLibrary(BaseToolBinder):
             {
                 "invite_friend": invite_friend,
                 "uninvite_friend": uninvite_friend,
-                "change_chat_language": change_chat_language,
-                "change_chat_reply_chance": change_chat_reply_chance,
                 "fetch_web_content": fetch_web_content,
                 "process_attachments": process_attachments,
                 "get_exchange_rate": get_exchange_rate,
@@ -526,5 +499,6 @@ class ToolsLibrary(BaseToolBinder):
                 "deliver_message": deliver_message,
                 "request_feature_bug_or_support": request_feature_bug_or_support,
                 "configure_settings": configure_settings,
+                "get_version": get_version,
             }
         )
