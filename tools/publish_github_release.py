@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 import requests
+from requests import Response
 
 # --- Utilities ---
 
@@ -131,7 +132,7 @@ if not commits:
 else:
     print(f"✅  Found {len(commits)} commit(s) in the diff")
     for commit in commits:
-        trimmed_commit = (commit[:40].strip() + '...') if len(commit) > 40 else commit
+        trimmed_commit = (commit[:40].strip() + "...") if len(commit) > 40 else commit
         print(f"    - {trimmed_commit}")
 
 # Compute the release attributes
@@ -149,15 +150,16 @@ if not repo_owner or not repo_name:
     exit(1)
 print(f"✅  Repository owner is set to {repo_owner}")
 artifact_raw: str = os.getenv("ARTIFACT", "release")
-artifact: str = re.sub(r'\b(\w)(\w*)\b', lambda m: m.group(1).upper() + m.group(2), artifact_raw)
+artifact: str = re.sub(r"\b(\w)(\w*)\b", lambda m: m.group(1).upper() + m.group(2), artifact_raw)
 release_name_quality: str = f" [{build_quality}]" if build_quality != "GA" else ""
 release_name: str = f"{artifact}: {target_version}{release_name_quality}"
-change_log: str = f"## Changes in this release\n\n  * {"\n  * ".join(commits)}" if commits else "Something is better now, enjoy!"
+default_release_body = "Things are better now, enjoy!"
+release_body: str = f"## Changes in this release\n\n  * {"\n  * ".join(commits)}" if commits else default_release_body
 is_prerelease: bool = build_quality != "GA"
 body: dict[str, Any] = {
     "tag_name": target_tag,
     "name": release_name,
-    "body": change_log,
+    "body": release_body,
     "draft": False,
     "prerelease": is_prerelease,
     "target_commitish": commitish,
@@ -165,14 +167,14 @@ body: dict[str, Any] = {
 print("✅  Release is ready to be published:")
 print(f"    - Tag name: {target_tag}")
 print(f"    - Release name: {release_name}")
-print(f"    - Release body: {json.dumps(change_log)[:40]}...")
+print(f"    - Release body: {json.dumps(release_body)[:40]}...")
 print(f"    - Is pre-release: {is_prerelease}")
 print(f"    - Target commitish: {commitish}")
 
 # Publish the release (intentionally fails if tag already exists)
-release_url: str = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases"
+releases_url: str = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases"
 headers: dict[str, Any] = {"Authorization": f"token {github_token}"}
-response: Any = requests.post(release_url, json = body, headers = headers)
+response: Response = requests.post(releases_url, json = body, headers = headers)
 if response and response.status_code not in (200, 201):
     print("❌  Failed to publish GitHub release")
     print(response.content)
@@ -180,18 +182,19 @@ if response and response.status_code not in (200, 201):
 print("✅  GitHub release published successfully")
 
 # Prepare and encode the outputs
-release_notes_raw: str = f"# Release v{target_version}\n\n{change_log}"
-release_notes_b64: str = base64.b64encode(release_notes_raw.encode('utf-8')).decode('utf-8')
-output: dict[str, Any] = {
+release_notes_raw: str = f"# Release v{target_version}\n\n{release_body}"
+release_notes_b64: str = base64.b64encode(release_notes_raw.encode("utf-8")).decode("utf-8")
+release_output: dict[str, Any] = {
     "latest_version": latest_release_version,
     "new_target_version": target_version,
     "release_quality": build_quality,
     "release_notes_b64": release_notes_b64,
 }
-print("✅  Output prepared successfully:")
-print(json.dumps(output, indent = 2))
-encoded_output = base64.b64encode(json.dumps(output).encode('utf-8')).decode('utf-8')
-print(f"✅  Encoded output for storage: {encoded_output}")
-print(f"::set-output name=encoded_change_log::{encoded_output}")
+release_output_b64 = base64.b64encode(json.dumps(release_output).encode("utf-8")).decode("utf-8")
+print("✅  Release output prepared successfully:")
+print(json.dumps(release_output, indent = 2))
 
-print("✅  GitHub Release script completed successfully")
+# Store the outputs and finish
+print(f"::set-output name=release_output_b64::{release_output_b64}")
+print(f"::set-output name=release_version::{target_version}")
+print("✅  GitHub Release script finished successfully")
