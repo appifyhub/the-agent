@@ -23,7 +23,7 @@ from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.chat.telegram.telegram_price_alert_responder import respond_with_announcements
 from features.chat.telegram.telegram_summary_responder import respond_with_summary
 from features.chat.telegram.telegram_update_responder import respond_to_update
-from features.release_summarizer.raw_notes_payload import RawNotesPayload
+from features.release_summarizer.raw_notes_payload import ReleaseOutputPayload
 from util.config import config
 from util.safe_printer_mixin import sprint
 from util.translations_cache import TranslationsCache
@@ -106,7 +106,7 @@ def notify_of_price_alerts(
 
 @app.post("/notify/release")
 def notify_of_release(
-    payload: RawNotesPayload,
+    payload: ReleaseOutputPayload,
     db = Depends(get_session),
     _ = Depends(verify_api_key),
 ) -> dict:
