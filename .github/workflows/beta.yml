@@ -78,31 +78,6 @@ jobs:
           docker push appifyhub/the-agent:latest_beta
           echo ::set-output name=the_agent_version::"$VERSION"
 
-      - name: Publish to GitHub Releases
-        id: github_releases_publish
-        env:
-          ARTIFACT: "the-agent"
-          BUILD_QUALITY: "BETA"
-          VERSION: ${{ steps.docker_publish.outputs.the_agent_version }}
-          GITHUB_SHA: ${{ env.GITHUB_SHA }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ env.GITHUB_REPOSITORY }}
-        run: |
-          pip install -r tools/github-release/requirements.txt
-          python tools/github-release/main.py
-
-      - name: Notify of release
-        env:
-          NOTIFICATION_AUTH_KEY: ${{ secrets.NOTIFICATION_AUTH_KEY_STAGING }}
-          NOTIFICATION_ENDPOINT: ${{ secrets.NOTIFICATION_URL_STAGING }}
-          CHANGE_LOG_B64: ${{ steps.github_releases_publish.outputs.encoded_change_log }} # stored from Python
-        run: |
-          curl -X POST \
-            -L "${{ secrets.NOTIFICATION_URL_STAGING }}" \
-            -H "X-API-Key: ${{ secrets.NOTIFICATION_AUTH_KEY_STAGING }}" \
-            -H "Content-Type: application/json" \
-            -d "{\"raw_notes_b64\": \"$CHANGE_LOG_B64\"}"
-
       - name: Comment build information
         env:
           GITHUB_SHA: ${{ env.GITHUB_SHA }}
@@ -122,3 +97,50 @@ jobs:
           JOB="[${GITHUB_RUN_ID}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})"
           NOTIFICATION="Build ${JOB} complete for ${GITHUB_SHA}.${NL}${NL}${CODE_BLOCK}${NL}"
           gh pr comment "$PR_NUMBER" -b "$NOTIFICATION"
+
+      - name: Publish to GitHub Releases
+        id: publish_github_release
+        env:
+          ARTIFACT: "the-agent"
+          BUILD_QUALITY: "BETA"
+          VERSION: ${{ steps.docker_publish.outputs.the_agent_version }}
+          GITHUB_SHA: ${{ env.GITHUB_SHA }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ env.GITHUB_REPOSITORY }}
+        run: pipenv run python tools/publish_github_release.py
+
+      - name: Wait for the service to go live
+        env:
+          HEALTH_ENDPOINT: ${{ secrets.HEALTH_ENDPOINT_STAGING }}
+          EXPECTED_VERSION: ${{ steps.publish_github_release.outputs.release_version }} # stored in Python
+        run: |
+          INTERVAL=15
+          DURATION_MINUTES=12
+          ATTEMPTS=$(( (DURATION_MINUTES * 60) / INTERVAL ))
+          echo "Waiting for health endpoint to report version: $EXPECTED_VERSION"
+          echo "Polling every $INTERVAL seconds for $DURATION_MINUTES minutes ($ATTEMPTS attempts)"
+          for ((i=1;i<=ATTEMPTS;i++)); do
+            RESPONSE=$(curl -s "$HEALTH_ENDPOINT" || true)
+            VERSION=$(echo "$RESPONSE" | grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' | head -n1 | sed 's/.*: *"\([^"]*\)".*/\1/')
+            if [[ "$VERSION" == "$EXPECTED_VERSION" ]]; then
+              echo "Health endpoint version matches: $VERSION"
+              exit 0
+            fi
+            echo "Attempt $i/$ATTEMPTS: version is '$VERSION', waiting..."
+            sleep $INTERVAL
+          done
+          echo "Waited full $DURATION_MINUTES minutes. Version did not match. Continuing."
+          exit 0
+
+      - name: Notify of release
+        env:
+          NOTIFICATION_AUTH_KEY: ${{ secrets.NOTIFICATION_AUTH_KEY_STAGING }}
+          NOTIFICATION_ENDPOINT: ${{ secrets.NOTIFICATION_URL_STAGING }}
+          RELEASE_OUTPUT_B64: ${{ steps.publish_github_release.outputs.release_output_b64 }} # stored in Python
+        run: |
+          curl -X POST \
+            -L "${{ secrets.NOTIFICATION_URL_STAGING }}" \
+            -H "X-API-Key: ${{ secrets.NOTIFICATION_AUTH_KEY_STAGING }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"release_output_b64\": \"$RELEASE_OUTPUT_B64\"}" \
+            --silent --show-error || echo "Notification failed! Error code: $?"

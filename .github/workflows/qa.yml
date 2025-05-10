@@ -87,18 +87,6 @@ jobs:
           docker push appifyhub/the-agent:latest_pr
           echo ::set-output name=the_agent_version::"$VERSION"
 
-      - name: Publish to GitHub Releases
-        env:
-          ARTIFACT: "the-agent"
-          BUILD_QUALITY: "PR"
-          VERSION: ${{ steps.docker_publish.outputs.the_agent_version }}
-          GITHUB_SHA: ${{ env.GITHUB_SHA }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ env.GITHUB_REPOSITORY }}
-        run: |
-          pip install -r tools/github-release/requirements.txt
-          python tools/github-release/main.py
-
       - name: Comment build information
         if: github.actor != 'dependabot[bot]'
         env:
@@ -119,3 +107,14 @@ jobs:
           JOB="[${GITHUB_RUN_ID}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})"
           NOTIFICATION="Build ${JOB} complete for ${GITHUB_SHA}.${NL}${NL}${CODE_BLOCK}${NL}"
           gh pr comment "$PR_NUMBER" -b "$NOTIFICATION"
+
+      - name: Publish to GitHub Releases
+        id: publish_github_release
+        env:
+          ARTIFACT: "the-agent"
+          BUILD_QUALITY: "PR"
+          VERSION: ${{ steps.docker_publish.outputs.the_agent_version }}
+          GITHUB_SHA: ${{ env.GITHUB_SHA }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ env.GITHUB_REPOSITORY }}
+        run: pipenv run python tools/publish_github_release.py

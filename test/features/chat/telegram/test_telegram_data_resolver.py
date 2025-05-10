@@ -2,6 +2,8 @@ import unittest
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 from uuid import UUID
+
+from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfigSave, ChatConfig
 from db.schema.chat_message import ChatMessageSave, ChatMessage
@@ -159,6 +161,7 @@ class TelegramDataResolverTest(unittest.TestCase):
             title = "Old Title",
             is_private = False,
             reply_chance_percent = 100,
+            release_notifications = ChatConfigDB.ReleaseNotifications.major,
         )
         existing_config_db = self.sql.chat_config_crud().save(existing_config_data)
         existing_config = ChatConfig.model_validate(existing_config_db)
@@ -180,6 +183,7 @@ class TelegramDataResolverTest(unittest.TestCase):
         self.assertEqual(result.title, mapped_data.title)
         self.assertEqual(result.is_private, mapped_data.is_private)
         self.assertEqual(result.reply_chance_percent, mapped_data.reply_chance_percent)
+        self.assertEqual(result.release_notifications, existing_config.release_notifications)
 
     def test_resolve_chat_config_new(self):
         mapped_data = ChatConfigSave(
@@ -199,6 +203,7 @@ class TelegramDataResolverTest(unittest.TestCase):
         self.assertEqual(result.title, mapped_data.title)
         self.assertEqual(result.is_private, mapped_data.is_private)
         self.assertEqual(result.reply_chance_percent, mapped_data.reply_chance_percent)
+        self.assertEqual(result.release_notifications, mapped_data.release_notifications)
 
     def test_resolve_author_none(self):
         result = self.resolver.resolve_author(None)

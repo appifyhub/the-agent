@@ -23,7 +23,7 @@ from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.chat.telegram.telegram_price_alert_responder import respond_with_announcements
 from features.chat.telegram.telegram_summary_responder import respond_with_summary
 from features.chat.telegram.telegram_update_responder import respond_to_update
-from features.release_summarizer.raw_notes_payload import RawNotesPayload
+from features.release_summarizer.raw_notes_payload import ReleaseOutputPayload
 from util.config import config
 from util.safe_printer_mixin import sprint
 from util.translations_cache import TranslationsCache
@@ -33,11 +33,11 @@ from util.translations_cache import TranslationsCache
 @asynccontextmanager
 async def lifespan(owner: FastAPI):
     # startup
-    sprint("Starting up endpoints...")
+    sprint("Lifecycle: Starting up endpoints...")
     initialize_db()
     yield
     # shutdown
-    sprint("Shutting down...")
+    sprint("Lifecycle: Shutting down...")
 
 
 app = FastAPI(
@@ -65,7 +65,7 @@ def root() -> RedirectResponse:
 
 
 @app.get("/health")
-def health() -> dict: return {"status": "ok"}
+def health() -> dict: return {"status": "ok", "version": config.version}
 
 
 @app.post("/telegram/chat-update")
@@ -106,7 +106,7 @@ def notify_of_price_alerts(
 
 @app.post("/notify/release")
 def notify_of_release(
-    payload: RawNotesPayload,
+    payload: ReleaseOutputPayload,
     db = Depends(get_session),
     _ = Depends(verify_api_key),
 ) -> dict:
@@ -196,14 +196,20 @@ def save_settings(
             language_iso_code = request_data.get("language_iso_code")
             if not language_iso_code:
                 raise ValueError("No language ISO code provided")
-            reply_chance_percent = request_data.get("reply_chance_percent") or -1
+            reply_chance_percent = request_data.get("reply_chance_percent")
             if reply_chance_percent is None:
                 raise ValueError("No reply chance percent provided")
+            if not isinstance(reply_chance_percent, int):
+                raise ValueError("Reply chance percent must be an integer")
+            release_notifications = request_data.get("release_notifications")
+            if not release_notifications:
+                raise ValueError("No release notifications selection provided")
             settings_manager.save_chat_settings(
                 chat_id = resource_id,
                 language_name = language_name,
                 language_iso_code = language_iso_code,
                 reply_chance_percent = reply_chance_percent,
+                release_notifications = str(release_notifications),
             )
         return {"status": "OK"}
     except Exception as e:

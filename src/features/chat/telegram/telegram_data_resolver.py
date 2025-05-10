@@ -70,6 +70,7 @@ class TelegramDataResolver(SafePrinterMixin):
             mapped_data.language_name = old_chat_config.language_name
             mapped_data.is_private = old_chat_config.is_private
             mapped_data.reply_chance_percent = old_chat_config.reply_chance_percent
+            mapped_data.release_notifications = old_chat_config.release_notifications
         return ChatConfig.model_validate(db.save(mapped_data))
 
     def resolve_author(self, mapped_data: UserSave | None) -> User | None:

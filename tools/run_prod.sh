@@ -8,6 +8,17 @@ if [ ! -f "Pipfile" ]; then
     exit 1
 fi
 
+# Read version file, fail if missing
+if [ ! -f ".version" ]; then
+    echoerr "No '.version' file found. This script must be run from the project root!" >&2
+    echoerr "Exiting..." -n >&2
+    exit 1
+fi
+
+# Export version for config.py
+export VERSION="$(cat .version)"
+echoinfo "Detected version: ${VERSION}"
+
 # Generate a random API key in case it's not set already
 generate_api_key() {
     echoinfo "Generating a random API key..."

@@ -3,9 +3,11 @@ from unittest.mock import patch, MagicMock
 
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
+from jose import jwt
 from starlette.status import HTTP_403_FORBIDDEN, HTTP_401_UNAUTHORIZED
 
 from features.auth import verify_api_key, verify_telegram_auth_key, verify_jwt_credentials, create_jwt_token
+from util.config import config
 
 
 class AuthTest(unittest.TestCase):
@@ -86,5 +88,10 @@ class AuthTest(unittest.TestCase):
 
     def test_create_jwt_token(self):
         payload = {"sub": "1234"}
-        token = create_jwt_token(payload)
-        self.assertIsInstance(token, str)
+        encoded_token = create_jwt_token(payload, expires_in_minutes = 1)
+        decoded_token = jwt.decode(encoded_token, config.jwt_secret_key)
+        self.assertIsNotNone(encoded_token, str)
+        self.assertIsInstance(encoded_token, str)
+        self.assertIsNotNone(decoded_token["exp"])
+        self.assertIsNotNone(decoded_token["iat"])
+        self.assertIsNotNone(decoded_token["version"])
