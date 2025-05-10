@@ -95,9 +95,7 @@ jobs:
           GITHUB_SHA: ${{ env.GITHUB_SHA }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ env.GITHUB_REPOSITORY }}
-        run: |
-          pip install -r tools/github-release/requirements.txt
-          python tools/github-release/main.py
+        run: pipenv run python tools/prepare_github_release.py
 
       - name: Comment build information
         if: github.actor != 'dependabot[bot]'
