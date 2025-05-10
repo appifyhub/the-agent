@@ -53,9 +53,16 @@ def verify_jwt_token(token: str) -> Dict[str, Any]:
     return jwt.decode(token, config.jwt_secret_key, algorithms = [__JWT_ALGORITHM], options = {"verify_aud": False})
 
 
-def create_jwt_token(payload: Dict[str, Any], expires_in: timedelta = timedelta(minutes = 5)) -> str:
+def create_jwt_token(payload: Dict[str, Any], expires_in_minutes: int) -> str:
     now = datetime.now(timezone.utc)
+    expires_in = timedelta(minutes = expires_in_minutes)
     to_encode = payload.copy()
-    to_encode.update({"exp": now + expires_in, "iat": now})
+    to_encode.update(
+        {
+            "exp": now + expires_in,
+            "iat": now,
+            "version": config.version,
+        }
+    )
     encoded_jwt = jwt.encode(to_encode, config.jwt_secret_key, algorithm = __JWT_ALGORITHM)
     return encoded_jwt

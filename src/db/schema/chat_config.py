@@ -1,5 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 
+from db.model.chat_config import ChatConfigDB
+
 
 class ChatConfigBase(BaseModel):
     chat_id: str
@@ -8,6 +10,7 @@ class ChatConfigBase(BaseModel):
     title: str | None = None
     is_private: bool = False
     reply_chance_percent: int = 100
+    release_notifications: ChatConfigDB.ReleaseNotifications = ChatConfigDB.ReleaseNotifications.all
 
 
 class ChatConfigSave(ChatConfigBase):

@@ -108,7 +108,7 @@ class SettingsManager(SafePrinterMixin):
             "telegram_user_id": self.__invoker_user.telegram_user_id,
             "telegram_username": self.__invoker_user.telegram_username,
         }
-        jwt_token = create_jwt_token(token_payload)
+        jwt_token = create_jwt_token(token_payload, config.jwt_expires_in_minutes)
         return f"{config.backoffice_url_base}/{lang_iso_code}/{resource_type}/{resource_id}/settings?token={jwt_token}"
 
     def send_settings_link(self, link_url: str) -> None:
@@ -160,7 +160,14 @@ class SettingsManager(SafePrinterMixin):
         output["open_ai_key"] = mask_secret(output.get("open_ai_key"))
         return output
 
-    def save_chat_settings(self, chat_id: str, language_name: str, language_iso_code: str, reply_chance_percent: int):
+    def save_chat_settings(
+        self,
+        chat_id: str,
+        language_name: str,
+        language_iso_code: str,
+        reply_chance_percent: int,
+        release_notifications: str,
+    ):
         self.sprint(f"Saving chat settings for chat '{chat_id}'")
         chat_config = self.authorize_for_chat(chat_id)
         result, message = self.__chat_config_manager.change_chat_language(
@@ -178,6 +185,13 @@ class SettingsManager(SafePrinterMixin):
         if result == ChatConfigManager.Result.failure:
             raise ValueError(message)
         self.sprint("  Reply chance changed")
+        result, message = self.__chat_config_manager.change_chat_release_notifications(
+            chat_id = chat_config.chat_id,
+            raw_selection = release_notifications,
+        )
+        if result == ChatConfigManager.Result.failure:
+            raise ValueError(message)
+        self.sprint("  Release notifications changed")
 
     def save_user_settings(self, user_id_hex: str, open_ai_key: str):
         self.sprint(f"Saving user settings for user '{user_id_hex}'")

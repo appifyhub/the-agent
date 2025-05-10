@@ -22,7 +22,15 @@ replicate = "*"
 ruff = "*"
 pydub = "*"
 pymupdf = "*"
-python-jose = {extras = ["cryptography"], version = "*"}
+python-jose = { extras = ["cryptography"], version = "*" }
+urllib3 = "*"
+httpcore = "*"
+httpx = "*"
+distro = "*"
+annotated-types = "*"
+iniconfig = "*"
+packaging = "*"
+python-dateutil = "*"
 
 [dev-packages]
 pytest = "*"

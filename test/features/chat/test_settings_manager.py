@@ -5,6 +5,7 @@ from uuid import UUID
 
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.user import UserCRUD
+from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User, UserSave
@@ -50,6 +51,7 @@ class SettingsManagerTest(unittest.TestCase):
             reply_chance_percent = 100,
             title = "Test Chat",
             is_private = False,
+            release_notifications = ChatConfigDB.ReleaseNotifications.all,
         )
         self.chat_member = ChatMemberAdministrator(
             status = "administrator", can_be_edited = False, is_anonymous = False, can_manage_chat = False,
@@ -353,7 +355,17 @@ class SettingsManagerTest(unittest.TestCase):
 
     @patch.object(ChatConfigManager, 'change_chat_language', return_value = (ChatConfigManager.Result.success, ""))
     @patch.object(ChatConfigManager, 'change_chat_reply_chance', return_value = (ChatConfigManager.Result.success, ""))
-    def test_save_chat_settings_success(self, mock_change_chat_reply_chance, mock_change_chat_language):
+    @patch.object(
+        ChatConfigManager,
+        'change_chat_release_notifications',
+        return_value = (ChatConfigManager.Result.success, "")
+    )
+    def test_save_chat_settings_success(
+        self,
+        mock_change_chat_release_notifications,
+        mock_change_chat_reply_chance,
+        mock_change_chat_language,
+    ):
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
 
@@ -370,6 +382,7 @@ class SettingsManagerTest(unittest.TestCase):
             language_name = "Spanish",
             language_iso_code = "es",
             reply_chance_percent = 50,
+            release_notifications = "all",
         )
 
         mock_change_chat_language.assert_called_once_with(
@@ -380,6 +393,10 @@ class SettingsManagerTest(unittest.TestCase):
         mock_change_chat_reply_chance.assert_called_once_with(
             chat_id = self.chat_config.chat_id,
             reply_chance_percent = 50,
+        )
+        mock_change_chat_release_notifications.assert_called_once_with(
+            chat_id = self.chat_config.chat_id,
+            raw_selection = "all",
         )
 
     def test_save_user_settings_success(self):
@@ -435,6 +452,7 @@ class SettingsManagerTest(unittest.TestCase):
                 language_name = "Spanish",
                 language_iso_code = "es",
                 reply_chance_percent = 50,
+                release_notifications = "all",
             )
         self.assertIn("Error", str(context.exception))
 
@@ -465,5 +483,69 @@ class SettingsManagerTest(unittest.TestCase):
                 language_name = "Spanish",
                 language_iso_code = "es",
                 reply_chance_percent = 50,
+                release_notifications = "all",
             )
         self.assertIn("Error", str(context.exception))
+
+    @patch.object(ChatConfigManager, 'change_chat_language', return_value = (ChatConfigManager.Result.success, ""))
+    @patch.object(ChatConfigManager, 'change_chat_reply_chance', return_value = (ChatConfigManager.Result.success, ""))
+    @patch.object(
+        ChatConfigManager,
+        'change_chat_release_notifications',
+        return_value = (ChatConfigManager.Result.failure, "Invalid notifications level")
+    )
+    def test_save_chat_settings_failure_release_notifications(
+        self,
+        mock_change_chat_release_notifications,
+        mock_change_chat_reply_chance,
+        mock_change_chat_language,
+    ):
+        self.mock_user_dao.get.return_value = self.invoker_user
+        self.mock_chat_config_dao.get.return_value = self.chat_config
+
+        manager = SettingsManager(
+            invoker_user_id_hex = self.invoker_user.id.hex,
+            target_chat_id = self.chat_config.chat_id,
+            telegram_sdk = self.mock_telegram_sdk,
+            user_dao = self.mock_user_dao,
+            chat_config_dao = self.mock_chat_config_dao,
+        )
+
+        with self.assertRaises(ValueError) as context:
+            manager.save_chat_settings(
+                chat_id = self.chat_config.chat_id,
+                language_name = "Spanish",
+                language_iso_code = "es",
+                reply_chance_percent = 50,
+                release_notifications = "invalid_level"
+            )
+        self.assertIn("Invalid notifications level", str(context.exception))
+
+        mock_change_chat_language.assert_called_once()
+        mock_change_chat_reply_chance.assert_called_once()
+        mock_change_chat_release_notifications.assert_called_once_with(
+            chat_id = self.chat_config.chat_id,
+            raw_selection = "invalid_level",
+        )
+
+    def test_save_chat_settings_missing_release_notifications(self):
+        self.mock_user_dao.get.return_value = self.invoker_user
+        self.mock_chat_config_dao.get.return_value = self.chat_config
+
+        manager = SettingsManager(
+            invoker_user_id_hex = self.invoker_user.id.hex,
+            target_chat_id = self.chat_config.chat_id,
+            telegram_sdk = self.mock_telegram_sdk,
+            user_dao = self.mock_user_dao,
+            chat_config_dao = self.mock_chat_config_dao,
+        )
+
+        with self.assertRaises(TypeError):
+            # noinspection PyArgumentList
+            manager.save_chat_settings(
+                chat_id = self.chat_config.chat_id,
+                language_name = "Spanish",
+                language_iso_code = "es",
+                reply_chance_percent = 50,
+                # Missing release_notifications parameter
+            )
