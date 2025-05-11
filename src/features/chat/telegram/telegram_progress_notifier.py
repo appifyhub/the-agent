@@ -5,6 +5,7 @@ from threading import Thread, Lock, Event
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
+from pydantic import SecretStr
 
 from db.schema.chat_config import ChatConfig
 from features.ai_tools.external_ai_tool_library import CLAUDE_3_5_HAIKU
@@ -69,7 +70,7 @@ class TelegramProgressNotifier(SafePrinterMixin):
             max_tokens = 500,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
-            api_key = str(config.anthropic_token),
+            api_key = SecretStr(str(config.anthropic_token)),
         )
         prompt = prompt_library.translator_on_response(
             base_prompt = prompt_library.announcer_event_telegram,

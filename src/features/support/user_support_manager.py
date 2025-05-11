@@ -6,6 +6,7 @@ import requests
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from pydantic import SecretStr
 
 from db.crud.user import UserCRUD
 from db.schema.user import User
@@ -59,7 +60,7 @@ class UserSupportManager(SafePrinterMixin):
             max_tokens = 700,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
-            api_key = str(config.anthropic_token),
+            api_key = SecretStr(str(config.anthropic_token)),
         )
 
     def __resolve_request_type(self, request_type_str: str | None) -> RequestType:

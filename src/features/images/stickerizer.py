@@ -8,6 +8,7 @@ from httpx import Timeout
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from pydantic import SecretStr
 from replicate import Client
 
 from features.ai_tools.external_ai_tool_library import CLAUDE_3_5_HAIKU, IMAGE_TO_STICKER
@@ -54,7 +55,7 @@ class Stickerizer(SafePrinterMixin):
             max_tokens = 200,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
-            api_key = anthropic_api_key,
+            api_key = SecretStr(anthropic_api_key),
         )
 
     def execute(self) -> str | None:

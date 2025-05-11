@@ -1,6 +1,7 @@
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, AIMessage, HumanMessage
+from pydantic import SecretStr
 
 from features.ai_tools.external_ai_tool_library import CLAUDE_3_5_SONNET
 from features.prompting import prompt_library
@@ -30,7 +31,7 @@ class InformationAnnouncer(SafePrinterMixin):
             max_tokens = 500,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
-            api_key = str(config.anthropic_token),
+            api_key = SecretStr(str(config.anthropic_token)),
         )
 
     def execute(self) -> AIMessage:

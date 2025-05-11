@@ -7,6 +7,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from openai import OpenAI
+from pydantic import SecretStr
 from pydub import AudioSegment
 
 from features.ai_tools.external_ai_tool_library import CLAUDE_3_5_HAIKU, WHISPER_1
@@ -51,9 +52,9 @@ class AudioTranscriber(SafePrinterMixin):
             model_name = CLAUDE_3_5_HAIKU.id,
             temperature = 0.5,
             max_tokens = 2048,
-            timeout = float(config.web_timeout_s) * 2,  # takes longer
+            timeout = float(config.web_timeout_s) * 2,  # transcribing takes longer
             max_retries = config.web_retries,
-            api_key = str(config.anthropic_token),
+            api_key = SecretStr(str(config.anthropic_token)),
         )
 
     def __validate_content(self, audio_url: str, audio_content: bytes | None):
