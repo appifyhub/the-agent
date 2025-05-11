@@ -10,6 +10,9 @@ from features.chat.supported_files import SUPPORTED_AUDIO_FORMATS
 
 
 class AudioTranscriberTest(unittest.TestCase):
+    job_id: str
+    audio_url: str
+    open_ai_api_key: str
 
     def setUp(self):
         self.job_id = "test_job"
@@ -108,13 +111,13 @@ class AudioTranscriberTest(unittest.TestCase):
 
     @requests_mock.Mocker()
     @patch("features.audio.audio_transcriber.OpenAI")
-    @patch("features.audio.audio_transcriber.ChatOpenAI")
-    def test_execute_success(self, m, mock_chat_openai, mock_openai):
+    @patch("features.audio.audio_transcriber.ChatAnthropic")
+    def test_execute_success(self, m, mock_chat_anthropic, mock_openai):
         m.get(self.audio_url, content = b"audio_content")
         mock_transcriber = mock_openai.return_value
         mock_transcriber.audio.transcriptions.create.return_value = "Raw transcribed text"
 
-        mock_copywriter = mock_chat_openai.return_value
+        mock_copywriter = mock_chat_anthropic.return_value
         mock_copywriter.invoke.return_value = AIMessage(content = "Polished transcribed text")
 
         transcriber = AudioTranscriber(self.job_id, self.audio_url, self.open_ai_api_key)
@@ -126,8 +129,8 @@ class AudioTranscriberTest(unittest.TestCase):
 
     @requests_mock.Mocker()
     @patch("features.audio.audio_transcriber.OpenAI")
-    @patch("features.audio.audio_transcriber.ChatOpenAI")
-    def test_execute_transcription_failure(self, m, mock_chat_openai, mock_openai):
+    @patch("features.audio.audio_transcriber.ChatAnthropic")
+    def test_execute_transcription_failure(self, m, mock_chat_anthropic, mock_openai):
         m.get(self.audio_url, content = b"audio_content")
         mock_transcriber = mock_openai.return_value
         mock_transcriber.audio.transcriptions.create.side_effect = Exception("Transcription API error")
@@ -137,17 +140,17 @@ class AudioTranscriberTest(unittest.TestCase):
 
         self.assertIsNone(result)
         mock_transcriber.audio.transcriptions.create.assert_called_once()
-        mock_chat_openai.return_value.invoke.assert_not_called()
+        mock_chat_anthropic.return_value.invoke.assert_not_called()
 
     @requests_mock.Mocker()
     @patch("features.audio.audio_transcriber.OpenAI")
-    @patch("features.audio.audio_transcriber.ChatOpenAI")
-    def test_execute_copywriting_failure(self, m, mock_chat_openai, mock_openai):
+    @patch("features.audio.audio_transcriber.ChatAnthropic")
+    def test_execute_copywriting_failure(self, m, mock_chat_anthropic, mock_openai):
         m.get(self.audio_url, content = b"audio_content")
         mock_transcriber = mock_openai.return_value
         mock_transcriber.audio.transcriptions.create.return_value = "Raw transcribed text"
 
-        mock_copywriter = mock_chat_openai.return_value
+        mock_copywriter = mock_chat_anthropic.return_value
         mock_copywriter.invoke.side_effect = Exception("Copywriting API error")
 
         transcriber = AudioTranscriber(self.job_id, self.audio_url, self.open_ai_api_key)
@@ -159,13 +162,13 @@ class AudioTranscriberTest(unittest.TestCase):
 
     @requests_mock.Mocker()
     @patch("features.audio.audio_transcriber.OpenAI")
-    @patch("features.audio.audio_transcriber.ChatOpenAI")
-    def test_execute_copywriting_invalid_response(self, m, mock_chat_openai, mock_openai):
+    @patch("features.audio.audio_transcriber.ChatAnthropic")
+    def test_execute_copywriting_invalid_response(self, m, mock_chat_anthropic, mock_openai):
         m.get(self.audio_url, content = b"audio_content")
         mock_transcriber = mock_openai.return_value
         mock_transcriber.audio.transcriptions.create.return_value = "Raw transcribed text"
 
-        mock_copywriter = mock_chat_openai.return_value
+        mock_copywriter = mock_chat_anthropic.return_value
         mock_copywriter.invoke.return_value = "Invalid response type"
 
         transcriber = AudioTranscriber(self.job_id, self.audio_url, self.open_ai_api_key)
@@ -177,7 +180,9 @@ class AudioTranscriberTest(unittest.TestCase):
 
     @patch("features.audio.audio_transcriber.prompt_library.translator_on_response")
     @patch("features.audio.audio_transcriber.requests.get")
-    def test_init_with_language(self, mock_get, mock_translator_on_response):
+    @patch("features.audio.audio_transcriber.OpenAI")
+    @patch("features.audio.audio_transcriber.ChatAnthropic")
+    def test_init_with_language(self, mock_chat_anthropic, mock_openai, mock_get, mock_translator_on_response):
         language_name = "Spanish"
         language_iso_code = "es"
         mock_translator_on_response.return_value = "Translated prompt"
@@ -186,18 +191,24 @@ class AudioTranscriberTest(unittest.TestCase):
         mock_response.content = b"mocked audio content"
         mock_get.return_value = mock_response
 
+        mock_transcriber = mock_openai.return_value
+        mock_transcriber.audio.transcriptions.create.return_value = "Raw transcribed text"
+        mock_copywriter = mock_chat_anthropic.return_value
+        mock_copywriter.invoke.return_value = AIMessage(content = "Polished transcribed text")
+
         transcriber = AudioTranscriber(
             self.job_id,
             self.audio_url,
             self.open_ai_api_key,
             language_name = language_name,
-            language_iso_code = language_iso_code
+            language_iso_code = language_iso_code,
         )
+        transcriber.execute()
 
         mock_translator_on_response.assert_called_once_with(
             base_prompt = ANY,
             language_name = language_name,
-            language_iso_code = language_iso_code
+            language_iso_code = language_iso_code,
         )
         mock_get.assert_called_once_with(self.audio_url)
         self.assertIsInstance(transcriber, AudioTranscriber)

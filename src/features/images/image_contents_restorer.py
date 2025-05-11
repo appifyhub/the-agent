@@ -7,13 +7,12 @@ import requests
 from httpx import Timeout
 from replicate import Client
 
+from features.ai_tools.external_ai_tool_library import IMAGE_RESTORATION, IMAGE_INPAINTING
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from util.config import config
 from util.functions import first_key_with_value
 from util.safe_printer_mixin import SafePrinterMixin
 
-IMAGE_RESTORATION_MODEL = "sczhou/codeformer:7de2ea26c616d5bf2245ad0d5e24f0ff9a6204578a5c876db53142edd9d2cd56"
-IMAGE_INPAINTING_MODEL = "batouresearch/magic-image-refiner:507ddf6f977a7e30e46c0daefd30de7d563c72322f9e4cf7cbac52ef0f667b13"
 BOOT_AND_RUN_TIMEOUT_S = 300
 
 
@@ -63,8 +62,14 @@ class ImageContentsRestorer(SafePrinterMixin):
                 temp_file.write(response.content)
                 temp_file.flush()
                 with open(temp_file.name, "rb") as file:
-                    input_data = {"image": file, "codeformer_fidelity": 1}
-                    restored_url = self.__replicate.run(IMAGE_RESTORATION_MODEL, input = input_data)
+                    input_data = {
+                        "image": file,
+                        "upscale": 2,
+                        "face_upsample": True,
+                        "background_enhance": True,
+                        "codeformer_fidelity": 0.1,
+                    }
+                    restored_url = self.__replicate.run(IMAGE_RESTORATION.id, input = input_data)
             if not restored_url:
                 raise ValueError("Failed to restore image contents (no output URL)")
             self.sprint("Image contents restoration successful")
@@ -87,13 +92,13 @@ class ImageContentsRestorer(SafePrinterMixin):
                         "image": file,
                         "hdr": 0.2,
                         "steps": 100,
-                        "prompt": self.__prompt_positive or "High quality",
+                        "prompt": self.__prompt_positive or "High quality image",
                         "creativity": 0.05,
-                        "resemblance": 1,
+                        "resemblance": 0.95,
                         "guidance_scale": 0.1,
-                        "negative_prompt": self.__prompt_negative or "bad anatomy, low quality",
+                        "negative_prompt": self.__prompt_negative or "bad anatomy, ugly, low quality",
                     }
-                    inpainted_url = self.__replicate.run(IMAGE_INPAINTING_MODEL, input = input_data)
+                    inpainted_url = self.__replicate.run(IMAGE_INPAINTING.id, input = input_data)
             if not inpainted_url or not inpainted_url[0]:
                 raise ValueError("Failed to inpaint image details (no output URL)")
             self.sprint("Image detail inpainting successful")

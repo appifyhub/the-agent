@@ -85,6 +85,21 @@ class WebFetcherTest(unittest.TestCase):
         self.assertIsNone(fetcher.html)
 
     @requests_mock.Mocker()
+    def test_fetch_html_binary_content(self, m: Mocker):
+        # Simulate binary PDF response with NUL bytes
+        binary_content = b"%PDF-1.4\x00binarydata"
+        m.get(DEFAULT_URL, content=binary_content, status_code=200, headers={"Content-Type": "application/pdf"})
+        self.mock_cache_crud.get.return_value = None
+
+        fetcher = WebFetcher(DEFAULT_URL, self.mock_cache_crud)
+        result = fetcher.fetch_html()
+
+        self.assertIsNone(result)
+        self.assertIsNone(fetcher.html)
+        # Ensure nothing was cached
+        self.mock_cache_crud.save.assert_not_called()
+
+    @requests_mock.Mocker()
     def test_auto_fetch_json_disabled(self, m: Mocker):
         stub = {"value": "data"}
         m.get(DEFAULT_URL, json = stub, status_code = 200)
