@@ -7,6 +7,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
 
 from db.schema.chat_config import ChatConfig
+from features.ai_tools.external_ai_tool_library import CLAUDE_3_5_HAIKU
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.prompting import prompt_library
 from util.config import config
@@ -16,10 +17,6 @@ DEFAULT_REACTION_INTERVAL_S = 15
 DEFAULT_TEXT_UPDATE_INTERVAL_S = 45
 TYPING_STATUS_INTERVAL_S = 5  # set by Telegram API for auto-clearing
 MAX_CYCLES = int((10 * DEFAULT_TEXT_UPDATE_INTERVAL_S) / TYPING_STATUS_INTERVAL_S)  # announce 10 delays max
-
-ANTHROPIC_AI_MODEL = "claude-3-5-sonnet-20240620"
-ANTHROPIC_AI_TEMPERATURE = 0.5
-ANTHROPIC_MAX_TOKENS = 500
 
 # subset of features.prompting.prompt_library.ALLOWED_TELEGRAM_EMOJIS
 # sorted by intensity (later ones emote more about the delay)
@@ -67,9 +64,9 @@ class TelegramProgressNotifier(SafePrinterMixin):
         self.__text_update_interval_s = text_update_interval_s
         # noinspection PyArgumentList
         self.__llm = ChatAnthropic(
-            model_name = ANTHROPIC_AI_MODEL,
-            temperature = ANTHROPIC_AI_TEMPERATURE,
-            max_tokens = ANTHROPIC_MAX_TOKENS,
+            model_name = CLAUDE_3_5_HAIKU.id,
+            temperature = 0.5,
+            max_tokens = 500,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
             api_key = str(config.anthropic_token),

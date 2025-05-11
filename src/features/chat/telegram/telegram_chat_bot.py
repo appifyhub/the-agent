@@ -8,6 +8,7 @@ from langchain_openai import ChatOpenAI
 
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
+from features.ai_tools.external_ai_tool_library import GPT_4_1_MINI
 from features.chat.command_processor import CommandProcessor
 from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
 from features.chat.tools.tools_library import ToolsLibrary
@@ -15,10 +16,6 @@ from features.prompting import prompt_library
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
-
-OPEN_AI_MODEL = "gpt-4o-mini"
-OPEN_AI_TEMPERATURE = 0.7
-OPEN_AI_MAX_TOKENS = 600
 
 TMessage = TypeVar('TMessage', bound = BaseMessage)  # Generic message type
 TooledChatModel = Runnable[LanguageModelInput, BaseMessage]
@@ -68,11 +65,10 @@ class TelegramChatBot(SafePrinterMixin):
         self.__raw_last_message = raw_last_message
         self.__command_processor = command_processor
         self.__progress_notifier = progress_notifier
-        # noinspection PyArgumentList
         self.__llm_base = ChatOpenAI(
-            model = OPEN_AI_MODEL,
-            temperature = OPEN_AI_TEMPERATURE,
-            max_tokens = OPEN_AI_MAX_TOKENS,
+            model = GPT_4_1_MINI.id,
+            temperature = 0.5,
+            max_tokens = 600,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
             api_key = str(invoker.open_ai_key),

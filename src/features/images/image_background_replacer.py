@@ -12,6 +12,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from replicate import Client
 
+from features.ai_tools.external_ai_tool_library import CLAUDE_3_5_SONNET, BACKGROUND_REPLACEMENT
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
 from features.images.image_contents_restorer import ImageContentsRestorer
@@ -20,15 +21,9 @@ from util.config import config
 from util.functions import first_key_with_value
 from util.safe_printer_mixin import SafePrinterMixin
 
-ANTHROPIC_AI_MODEL = "claude-3-5-sonnet-20240620"
-ANTHROPIC_AI_TEMPERATURE = 0.8
-ANTHROPIC_MAX_TOKENS = 200
-
 DEFAULT_IMAGE_EXTENSION = "png"
 DEFAULT_IMAGE_MIME_TYPE = "image/png"
 IMAGE_DESCRIPTION_TASK = "Describe the image in as much detail as possible, including the style/art and quality"
-
-BACKGROUND_REPLACER_MODEL = "wolverinn/realistic-background:1fbd2b79f5cc40346dece1f1bba461c4239e012497b479ade7a493979b493ca4"
 BOOT_AND_RUN_TIMEOUT_S = 420
 
 
@@ -43,7 +38,7 @@ class ImageBackgroundReplacer(SafePrinterMixin):
     __change_request: str
     __how_many_variants: int
     __replicate: Client
-    __llm: BaseChatModel
+    __copywriter: BaseChatModel
     __vision: ComputerVisionAnalyzer
 
     def __init__(
@@ -72,10 +67,10 @@ class ImageBackgroundReplacer(SafePrinterMixin):
             timeout = Timeout(BOOT_AND_RUN_TIMEOUT_S),
         )
         # noinspection PyArgumentList
-        self.__llm = ChatAnthropic(
-            model_name = ANTHROPIC_AI_MODEL,
-            temperature = ANTHROPIC_AI_TEMPERATURE,
-            max_tokens = ANTHROPIC_MAX_TOKENS,
+        self.__copywriter = ChatAnthropic(
+            model_name = CLAUDE_3_5_SONNET.id,
+            temperature = 1.0,
+            max_tokens = 200,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
             api_key = str(anthropic_api_key),
@@ -98,7 +93,7 @@ class ImageBackgroundReplacer(SafePrinterMixin):
             system_message = prompt_library.generator_guided_diffusion_positive if positive \
                 else prompt_library.generator_guided_diffusion_negative
             task_message = f"[IMAGE DESCRIPTION]\n{image_description}\n\n[CHANGE REQUEST]\n{self.__change_request}"
-            response = self.__llm.invoke([SystemMessage(system_message), HumanMessage(task_message)])
+            response = self.__copywriter.invoke([SystemMessage(system_message), HumanMessage(task_message)])
             if not isinstance(response, AIMessage) or not isinstance(response.content, str):
                 raise AssertionError(f"Received a complex message from LLM: {response}")
             prompt = response.content
@@ -124,7 +119,7 @@ class ImageBackgroundReplacer(SafePrinterMixin):
                         "batch_count": self.__how_many_variants,
                     }
                     result = self.__replicate.run(
-                        BACKGROUND_REPLACER_MODEL,
+                        BACKGROUND_REPLACEMENT.id,
                         input = input_data,
                     )
             if not result or not result.get("images"):

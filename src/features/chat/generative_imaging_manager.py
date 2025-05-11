@@ -8,15 +8,12 @@ from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AI
 from db.crud.user import UserCRUD
 from db.model.user import UserDB
 from db.schema.user import User
+from features.ai_tools.external_ai_tool_library import CLAUDE_3_5_HAIKU
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.images.stable_diffusion_image_generator import StableDiffusionImageGenerator
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
-
-ANTHROPIC_AI_MODEL = "claude-3-5-sonnet-20240620"
-ANTHROPIC_AI_TEMPERATURE = 0.8
-ANTHROPIC_MAX_TOKENS = 200
 
 
 class GenerativeImagingManager(SafePrinterMixin):
@@ -25,11 +22,10 @@ class GenerativeImagingManager(SafePrinterMixin):
         failed = "Failed"
 
     __chat_id: str
-    __use_advanced_model: bool
     __bot_sdk: TelegramBotSDK
     __invoker_user: User
     __llm_input: list[BaseMessage]
-    __llm: BaseChatModel
+    __copywriter: BaseChatModel
     __user_dao: UserCRUD
 
     def __init__(
@@ -48,10 +44,10 @@ class GenerativeImagingManager(SafePrinterMixin):
         self.__llm_input.append(SystemMessage(prompt_library.generator_stable_diffusion))
         self.__llm_input.append(HumanMessage(raw_prompt))
         # noinspection PyArgumentList
-        self.__llm = ChatAnthropic(
-            model_name = ANTHROPIC_AI_MODEL,
-            temperature = ANTHROPIC_AI_TEMPERATURE,
-            max_tokens = ANTHROPIC_MAX_TOKENS,
+        self.__copywriter = ChatAnthropic(
+            model_name = CLAUDE_3_5_HAIKU.id,
+            temperature = 1.0,
+            max_tokens = 200,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
             api_key = str(config.anthropic_token),
@@ -66,8 +62,6 @@ class GenerativeImagingManager(SafePrinterMixin):
             self.sprint(message)
             raise ValueError(message)
         self.__invoker_user = User.model_validate(invoker_user_db)
-
-        self.__use_advanced_model = self.__invoker_user.group >= UserDB.Group.alpha
         if self.__invoker_user.group < UserDB.Group.beta:
             message = f"Invoker '{invoker_user_id_hex}' is not allowed to generate images"
             self.sprint(message)
@@ -79,7 +73,7 @@ class GenerativeImagingManager(SafePrinterMixin):
         # let's correct/prettify and translate the prompt first
         try:
             self.sprint("Starting prompt correction")
-            response = self.__llm.invoke(self.__llm_input)
+            response = self.__copywriter.invoke(self.__llm_input)
             if not isinstance(response, AIMessage) or not isinstance(response.content, str):
                 raise AssertionError(f"Received a complex message from LLM: {response}")
             prompt = response.content
@@ -91,11 +85,7 @@ class GenerativeImagingManager(SafePrinterMixin):
         # let's generate the image now using the corrected prompt
         try:
             self.sprint("Starting image generation")
-            generator = StableDiffusionImageGenerator(
-                prompt = prompt,
-                use_advanced_model = self.__use_advanced_model,
-                replicate_api_key = config.replicate_api_token,
-            )
+            generator = StableDiffusionImageGenerator(prompt, config.replicate_api_token)
             image_url = generator.execute()
             if not image_url:
                 self.sprint("Failed to generate image (no image found)")

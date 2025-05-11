@@ -10,18 +10,14 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from replicate import Client
 
+from features.ai_tools.external_ai_tool_library import CLAUDE_3_5_HAIKU, IMAGE_TO_STICKER
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from features.prompting import prompt_library
 from util.config import config
 from util.functions import first_key_with_value
 from util.safe_printer_mixin import SafePrinterMixin
 
-STICKERIZER_MODEL = "fofr/face-to-sticker:764d4827ea159608a07cdde8ddf1c6000019627515eb02b6b449695fd547e5ef"
 BOOT_AND_RUN_TIMEOUT_S = 180
-
-ANTHROPIC_AI_MODEL = "claude-3-5-sonnet-20240620"
-ANTHROPIC_AI_TEMPERATURE = 0.7
-ANTHROPIC_MAX_TOKENS = 500
 
 
 # Not tested as it's just a proxy
@@ -31,7 +27,7 @@ class Stickerizer(SafePrinterMixin):
     __face_name: str | None
     __operation_guidance: str | None
     __replicate: Client
-    __llm: BaseChatModel
+    __copywriter: BaseChatModel
 
     def __init__(
         self,
@@ -52,10 +48,10 @@ class Stickerizer(SafePrinterMixin):
             timeout = Timeout(BOOT_AND_RUN_TIMEOUT_S),
         )
         # noinspection PyArgumentList
-        self.__llm = ChatAnthropic(
-            model_name = ANTHROPIC_AI_MODEL,
-            temperature = ANTHROPIC_AI_TEMPERATURE,
-            max_tokens = ANTHROPIC_MAX_TOKENS,
+        self.__copywriter = ChatAnthropic(
+            model_name = CLAUDE_3_5_HAIKU.id,
+            temperature = 1.0,
+            max_tokens = 200,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
             api_key = anthropic_api_key,
@@ -80,7 +76,7 @@ class Stickerizer(SafePrinterMixin):
                 "upscale_steps": 10,
             }
 
-            result = self.__replicate.run(STICKERIZER_MODEL, input = input_data)
+            result = self.__replicate.run(IMAGE_TO_STICKER.id, input = input_data)
             if not result:
                 self.sprint("Failed to stickerize (no output URL)")
                 return None
@@ -95,7 +91,7 @@ class Stickerizer(SafePrinterMixin):
         self.sprint("Resolving emotion guidance")
         if not self.__operation_guidance:
             return None
-        answer = self.__llm.invoke(
+        answer = self.__copywriter.invoke(
             [
                 SystemMessage(prompt_library.emotion_resolver),
                 HumanMessage(self.__operation_guidance),
