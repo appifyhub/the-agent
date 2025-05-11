@@ -1,15 +1,13 @@
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
 
+from features.ai_tools.external_ai_tool_library import GPT_4_1_MINI
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
-
-OPEN_AI_MODEL = "gpt-4o"
-OPEN_AI_TEMPERATURE = 0.5
-OPEN_AI_MAX_TOKENS = 2048
 
 
 class ComputerVisionAnalyzer(SafePrinterMixin):
@@ -48,14 +46,13 @@ class ComputerVisionAnalyzer(SafePrinterMixin):
         self.__messages = []
         self.__messages.append(SystemMessage(prompt_library.observer_computer_vision))
         self.__messages.append(HumanMessage(content = content))
-        # noinspection PyArgumentList
         self.__vision_model = ChatOpenAI(
-            model = OPEN_AI_MODEL,
-            temperature = OPEN_AI_TEMPERATURE,
-            max_tokens = OPEN_AI_MAX_TOKENS,
+            model = GPT_4_1_MINI.id,
+            temperature = 0.5,
+            max_tokens = 2048,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
-            api_key = str(open_ai_api_key),
+            api_key = SecretStr(str(open_ai_api_key)),
         )
 
     def execute(self) -> str | None:

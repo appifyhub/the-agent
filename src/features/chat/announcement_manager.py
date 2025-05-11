@@ -4,6 +4,7 @@ from uuid import UUID
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from pydantic import SecretStr
 
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
@@ -12,16 +13,13 @@ from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.chat_message import ChatMessageSave
 from db.schema.user import User
+from features.ai_tools.external_ai_tool_library import CLAUDE_3_5_SONNET
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.prompting import prompt_library
 from util.config import config
 from util.functions import construct_bot_message_id
 from util.safe_printer_mixin import SafePrinterMixin
 from util.translations_cache import TranslationsCache, DEFAULT_LANGUAGE, DEFAULT_ISO_CODE
-
-ANTHROPIC_AI_MODEL = "claude-3-5-sonnet-20240620"
-ANTHROPIC_AI_TEMPERATURE = 0.7
-ANTHROPIC_MAX_TOKENS = 500
 
 
 class AnnouncementManager(SafePrinterMixin):
@@ -31,7 +29,7 @@ class AnnouncementManager(SafePrinterMixin):
     __user_dao: UserCRUD
     __chat_config_dao: ChatConfigCRUD
     __chat_message_dao: ChatMessageCRUD
-    __llm: BaseChatModel
+    __copywriter: BaseChatModel
     __invoker_user: User
     __target_chat: ChatConfig | None
 
@@ -54,13 +52,13 @@ class AnnouncementManager(SafePrinterMixin):
         self.__chat_config_dao = chat_config_dao
         self.__chat_message_dao = chat_message_dao
         # noinspection PyArgumentList
-        self.__llm = ChatAnthropic(
-            model_name = ANTHROPIC_AI_MODEL,
-            temperature = ANTHROPIC_AI_TEMPERATURE,
-            max_tokens = ANTHROPIC_MAX_TOKENS,
+        self.__copywriter = ChatAnthropic(
+            model_name = CLAUDE_3_5_SONNET.id,
+            temperature = 0.5,
+            max_tokens = 500,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
-            api_key = str(config.anthropic_token),
+            api_key = SecretStr(str(config.anthropic_token)),
         )
         self.__validate(invoker_user_id_hex, target_telegram_username)
 
@@ -101,7 +99,7 @@ class AnnouncementManager(SafePrinterMixin):
             target_chats = [self.__target_chat]
         else:
             self.sprint("Target chats: all")
-            target_chats_db = self.__chat_config_dao.get_all(limit = 1024)
+            target_chats_db = self.__chat_config_dao.get_all(limit = 2048)
             target_chats = [ChatConfig.model_validate(chat) for chat in target_chats_db]
         summaries_created: int = 0
         chats_notified: int = 0
@@ -146,7 +144,7 @@ class AnnouncementManager(SafePrinterMixin):
             SystemMessage(prompt),
             HumanMessage(self.__raw_message),
         ]
-        response = self.__llm.invoke(messages)
+        response = self.__copywriter.invoke(messages)
         if not isinstance(response, AIMessage):
             raise AssertionError(f"Received a non-AI message from LLM: {response}")
         return response

@@ -1,21 +1,20 @@
+from langchain_anthropic import ChatAnthropic
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_core.vectorstores import InMemoryVectorStore
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_openai import OpenAIEmbeddings
 from pydantic import SecretStr
 
+from features.ai_tools.external_ai_tool_library import TEXT_EMBEDDING_3_SMALL, CLAUDE_3_7_SONNET
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
-COPYWRITER_OPEN_AI_MODEL = "gpt-4o-mini"
-COPYWRITER_OPEN_AI_TEMPERATURE = 0.3
-COPYWRITER_OPEN_AI_MAX_TOKENS = 4096
-SEARCH_RESULT_PAGES = 2
 DEFAULT_QUESTION = "What is this document about?"
+SEARCH_RESULT_PAGES = 2
 
 
 # Not tested as it's just a proxy
@@ -24,7 +23,6 @@ class DocumentSearch(SafePrinterMixin):
     __embeddings: Embeddings
     __loaded_pages: list[Document]
     __additional_context: str
-    __copywriter_messages: list[BaseMessage]
     __copywriter: BaseChatModel
 
     def __init__(
@@ -38,19 +36,20 @@ class DocumentSearch(SafePrinterMixin):
         self.__job_id = job_id
         self.__loaded_pages = PyMuPDFLoader(document_url).load()
         self.sprint(f"Loaded document pages: {len(self.__loaded_pages)}")
-        self.__embeddings = OpenAIEmbeddings(openai_api_key = SecretStr(open_ai_api_key))
-        self.__additional_context = additional_context or DEFAULT_QUESTION
-        self.__copywriter_messages = []
-        copywriter_prompt = prompt_library.document_search_copywriter(additional_context)
-        self.__copywriter_messages.append(SystemMessage(copywriter_prompt))
         # noinspection PyArgumentList
-        self.__copywriter = ChatOpenAI(
-            model = COPYWRITER_OPEN_AI_MODEL,
-            temperature = COPYWRITER_OPEN_AI_TEMPERATURE,
-            max_tokens = COPYWRITER_OPEN_AI_MAX_TOKENS,
-            timeout = float(config.web_timeout_s) * 2,  # increase timeout for document copywriting
+        self.__embeddings = OpenAIEmbeddings(
+            model = TEXT_EMBEDDING_3_SMALL.id,
+            openai_api_key = SecretStr(open_ai_api_key),
+        )
+        self.__additional_context = additional_context or DEFAULT_QUESTION
+        # noinspection PyArgumentList
+        self.__copywriter = ChatAnthropic(
+            model_name = CLAUDE_3_7_SONNET.id,
+            temperature = 0.3,
+            max_tokens = 4096,
+            timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
-            api_key = str(open_ai_api_key),
+            api_key = SecretStr(str(config.anthropic_token)),
         )
 
     def execute(self) -> str | None:
@@ -73,8 +72,9 @@ class DocumentSearch(SafePrinterMixin):
 
             # then run the copywriter on the search results
             self.sprint("Invoking copywriter on search results")
-            self.__copywriter_messages.append(HumanMessage(content = search_results))
-            answer = self.__copywriter.invoke(self.__copywriter_messages)
+            copywriter_prompt = prompt_library.document_search_copywriter(self.__additional_context)
+            copywriter_messages = [SystemMessage(copywriter_prompt), HumanMessage(search_results)]
+            answer = self.__copywriter.invoke(copywriter_messages)
             if not isinstance(answer, AIMessage):
                 raise AssertionError(f"Received a non-AI message from the model: {answer}")
             if not answer.content or not isinstance(answer.content, str):

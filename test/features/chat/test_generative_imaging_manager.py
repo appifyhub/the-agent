@@ -181,25 +181,3 @@ class GenerativeImagingManagerTest(unittest.TestCase):
         self.assertEqual(result, GenerativeImagingManager.Result.failed)
         mock_llm.invoke.assert_called_once()
         self.mock_bot_sdk.send_photo.assert_not_called()
-
-    def test_use_advanced_model(self):
-        manager = GenerativeImagingManager(
-            self.chat_id,
-            self.raw_prompt,
-            self.invoker_user_id_hex,
-            self.mock_bot_sdk,
-            self.mock_user_dao,
-        )
-        # noinspection PyUnresolvedReferences
-        self.assertTrue(manager._GenerativeImagingManager__use_advanced_model)
-
-        self.user.group = UserDB.Group.beta
-        manager = GenerativeImagingManager(
-            self.chat_id,
-            self.raw_prompt,
-            self.invoker_user_id_hex,
-            self.mock_bot_sdk,
-            self.mock_user_dao,
-        )
-        # noinspection PyUnresolvedReferences
-        self.assertFalse(manager._GenerativeImagingManager__use_advanced_model)

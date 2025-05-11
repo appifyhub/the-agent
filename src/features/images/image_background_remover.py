@@ -7,12 +7,12 @@ import requests
 from httpx import Timeout
 from replicate import Client
 
+from features.ai_tools.external_ai_tool_library import BACKGROUND_REMOVAL
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from util.config import config
 from util.functions import first_key_with_value
 from util.safe_printer_mixin import SafePrinterMixin
 
-BACKGROUND_REMOVER_MODEL = "cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003"
 BOOT_AND_RUN_TIMEOUT_S = 120
 
 
@@ -46,7 +46,7 @@ class ImageBackgroundRemover(SafePrinterMixin):
                 temp_file.flush()
                 with open(temp_file.name, "rb") as file:
                     input_data = {"image": file}
-                    result = self.__replicate.run(BACKGROUND_REMOVER_MODEL, input = input_data)
+                    result = self.__replicate.run(BACKGROUND_REMOVAL.id, input = input_data)
             if not result:
                 self.sprint("Failed to remove background (no output URL)")
                 return None
