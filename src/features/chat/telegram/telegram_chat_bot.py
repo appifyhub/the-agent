@@ -5,6 +5,7 @@ from langchain_core.language_models import BaseChatModel, LanguageModelInput
 from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage, AIMessage
 from langchain_core.runnables import Runnable
 from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
 
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
@@ -71,7 +72,7 @@ class TelegramChatBot(SafePrinterMixin):
             max_tokens = 600,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
-            api_key = str(invoker.open_ai_key),
+            api_key = SecretStr(str(invoker.open_ai_key)),
         )
         self.__llm_tools = self.__tools_library.bind_tools(self.__llm_base)
 

@@ -1,6 +1,7 @@
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
 
 from features.ai_tools.external_ai_tool_library import GPT_4_1_MINI
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
@@ -51,7 +52,7 @@ class ComputerVisionAnalyzer(SafePrinterMixin):
             max_tokens = 2048,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
-            api_key = str(open_ai_api_key),
+            api_key = SecretStr(str(open_ai_api_key)),
         )
 
     def execute(self) -> str | None:

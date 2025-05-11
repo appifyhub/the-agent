@@ -10,6 +10,7 @@ from httpx import Timeout
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from pydantic import SecretStr
 from replicate import Client
 
 from features.ai_tools.external_ai_tool_library import CLAUDE_3_5_SONNET, BACKGROUND_REPLACEMENT
@@ -73,7 +74,7 @@ class ImageBackgroundReplacer(SafePrinterMixin):
             max_tokens = 200,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
-            api_key = str(anthropic_api_key),
+            api_key = SecretStr(str(anthropic_api_key)),
         )
         self.__vision = ComputerVisionAnalyzer(
             job_id = self.__job_id,

@@ -49,7 +49,7 @@ class DocumentSearch(SafePrinterMixin):
             max_tokens = 4096,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
-            api_key = str(config.anthropic_token),
+            api_key = SecretStr(str(config.anthropic_token)),
         )
 
     def execute(self) -> str | None:
