@@ -1,20 +1,18 @@
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, AIMessage, HumanMessage
+from pydantic import SecretStr
 
+from features.ai_tools.external_ai_tool_library import CLAUDE_3_5_SONNET
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
-
-ANTHROPIC_AI_MODEL = "claude-3-5-sonnet-20240620"
-ANTHROPIC_AI_TEMPERATURE = 0.7
-ANTHROPIC_MAX_TOKENS = 500
 
 
 # Not tested as it's just a proxy
 class InformationAnnouncer(SafePrinterMixin):
     __llm_input: list[BaseMessage]
-    __llm: BaseChatModel
+    __copywriter: BaseChatModel
 
     def __init__(self, raw_information: str, language_name: str | None = None, language_iso_code: str | None = None):
         super().__init__(config.verbose)
@@ -27,19 +25,19 @@ class InformationAnnouncer(SafePrinterMixin):
         self.__llm_input.append(SystemMessage(prompt))
         self.__llm_input.append(HumanMessage(raw_information))
         # noinspection PyArgumentList
-        self.__llm = ChatAnthropic(
-            model_name = ANTHROPIC_AI_MODEL,
-            temperature = ANTHROPIC_AI_TEMPERATURE,
-            max_tokens = ANTHROPIC_MAX_TOKENS,
+        self.__copywriter = ChatAnthropic(
+            model_name = CLAUDE_3_5_SONNET.id,
+            temperature = 0.5,
+            max_tokens = 500,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
-            api_key = str(config.anthropic_token),
+            api_key = SecretStr(str(config.anthropic_token)),
         )
 
     def execute(self) -> AIMessage:
         self.sprint(f"Starting information announcer for {self.__llm_input[-1].content.replace('\n', ' \\n ')}")
         try:
-            response = self.__llm.invoke(self.__llm_input)
+            response = self.__copywriter.invoke(self.__llm_input)
             if not isinstance(response, AIMessage):
                 raise AssertionError(f"Received a non-AI message from LLM: {response}")
             self.sprint(f"Finished announcement creation, summary size is {len(response.content)} characters")

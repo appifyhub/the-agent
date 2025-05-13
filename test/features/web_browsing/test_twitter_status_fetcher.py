@@ -8,11 +8,8 @@ from requests_mock.mocker import Mocker
 
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.schema.tools_cache import ToolsCache
-from features.web_browsing.twitter_status_fetcher import (
-    TwitterStatusFetcher,
-    CACHE_TTL,
-    TWITTER_API_URL, TWITTER_API_HOST,
-)
+from features.ai_tools.external_ai_tool_library import TWITTER_API
+from features.web_browsing.twitter_status_fetcher import TwitterStatusFetcher, CACHE_TTL
 from util.config import config
 
 
@@ -20,6 +17,7 @@ class TwitterStatusFetcherTest(unittest.TestCase):
     cached_content: str
     cache_entry: ToolsCache
     mock_cache_crud: ToolsCacheCRUD
+    api_url: str
 
     def setUp(self):
         config.web_timeout_s = 0
@@ -33,6 +31,7 @@ class TwitterStatusFetcherTest(unittest.TestCase):
         )
         self.mock_cache_crud = MagicMock()
         self.mock_cache_crud.create_key.return_value = "test_cache_key"
+        self.api_url = f"https://{TWITTER_API.id}/base/apitools/tweetSimple"
 
     # noinspection PyUnusedLocal
     @patch("features.web_browsing.twitter_status_fetcher.sleep", return_value = None)
@@ -52,7 +51,7 @@ class TwitterStatusFetcherTest(unittest.TestCase):
         self.mock_cache_crud.get.return_value = None
         # Mock the API response
         m.get(
-            TWITTER_API_URL,
+            self.api_url,
             json = {
                 "data": {
                     "data": {
@@ -94,7 +93,7 @@ class TwitterStatusFetcherTest(unittest.TestCase):
             "apiKey": config.rapid_api_twitter_token,
             "cursor": "-1",
         }
-        full_url = requests.Request("GET", TWITTER_API_URL, params = params).prepare().url
+        full_url = requests.Request("GET", self.api_url, params = params).prepare().url
         m.get(full_url, status_code = 500)
         fetcher = TwitterStatusFetcher("123456789", self.mock_cache_crud)
         with self.assertRaises(requests.exceptions.HTTPError):
@@ -107,7 +106,7 @@ class TwitterStatusFetcherTest(unittest.TestCase):
         self.mock_cache_crud.get.return_value = None
 
         m.get(
-            TWITTER_API_URL,
+            self.api_url,
             json = {
                 "data": {
                     "data": {
@@ -125,14 +124,14 @@ class TwitterStatusFetcherTest(unittest.TestCase):
         last_request = m.last_request
 
         # Check URL
-        self.assertTrue(last_request.url.startswith(TWITTER_API_URL))
+        self.assertTrue(last_request.url.startswith(self.api_url))
         self.assertIn("resFormat=json", last_request.url)
         self.assertIn("id=123456789", last_request.url)
         self.assertIn(f"apiKey={config.rapid_api_twitter_token}", last_request.url)
         self.assertIn("cursor=-1", last_request.url)
 
         # Check headers
-        self.assertEqual(last_request.headers["X-RapidAPI-Host"], TWITTER_API_HOST)
+        self.assertEqual(last_request.headers["X-RapidAPI-Host"], TWITTER_API.id)
         self.assertEqual(last_request.headers["X-RapidAPI-Key"], config.rapid_api_token)
 
     # noinspection PyUnusedLocal

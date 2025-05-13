@@ -1,0 +1,11 @@
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "10:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    rebase-strategy: "auto"

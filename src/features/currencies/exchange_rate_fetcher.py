@@ -10,15 +10,13 @@ from db.crud.user import UserCRUD
 from db.model.user import UserDB
 from db.schema.tools_cache import ToolsCacheSave, ToolsCache
 from db.schema.user import User
+from features.ai_tools.external_ai_tool_library import FIAT_CURRENCY_EXCHANGE, CRYPTO_CURRENCY_EXCHANGE
 from features.currencies.supported_currencies import SUPPORTED_FIAT, SUPPORTED_CRYPTO
 from features.web_browsing.web_fetcher import WebFetcher
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
 DEFAULT_FIAT = "USD"
-COINMARKETCAP_API_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
-CURRENCY_API_HOST = "currency-converter5.p.rapidapi.com"
-CURRENCY_API_URL = f"https://{CURRENCY_API_HOST}/currency/convert"
 CACHE_PREFIX = "exchange-rate-fetcher"
 CACHE_TTL = timedelta(minutes = 5)
 RATE_LIMIT_DELAY_S = 1
@@ -152,13 +150,14 @@ class ExchangeRateFetcher(SafePrinterMixin):
             return cached_rate
 
         rate: float
+        api_url = f"https://pro-api.coinmarketcap.com/{CRYPTO_CURRENCY_EXCHANGE.id.replace(".", "/")}"
         headers = {"Accept": "application/json", "X-CMC_PRO_API_KEY": config.coinmarketcap_api_token}
         if base_currency_code != DEFAULT_FIAT and desired_currency_code != DEFAULT_FIAT:
             # due to API limitations, we must traverse both cryptos through USD
             params_base = {"symbol": base_currency_code, "convert": DEFAULT_FIAT}
             sleep(RATE_LIMIT_DELAY_S)
             fetcher_base = WebFetcher(
-                COINMARKETCAP_API_URL,
+                api_url,
                 self.__cache_dao,
                 headers = headers,
                 params = params_base,
@@ -169,7 +168,7 @@ class ExchangeRateFetcher(SafePrinterMixin):
             params_desired = {"symbol": desired_currency_code, "convert": DEFAULT_FIAT}
             sleep(RATE_LIMIT_DELAY_S)
             fetcher_desired = WebFetcher(
-                COINMARKETCAP_API_URL,
+                api_url,
                 self.__cache_dao,
                 headers = headers,
                 params = params_desired,
@@ -186,7 +185,7 @@ class ExchangeRateFetcher(SafePrinterMixin):
             params = {"symbol": symbol, "convert": DEFAULT_FIAT}
             sleep(RATE_LIMIT_DELAY_S)
             fetcher = WebFetcher(
-                COINMARKETCAP_API_URL,
+                api_url,
                 self.__cache_dao,
                 headers = headers,
                 params = params,
@@ -216,10 +215,11 @@ class ExchangeRateFetcher(SafePrinterMixin):
             return cached_rate
 
         sleep(RATE_LIMIT_DELAY_S)
+        api_url = f"https://{FIAT_CURRENCY_EXCHANGE.id}/currency/convert"
         params = {"format": "json", "from": base_currency_code, "to": desired_currency_code, "amount": "1.0"}
-        headers = {"X-RapidAPI-Key": config.rapid_api_token, "X-RapidAPI-Host": CURRENCY_API_HOST}
+        headers = {"X-RapidAPI-Key": config.rapid_api_token, "X-RapidAPI-Host": FIAT_CURRENCY_EXCHANGE.id}
         fetcher = WebFetcher(
-            CURRENCY_API_URL,
+            api_url,
             self.__cache_dao,
             headers = headers,
             params = params,

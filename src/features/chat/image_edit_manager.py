@@ -207,6 +207,7 @@ class ImageEditManager(SafePrinterMixin):
 
         if self.__operation == ImageEditManager.Operation.remove_background:
             result, urls = self.__remove_background()
+            urls = self.__clean_urls(urls)
             for image_url in urls:
                 self.sprint(f"Sending edited image to chat '{self.__chat_id}'")
                 self.__bot_sdk.send_document(self.__chat_id, image_url, thumbnail = image_url)
@@ -215,6 +216,7 @@ class ImageEditManager(SafePrinterMixin):
 
         elif self.__operation == ImageEditManager.Operation.restore_image:
             result, urls = self.__restore_image()
+            urls = self.__clean_urls(urls)
             for image_url in urls:
                 self.sprint(f"Sending restored image to chat '{self.__chat_id}': {image_url}")
                 self.__bot_sdk.send_document(self.__chat_id, image_url, thumbnail = image_url)
@@ -223,6 +225,7 @@ class ImageEditManager(SafePrinterMixin):
 
         elif self.__operation == ImageEditManager.Operation.replace_background:
             result, urls = self.__replace_background()
+            urls = self.__clean_urls(urls)
             for image_url in urls:
                 self.sprint(f"Sending images with replaced backgrounds to chat '{self.__chat_id}'")
                 self.__bot_sdk.send_document(self.__chat_id, image_url, thumbnail = image_url)
@@ -231,6 +234,7 @@ class ImageEditManager(SafePrinterMixin):
 
         elif self.__operation == ImageEditManager.Operation.stickerize:
             result, urls = self.__stickerize()
+            urls = self.__clean_urls(urls)
             for image_url in urls:
                 self.sprint(f"Sending stickerized image to chat '{self.__chat_id}'")
                 self.__bot_sdk.send_document(self.__chat_id, image_url, thumbnail = image_url)
@@ -239,3 +243,18 @@ class ImageEditManager(SafePrinterMixin):
 
         else:
             raise ValueError(f"Unknown operation '{self.__operation.value}'")
+
+    @staticmethod
+    def __clean_urls(urls: list) -> list:
+        result: list = []
+        for url in urls:
+            if isinstance(url, list):
+                if url and isinstance(url[0], str):
+                    result.append(url[0])
+                continue
+            elif isinstance(url, str):
+                result.append(url)
+            elif url is not None:
+                result.append(str(url))
+            continue
+        return result

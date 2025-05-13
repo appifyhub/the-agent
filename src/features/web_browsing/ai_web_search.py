@@ -7,13 +7,10 @@ from langchain_core.messages import BaseMessage, SystemMessage, AIMessage, Human
 from db.crud.user import UserCRUD
 from db.model.user import UserDB
 from db.schema.user import User
+from features.ai_tools.external_ai_tool_library import SONAR
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
-
-PERPLEXITY_AI_MODEL = "llama-3.1-sonar-large-128k-online"
-PERPLEXITY_AI_TEMPERATURE = 0.7
-PERPLEXITY_AI_TOKENS = 500
 
 
 class AIWebSearch(SafePrinterMixin):
@@ -28,10 +25,9 @@ class AIWebSearch(SafePrinterMixin):
         self.__llm_input.append(SystemMessage(prompt_library.sentient_web_explorer))
         self.__llm_input.append(HumanMessage(search_query))
         self.__llm = ChatPerplexity(
-            model = PERPLEXITY_AI_MODEL,
-            temperature = PERPLEXITY_AI_TEMPERATURE,
-            max_tokens = PERPLEXITY_AI_TOKENS,
-            timeout = float(config.web_timeout_s),
+            model = SONAR.id,
+            max_tokens = 1024,
+            timeout = float(config.web_timeout_s) * 3,  # search takes longer than chat
             max_retries = config.web_retries,
             api_key = str(config.perplexity_api_token),
         )

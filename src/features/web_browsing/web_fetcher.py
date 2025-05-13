@@ -89,6 +89,7 @@ class WebFetcher(SafePrinterMixin):
                     response_text = tweet_fetcher.execute()
                     self.html = f"<html><body>\n<p>\n{response_text}\n</p>\n</body></html>"
                 else:
+                    # run a standard request for a web page
                     response = requests.get(
                         self.url,
                         headers = self.__headers,
@@ -96,7 +97,18 @@ class WebFetcher(SafePrinterMixin):
                         timeout = config.web_timeout_s,
                     )
                     response.raise_for_status()
-                    self.html = response.text
+                    # we need to check for binary content before caching
+                    content_bytes = response.content
+                    try:
+                        content_text = content_bytes.decode(response.encoding or "utf-8")
+                    except Exception:
+                        self.sprint(f"Failed to decode content from {self.url}")
+                        content_text = None
+                    if b'\x00' in content_bytes or content_text is None:
+                        self.sprint(f"Not caching binary or invalid content from {self.url}")
+                        self.html = None
+                        break
+                    self.html = content_text
                 self.__cache_dao.save(
                     ToolsCacheSave(
                         key = self.__cache_key,

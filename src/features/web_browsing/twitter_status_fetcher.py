@@ -6,13 +6,12 @@ import requests
 
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.schema.tools_cache import ToolsCacheSave, ToolsCache
+from features.ai_tools.external_ai_tool_library import TWITTER_API
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
-TWITTER_API_HOST = "twitter-api-v1-1-enterprise.p.rapidapi.com"
-TWITTER_API_URL = f"https://{TWITTER_API_HOST}/base/apitools/tweetSimple"
 CACHE_PREFIX = "twitter-status-fetcher"
 CACHE_TTL = timedelta(weeks = 52)
 RATE_LIMIT_DELAY_S = 2
@@ -37,9 +36,10 @@ class TwitterStatusFetcher(SafePrinterMixin):
             return cached_content
 
         sleep(RATE_LIMIT_DELAY_S)
+        api_url = f"https://{TWITTER_API.id}/base/apitools/tweetSimple"
         params = {"resFormat": "json", "id": self.tweet_id, "apiKey": config.rapid_api_twitter_token, "cursor": "-1"}
-        headers = {"X-RapidAPI-Key": config.rapid_api_token, "X-RapidAPI-Host": TWITTER_API_HOST}
-        response = requests.get(TWITTER_API_URL, headers = headers, params = params, timeout = config.web_timeout_s)
+        headers = {"X-RapidAPI-Key": config.rapid_api_token, "X-RapidAPI-Host": TWITTER_API.id}
+        response = requests.get(api_url, headers = headers, params = params, timeout = config.web_timeout_s)
         response.raise_for_status()
         response = response.json() or {}
 
