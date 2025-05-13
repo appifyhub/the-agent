@@ -6,17 +6,16 @@ import requests
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from pydantic import SecretStr
 
 from db.crud.user import UserCRUD
 from db.schema.user import User
+from features.ai_tools.external_ai_tool_library import CLAUDE_3_7_SONNET
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
 GITHUB_BASE_URL = "https://api.github.com"
-ANTHROPIC_AI_MODEL = "claude-3-5-sonnet-20240620"
-ANTHROPIC_AI_TEMPERATURE = 0.5
-ANTHROPIC_MAX_TOKENS = 600
 
 
 class UserSupportManager(SafePrinterMixin):
@@ -33,7 +32,7 @@ class UserSupportManager(SafePrinterMixin):
     request_type: RequestType
     invoker: User
     user_dao: UserCRUD
-    __llm: BaseChatModel
+    __copywriter: BaseChatModel
 
     def __init__(
         self,
@@ -55,13 +54,13 @@ class UserSupportManager(SafePrinterMixin):
         self.user_dao = user_dao
         self.__validate_invoker()
         # noinspection PyArgumentList
-        self.__llm = ChatAnthropic(
-            model_name = ANTHROPIC_AI_MODEL,
-            temperature = ANTHROPIC_AI_TEMPERATURE,
-            max_tokens = ANTHROPIC_MAX_TOKENS,
+        self.__copywriter = ChatAnthropic(
+            model_name = CLAUDE_3_7_SONNET.id,
+            temperature = 0.5,
+            max_tokens = 700,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
-            api_key = str(config.anthropic_token),
+            api_key = SecretStr(str(config.anthropic_token)),
         )
 
     def __resolve_request_type(self, request_type_str: str | None) -> RequestType:
@@ -103,7 +102,7 @@ class UserSupportManager(SafePrinterMixin):
             user_info_parts.append(f"User ID: T-{self.invoker_user_id_hex}")
         user_info = "\n".join(user_info_parts)
         message = f"Reporter:\n{user_info}\n\nRaw reporter input:\n```\n{self.user_input}\n```\n"
-        response = self.__llm.invoke([SystemMessage(prompt), HumanMessage(message)])
+        response = self.__copywriter.invoke([SystemMessage(prompt), HumanMessage(message)])
         if not isinstance(response, AIMessage):
             raise AssertionError(f"Received a non-AI message from LLM: {response}")
         return str(response.content)
@@ -112,7 +111,7 @@ class UserSupportManager(SafePrinterMixin):
         self.sprint("Generating issue title")
         prompt = prompt_library.support_request_title_generator
         message = f"Issue description:\n```\n{description}\n```\n\nIssue type: '{self.request_type.name}'"
-        response = self.__llm.invoke([SystemMessage(prompt), HumanMessage(message)])
+        response = self.__copywriter.invoke([SystemMessage(prompt), HumanMessage(message)])
         if not isinstance(response, AIMessage):
             raise AssertionError(f"Received a non-AI message from LLM: {response}")
         return str(response.content)

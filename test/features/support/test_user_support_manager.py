@@ -78,7 +78,7 @@ class UserSupportManagerTest(unittest.TestCase):
         mock_load_template.return_value = "test template"
         mock_prompt_generator.return_value = "test prompt"
 
-        with patch.object(self.manager, "_UserSupportManager__llm") as mock_llm:
+        with patch.object(self.manager, "_UserSupportManager__copywriter") as mock_llm:
             mock_llm.invoke.return_value = AIMessage("Generated description")
             # noinspection PyUnresolvedReferences
             description = self.manager._UserSupportManager__generate_issue_description()
@@ -92,7 +92,7 @@ class UserSupportManagerTest(unittest.TestCase):
     def test_generate_issue_title(self, mock_prompt_library):
         mock_prompt_library.support_request_title_generator = "test prompt"
 
-        with patch.object(self.manager, "_UserSupportManager__llm") as mock_llm:
+        with patch.object(self.manager, "_UserSupportManager__copywriter") as mock_llm:
             mock_llm.invoke.return_value = AIMessage("Generated title")
             # noinspection PyUnresolvedReferences
             title = self.manager._UserSupportManager__generate_issue_title("Test description")

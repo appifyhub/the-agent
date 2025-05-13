@@ -3,12 +3,14 @@ import os
 from urllib.parse import urlparse
 
 import requests
+from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import SystemMessage, BaseMessage, HumanMessage, AIMessage
-from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from openai import OpenAI
+from pydantic import SecretStr
 from pydub import AudioSegment
 
+from features.ai_tools.external_ai_tool_library import CLAUDE_3_5_HAIKU, WHISPER_1
 from features.chat.supported_files import (
     SUPPORTED_AUDIO_FORMATS,
     EXTENSION_FORMAT_MAP,
@@ -18,19 +20,15 @@ from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
-TRANSCRIBER_AUDIO_MODEL_NAME = "whisper-1"
-COPYWRITER_OPEN_AI_MODEL = "gpt-4o-mini"
-COPYWRITER_OPEN_AI_TEMPERATURE = 0.4
-COPYWRITER_OPEN_AI_MAX_TOKENS = 4096
-
 
 class AudioTranscriber(SafePrinterMixin):
     __job_id: str
     __audio_content: bytes
     __extension: str
-    __copywriter_messages: list[BaseMessage]
     __copywriter: BaseChatModel
     __transcriber: OpenAI
+    __language_name: str | None
+    __language_iso_code: str | None
 
     def __init__(
         self,
@@ -47,21 +45,16 @@ class AudioTranscriber(SafePrinterMixin):
         self.__resolve_extension(audio_url, def_extension)
         self.__validate_content(audio_url, audio_content)
         self.__transcriber = OpenAI(api_key = open_ai_api_key)
-        copywriter_prompt = prompt_library.translator_on_response(
-            base_prompt = prompt_library.transcription_copywriter,
-            language_name = language_name,
-            language_iso_code = language_iso_code,
-        )
-        self.__copywriter_messages = []
-        self.__copywriter_messages.append(SystemMessage(copywriter_prompt))
+        self.__language_name = language_name
+        self.__language_iso_code = language_iso_code
         # noinspection PyArgumentList
-        self.__copywriter = ChatOpenAI(
-            model = COPYWRITER_OPEN_AI_MODEL,
-            temperature = COPYWRITER_OPEN_AI_TEMPERATURE,
-            max_tokens = COPYWRITER_OPEN_AI_MAX_TOKENS,
-            timeout = float(config.web_timeout_s) * 2,  # increase timeout for transcription copywriting
+        self.__copywriter = ChatAnthropic(
+            model_name = CLAUDE_3_5_HAIKU.id,
+            temperature = 0.5,
+            max_tokens = 2048,
+            timeout = float(config.web_timeout_s) * 2,  # transcribing takes longer
             max_retries = config.web_retries,
-            api_key = str(open_ai_api_key),
+            api_key = SecretStr(str(config.anthropic_token)),
         )
 
     def __validate_content(self, audio_url: str, audio_content: bytes | None):
@@ -103,15 +96,20 @@ class AudioTranscriber(SafePrinterMixin):
             buffer = io.BytesIO(self.__audio_content)
             buffer.name = f"audio.{self.__extension}"
             transcript = self.__transcriber.audio.transcriptions.create(
-                model = TRANSCRIBER_AUDIO_MODEL_NAME,
+                model = WHISPER_1.id,
                 file = buffer,
                 response_format = "text",
             )
             raw_transcription = str(transcript)
 
             # then fix the transcription using the copywriter
-            self.__copywriter_messages.append(HumanMessage(raw_transcription))
-            answer = self.__copywriter.invoke(self.__copywriter_messages)
+            copywriter_prompt = prompt_library.translator_on_response(
+                base_prompt = prompt_library.transcription_copywriter,
+                language_name = self.__language_name,
+                language_iso_code = self.__language_iso_code,
+            )
+            copywriter_messages = [SystemMessage(copywriter_prompt), HumanMessage(raw_transcription)]
+            answer = self.__copywriter.invoke(copywriter_messages)
             if not isinstance(answer, AIMessage):
                 raise AssertionError(f"Received a non-AI message from the model: {answer}")
             if not answer.content or not isinstance(answer.content, str):

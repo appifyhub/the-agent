@@ -45,9 +45,9 @@ __chat_telegram_format: PromptBuilder = (
         __join(
             "You are replying to an informal Telegram chat.",
             "Structure your replies accordingly and use Telegram's markdown flavor for formatting.",
-            "Header formatting using `#`, `##`, `###` is also not supported, so you may use bold and italic only",
+            "Note that while doing so, no headers `#` or dividers `---` work in the Telegram context.",
             "Unless a language preference is specified, adapt to the dominant language of the chat.",
-            "Translate messages when necessary.",
+            "Translate messages both ways when necessary.",
             "Mention your name and website when appropriate, but don't advertise.",
             "In case of an error, communicate the error reason in a human-friendly way.",
         ),
@@ -71,6 +71,7 @@ __telegram_notify_reminder: PromptBuilder = (
         __join(
             "Formatting is important! Use emojis and plenty of spaces/newlines when appropriate.",
             "Use Telegram's markdown flavor to make the message look nice.",
+            "Note that while doing so, no headers `#` or dividers `---` work in the Telegram context.",
             "In case of an error, communicate the error reason in a human-friendly way.",
         ),
     )
@@ -144,7 +145,6 @@ announcer_release_telegram: str = (
             "You should not explain or discuss anything.",
             "Simply take the raw announcement content and create the announcement message from it.",
             "The main goal for you is to make your chat partners aware of your new release.",
-            "Your human partners will be able to use the new features and improvements in about 10 minutes.",
         )
     )
     .add_section(
@@ -157,6 +157,8 @@ announcer_release_telegram: str = (
             "You must also come up with a good short description for this release.",
             "For example, \"Here's what changed – ...\". (be creative here)",
             "You should put the title and the short description at the top of your summary.",
+            "You are encouraged to use Telegram's markdown flavor to format the message.",
+            "Note that while doing so, no headers `#` or dividers `---` work in the Telegram context.",
             "You should end the announcement with a catchy AI-related phrase or comment.",
             "Feel free to inject a related quote from a sci-fi movie or a book",
             "(whatever seems most appropriate to show that AI is becoming more sentient by the day).",
@@ -280,6 +282,7 @@ sentient_web_explorer: str = (
             "If a technical term is unavoidable, briefly explain it in simple terms.",
             "You may include web links to sources in your response.",
             "If adding additional context, use Telegram's markdown flavor to format web links and message contents.",
+            "Note that while doing so, no headers `#` or dividers `---` work in the Telegram context.",
         )
     )
     .append(__telegram_notify_reminder)
