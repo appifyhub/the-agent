@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from typing import Literal, Any
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import RedirectResponse
 
@@ -69,15 +69,17 @@ def health() -> dict: return {"status": "ok", "version": config.version}
 
 
 @app.post("/telegram/chat-update")
-def telegram_chat_update(
+async def telegram_chat_update(
     update: Update,
+    offloader: BackgroundTasks,
     db = Depends(get_session),
     _ = Depends(verify_telegram_auth_key),
-) -> bool:
+) -> dict:
     user_dao = UserCRUD(db)
     invite_dao = InviteCRUD(db)
     telegram_bot_sdk = TelegramBotSDK(db)
-    return respond_to_update(
+    offloader.add_task(
+        respond_to_update,
         user_dao = user_dao,
         invite_manager = InviteManager(user_dao, invite_dao),
         chat_message_dao = ChatMessageCRUD(db),
@@ -87,6 +89,7 @@ def telegram_chat_update(
         telegram_bot_sdk = telegram_bot_sdk,
         update = update,
     )
+    return {"status": "ok"}
 
 
 @app.post("/notify/price-alerts")
