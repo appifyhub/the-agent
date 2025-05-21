@@ -27,7 +27,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.web_retries, 3)
         self.assertEqual(config.web_retry_delay_s, 1)
         self.assertEqual(config.web_timeout_s, 10)
-        self.assertEqual(config.max_invites_per_user, 2)
+        self.assertEqual(config.max_sponsorships_per_user, 2)
         self.assertEqual(config.max_users, 100)
         self.assertEqual(config.website_url, "https://agent.appifyhub.com")
         self.assertTrue(config.api_key)  # Check if API key is generated
@@ -62,7 +62,7 @@ class ConfigTest(unittest.TestCase):
         os.environ["WEB_RETRIES"] = "5"
         os.environ["WEB_RETRY_DELAY_S"] = "2"
         os.environ["WEB_TIMEOUT_S"] = "20"
-        os.environ["MAX_INVITES_PER_USER"] = "5"
+        os.environ["MAX_SPONSORSHIPS_PER_USER"] = "5"
         os.environ["MAX_USERS"] = "10"
         os.environ["WEBSITE_URL"] = "https://new.agent.appifyhub.com"
         os.environ["POSTGRES_USER"] = "admin"
@@ -101,7 +101,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.web_retries, 5)
         self.assertEqual(config.web_retry_delay_s, 2)
         self.assertEqual(config.web_timeout_s, 20)
-        self.assertEqual(config.max_invites_per_user, 5)
+        self.assertEqual(config.max_sponsorships_per_user, 5)
         self.assertEqual(config.max_users, 10)
         self.assertEqual(config.website_url, "https://new.agent.appifyhub.com")
         self.assertEqual(config.db_url, "postgresql://admin:admin123@db.example.com:5432/test_db")

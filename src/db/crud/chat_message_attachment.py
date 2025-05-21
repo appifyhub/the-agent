@@ -12,7 +12,7 @@ class ChatMessageAttachmentCRUD:
 
     def get(self, attachment_id: str) -> ChatMessageAttachmentDB | None:
         return self._db.query(ChatMessageAttachmentDB).filter(
-            attachment_id == ChatMessageAttachmentDB.id,
+            ChatMessageAttachmentDB.id == attachment_id,
         ).first()
 
     def get_all(self, skip: int = 0, limit: int = 100) -> list[ChatMessageAttachmentDB]:
@@ -22,8 +22,8 @@ class ChatMessageAttachmentCRUD:
     def get_by_message(self, chat_id: str, message_id: str) -> list[ChatMessageAttachmentDB]:
         # noinspection PyTypeChecker
         return self._db.query(ChatMessageAttachmentDB).filter(
-            chat_id == ChatMessageAttachmentDB.chat_id,
-            message_id == ChatMessageAttachmentDB.message_id,
+            ChatMessageAttachmentDB.chat_id == chat_id,
+            ChatMessageAttachmentDB.message_id == message_id,
         ).all()
 
     def create(self, create_data: ChatMessageAttachmentSave) -> ChatMessageAttachmentDB:

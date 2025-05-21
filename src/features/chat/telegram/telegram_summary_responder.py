@@ -1,5 +1,6 @@
 import base64
 import json
+import re
 from enum import Enum
 from typing import Any
 
@@ -80,8 +81,9 @@ def respond_with_summary(
         answer = ReleaseSummarizer(release_notes, DEFAULT_LANGUAGE, DEFAULT_ISO_CODE).execute()
         if not answer.content:
             raise ValueError("LLM Answer not received")
-        translations.save(answer.content)
-        result.summary = answer.content
+        stripped_content = _strip_title_formatting(answer.content)
+        translations.save(stripped_content)
+        result.summary = stripped_content
         result.summaries_created += 1
     except Exception as e:
         message = "Release summary failed for default language"
@@ -106,7 +108,8 @@ def respond_with_summary(
                 answer = ReleaseSummarizer(release_notes, chat.language_name, chat.language_iso_code).execute()
                 if not answer.content:
                     raise ValueError("LLM Answer not received")
-                summary = translations.save(answer.content, chat.language_name, chat.language_iso_code)
+                stripped_content = _strip_title_formatting(answer.content)
+                summary = translations.save(stripped_content, chat.language_name, chat.language_iso_code)
                 result.summaries_created += 1
         except Exception as e:
             sprint(f"Release summary failed for chat #{chat.chat_id} in {chat.language_name}", e)
@@ -174,3 +177,7 @@ def is_chat_subscribed(chat: ChatConfig, change_type: VersionChangeType) -> bool
         and change_type in (VersionChangeType.major, VersionChangeType.minor)):
         return True
     return False
+
+
+def _strip_title_formatting(text: str) -> str:
+    return re.sub(r'^(#\s*)+', '', text)
