@@ -146,7 +146,7 @@ jobs:
             -d "{\"release_output_b64\": \"$RELEASE_OUTPUT_B64\"}" \
             --silent --show-error)
           SUMMARY=$(echo "$SUMMARY_RESPONSE" | jq -r '.summary // empty')
-          SUMMARY_B64=$(echo -n "$SUMMARY" | base64)
+          SUMMARY_B64=$(printf "%s" "$SUMMARY" | base64)
           echo "::set-output name=summary_b64::$SUMMARY_B64"
 
       - name: Update GitHub Release with summary
@@ -158,7 +158,8 @@ jobs:
           SUMMARY_B64: ${{ steps.notify_release.outputs.summary_b64 }} # stored in the task above
         run: |
           SUMMARY=$(echo "$SUMMARY_B64" | base64 --decode)
-          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --notes "$SUMMARY"
+          echo "$SUMMARY" > summary.txt
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --notes-file summary.txt
 
       - name: Update PR with summary
         if: steps.notify_release.outputs.summary_b64 != '' && github.event.number
@@ -168,4 +169,5 @@ jobs:
           SUMMARY_B64: ${{ steps.notify_release.outputs.summary_b64 }} # stored in the task above
         run: |
           SUMMARY=$(echo "$SUMMARY_B64" | base64 --decode)
-          gh pr edit "$PR_NUMBER" --body "$SUMMARY"
+          echo "$SUMMARY" > summary.txt
+          gh pr edit "$PR_NUMBER" --body-file summary.txt
