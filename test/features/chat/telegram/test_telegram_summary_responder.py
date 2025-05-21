@@ -14,7 +14,7 @@ from features.chat.telegram.telegram_summary_responder import (
     respond_with_summary,
     get_version_change_type,
     is_chat_subscribed,
-    VersionChangeType,
+    VersionChangeType, _strip_title_formatting,
 )
 from features.release_summarizer.raw_notes_payload import ReleaseOutputPayload
 from util.translations_cache import TranslationsCache
@@ -153,6 +153,17 @@ class TelegramSummaryResponderTest(unittest.TestCase):
         result = respond_with_summary(self.chat_config_dao, self.telegram_bot_sdk, self.translations, self.payload)
         self.assertEqual(result["chats_notified"], 0)
         self.assertIsNotNone(result["summary"])
+
+    def test_strip_title_formatting(self):
+        self.assertEqual(_strip_title_formatting("# Title\nContent"), "Title\nContent")
+        self.assertEqual(_strip_title_formatting("##  Title\nContent"), "Title\nContent")
+        self.assertEqual(_strip_title_formatting("###Title\nContent"), "Title\nContent")
+        self.assertEqual(_strip_title_formatting("#    Title"), "Title")
+        self.assertEqual(_strip_title_formatting("No title here"), "No title here")
+        self.assertEqual(_strip_title_formatting("#######   Title"), "Title")
+        self.assertEqual(_strip_title_formatting("#Title"), "Title")
+        self.assertEqual(_strip_title_formatting("##\tTitle"), "Title")
+        self.assertEqual(_strip_title_formatting("###   "), "")
 
     @staticmethod
     def __make_chat_db(
