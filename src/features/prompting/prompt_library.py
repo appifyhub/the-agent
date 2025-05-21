@@ -73,6 +73,7 @@ __telegram_notify_reminder: PromptBuilder = (
             "Formatting is important! Use emojis and plenty of spaces/newlines when appropriate.",
             "Use Telegram's markdown flavor to make the message look nice.",
             "Note that while doing so, no headers `#` or dividers `---` work in the Telegram context.",
+            "Don't use those headers or dividers in your responses.",
             "In case of an error, communicate the error reason in a human-friendly way.",
         ),
     )

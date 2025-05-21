@@ -197,4 +197,5 @@ print(json.dumps(release_output, indent = 2))
 # Store the outputs and finish
 print(f"::set-output name=release_output_b64::{release_output_b64}")
 print(f"::set-output name=release_version::{target_version}")
+print(f"::set-output name=release_tag::{target_tag}")
 print("✅  GitHub Release script finished successfully")
