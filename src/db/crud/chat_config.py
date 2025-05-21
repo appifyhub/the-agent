@@ -12,7 +12,7 @@ class ChatConfigCRUD:
 
     def get(self, chat_id: str) -> ChatConfigDB | None:
         return self._db.query(ChatConfigDB).filter(
-            chat_id == ChatConfigDB.chat_id,
+            ChatConfigDB.chat_id == chat_id,
         ).first()
 
     def get_all(self, skip: int = 0, limit: int = 100) -> list[ChatConfigDB]:

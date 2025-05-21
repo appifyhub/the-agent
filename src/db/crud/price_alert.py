@@ -12,9 +12,9 @@ class PriceAlertCRUD:
 
     def get(self, chat_id: str, base_currency: str, desired_currency: str) -> PriceAlertDB | None:
         return self._db.query(PriceAlertDB).filter(
-            chat_id == PriceAlertDB.chat_id,
-            base_currency == PriceAlertDB.base_currency,
-            desired_currency == PriceAlertDB.desired_currency,
+            PriceAlertDB.chat_id == chat_id,
+            PriceAlertDB.base_currency == base_currency,
+            PriceAlertDB.desired_currency == desired_currency,
         ).first()
 
     def get_all(self, skip: int = 0, limit: int = 100) -> list[PriceAlertDB]:
@@ -24,7 +24,7 @@ class PriceAlertCRUD:
     def get_alerts_by_chat(self, chat_id: str) -> list[PriceAlertDB]:
         # noinspection PyTypeChecker
         return self._db.query(PriceAlertDB).filter(
-            chat_id == PriceAlertDB.chat_id,
+            PriceAlertDB.chat_id == chat_id,
         ).all()
 
     def create(self, create_data: PriceAlertSave) -> PriceAlertDB:

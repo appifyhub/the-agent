@@ -18,7 +18,7 @@ class ToolsCacheCRUD:
 
     def get(self, key: str) -> ToolsCacheDB | None:
         return self._db.query(ToolsCacheDB).filter(
-            key == ToolsCacheDB.key,
+            ToolsCacheDB.key == key,
         ).first()
 
     def get_all(self, skip: int = 0, limit: int = 100) -> list[ToolsCacheDB]:

@@ -2,12 +2,12 @@ from fastapi import HTTPException
 from langchain_core.messages import AIMessage
 
 from db.crud.chat_message import ChatMessageCRUD
-from db.crud.invite import InviteCRUD
+from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.schema.chat_message import ChatMessage
 from db.sql import get_detached_session
 from features.chat.command_processor import CommandProcessor
-from features.chat.invite_manager import InviteManager
+from features.chat.sponsorship_manager import SponsorshipManager
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
@@ -28,8 +28,8 @@ def respond_to_update(update: Update) -> bool:
 
     with get_detached_session() as db:
         user_dao = UserCRUD(db)
-        invite_dao = InviteCRUD(db)
-        invite_manager = InviteManager(user_dao, invite_dao)
+        sponsorship_dao = SponsorshipCRUD(db)
+        sponsorship_manager = SponsorshipManager(user_dao, sponsorship_dao)
         chat_message_dao = ChatMessageCRUD(db)
         telegram_bot_sdk = TelegramBotSDK(db)
         telegram_domain_mapper = TelegramDomainMapper()
@@ -64,7 +64,7 @@ def respond_to_update(update: Update) -> bool:
             if not resolved_domain_data.author:
                 sprint("Not responding to messages without author")
                 return False
-            command_processor = CommandProcessor(resolved_domain_data.author, user_dao, invite_manager)
+            command_processor = CommandProcessor(resolved_domain_data.author, user_dao, sponsorship_manager)
             progress_notifier = TelegramProgressNotifier(
                 resolved_domain_data.chat,
                 domain_update.message.message_id,
