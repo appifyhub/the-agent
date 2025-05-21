@@ -13,8 +13,8 @@ class ChatMessageCRUD:
 
     def get(self, chat_id: str, message_id: str) -> ChatMessageDB | None:
         return self._db.query(ChatMessageDB).filter(
-            chat_id == ChatMessageDB.chat_id,
-            message_id == ChatMessageDB.message_id,
+            ChatMessageDB.chat_id == chat_id,
+            ChatMessageDB.message_id == message_id,
         ).first()
 
     def get_all(self, skip: int = 0, limit: int = 100) -> list[ChatMessageDB]:
@@ -25,7 +25,7 @@ class ChatMessageCRUD:
         # noinspection PyTypeChecker
         return (
             self._db.query(ChatMessageDB).filter(
-                chat_id == ChatMessageDB.chat_id,
+                ChatMessageDB.chat_id == chat_id,
             )
             .order_by(desc(ChatMessageDB.sent_at))
             .offset(skip)

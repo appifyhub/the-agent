@@ -13,7 +13,7 @@ from db.model.chat_message import ChatMessageDB  # used by alembic  # noqa: F401
 # noinspection PyUnresolvedReferences
 from db.model.chat_message_attachment import ChatMessageAttachmentDB  # used by alembic  # noqa: F401
 # noinspection PyUnresolvedReferences
-from db.model.invite import InviteDB  # used by alembic  # noqa: F401
+from db.model.sponsorship import SponsorshipDB  # used by alembic  # noqa: F401
 # noinspection PyUnresolvedReferences
 from db.model.price_alert import PriceAlertDB  # used by alembic  # noqa: F401
 # noinspection PyUnresolvedReferences
