@@ -3,16 +3,18 @@ from datetime import datetime
 from unittest.mock import Mock
 from uuid import UUID
 
+from db.crud.user import UserCRUD
 from db.model.user import UserDB
 from db.schema.user import User
 from features.chat.command_processor import CommandProcessor
+from features.chat.sponsorship_manager import SponsorshipManager
 from features.prompting.prompt_library import TELEGRAM_BOT_USER, COMMAND_START
 
 
 class CommandProcessorTest(unittest.TestCase):
     user: User
-    mock_user_dao: Mock
-    mock_invite_manager: Mock
+    mock_user_dao: UserCRUD
+    mock_sponsorship_manager: SponsorshipManager
     processor: CommandProcessor
 
     def setUp(self):
@@ -26,12 +28,12 @@ class CommandProcessorTest(unittest.TestCase):
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
-        self.mock_user_dao = Mock()
-        self.mock_invite_manager = Mock()
-        self.mock_invite_manager.purge_accepted_invites.return_value = 0
-        self.mock_invite_manager.accept_invite.return_value = 0
+        self.mock_user_dao = Mock(spec = UserCRUD)
         self.mock_user_dao.save.return_value = User(**self.user.model_dump())
-        self.processor = CommandProcessor(self.user, self.mock_user_dao, self.mock_invite_manager)
+        self.mock_sponsorship_manager = Mock(spec = SponsorshipManager)
+        self.mock_sponsorship_manager.purge_accepted_sponsorships.return_value = 0
+        self.mock_sponsorship_manager.accept_sponsorship.return_value = 0
+        self.processor = CommandProcessor(self.user, self.mock_user_dao, self.mock_sponsorship_manager)
 
     def test_empty_input(self):
         result = self.processor.execute("")
@@ -44,6 +46,7 @@ class CommandProcessorTest(unittest.TestCase):
     def test_start_command_no_key(self):
         result = self.processor.execute(f"/{COMMAND_START}")
         self.assertEqual(result, CommandProcessor.Result.unknown)
+        # noinspection PyUnresolvedReferences
         self.mock_user_dao.save.assert_not_called()
 
     def test_wrong_bot_tagged(self):
@@ -54,27 +57,35 @@ class CommandProcessorTest(unittest.TestCase):
         self.mock_user_dao.save.side_effect = Exception("Test exception")
         result = self.processor.execute(f"/{COMMAND_START} api_key_here")
         self.assertEqual(result, CommandProcessor.Result.failed)
-        self.mock_invite_manager.accept_invite.assert_called_once_with(self.user)
+        # noinspection PyUnresolvedReferences
+        self.mock_sponsorship_manager.accept_sponsorship.assert_called_once_with(self.user)
 
     def test_start_command_success(self):
-        self.mock_invite_manager.accept_invite.return_value = False
+        self.mock_sponsorship_manager.accept_sponsorship.return_value = False
         result = self.processor.execute(f"/{COMMAND_START} api_key_here")
         self.assertEqual(result, CommandProcessor.Result.success)
+        # noinspection PyUnresolvedReferences
         self.mock_user_dao.save.assert_called_once()
-        self.mock_invite_manager.purge_accepted_invites.assert_called_once_with(self.user)
+        # noinspection PyUnresolvedReferences
+        self.mock_sponsorship_manager.purge_accepted_sponsorships.assert_called_once_with(self.user)
 
     def test_start_command_success_with_bot_tag(self):
-        self.mock_invite_manager.accept_invite.return_value = False
+        self.mock_sponsorship_manager.accept_sponsorship.return_value = False
         bot_tag = TELEGRAM_BOT_USER.telegram_username
         result = self.processor.execute(f"/{COMMAND_START}@{bot_tag} api_key_here")
         self.assertEqual(result, CommandProcessor.Result.success)
+        # noinspection PyUnresolvedReferences
         self.mock_user_dao.save.assert_called_once()
-        self.mock_invite_manager.purge_accepted_invites.assert_called_once_with(self.user)
+        # noinspection PyUnresolvedReferences
+        self.mock_sponsorship_manager.purge_accepted_sponsorships.assert_called_once_with(self.user)
 
-    def test_accept_invite_success(self):
-        self.mock_invite_manager.accept_invite.return_value = True
+    def test_accept_sponsorship_success(self):
+        self.mock_sponsorship_manager.accept_sponsorship.return_value = True
         result = self.processor.execute(f"/{COMMAND_START} api_key_here")
         self.assertEqual(result, CommandProcessor.Result.success)
-        self.mock_invite_manager.accept_invite.assert_called_once_with(self.user)
+        # noinspection PyUnresolvedReferences
+        self.mock_sponsorship_manager.accept_sponsorship.assert_called_once_with(self.user)
+        # noinspection PyUnresolvedReferences
         self.mock_user_dao.save.assert_not_called()
-        self.mock_invite_manager.purge_accepted_invites.assert_not_called()
+        # noinspection PyUnresolvedReferences
+        self.mock_sponsorship_manager.purge_accepted_sponsorships.assert_not_called()
