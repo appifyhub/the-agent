@@ -138,4 +138,5 @@ jobs:
           SUMMARY_B64: ${{ steps.notify_release.outputs.summary_b64 }} # stored in the task above
         run: |
           SUMMARY=$(echo "$SUMMARY_B64" | base64 --decode)
-          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --notes "$SUMMARY"
+          echo "$SUMMARY" > summary.txt
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --notes-file summary.txt
