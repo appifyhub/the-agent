@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
 from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
-from db.crud.invite import InviteCRUD
 from db.crud.price_alert import PriceAlertCRUD
+from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.sql import initialize_db
@@ -53,10 +53,10 @@ class SQLUtil:
             self.start_session()
         return ChatMessageAttachmentCRUD(self.__session)
 
-    def invite_crud(self) -> InviteCRUD:
+    def sponsorship_crud(self) -> SponsorshipCRUD:
         if not self.__is_session_active:
             self.start_session()
-        return InviteCRUD(self.__session)
+        return SponsorshipCRUD(self.__session)
 
     def tools_cache_crud(self) -> ToolsCacheCRUD:
         if not self.__is_session_active:
