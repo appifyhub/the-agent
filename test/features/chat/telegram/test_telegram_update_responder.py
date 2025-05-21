@@ -2,10 +2,10 @@ import unittest
 from unittest.mock import Mock, patch
 
 from db.crud.chat_message import ChatMessageCRUD
-from db.crud.invite import InviteCRUD
+from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.sql_util import SQLUtil
-from features.chat.invite_manager import InviteManager
+from features.chat.sponsorship_manager import SponsorshipManager
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
@@ -17,8 +17,8 @@ from features.chat.telegram.telegram_update_responder import respond_to_update
 
 class TelegramUpdateResponderTest(unittest.TestCase):
     user_dao: UserCRUD
-    invite_dao: InviteCRUD
-    invite_manager: InviteManager
+    sponsorship_dao: SponsorshipCRUD
+    sponsorship_manager: SponsorshipManager
     chat_messages_dao: ChatMessageCRUD
     telegram_domain_mapper: TelegramDomainMapper
     telegram_data_resolver: TelegramDataResolver
@@ -30,8 +30,8 @@ class TelegramUpdateResponderTest(unittest.TestCase):
     def setUp(self):
         # create all the mocks
         self.user_dao = Mock(spec = UserCRUD)
-        self.invite_dao = Mock(spec = InviteCRUD)
-        self.invite_manager = Mock(spec = InviteManager)
+        self.sponsorship_dao = Mock(spec = SponsorshipCRUD)
+        self.sponsorship_manager = Mock(spec = SponsorshipManager)
         self.chat_messages_dao = Mock(spec = ChatMessageCRUD)
         self.telegram_domain_mapper = Mock(spec = TelegramDomainMapper)
         self.telegram_data_resolver = Mock(spec = TelegramDataResolver)
@@ -49,13 +49,13 @@ class TelegramUpdateResponderTest(unittest.TestCase):
             "features.chat.telegram.telegram_update_responder.UserCRUD",
             return_value = self.user_dao,
         )
-        patcher_invite_crud = patch(
-            "features.chat.telegram.telegram_update_responder.InviteCRUD",
-            return_value = self.invite_dao,
+        patcher_sponsorship_crud = patch(
+            "features.chat.telegram.telegram_update_responder.SponsorshipCRUD",
+            return_value = self.sponsorship_dao,
         )
-        patcher_invite_manager = patch(
-            "features.chat.telegram.telegram_update_responder.InviteManager",
-            return_value = self.invite_manager,
+        patcher_sponsorship_manager = patch(
+            "features.chat.telegram.telegram_update_responder.SponsorshipManager",
+            return_value = self.sponsorship_manager,
         )
         patcher_chat_message_crud = patch(
             "features.chat.telegram.telegram_update_responder.ChatMessageCRUD",
@@ -79,8 +79,8 @@ class TelegramUpdateResponderTest(unittest.TestCase):
         )
         # start the patchers
         patcher_user_crud.start()
-        patcher_invite_crud.start()
-        patcher_invite_manager.start()
+        patcher_sponsorship_crud.start()
+        patcher_sponsorship_manager.start()
         patcher_chat_message_crud.start()
         patcher_telegram_bot_sdk.start()
         patcher_telegram_domain_mapper.start()
@@ -89,8 +89,8 @@ class TelegramUpdateResponderTest(unittest.TestCase):
 
         # make sure to stop the patchers after the test
         self.addCleanup(patcher_user_crud.stop)
-        self.addCleanup(patcher_invite_crud.stop)
-        self.addCleanup(patcher_invite_manager.stop)
+        self.addCleanup(patcher_sponsorship_crud.stop)
+        self.addCleanup(patcher_sponsorship_manager.stop)
         self.addCleanup(patcher_chat_message_crud.stop)
         self.addCleanup(patcher_telegram_bot_sdk.stop)
         self.addCleanup(patcher_telegram_domain_mapper.stop)

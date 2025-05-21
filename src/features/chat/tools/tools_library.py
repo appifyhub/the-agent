@@ -5,8 +5,8 @@ from langchain_core.tools import tool
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
 from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
-from db.crud.invite import InviteCRUD
 from db.crud.price_alert import PriceAlertCRUD
+from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.sql import get_detached_session
@@ -14,9 +14,9 @@ from features.chat.announcement_manager import AnnouncementManager
 from features.chat.attachments_content_resolver import AttachmentsContentResolver
 from features.chat.generative_imaging_manager import GenerativeImagingManager
 from features.chat.image_edit_manager import ImageEditManager
-from features.chat.invite_manager import InviteManager
 from features.chat.price_alert_manager import PriceAlertManager
 from features.chat.settings_manager import SettingsManager
+from features.chat.sponsorship_manager import SponsorshipManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.tools.base_tool_binder import BaseToolBinder
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
@@ -32,19 +32,19 @@ TOOL_TRUNCATE_LENGTH = 8192  # to save some tokens
 
 
 @tool
-def invite_friend(user_id: str, friend_telegram_username: str) -> str:
+def sponsor_friend(user_id: str, friend_telegram_username: str) -> str:
     """
-    Invites a friend to the chatbot.
+    Sponsors a friend to use the chatbot.
 
     Args:
-        user_id: A unique identifier of the user/author, usually found in the metadata
-        friend_telegram_username: [mandatory] The Telegram username of the friend to invite, without '@'
+        user_id: A unique identifier of the user/author/sponsor, usually found in the metadata
+        friend_telegram_username: [mandatory] The Telegram username of the friend to sponsor, without '@'
     """
     try:
         with get_detached_session() as db:
-            invite_manager = InviteManager(UserCRUD(db), InviteCRUD(db))
-            result, message = invite_manager.invite_user(user_id, friend_telegram_username)
-            if result == InviteManager.Result.failure:
+            sponsorship_manager = SponsorshipManager(UserCRUD(db), SponsorshipCRUD(db))
+            result, message = sponsorship_manager.sponsor_user(user_id, friend_telegram_username)
+            if result == SponsorshipManager.Result.failure:
                 return json.dumps({"result": "Failure", "reason": message})
             return json.dumps({"result": "Success", "next_step": message})
     except Exception as e:
@@ -53,19 +53,19 @@ def invite_friend(user_id: str, friend_telegram_username: str) -> str:
 
 
 @tool
-def uninvite_friend(user_id: str, friend_telegram_username: str) -> str:
+def unsponsor_friend(user_id: str, friend_telegram_username: str) -> str:
     """
-    Uninvites a friend from the chatbot.
+    Revokes sponsorship for a friend from using the chatbot.
 
     Args:
-        user_id: A unique identifier of the user/author, usually found in the metadata
-        friend_telegram_username: [mandatory] The Telegram username of the friend to uninvite, without '@'
+        user_id: A unique identifier of the user/author/sponsor, usually found in the metadata
+        friend_telegram_username: [mandatory] The Telegram username of the friend to un-sponsor, without '@'
     """
     try:
         with get_detached_session() as db:
-            invite_manager = InviteManager(UserCRUD(db), InviteCRUD(db))
-            result, message = invite_manager.uninvite_user(user_id, friend_telegram_username)
-            if result == InviteManager.Result.failure:
+            sponsorship_manager = SponsorshipManager(UserCRUD(db), SponsorshipCRUD(db))
+            result, message = sponsorship_manager.unsponsor_user(user_id, friend_telegram_username)
+            if result == SponsorshipManager.Result.failure:
                 return json.dumps({"result": "Failure", "reason": message})
             return json.dumps({"result": "Success", "next_step": message})
     except Exception as e:
@@ -485,8 +485,8 @@ class ToolsLibrary(BaseToolBinder):
     def __init__(self):
         super().__init__(
             {
-                "invite_friend": invite_friend,
-                "uninvite_friend": uninvite_friend,
+                "sponsor_friend": sponsor_friend,
+                "unsponsor_friend": unsponsor_friend,
                 "fetch_web_content": fetch_web_content,
                 "process_attachments": process_attachments,
                 "get_exchange_rate": get_exchange_rate,

@@ -5,12 +5,12 @@ from util.singleton import Singleton
 
 
 class Config(metaclass = Singleton):
+    max_sponsorships_per_user: int
     verbose: bool
     log_telegram_update: bool
     web_retries: int
     web_retry_delay_s: int
     web_timeout_s: int
-    max_invites_per_user: int
     max_users: int
     website_url: str
     db_url: str
@@ -41,12 +41,12 @@ class Config(metaclass = Singleton):
 
     def __init__(
         self,
+        def_max_sponsorships_per_user: int = 2,
         def_verbose: bool = False,
         def_log_telegram_update: bool = False,
         def_web_retries: int = 3,
         def_web_retry_delay_s: int = 1,
         def_web_timeout_s: int = 10,
-        def_max_invites_per_user: int = 2,
         def_max_users: int = 100,
         def_website_url: str = "https://agent.appifyhub.com",
         def_db_user: str = "root",
@@ -78,12 +78,17 @@ class Config(metaclass = Singleton):
         def_backoffice_url_base: str = "https://web.agent.appifyhub.com",
         def_version: str = "dev",
     ):
+        self.max_sponsorships_per_user = int(
+            self.__env(
+                "MAX_SPONSORSHIPS_PER_USER",
+                lambda: str(def_max_sponsorships_per_user)
+            ),
+        )
         self.verbose = self.__env("VERBOSE", lambda: str(def_verbose)).lower() == "true"
         self.log_telegram_update = self.__env("LOG_TG_UPDATE", lambda: str(def_log_telegram_update)).lower() == "true"
         self.web_retries = int(self.__env("WEB_RETRIES", lambda: str(def_web_retries)))
         self.web_retry_delay_s = int(self.__env("WEB_RETRY_DELAY_S", lambda: str(def_web_retry_delay_s)))
         self.web_timeout_s = int(self.__env("WEB_TIMEOUT_S", lambda: str(def_web_timeout_s)))
-        self.max_invites_per_user = int(self.__env("MAX_INVITES_PER_USER", lambda: str(def_max_invites_per_user)))
         self.max_users = int(self.__env("MAX_USERS", lambda: str(def_max_users)))
         self.website_url = self.__env("WEBSITE_URL", lambda: def_website_url)
         self.__set_up_db(def_db_user, def_db_pass, def_db_host, def_db_name)
