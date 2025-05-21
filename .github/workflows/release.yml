@@ -126,8 +126,8 @@ jobs:
             -d "{\"release_output_b64\": \"$RELEASE_OUTPUT_B64\"}" \
             --silent --show-error)
           SUMMARY=$(echo "$SUMMARY_RESPONSE" | jq -r '.summary // empty')
-          SUMMARY_B64=$(printf "%s" "$SUMMARY" | base64)
-          echo "::set-output name=summary_b64::$SUMMARY_B64"
+          SUMMARY_B64=$(printf "%s" "$SUMMARY" | base64 -w 0)
+          echo "summary_b64=$SUMMARY_B64" >> $GITHUB_OUTPUT
 
       - name: Update GitHub Release with summary
         if: steps.notify_release.outputs.summary_b64 != ''
