@@ -8,7 +8,7 @@ from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_openai import OpenAIEmbeddings
 from pydantic import SecretStr
 
-from features.ai_tools.external_ai_tool_library import TEXT_EMBEDDING_3_SMALL, CLAUDE_3_7_SONNET
+from features.ai_tools.external_ai_tool_library import TEXT_EMBEDDING_3_SMALL, CLAUDE_4_SONNET
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
@@ -44,7 +44,7 @@ class DocumentSearch(SafePrinterMixin):
         self.__additional_context = additional_context or DEFAULT_QUESTION
         # noinspection PyArgumentList
         self.__copywriter = ChatAnthropic(
-            model_name = CLAUDE_3_7_SONNET.id,
+            model_name = CLAUDE_4_SONNET.id,
             temperature = 0.3,
             max_tokens = 4096,
             timeout = float(config.web_timeout_s),
