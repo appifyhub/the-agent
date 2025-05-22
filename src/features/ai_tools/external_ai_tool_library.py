@@ -147,6 +147,13 @@ CLAUDE_3_7_SONNET = ExternalAiTool(
     types = [ToolType.llm, ToolType.vision],
 )
 
+CLAUDE_4_SONNET = ExternalAiTool(
+    id = "claude-sonnet-4-0",
+    name = "Claude 4 Sonnet",
+    provider = ANTHROPIC,
+    types = [ToolType.llm, ToolType.vision],
+)
+
 ###  Perplexity  ###
 
 SONAR = ExternalAiTool(
@@ -277,6 +284,7 @@ ALL_AI_TOOLS = [
     CLAUDE_3_5_HAIKU,
     CLAUDE_3_5_SONNET,
     CLAUDE_3_7_SONNET,
+    CLAUDE_4_SONNET,
     # Perplexity
     SONAR,
     SONAR_PRO,

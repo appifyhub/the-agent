@@ -10,7 +10,7 @@ from pydantic import SecretStr
 
 from db.crud.user import UserCRUD
 from db.schema.user import User
-from features.ai_tools.external_ai_tool_library import CLAUDE_3_7_SONNET
+from features.ai_tools.external_ai_tool_library import CLAUDE_4_SONNET
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
@@ -55,7 +55,7 @@ class UserSupportManager(SafePrinterMixin):
         self.__validate_invoker()
         # noinspection PyArgumentList
         self.__copywriter = ChatAnthropic(
-            model_name = CLAUDE_3_7_SONNET.id,
+            model_name = CLAUDE_4_SONNET.id,
             temperature = 0.5,
             max_tokens = 700,
             timeout = float(config.web_timeout_s),
