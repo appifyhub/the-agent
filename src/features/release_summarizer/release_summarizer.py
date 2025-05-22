@@ -3,7 +3,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, AIMessage, HumanMessage
 from pydantic import SecretStr
 
-from features.ai_tools.external_ai_tool_library import CLAUDE_3_7_SONNET
+from features.ai_tools.external_ai_tool_library import CLAUDE_4_SONNET
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
@@ -26,7 +26,7 @@ class ReleaseSummarizer(SafePrinterMixin):
         self.__llm_input.append(HumanMessage(raw_notes))
         # noinspection PyArgumentList
         self.__copywriter = ChatAnthropic(
-            model_name = CLAUDE_3_7_SONNET.id,
+            model_name = CLAUDE_4_SONNET.id,
             temperature = 1.0,
             max_tokens = 500,
             timeout = float(config.web_timeout_s),
