@@ -7,5 +7,5 @@ updates:
       day: "saturday"
       time: "10:00"
       timezone: "Europe/Berlin"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 10
     rebase-strategy: "auto"
