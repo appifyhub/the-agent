@@ -9,12 +9,3 @@ updates:
       timezone: "Europe/Berlin"
     open-pull-requests-limit: 10
     rebase-strategy: "auto"
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "14:00"
-      timezone: "Europe/Berlin"
-    open-pull-requests-limit: 10
-    rebase-strategy: "auto"
