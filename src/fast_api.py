@@ -157,7 +157,7 @@ def save_settings(
     try:
         sprint(f"Saving {settings_type} settings for {resource_id}")
         user_id_hex, chat_id = SettingsManager.resolve_user_id_hex_and_chat_id(token)
-        sprint(f"  User ID: {user_id_hex}, Chat ID: {chat_id}")
+        sprint(f"  Token User ID: {user_id_hex}, Token Chat ID: {chat_id}")
         settings_literal = "user_settings" if settings_type == "user" else "chat_settings"
         user_dao = UserCRUD(db)
         chat_config_dao = ChatConfigCRUD(db)
@@ -197,4 +197,29 @@ def save_settings(
         return {"status": "OK"}
     except Exception as e:
         sprint("Failed to save settings", e)
+        raise HTTPException(status_code = 500, detail = {"reason": str(e)})
+
+
+@app.get("/user/{resource_id}/chats")
+def get_chats(
+    resource_id: str,
+    db = Depends(get_session),
+    token = Depends(verify_jwt_credentials),
+):
+    try:
+        sprint(f"Fetching all chats for {resource_id}")
+        user_id_hex, chat_id = SettingsManager.resolve_user_id_hex_and_chat_id(token)
+        sprint(f"  Token User ID: {user_id_hex}, Token Chat ID: {chat_id}")
+        user_dao = UserCRUD(db)
+        chat_config_dao = ChatConfigCRUD(db)
+        settings_manager = SettingsManager(
+            invoker_user_id_hex = user_id_hex,
+            target_chat_id = chat_id,
+            telegram_sdk = TelegramBotSDK(db),
+            user_dao = user_dao,
+            chat_config_dao = chat_config_dao,
+        )
+        return settings_manager.fetch_admin_chats(resource_id)
+    except Exception as e:
+        sprint("Failed to get chats", e)
         raise HTTPException(status_code = 500, detail = {"reason": str(e)})

@@ -105,6 +105,13 @@ class TelegramBotSDK(SafePrinterMixin):
             self.sprint(f"Failed to get chat member '{user_id}' from chat '{chat_id}'", e)
             return None
 
+    def get_chat_administrators(self, chat_id: int | str) -> list[ChatMember] | None:
+        try:
+            return self.api.get_chat_administrators(chat_id)
+        except Exception as e:
+            self.sprint(f"Failed to get chat administrators for chat '{chat_id}'", e)
+            return None
+
     def __store_api_response_as_message(self, raw_api_response: dict) -> ChatMessage:
         self.sprint("Storing API message data...")
         message = Message(**raw_api_response["result"])

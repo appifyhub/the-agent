@@ -171,6 +171,13 @@ class TelegramBotAPI(SafePrinterMixin):
         member_info = response.json()["result"]
         return TypeAdapter(ChatMember).validate_python(member_info)
 
+    def get_chat_administrators(self, chat_id: int | str) -> list[ChatMember]:
+        url = f"{self.__bot_api_url}/getChatAdministrators"
+        response = requests.get(url, params = {"chat_id": chat_id})
+        self.__raise_for_status(response)
+        admins_info = response.json()["result"]
+        return TypeAdapter(list[ChatMember]).validate_python(admins_info)
+
     def __raise_for_status(self, response: Response | None):
         if response is None:
             message = "No API response received"
