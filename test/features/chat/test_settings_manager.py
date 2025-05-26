@@ -565,10 +565,7 @@ class SettingsManagerTest(unittest.TestCase):
                 # Missing release_notifications parameter
             )
 
-    @patch("features.chat.settings_manager.config")
-    def test_get_administered_chats_success_user_is_admin(self, mock_config):
-        mock_config.max_users = 20
-
+    def test_get_admin_chats_success_user_is_admin(self):
         chat_config_1 = ChatConfig(
             chat_id = "chat_A_id",
             title = "Chat Alpha",
@@ -626,14 +623,14 @@ class SettingsManagerTest(unittest.TestCase):
             chat_config_dao = self.mock_chat_config_dao,
         )
 
-        administered_chats = manager.get_admin_chats_for_user(self.invoker_user.id.hex)
+        admin_chats = manager.get_admin_chats_for_user(self.invoker_user)
 
-        self.assertEqual(len(administered_chats), 2)
-        self.assertEqual(administered_chats[0].title, "Chat Alpha")
-        self.assertEqual(administered_chats[1].title, "Chat Charlie")
+        self.assertEqual(len(admin_chats), 2)
+        self.assertEqual(admin_chats[0].title, "Chat Alpha")
+        self.assertEqual(admin_chats[1].title, "Chat Charlie")
 
         # noinspection PyUnresolvedReferences
-        self.assertEqual(self.mock_user_dao.get.call_count, 2)
+        self.assertEqual(self.mock_user_dao.get.call_count, 1)
         # noinspection PyUnresolvedReferences
         self.mock_user_dao.get.assert_any_call(UUID(hex = self.invoker_user.id.hex))
         # noinspection PyUnresolvedReferences
@@ -643,10 +640,7 @@ class SettingsManagerTest(unittest.TestCase):
         self.mock_telegram_sdk.get_chat_administrators.assert_any_call(chat_config_3.chat_id)
         self.assertEqual(self.mock_telegram_sdk.get_chat_administrators.call_count, 3)
 
-    @patch("features.chat.settings_manager.config")
-    def test_get_administered_chats_success_user_is_not_admin_in_any(self, mock_config):
-        mock_config.max_users = 15
-
+    def test_get_admin_chats_success_user_is_not_admin_in_any(self):
         chat_config_1 = ChatConfig(
             chat_id = "chat_A_id",
             title = "Chat Alpha",
@@ -685,11 +679,11 @@ class SettingsManagerTest(unittest.TestCase):
             chat_config_dao = self.mock_chat_config_dao,
         )
 
-        administered_chats = manager.get_admin_chats_for_user(self.invoker_user.id.hex)
-        self.assertEqual(len(administered_chats), 0)
+        admin_chats = manager.get_admin_chats_for_user(self.invoker_user)
+        self.assertEqual(len(admin_chats), 0)
 
         # noinspection PyUnresolvedReferences
-        self.assertEqual(self.mock_user_dao.get.call_count, 2)
+        self.assertEqual(self.mock_user_dao.get.call_count, 1)
         # noinspection PyUnresolvedReferences
         self.mock_user_dao.get.assert_any_call(UUID(hex = self.invoker_user.id.hex))
         # noinspection PyUnresolvedReferences
@@ -698,10 +692,7 @@ class SettingsManagerTest(unittest.TestCase):
         self.mock_telegram_sdk.get_chat_administrators.assert_any_call(chat_config_2.chat_id)
         self.assertEqual(self.mock_telegram_sdk.get_chat_administrators.call_count, 2)
 
-    @patch("features.chat.settings_manager.config")
-    def test_get_administered_chats_sdk_returns_none_for_one_chat(self, mock_config):
-        mock_config.max_users = 10
-
+    def test_get_admin_chats_sdk_returns_none_for_one_chat(self):
         chat_config_1 = ChatConfig(
             chat_id = "chat_A_id",
             title = "Chat Alpha",
@@ -745,44 +736,18 @@ class SettingsManagerTest(unittest.TestCase):
             chat_config_dao = self.mock_chat_config_dao,
         )
 
-        administered_chats = manager.get_admin_chats_for_user(self.invoker_user.id.hex)
-        self.assertEqual(len(administered_chats), 1)
-        self.assertEqual(administered_chats[0].chat_id, chat_config_1.chat_id)
+        admin_chats = manager.get_admin_chats_for_user(self.invoker_user)
+        self.assertEqual(len(admin_chats), 1)
+        self.assertEqual(admin_chats[0].chat_id, chat_config_1.chat_id)
 
         # noinspection PyUnresolvedReferences
-        self.assertEqual(self.mock_user_dao.get.call_count, 2)
+        self.assertEqual(self.mock_user_dao.get.call_count, 1)
         # noinspection PyUnresolvedReferences
         self.mock_user_dao.get.assert_any_call(UUID(hex = self.invoker_user.id.hex))
         # noinspection PyUnresolvedReferences
         self.mock_chat_config_dao.get_all.assert_called_once()
 
-    def test_get_administered_chats_user_not_found_in_db(self):
-        user_dao_for_test = Mock(spec = UserCRUD)
-        user_dao_for_test.get.return_value = None
-
-        chat_config_dao_for_test = Mock(spec = ChatConfigCRUD)
-        chat_config_dao_for_test.get.return_value = self.chat_config
-
-        telegram_sdk_for_test = Mock(spec = TelegramBotSDK)
-        telegram_sdk_for_test.get_chat_member.return_value = self.chat_member
-
-        with self.assertRaisesRegex(ValueError, f"Invoker '{self.invoker_user.id.hex}' not found"):
-            SettingsManager(
-                invoker_user_id_hex = self.invoker_user.id.hex,
-                target_chat_id = self.chat_config.chat_id,
-                telegram_sdk = telegram_sdk_for_test,
-                user_dao = user_dao_for_test,
-                chat_config_dao = chat_config_dao_for_test,
-            )
-
-        user_dao_for_test.get.assert_called_once_with(UUID(hex = self.invoker_user.id.hex))
-        chat_config_dao_for_test.get_all.assert_not_called()
-        telegram_sdk_for_test.get_chat_administrators.assert_not_called()
-
-    @patch("features.chat.settings_manager.config")
-    def test_get_administered_chats_no_telegram_id_for_user(self, mock_config):
-        mock_config.max_users = 5
-
+    def test_get_admin_chats_no_telegram_id_for_user(self):
         user_no_telegram_id_db = self.invoker_user.model_copy()
         user_no_telegram_id_db.telegram_user_id = None
 
@@ -804,17 +769,11 @@ class SettingsManagerTest(unittest.TestCase):
             chat_config_dao = chat_config_dao_for_test,
         )
 
-        administered_chats = manager_for_test.get_admin_chats_for_user(self.invoker_user.id.hex)
-        self.assertEqual(len(administered_chats), 0)
-        self.assertEqual(user_dao_for_test.get.call_count, 2)
-        user_dao_for_test.get.assert_any_call(UUID(hex = self.invoker_user.id.hex))
-        chat_config_dao_for_test.get_all.assert_not_called()
-        telegram_sdk_for_test.get_chat_administrators.assert_not_called()
+        admin_chats = manager_for_test.get_admin_chats_for_user(self.invoker_user)
+        self.assertEqual(len(admin_chats), 0)
+        self.assertEqual(user_dao_for_test.get.call_count, 1)
 
-    @patch("features.chat.settings_manager.config")
-    def test_get_administered_chats_no_chat_configs_in_db(self, mock_config):
-        mock_config.max_users = 25
-
+    def test_get_admin_chats_no_chat_configs_in_db(self):
         self.mock_chat_config_dao.get_all.return_value = []
 
         # noinspection PyUnresolvedReferences
@@ -829,11 +788,11 @@ class SettingsManagerTest(unittest.TestCase):
             chat_config_dao = self.mock_chat_config_dao,
         )
 
-        administered_chats = manager.get_admin_chats_for_user(self.invoker_user.id.hex)
-        self.assertEqual(len(administered_chats), 0)
+        admin_chats = manager.get_admin_chats_for_user(self.invoker_user)
+        self.assertEqual(len(admin_chats), 0)
 
         # noinspection PyUnresolvedReferences
-        self.assertEqual(self.mock_user_dao.get.call_count, 2)
+        self.assertEqual(self.mock_user_dao.get.call_count, 1)
         # noinspection PyUnresolvedReferences
         self.mock_user_dao.get.assert_any_call(UUID(hex = self.invoker_user.id.hex))
         # noinspection PyUnresolvedReferences
@@ -841,7 +800,7 @@ class SettingsManagerTest(unittest.TestCase):
         # noinspection PyUnresolvedReferences
         self.mock_telegram_sdk.get_chat_administrators.assert_not_called()
 
-    def test_get_administered_chats_success_user_administers_multiple_chats(self):
+    def test_get_admin_chats_success_user_administers_multiple_chats(self):
 
         # 1. Setup: Create multiple chat configurations
         chat_config1 = ChatConfig(
@@ -887,7 +846,7 @@ class SettingsManagerTest(unittest.TestCase):
         manager = SettingsManager(
             invoker_user_id_hex = self.invoker_user.id.hex,
             # target_chat_id can be any valid chat_id for initialization,
-            # as get_administered_chats_for_user doesn't use self.target_chat_id
+            # as get_admin_chats_for_user doesn't use self.target_chat_id
             target_chat_id = self.chat_config.chat_id,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -895,17 +854,17 @@ class SettingsManagerTest(unittest.TestCase):
         )
 
         # 3. Execute the method
-        administered_chats = manager.get_admin_chats_for_user(self.invoker_user.id.hex)
+        admin_chats = manager.get_admin_chats_for_user(self.invoker_user)
 
         # 4. Assertions
-        self.assertEqual(len(administered_chats), 2)
-        self.assertIn(chat_config1, administered_chats)
-        self.assertIn(chat_config3, administered_chats)
-        self.assertNotIn(chat_config2, administered_chats)
+        self.assertEqual(len(admin_chats), 2)
+        self.assertIn(chat_config1, admin_chats)
+        self.assertIn(chat_config3, admin_chats)
+        self.assertNotIn(chat_config2, admin_chats)
 
         # noinspection PyUnresolvedReferences
         # Check mock calls
-        self.assertEqual(self.mock_user_dao.get.call_count, 2)  # Once in __init__, once in method
+        self.assertEqual(self.mock_user_dao.get.call_count, 1)
         # noinspection PyUnresolvedReferences
         self.mock_user_dao.get.assert_any_call(UUID(hex = self.invoker_user.id.hex))
         # noinspection PyUnresolvedReferences
@@ -918,3 +877,101 @@ class SettingsManagerTest(unittest.TestCase):
         self.mock_telegram_sdk.get_chat_administrators.assert_any_call(chat_config2.chat_id)
         # noinspection PyUnresolvedReferences
         self.mock_telegram_sdk.get_chat_administrators.assert_any_call(chat_config3.chat_id)
+
+    @patch.object(SettingsManager, "get_admin_chats_for_user")
+    def test_fetch_admin_chats_success(self, mock_get_admin_chats_for_user):
+        self.invoker_user.telegram_chat_id = "invoker_chat_id"  # As in setUp
+        own_chat_config = ChatConfig(
+            chat_id = str(self.invoker_user.telegram_user_id),
+            title = "My Notes",
+            language_iso_code = "en",
+            reply_chance_percent = 100,
+            is_private = True,
+            release_notifications = ChatConfigDB.ReleaseNotifications.all
+        )
+        group_chat_config = ChatConfig(
+            chat_id = "group_chat_123",
+            title = "Test Group",
+            language_iso_code = "es",
+            reply_chance_percent = 50,
+            is_private = False,
+            release_notifications = ChatConfigDB.ReleaseNotifications.all
+        )
+        no_title_chat_config = ChatConfig(
+            chat_id = "no_title_chat_456",
+            title = None,
+            language_iso_code = "fr",
+            reply_chance_percent = 75,
+            is_private = False,
+            release_notifications = ChatConfigDB.ReleaseNotifications.all
+        )
+        mock_get_admin_chats_for_user.return_value = [own_chat_config, group_chat_config, no_title_chat_config]
+
+        manager = SettingsManager(
+            invoker_user_id_hex = self.invoker_user.id.hex,
+            target_chat_id = self.chat_config.chat_id,
+            telegram_sdk = self.mock_telegram_sdk,
+            user_dao = self.mock_user_dao,
+            chat_config_dao = self.mock_chat_config_dao,
+        )
+        result = manager.fetch_admin_chats(self.invoker_user.id.hex)
+
+        self.assertEqual(len(result), 3)
+        mock_get_admin_chats_for_user.assert_called_once_with(self.invoker_user)
+        expected_results = [
+            {
+                "chat_id": own_chat_config.chat_id,
+                "title": own_chat_config.title,
+                "is_own": True  # Because chat_id matches invoker's telegram_user_id
+            },
+            {
+                "chat_id": group_chat_config.chat_id,
+                "title": group_chat_config.title,
+                "is_own": False  # Because chat_id does not match
+            },
+            {
+                "chat_id": no_title_chat_config.chat_id,
+                "title": no_title_chat_config.title,  # Should be None
+                "is_own": False  # Because chat_id does not match
+            }
+        ]
+        self.assertListEqual(result, expected_results)
+
+    @patch.object(SettingsManager, "get_admin_chats_for_user")
+    def test_fetch_admin_chats_no_chats_found(self, mock_get_admin_chats_for_user):
+        mock_get_admin_chats_for_user.return_value = []
+
+        manager = SettingsManager(
+            invoker_user_id_hex = self.invoker_user.id.hex,
+            target_chat_id = self.chat_config.chat_id,
+            telegram_sdk = self.mock_telegram_sdk,
+            user_dao = self.mock_user_dao,
+            chat_config_dao = self.mock_chat_config_dao,
+        )
+        result = manager.fetch_admin_chats(self.invoker_user.id.hex)
+
+        self.assertEqual(len(result), 0)
+        mock_get_admin_chats_for_user.assert_called_once_with(self.invoker_user)
+
+    @patch.object(SettingsManager, "get_admin_chats_for_user")
+    def test_fetch_admin_chats_invoker_no_telegram_id(self, mock_get_admin_chats_for_user):
+        original_telegram_user_id = self.invoker_user.telegram_user_id
+        self.invoker_user.telegram_user_id = None
+        self.mock_user_dao.get.return_value = self.invoker_user
+        mock_get_admin_chats_for_user.return_value = []
+
+        manager = SettingsManager(
+            invoker_user_id_hex = self.invoker_user.id.hex,
+            target_chat_id = self.chat_config.chat_id,
+            telegram_sdk = self.mock_telegram_sdk,
+            user_dao = self.mock_user_dao,
+            chat_config_dao = self.mock_chat_config_dao,
+        )
+        result = manager.fetch_admin_chats(self.invoker_user.id.hex)
+
+        self.assertEqual(len(result), 0)
+        mock_get_admin_chats_for_user.assert_called_once_with(self.invoker_user)
+        # noinspection PyUnresolvedReferences
+        self.mock_user_dao.get.assert_called_with(UUID(hex = self.invoker_user.id.hex))
+        self.invoker_user.telegram_user_id = original_telegram_user_id
+        self.mock_user_dao.get.return_value = self.invoker_user

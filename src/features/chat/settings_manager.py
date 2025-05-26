@@ -131,18 +131,11 @@ class SettingsManager(SafePrinterMixin):
         )
         self.sprint(f"Sent the button link to private chat '{self.__invoker_user.telegram_user_id}'")
 
-    def get_admin_chats_for_user(self, invoker_user_id_hex: str) -> list[ChatConfig]:
-        self.sprint(f"Getting administered chats for user {invoker_user_id_hex}")
-        administered_chats: list[ChatConfig] = []
+    def get_admin_chats_for_user(self, user: User) -> list[ChatConfig]:
+        self.sprint(f"Getting administered chats for user {user.id.hex}")
 
-        self.sprint("  Validating invoker user data")
-        invoker_user_db = self.__user_dao.get(UUID(hex = invoker_user_id_hex))
-        if not invoker_user_db:
-            self.sprint(f"  User {invoker_user_id_hex} not found in DB")
-            return []
-        invoker_user = User.model_validate(invoker_user_db)
-        if not invoker_user.telegram_user_id:
-            self.sprint(f"  User {invoker_user_id_hex} has no telegram_user_id")
+        if not user.telegram_user_id:
+            self.sprint(f"  User {user.id.hex} has no telegram_user_id")
             return []
 
         self.sprint("  Validating chat configurations")
@@ -155,11 +148,12 @@ class SettingsManager(SafePrinterMixin):
         self.sprint(f"  Found {len(all_chat_configs)} chat configurations to check")
 
         self.sprint("  Checking admin status in each chat")
+        administered_chats: list[ChatConfig] = []
         for chat_config in all_chat_configs:
             self.sprint(f"    Checking chat: {chat_config.title} ({chat_config.chat_id})")
             try:
                 if chat_config.is_private:
-                    if invoker_user.telegram_chat_id == chat_config.chat_id:
+                    if user.telegram_chat_id == chat_config.chat_id:
                         self.sprint(f"    Chat {chat_config.chat_id} is private and matches invoker's chat ID")
                         administered_chats.append(chat_config)
                     else:
@@ -171,12 +165,12 @@ class SettingsManager(SafePrinterMixin):
                     self.sprint(f"    No administrators returned for chat {chat_config.chat_id}")
                     continue
                 for admin_member in administrators:
-                    if admin_member.user and admin_member.user.id == invoker_user.telegram_user_id:
+                    if admin_member.user and admin_member.user.id == user.telegram_user_id:
                         self.sprint(f"    User {admin_member.user.id} IS admin in '{chat_config.chat_id}'")
                         administered_chats.append(chat_config)
                         break
                 else:
-                    self.sprint(f"    User {invoker_user.telegram_user_id} is NOT admin in '{chat_config.chat_id}'")
+                    self.sprint(f"    User {user.telegram_user_id} is NOT admin in '{chat_config.chat_id}'")
             except Exception as e:
                 self.sprint(f"    Error checking administrators for '{chat_config.chat_id}'", e)
 
@@ -213,7 +207,8 @@ class SettingsManager(SafePrinterMixin):
     def fetch_chat_settings(self, chat_id: str) -> dict[str, Any]:
         chat_config = self.authorize_for_chat(chat_id)
         output = ChatConfig.model_dump(chat_config)
-        output["is_own"] = str(self.__invoker_user.telegram_user_id or 0) == chat_config.chat_id
+        invoker_telegram_id = str(self.__invoker_user.telegram_user_id or 0)
+        output["is_own"] = invoker_telegram_id == chat_config.chat_id
         return output
 
     def fetch_user_settings(self, user_id_hex: str) -> dict[str, Any]:
@@ -263,3 +258,21 @@ class SettingsManager(SafePrinterMixin):
         user_db = self.__user_dao.save(UserSave(**user.model_dump()))
         User.model_validate(user_db)
         self.sprint("  User settings saved")
+
+    def fetch_admin_chats(self, user_id_hex: str) -> list[dict[str, Any]]:
+        self.sprint("Fetching administered chats")
+        user = self.authorize_for_user(user_id_hex)
+        admin_chats = self.get_admin_chats_for_user(user)
+        result: list[dict[str, Any]] = []
+        if not admin_chats:
+            self.sprint("  No administered chats found")
+            return result
+        invoker_telegram_id = str(self.__invoker_user.telegram_user_id or 0)
+        for chat_config in admin_chats:
+            record = {
+                "chat_id": chat_config.chat_id,
+                "title": chat_config.title,
+                "is_own": invoker_telegram_id == chat_config.chat_id,
+            }
+            result.append(record)
+        return result
