@@ -141,34 +141,36 @@ class TelegramBotSDKTest(unittest.TestCase):
         mock_map_update.return_value = Mock()
         mock_resolve.return_value = Mock(message = expected_message, attachments = [Mock()])
 
-        # Test user settings button
+        # Test settings button
         result = self.sdk.send_button_link(
             chat_id = self.chat_id,
             link_url = link_url,
-            url_type = "user_settings",
+            button_text = "⚙️",
         )
 
         # noinspection PyUnresolvedReferences
-        self.mock_api.send_button_link.assert_called_with(
-            self.chat_id,
-            link_url,
-            "user_settings",
-        )
+        self.mock_api.send_button_link.assert_called_with(self.chat_id, link_url, "⚙️")
         self.assertEqual(result, expected_message)
 
-        # Test chat settings button
+        # Test default-to-settings button
         result = self.sdk.send_button_link(
             chat_id = self.chat_id,
             link_url = link_url,
-            url_type = "chat_settings",
         )
 
         # noinspection PyUnresolvedReferences
-        self.mock_api.send_button_link.assert_called_with(
-            self.chat_id,
-            link_url,
-            "chat_settings",
+        self.mock_api.send_button_link.assert_called_with(self.chat_id, link_url, "⚙️")
+        self.assertEqual(result, expected_message)
+
+        # Test custom button text
+        result = self.sdk.send_button_link(
+            chat_id = self.chat_id,
+            link_url = link_url,
+            button_text = "test",
         )
+
+        # noinspection PyUnresolvedReferences
+        self.mock_api.send_button_link.assert_called_with(self.chat_id, link_url, "test")
         self.assertEqual(result, expected_message)
 
     def test_get_chat_member(self):

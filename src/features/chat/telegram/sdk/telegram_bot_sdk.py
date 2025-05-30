@@ -1,5 +1,4 @@
 import time
-from typing import Literal
 
 from sqlalchemy.orm import Session
 
@@ -89,13 +88,8 @@ class TelegramBotSDK(SafePrinterMixin):
     def set_reaction(self, chat_id: int | str, message_id: int | str, reaction: str | None):
         self.api.set_reaction(chat_id = chat_id, message_id = message_id, reaction = reaction)
 
-    def send_button_link(
-        self,
-        chat_id: int | str,
-        link_url: str,
-        url_type: Literal["user_settings", "chat_settings"]
-    ) -> ChatMessage:
-        sent_message = self.api.send_button_link(chat_id, link_url, url_type)
+    def send_button_link(self, chat_id: int | str, link_url: str, button_text: str = "⚙️") -> ChatMessage:
+        sent_message = self.api.send_button_link(chat_id, link_url, button_text)
         return self.__store_api_response_as_message(sent_message)
 
     def get_chat_member(self, chat_id: int | str, user_id: int | str) -> ChatMember | None:

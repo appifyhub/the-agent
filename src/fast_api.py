@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from typing import Literal, Any
+from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,8 +10,8 @@ from db.crud.price_alert import PriceAlertCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.sql import get_session, initialize_db
-from features.auth import verify_api_key, verify_telegram_auth_key, verify_jwt_credentials
-from features.chat.settings_manager import SettingsManager
+from features.auth import verify_api_key, verify_telegram_auth_key, verify_jwt_credentials, get_user_id_from_jwt
+from features.chat.settings_manager import SettingsManager, SettingsType
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.telegram_price_alert_responder import respond_with_announcements
@@ -117,27 +117,22 @@ def clear_expired_cache(
 
 @app.get("/settings/{settings_type}/{resource_id}")
 def get_settings(
-    settings_type: Literal["user", "chat"],
+    settings_type: SettingsType,
     resource_id: str,
     db = Depends(get_session),
-    token = Depends(verify_jwt_credentials),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict[str, Any]:
     try:
-        sprint(f"Fetching {settings_type} settings for {resource_id}")
-        user_id_hex, chat_id = SettingsManager.resolve_user_id_hex_and_chat_id(token)
-        sprint(f"  User ID: {user_id_hex}, Chat ID: {chat_id}")
-        settings_literal = "user_settings" if settings_type == "user" else "chat_settings"
-        user_dao = UserCRUD(db)
-        chat_config_dao = ChatConfigCRUD(db)
+        sprint(f"Fetching '{settings_type}' settings for resource '{resource_id}'")
+        invoker_id_hex = get_user_id_from_jwt(token)
+        sprint(f"  Invoker ID: {invoker_id_hex}")
         settings_manager = SettingsManager(
-            invoker_user_id_hex = user_id_hex,
-            target_chat_id = chat_id,
+            invoker_user_id_hex = invoker_id_hex,
             telegram_sdk = TelegramBotSDK(db),
-            user_dao = user_dao,
-            chat_config_dao = chat_config_dao,
-            settings_type = settings_literal,
+            user_dao = UserCRUD(db),
+            chat_config_dao = ChatConfigCRUD(db),
         )
-        if settings_literal == "user_settings":
+        if settings_type == "user":
             return settings_manager.fetch_user_settings(resource_id)
         else:
             return settings_manager.fetch_chat_settings(resource_id)
@@ -148,28 +143,23 @@ def get_settings(
 
 @app.patch("/settings/{settings_type}/{resource_id}")
 def save_settings(
-    settings_type: Literal["user", "chat"],
+    settings_type: SettingsType,
     resource_id: str,
     request_data: dict[str, Any],
     db = Depends(get_session),
-    token = Depends(verify_jwt_credentials),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
 ):
     try:
-        sprint(f"Saving {settings_type} settings for {resource_id}")
-        user_id_hex, chat_id = SettingsManager.resolve_user_id_hex_and_chat_id(token)
-        sprint(f"  Token User ID: {user_id_hex}, Token Chat ID: {chat_id}")
-        settings_literal = "user_settings" if settings_type == "user" else "chat_settings"
-        user_dao = UserCRUD(db)
-        chat_config_dao = ChatConfigCRUD(db)
+        sprint(f"Saving '{settings_type}' settings for resource '{resource_id}'")
+        invoker_id_hex = get_user_id_from_jwt(token)
+        sprint(f"  Invoker ID: {invoker_id_hex}")
         settings_manager = SettingsManager(
-            invoker_user_id_hex = user_id_hex,
-            target_chat_id = chat_id,
+            invoker_user_id_hex = invoker_id_hex,
             telegram_sdk = TelegramBotSDK(db),
-            user_dao = user_dao,
-            chat_config_dao = chat_config_dao,
-            settings_type = settings_literal,
+            user_dao = UserCRUD(db),
+            chat_config_dao = ChatConfigCRUD(db),
         )
-        if settings_literal == "user_settings":
+        if settings_type == "user":
             open_ai_key = request_data.get("open_ai_key") or ""
             settings_manager.save_user_settings(resource_id, open_ai_key)
         else:
@@ -204,20 +194,17 @@ def save_settings(
 def get_chats(
     resource_id: str,
     db = Depends(get_session),
-    token = Depends(verify_jwt_credentials),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
 ):
     try:
         sprint(f"Fetching all chats for {resource_id}")
-        user_id_hex, chat_id = SettingsManager.resolve_user_id_hex_and_chat_id(token)
-        sprint(f"  Token User ID: {user_id_hex}, Token Chat ID: {chat_id}")
-        user_dao = UserCRUD(db)
-        chat_config_dao = ChatConfigCRUD(db)
+        invoker_id_hex = get_user_id_from_jwt(token)
+        sprint(f"  Invoker ID: {invoker_id_hex}")
         settings_manager = SettingsManager(
-            invoker_user_id_hex = user_id_hex,
-            target_chat_id = chat_id,
+            invoker_user_id_hex = invoker_id_hex,
             telegram_sdk = TelegramBotSDK(db),
-            user_dao = user_dao,
-            chat_config_dao = chat_config_dao,
+            user_dao = UserCRUD(db),
+            chat_config_dao = ChatConfigCRUD(db),
         )
         return settings_manager.fetch_admin_chats(resource_id)
     except Exception as e:

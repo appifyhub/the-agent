@@ -1,4 +1,4 @@
-from typing import Literal, Dict, Any
+from typing import Literal, Any, TypeAlias, Annotated, get_args
 from uuid import UUID
 
 from db.crud.chat_config import ChatConfigCRUD
@@ -7,129 +7,99 @@ from db.schema.chat_config import ChatConfig
 from db.schema.user import User, UserSave
 from features.auth import create_jwt_token
 from features.chat.chat_config_manager import ChatConfigManager
-from features.chat.telegram.model.chat_member import ChatMemberOwner, ChatMemberAdministrator
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from util.config import config
 from util.functions import mask_secret
-from util.safe_printer_mixin import SafePrinterMixin, sprint
+from util.safe_printer_mixin import SafePrinterMixin
+
+SettingsType: TypeAlias = Annotated[str, Literal["user", "chat"]]
+InvokerType: TypeAlias = Annotated[str, Literal["creator", "administrator"]]
+DEF_SETTINGS_TYPE: SettingsType = "user"
+SETTINGS_TOKEN_VAR: str = "token"
 
 
 class SettingsManager(SafePrinterMixin):
-    __invoker_user: User
-    __chat_config: ChatConfig | None
-    __invoker_status: Literal["creator", "administrator"]
-    __settings_type: Literal["user_settings", "chat_settings"] | None
+    invoker_user: User
 
     __telegram_sdk: TelegramBotSDK
     __chat_config_manager: ChatConfigManager
     __user_dao: UserCRUD
     __chat_config_dao: ChatConfigCRUD
 
-    @staticmethod
-    def resolve_user_id_hex_and_chat_id(token_claims: Dict[str, Any]) -> tuple[str, str]:
-        if not token_claims:
-            message = "Empty token"
-            sprint(message)
-            raise ValueError(message)
-        user_id_hex = token_claims.get("sub")
-        chat_id = token_claims.get("chat_id")
-        if not user_id_hex or not chat_id:
-            message = "Invalid token, 'sub' or 'chat_id' not found"
-            sprint(message)
-            raise ValueError(message)
-        return user_id_hex, chat_id
-
     def __init__(
         self,
         invoker_user_id_hex: str,
-        target_chat_id: str | None,
         telegram_sdk: TelegramBotSDK,
         user_dao: UserCRUD,
         chat_config_dao: ChatConfigCRUD,
-        settings_type: str | None = None,
     ):
         super().__init__(config.verbose)
         self.__telegram_sdk = telegram_sdk
         self.__user_dao = user_dao
         self.__chat_config_dao = chat_config_dao
         self.__chat_config_manager = ChatConfigManager(chat_config_dao)
-        self.__validate(invoker_user_id_hex, target_chat_id, settings_type)
+        self.__validate_invoker(invoker_user_id_hex)
 
-    def __validate(self, invoker_user_id_hex: str, target_chat_id: str | None, settings_type: str | None):
-        self.sprint("Validating settings type")
-        if settings_type and settings_type not in ["user_settings", "chat_settings"]:
-            message = f"Invalid settings type '{settings_type}'"
-            self.sprint(message)
-            raise ValueError(message)
-        self.__settings_type = settings_type
-
-        self.sprint("Validating settings invoker data")
+    def __validate_invoker(self, invoker_user_id_hex: str) -> User:
+        self.sprint("Validating invoker data")
         invoker_user_db = self.__user_dao.get(UUID(hex = invoker_user_id_hex))
         if not invoker_user_db:
             message = f"Invoker '{invoker_user_id_hex}' not found"
             self.sprint(message)
             raise ValueError(message)
-        self.__invoker_user = User.model_validate(invoker_user_db)
+        self.invoker_user = User.model_validate(invoker_user_db)
+        return self.invoker_user
 
-        self.sprint("Validating settings target chat data")
-        if target_chat_id:
-            chat_config_db = self.__chat_config_dao.get(target_chat_id)
-            if not chat_config_db:
-                message = f"Chat '{target_chat_id}' not found"
-                self.sprint(message)
-                raise ValueError(message)
-            self.__chat_config = ChatConfig.model_validate(chat_config_db)
-            self.sprint("  Chat config provided and found")
-
-            self.sprint("  Validating chat admin rights for invoker")
-            invoker_as_member = self.__telegram_sdk.get_chat_member(
-                self.__chat_config.chat_id,
-                self.__invoker_user.telegram_user_id,
-            )
-            is_private = self.__chat_config.is_private and \
-                         self.__chat_config.chat_id == str(self.__invoker_user.telegram_user_id)
-            if not is_private and \
-                not isinstance(invoker_as_member, ChatMemberOwner) and \
-                not isinstance(invoker_as_member, ChatMemberAdministrator):
-                message = f"User @{self.__invoker_user.telegram_username} is not admin in '{self.__chat_config.title}'"
-                self.sprint(message)
-                raise ValueError(message)
-            self.__invoker_status = "creator" if is_private else invoker_as_member.status
-        else:
-            self.__chat_config = None
-            self.__invoker_status = "creator"
-            self.sprint("  No target chat provided, continuing without")
-
-    def create_settings_link(self) -> str:
-        if self.__settings_type == "chat_settings" and not self.__chat_config:
-            message = "Chat settings requested, but no chat config provided"
+    def __validate_chat(self, chat_id: str) -> ChatConfig:
+        self.sprint("Validating chat data")
+        chat_config_db = self.__chat_config_dao.get(chat_id)
+        if not chat_config_db:
+            message = f"Chat '{chat_id}' not found"
             self.sprint(message)
             raise ValueError(message)
-        settings_type = self.__settings_type or "chat_settings"  # it's safer for groups to default to chat settings
-        lang_iso_code: str = self.__chat_config.language_iso_code or "en"
-        resource_id = self.__invoker_user.id.hex if settings_type == "user_settings" else self.__chat_config.chat_id
-        resource_type = "user" if settings_type == "user_settings" else "chat"
+        return ChatConfig.model_validate(chat_config_db)
+
+    def __validate_settings_type(self, settings_type: str) -> SettingsType:
+        self.sprint("Validating settings type")
+        literal_type = get_args(SettingsType)[1]
+        if settings_type not in get_args(literal_type):
+            message = f"Invalid settings type '{settings_type}'"
+            self.sprint(message)
+            raise ValueError(message)
+        return settings_type
+
+    def create_settings_link(self, raw_settings_type: str | None = None, chat_id: str | None = None) -> str:
+        resource_id: str
+        lang_iso_code: str = "en"
+        settings_type = self.__validate_settings_type(raw_settings_type) if raw_settings_type else DEF_SETTINGS_TYPE
+        if settings_type == "user":
+            chat_id: str | None = self.invoker_user.telegram_chat_id
+            chat_config: ChatConfig | None = self.authorize_for_chat(chat_id) if chat_id else None
+            if chat_config and chat_config.language_iso_code:
+                lang_iso_code = chat_config.language_iso_code
+            resource_id = self.invoker_user.id.hex
+        elif settings_type == "chat":
+            if not chat_id:
+                message = "Chat ID must be provided when requesting chat settings"
+                self.sprint(message)
+                raise ValueError(message)
+            chat_config: ChatConfig = self.authorize_for_chat(chat_id)
+            lang_iso_code: str = chat_config.language_iso_code or "en"
+            resource_id = chat_config.chat_id
+        else:
+            # should never happen due to validation, let's explode if it does
+            message = f"Invalid settings type '{settings_type}'"
+            self.sprint(message)
+            raise ValueError(message)
         token_payload = {
             "iss": config.telegram_bot_name,  # issuer, app name
-            "sub": self.__invoker_user.id.hex,  # subject, unique identifier
-            "aud": self.__chat_config.title,  # audience, chat title
-            "role": self.__invoker_status,  # role, admin status
-            "chat_id": self.__chat_config.chat_id,
-            "telegram_user_id": self.__invoker_user.telegram_user_id,
-            "telegram_username": self.__invoker_user.telegram_username,
+            "sub": self.invoker_user.id.hex,  # subject, user's unique identifier
+            "telegram_user_id": self.invoker_user.telegram_user_id,
+            "telegram_username": self.invoker_user.telegram_username,
         }
         jwt_token = create_jwt_token(token_payload, config.jwt_expires_in_minutes)
-        return f"{config.backoffice_url_base}/{lang_iso_code}/{resource_type}/{resource_id}/settings?token={jwt_token}"
-
-    def send_settings_link(self, link_url: str) -> None:
-        url_type = self.__settings_type or "chat_settings"
-        # noinspection PyTypeChecker
-        self.__telegram_sdk.send_button_link(
-            chat_id = self.__invoker_user.telegram_user_id,  # always send to private chat
-            link_url = link_url,
-            url_type = url_type,
-        )
-        self.sprint(f"Sent the button link to private chat '{self.__invoker_user.telegram_user_id}'")
+        settings_url_base = f"{config.backoffice_url_base}/{lang_iso_code}/{settings_type}/{resource_id}/settings"
+        return f"{settings_url_base}?{SETTINGS_TOKEN_VAR}={jwt_token}"
 
     def get_admin_chats_for_user(self, user: User) -> list[ChatConfig]:
         self.sprint(f"Getting administered chats for user {user.id.hex}")
@@ -175,21 +145,25 @@ class SettingsManager(SafePrinterMixin):
                 self.sprint(f"    Error checking administrators for '{chat_config.chat_id}'", e)
 
         self.sprint("  Sorting administered chats now")
-        administered_chats.sort(key = lambda chat: (chat.title.lower() if chat.title else "", chat.chat_id))
+        administered_chats.sort(
+            key = lambda chat: (
+                not chat.is_private,
+                chat.title.lower() if chat.title else "",
+                chat.chat_id,
+            )
+        )
         return administered_chats
 
     def authorize_for_chat(self, chat_id: str) -> ChatConfig:
-        chat_config_db = self.__chat_config_dao.get(chat_id)
-        if not chat_config_db:
-            message = f"Chat '{chat_id}' not found"
-            self.sprint(message)
-            raise ValueError(message)
-        chat_config = ChatConfig.model_validate(chat_config_db)
-        if self.__chat_config.chat_id != chat_config.chat_id:
-            message = f"Target chat '{chat_id}' is not the allowed chat '{self.__chat_config.chat_id}'"
-            self.sprint(message)
-            raise ValueError(message)
-        return chat_config
+        self.sprint(f"Validating admin rights for invoker in chat '{chat_id}'")
+        chat_config = self.__validate_chat(chat_id)
+        admin_chat_configs = self.get_admin_chats_for_user(self.invoker_user)
+        for admin_chat_config in admin_chat_configs:
+            if admin_chat_config.chat_id == chat_config.chat_id:
+                return chat_config
+        message = f"User '{self.invoker_user.id.hex}' is not admin in '{chat_config.title}'"
+        self.sprint(message)
+        raise ValueError(message)
 
     def authorize_for_user(self, user_id_hex: str) -> User:
         user_db = self.__user_dao.get(UUID(hex = user_id_hex))
@@ -198,8 +172,8 @@ class SettingsManager(SafePrinterMixin):
             self.sprint(message)
             raise ValueError(message)
         user = User.model_validate(user_db)
-        if self.__invoker_user.id != user.id:
-            message = f"Target user '{user_id_hex}' is not the allowed user '{self.__invoker_user.id.hex}'"
+        if self.invoker_user.id != user.id:
+            message = f"Target user '{user_id_hex}' is not the allowed user '{self.invoker_user.id.hex}'"
             self.sprint(message)
             raise ValueError(message)
         return user
@@ -207,7 +181,7 @@ class SettingsManager(SafePrinterMixin):
     def fetch_chat_settings(self, chat_id: str) -> dict[str, Any]:
         chat_config = self.authorize_for_chat(chat_id)
         output = ChatConfig.model_dump(chat_config)
-        invoker_telegram_id = str(self.__invoker_user.telegram_user_id or 0)
+        invoker_telegram_id = str(self.invoker_user.telegram_user_id or 0)
         output["is_own"] = invoker_telegram_id == chat_config.chat_id
         return output
 
@@ -267,12 +241,12 @@ class SettingsManager(SafePrinterMixin):
         if not admin_chats:
             self.sprint("  No administered chats found")
             return result
-        invoker_telegram_id = str(self.__invoker_user.telegram_user_id or 0)
+        invoker_telegram_chat_id = str(self.invoker_user.telegram_chat_id or 0)
         for chat_config in admin_chats:
             record = {
                 "chat_id": chat_config.chat_id,
                 "title": chat_config.title,
-                "is_own": invoker_telegram_id == chat_config.chat_id,
+                "is_own": invoker_telegram_chat_id == chat_config.chat_id,
             }
             result.append(record)
         return result

@@ -1,6 +1,5 @@
 import json
 import re
-from typing import Literal
 
 import requests
 from pydantic import TypeAdapter
@@ -134,20 +133,7 @@ class TelegramBotAPI(SafePrinterMixin):
         self.__raise_for_status(response)
         return response.json()
 
-    def send_button_link(
-        self,
-        chat_id: int | str,
-        link_url: str,
-        url_type: Literal["user_settings", "chat_settings"]
-    ) -> dict:
-        button_text: str
-        if url_type == "user_settings":
-            button_text = "👤 ⚙️"
-        elif url_type == "chat_settings":
-            button_text = "💬 ⚙️"
-        else:
-            # shouldn't happen due to typing, but let's be safe
-            raise ValueError(f"Invalid URL type: '{url_type}'")
+    def send_button_link(self, chat_id: int | str, link_url: str, button_text: str = "⚙️") -> dict:
         payload = {
             "chat_id": chat_id,
             "text": "👇",
