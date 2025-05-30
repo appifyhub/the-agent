@@ -53,7 +53,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.issue_templates_abs_path, ".github/ISSUE_TEMPLATE")
         self.assertEqual(config.jwt_secret_key, "default")
         self.assertEqual(config.jwt_expires_in_minutes, 5)
-        self.assertEqual(config.backoffice_url_base, "https://web.agent.appifyhub.com")
+        self.assertEqual(config.backoffice_url_base, "http://127.0.0.1.nip.io:5173")
         self.assertEqual(config.version, "dev")
 
     def test_custom_config(self):

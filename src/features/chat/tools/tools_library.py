@@ -425,36 +425,49 @@ def request_feature_bug_or_support(
 @tool
 def configure_settings(
     author_user_id: str,
-    chat_id: str,
-    setting_type: str,
+    raw_settings_type: str,
+    chat_id: str | None = None,
 ) -> str:
     """
-    Launches the configuration screen for either the user's settings (profile, payments, API tokens and keys, etc), or
-    the current chat's settings (language, response rate, release notifications, etc). User settings also serve as the
-    initial setup for the agent (bot). In group chats we default to chat settings, as user settings are not applicable.
-    In private chats, user settings are the default. The user will probably not know which settings they need.
+    Launches the configuration screen. Configurations allow various profile settings, payments, API tokens/keys,
+    current chat's settings, language, response rate, release notifications, model options, etc. Profile settings also
+    serve as the initial setup for the agent (bot). In private chats, user settings are the default. The user will
+    probably not know which settings they need, so you must choose for them or ask them.
 
     Args:
         author_user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
-        chat_id: [mandatory] A unique identifier of the chat, usually found in the metadata
-        setting_type: [mandatory] The type of setting to configure: [ 'user_settings', 'chat_settings' ].
+        raw_settings_type: [mandatory] The type of settings the user wants: [ 'user', 'chat' ]
+        chat_id: [optional] A unique identifier of the chat to be configured, usually found in the metadata
     """
     try:
         with get_detached_session() as db:
+            telegram_sdk = TelegramBotSDK(db)
             manager = SettingsManager(
                 invoker_user_id_hex = author_user_id,
-                target_chat_id = chat_id,
-                telegram_sdk = TelegramBotSDK(db),
+                telegram_sdk = telegram_sdk,
                 user_dao = UserCRUD(db),
                 chat_config_dao = ChatConfigCRUD(db),
-                settings_type = setting_type,
             )
-            settings_link = manager.create_settings_link()
-            manager.send_settings_link(settings_link)
+            settings_link = manager.create_settings_link(raw_settings_type = raw_settings_type, chat_id = chat_id)
+            # let's send the settings link to the user's private chat, for security and privacy reasons
+            destination_chat_id = manager.invoker_user.telegram_chat_id
+            if not destination_chat_id:
+                return json.dumps(
+                    {
+                        "result": "Error",
+                        "error": "Author has no private chat with the bot; cannot send settings link",
+                    }
+                )
+            telegram_sdk.send_button_link(destination_chat_id, settings_link)
+            next_step: str
+            if chat_id and chat_id == str(manager.invoker_user.telegram_chat_id or 0):
+                next_step = "Notify the user that the link is just above; click it to configure your settings"
+            else:
+                next_step = "Notify the user that the link was sent to their private chat"
             return json.dumps(
                 {
                     "result": "Success",
-                    "next_step": "Notify the user that these links always and only go to their private chat",
+                    "next_step": next_step,
                 }
             )
     except Exception as e:

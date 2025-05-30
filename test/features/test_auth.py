@@ -6,7 +6,13 @@ from fastapi.security import HTTPAuthorizationCredentials
 from jose import jwt
 from starlette.status import HTTP_403_FORBIDDEN, HTTP_401_UNAUTHORIZED
 
-from features.auth import verify_api_key, verify_telegram_auth_key, verify_jwt_credentials, create_jwt_token
+from features.auth import (
+    verify_api_key,
+    verify_telegram_auth_key,
+    verify_jwt_credentials,
+    create_jwt_token,
+    get_user_id_from_jwt,
+)
 from util.config import config
 
 
@@ -95,3 +101,24 @@ class AuthTest(unittest.TestCase):
         self.assertIsNotNone(decoded_token["exp"])
         self.assertIsNotNone(decoded_token["iat"])
         self.assertIsNotNone(decoded_token["version"])
+
+    def test_get_user_id_from_jwt_valid(self):
+        claims = {"sub": "user-123"}
+        user_id = get_user_id_from_jwt(claims)
+        self.assertEqual(user_id, "user-123")
+
+    def test_get_user_id_from_jwt_empty_claims(self):
+        with self.assertRaises(ValueError) as context:
+            get_user_id_from_jwt({"other": "claim"})
+        self.assertIn("No user ID in token", str(context.exception))
+
+    def test_get_user_id_from_jwt_none_claims(self):
+        with self.assertRaises(ValueError) as context:
+            get_user_id_from_jwt(None)
+        self.assertIn("Empty token", str(context.exception))
+
+    def test_get_user_id_from_jwt_missing_sub(self):
+        claims = {"not_sub": "no-user-id"}
+        with self.assertRaises(ValueError) as context:
+            get_user_id_from_jwt(claims)
+        self.assertIn("No user ID in token", str(context.exception))

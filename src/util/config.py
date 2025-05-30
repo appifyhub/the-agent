@@ -75,7 +75,7 @@ class Config(metaclass = Singleton):
         def_issue_templates_path: str = ".github/ISSUE_TEMPLATE",
         def_jwt_secret_key: str = "default",
         def_jwt_expires_in_minutes: int = 5,
-        def_backoffice_url_base: str = "https://web.agent.appifyhub.com",
+        def_backoffice_url_base: str = "http://127.0.0.1.nip.io:5173",
         def_version: str = "dev",
     ):
         self.max_sponsorships_per_user = int(
