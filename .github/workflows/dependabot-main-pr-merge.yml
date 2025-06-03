@@ -1,0 +1,56 @@
+name: Dependabot's PR Merging
+
+on:
+  pull_request:
+    types: [labeled]
+
+concurrency:
+  group: merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  merge:
+    name: Merge Dependabot PR
+    runs-on: ubuntu-latest
+    if: |
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.label.name == 'Verified' &&
+      contains(github.event.pull_request.labels.*.name, 'Locked')
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - name: Prepare the access token
+        run: |
+          echo "TOKEN=${{ secrets.CI_TOKEN_ABOT }}" >> $GITHUB_ENV
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Approve pull request
+        env:
+          GH_TOKEN: ${{ env.TOKEN }}
+        run: gh pr review ${{ github.event.pull_request.number }} --approve --body "🤝 Auto-approved!"
+
+      - name: Merge the PR
+        id: merge
+        env:
+          GH_TOKEN: ${{ env.TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        continue-on-error: true
+        run: |
+          gh pr merge --admin --merge "$PR_URL"
+
+      - name: Comment on PR to notify about auto-merge
+        env:
+          GH_TOKEN: ${{ env.TOKEN }}
+        run: |
+          if [ "${{ steps.merge.outcome }}" = "success" ]; then
+            gh pr comment ${{ github.event.pull_request.number }} --body "🚀 Auto-merged!"
+          else
+            gh pr comment ${{ github.event.pull_request.number }} --body "❌ Auto-merge failed!"
+          fi
+
+      - name: Fail on auto-merge failure
+        if: steps.merge.outcome == 'failure'
+        run: exit 1

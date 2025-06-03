@@ -1,0 +1,85 @@
+name: Dependabot's PR Verification
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled]
+    branches:
+      - main
+
+concurrency:
+  group: verify-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  lock:
+    name: Lock Dependencies
+    runs-on: ubuntu-latest
+    if: |
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      contains(github.event.pull_request.labels.*.name, 'Locked') &&
+      (github.event.action != 'labeled' || github.event.label.name == 'Locked')
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Prepare the access token
+        run: |
+          if [ "${{ github.event.pull_request.user.login }}" = "dependabot[bot]" ]; then
+            echo "TOKEN=${{ secrets.CI_TOKEN_ABOT }}" >> $GITHUB_ENV
+          else
+            echo "TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-dependency-cache
+
+      - name: Remove the verified label if present
+        uses: actions-ecosystem/action-remove-labels@v1
+        continue-on-error: true
+        with:
+          github_token: ${{ env.TOKEN }}
+          labels: Verified
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.6"
+
+      - name: Install dependencies
+        run: |
+          pip install --no-cache-dir pipenv
+          pipenv install --dev
+
+      - name: Test the service
+        env:
+          BUILD_QUALITY: "PR"
+        run: |
+          pip install --no-cache-dir pipenv
+          ./tools/run_tests.sh
+
+      - name: Label PR as verified
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ env.TOKEN }}
+          labels: Verified
+
+      - name: Comment on PR to notify about verification
+        env:
+          GH_TOKEN: ${{ env.TOKEN }}
+        run: gh pr comment ${{ github.event.pull_request.number }} --body "✅ Auto-verified!"
+
+      - name: Remove verified label on failure or cancellation
+        if: always() && (failure() || cancelled())
+        uses: actions-ecosystem/action-remove-labels@v1
+        continue-on-error: true
+        with:
+          github_token: ${{ env.TOKEN }}
+          labels: Verified
