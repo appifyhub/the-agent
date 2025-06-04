@@ -1,10 +1,12 @@
 import unittest
 from unittest.mock import Mock, patch
 
+from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.sql_util import SQLUtil
+from features.chat.settings_manager import SettingsManager
 from features.chat.sponsorship_manager import SponsorshipManager
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
 from features.chat.telegram.model.update import Update
@@ -20,6 +22,8 @@ class TelegramUpdateResponderTest(unittest.TestCase):
     sponsorship_dao: SponsorshipCRUD
     sponsorship_manager: SponsorshipManager
     chat_messages_dao: ChatMessageCRUD
+    chat_config_dao: ChatConfigCRUD
+    settings_manager: SettingsManager
     telegram_domain_mapper: TelegramDomainMapper
     telegram_data_resolver: TelegramDataResolver
     domain_langchain_mapper: DomainLangchainMapper
@@ -33,6 +37,8 @@ class TelegramUpdateResponderTest(unittest.TestCase):
         self.sponsorship_dao = Mock(spec = SponsorshipCRUD)
         self.sponsorship_manager = Mock(spec = SponsorshipManager)
         self.chat_messages_dao = Mock(spec = ChatMessageCRUD)
+        self.chat_config_dao = Mock(spec = ChatConfigCRUD)
+        self.settings_manager = Mock(spec = SettingsManager)
         self.telegram_domain_mapper = Mock(spec = TelegramDomainMapper)
         self.telegram_data_resolver = Mock(spec = TelegramDataResolver)
         self.domain_langchain_mapper = Mock(spec = DomainLangchainMapper)
@@ -61,6 +67,14 @@ class TelegramUpdateResponderTest(unittest.TestCase):
             "features.chat.telegram.telegram_update_responder.ChatMessageCRUD",
             return_value = self.chat_messages_dao,
         )
+        patcher_chat_config_crud = patch(
+            "features.chat.telegram.telegram_update_responder.ChatConfigCRUD",
+            return_value = self.chat_config_dao,
+        )
+        patcher_settings_manager = patch(
+            "features.chat.telegram.telegram_update_responder.SettingsManager",
+            return_value = self.settings_manager,
+        )
         patcher_telegram_bot_sdk = patch(
             "features.chat.telegram.telegram_update_responder.TelegramBotSDK",
             return_value = self.telegram_bot_sdk,
@@ -82,6 +96,8 @@ class TelegramUpdateResponderTest(unittest.TestCase):
         patcher_sponsorship_crud.start()
         patcher_sponsorship_manager.start()
         patcher_chat_message_crud.start()
+        patcher_chat_config_crud.start()
+        patcher_settings_manager.start()
         patcher_telegram_bot_sdk.start()
         patcher_telegram_domain_mapper.start()
         patcher_domain_langchain_mapper.start()
@@ -92,6 +108,8 @@ class TelegramUpdateResponderTest(unittest.TestCase):
         self.addCleanup(patcher_sponsorship_crud.stop)
         self.addCleanup(patcher_sponsorship_manager.stop)
         self.addCleanup(patcher_chat_message_crud.stop)
+        self.addCleanup(patcher_chat_config_crud.stop)
+        self.addCleanup(patcher_settings_manager.stop)
         self.addCleanup(patcher_telegram_bot_sdk.stop)
         self.addCleanup(patcher_telegram_domain_mapper.stop)
         self.addCleanup(patcher_domain_langchain_mapper.stop)

@@ -26,8 +26,6 @@ ALLOWED_TELEGRAM_EMOJIS: list[str] = [
 ]
 
 MULTI_MESSAGE_DELIMITER = "\n\n"
-COMMAND_START = "start"
-ORGANIZATION_OPEN_AI = "Open AI"
 
 
 def __join(*items: str) -> str:
@@ -152,7 +150,7 @@ announcer_release_telegram: str = (
         __join(
             "First, you must come up with a catchy release title, which embodies this release's theme.",
             "Don't just call it \"Release 3.1\" or start the announcement with \"Release: ...\".",
-            "If the new version number is given to you, make sure to use it verbatim in your announcement.",
+            "If the new version number is given to you, make sure to always use it verbatim in your announcement.",
             "If it's missing, mention \"a new version\", and don't come up with imaginary version numbers.",
             "You must also come up with a good short description for this release.",
             "For example, \"Here's what changed – ...\". (be creative here)",
@@ -646,19 +644,7 @@ def add_metadata(
     ).build()
 
 
-def error_missing_api_key(reason: str, llm_author_organization: str = ORGANIZATION_OPEN_AI) -> str:
-    return MULTI_MESSAGE_DELIMITER.join(
-        [
-            f"👾 I am {TELEGRAM_BOT_USER.full_name}, the monitor of our world's simulation.",
-            f"There was an issue with your last command. {reason}",
-            f"To talk to me, you must send me your {llm_author_organization} "
-            f"[API key](https://bit.ly/open-api-key-info) first, like this:",
-            f"`/{COMMAND_START} sk-0123456789ABCDEF`",
-        ]
-    )
-
-
-def error_general_problem(reason: str, llm_author_organization: str = ORGANIZATION_OPEN_AI) -> str:
+def error_general_problem(reason: str) -> str:
     clean_reason = reason.replace(config.db_url, "db://****")
     clean_reason = clean_reason.replace(config.parent_organization, "organization")
     clean_reason = clean_reason.replace(config.telegram_bot_token, "****")
@@ -673,20 +659,8 @@ def error_general_problem(reason: str, llm_author_organization: str = ORGANIZATI
     clean_reason = clean_reason.replace(config.jwt_secret_key, "****")
     return MULTI_MESSAGE_DELIMITER.join(
         [
-            "🔴 I'm having issues replying to you.",
-            f"Maybe it's a problem with your {llm_author_organization} setup, or it's an internal problem on my side.",
-            f"Here's what I got:\n\n```{clean_reason}```",
-            f"Remember, you can reset your {llm_author_organization} [API key](https://bit.ly/open-api-key-info):",
-            f"`/{COMMAND_START} sk-0123456789ABCDEF`",
+            "⚡",
+            f"```{clean_reason}```",
+            "Type: /settings",
         ]
     )
-
-
-explainer_setup_done: str = MULTI_MESSAGE_DELIMITER.join(
-    [
-        "🎉",
-        "I hope everything is set up correctly now.",
-        "Tell me, which language would you like me to use?",
-        "🗣️ 🐼 🥨 🪆 🍕 🥖 🍔 🥷 🕵️ 🌍",
-    ]
-)
