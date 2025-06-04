@@ -72,7 +72,7 @@ class TelegramChatBotTest(unittest.TestCase):
 
         self.assertIsInstance(result, AIMessage)
         self.assertEqual(status, CommandProcessor.Result.unknown)
-        self.assertIn("It's not a valid format.", result.content)
+        self.assertEqual(result.content, "")
 
     def test_process_commands_failed(self):
         self.command_processor_mock.execute.return_value = CommandProcessor.Result.failed
@@ -81,7 +81,7 @@ class TelegramChatBotTest(unittest.TestCase):
 
         self.assertIsInstance(result, AIMessage)
         self.assertEqual(status, CommandProcessor.Result.failed)
-        self.assertIn("It's not a known failure.", result.content)
+        self.assertIn("Unknown command.", result.content)
 
     def test_process_commands_success(self):
         self.command_processor_mock.execute.return_value = CommandProcessor.Result.success
@@ -90,7 +90,7 @@ class TelegramChatBotTest(unittest.TestCase):
 
         self.assertIsInstance(result, AIMessage)
         self.assertEqual(status, CommandProcessor.Result.success)
-        self.assertIn("everything is set up", result.content)
+        self.assertEqual(result.content, "")
 
     def test_should_reply_private_chat(self):
         self.chat_config.is_private = True
@@ -175,19 +175,27 @@ class TelegramChatBotTest(unittest.TestCase):
     @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.should_reply")
     def test_execute_command_processed(self, mock_should_reply, mock_process_commands):
         mock_should_reply.return_value = True
-        mock_process_commands.return_value = (AIMessage("Command processed"), CommandProcessor.Result.success)
+        mock_process_commands.return_value = (AIMessage(""), CommandProcessor.Result.success)
         result = self.bot.execute()
-        self.assertEqual(result, AIMessage("Command processed"))
+        self.assertEqual(result, AIMessage(""))
+
+    @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.process_commands")
+    @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.should_reply")
+    def test_execute_command_failed(self, mock_should_reply, mock_process_commands):
+        mock_should_reply.return_value = True
+        mock_process_commands.return_value = (AIMessage("Unknown command."), CommandProcessor.Result.failed)
+        result = self.bot.execute()
+        self.assertEqual(result, AIMessage("Unknown command."))
 
     @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.process_commands")
     @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.should_reply")
     def test_execute_no_api_key(self, mock_should_reply, mock_process_commands):
         mock_should_reply.return_value = True
-        mock_process_commands.return_value = (AIMessage("No API key"), CommandProcessor.Result.unknown)
+        mock_process_commands.return_value = (AIMessage(""), CommandProcessor.Result.unknown)
         # noinspection PyUnresolvedReferences
         self.bot._TelegramChatBot__invoker.open_ai_key = None
         result = self.bot.execute()
-        self.assertEqual(result, AIMessage("No API key"))
+        self.assertIn("Not configured.", result.content)
 
     @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.process_commands")
     @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.should_reply")
@@ -219,5 +227,6 @@ class TelegramChatBotTest(unittest.TestCase):
         mock_process_commands.return_value = (AIMessage(""), CommandProcessor.Result.unknown)
         self.llm_tools_mock.invoke.side_effect = Exception("Test error")
         result = self.bot.execute()
-        self.assertIn("I'm having issues replying to you", result.content)
+        self.assertIn("⚡", result.content)
         self.assertIn("Test error", result.content)
+        self.assertIn("/settings", result.content)

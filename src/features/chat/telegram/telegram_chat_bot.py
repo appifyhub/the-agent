@@ -91,9 +91,19 @@ class TelegramChatBot(SafePrinterMixin):
         if not self.should_reply():
             return AIMessage("")
 
-        # check if there was a command sent
+        # handle commands first
         answer, status = self.process_commands()
-        if not self.__invoker.open_ai_key or status == CommandProcessor.Result.success:
+        if status == CommandProcessor.Result.success:
+            # command was processed successfully, no reply is needed
+            return AIMessage("")
+        if status == CommandProcessor.Result.failed:
+            # command was not processed successfully, reply with the error
+            return answer
+
+        # not a known command, but also no API key found
+        if not self.__invoker.open_ai_key:
+            self.sprint(f"No API key found for #{self.__invoker.id.hex}, skipping LLM processing")
+            answer = AIMessage(prompt_library.error_general_problem("Not configured."))
             return answer
 
         # main flow: process the messages using LLM AI
@@ -101,7 +111,8 @@ class TelegramChatBot(SafePrinterMixin):
             iteration = 1
             self.__progress_notifier.start()
             while True:
-                answer = self.__add_message(self.__llm_tools.invoke(self.__messages))
+                llm_answer = self.__llm_tools.invoke(self.__messages)
+                answer = self.__add_message(llm_answer)
                 # noinspection Pydantic
                 if not answer.tool_calls:
                     self.sprint(f"Iteration #{iteration} has no tool calls.")
@@ -139,12 +150,10 @@ class TelegramChatBot(SafePrinterMixin):
             self.sprint(f"No API key found for #{self.__invoker.id}")
         result = self.__command_processor.execute(self.__raw_last_message)
         self.sprint(f"Command processing result is {result.value}")
-        if result == CommandProcessor.Result.unknown:
-            text = prompt_library.error_missing_api_key("It's not a valid format.")
+        if result == CommandProcessor.Result.unknown or result == CommandProcessor.Result.success:
+            text = ""
         elif result == CommandProcessor.Result.failed:
-            text = prompt_library.error_general_problem("It's not a known failure.")
-        elif result == CommandProcessor.Result.success:
-            text = prompt_library.explainer_setup_done
+            text = prompt_library.error_general_problem("Unknown command.")
         else:
             raise NotImplementedError("Wild branch")
         return AIMessage(text), result

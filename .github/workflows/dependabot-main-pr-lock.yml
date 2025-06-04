@@ -1,0 +1,99 @@
+name: Dependabot's PR Locking
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches:
+      - main
+
+concurrency:
+  group: lock-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  lock:
+    name: Lock Dependencies
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Prepare the access token
+        run: |
+          if [ "${{ github.event.pull_request.user.login }}" = "dependabot[bot]" ]; then
+            echo "TOKEN=${{ secrets.CI_TOKEN_ABOT }}" >> $GITHUB_ENV
+          else
+            echo "TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-dependency-cache
+
+      - name: Remove the locked and verified labels if present
+        uses: actions-ecosystem/action-remove-labels@v1
+        continue-on-error: true
+        with:
+          github_token: ${{ env.TOKEN }}
+          labels: |
+            Locked
+            Verified
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.6"
+
+      - name: Install and lock dependencies
+        run: |
+          pip install --no-cache-dir pipenv
+          pipenv install --dev
+          pipenv lock --dev
+          pipenv sync --dev
+
+      - name: Label PR as locked
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ env.TOKEN }}
+          labels: Locked
+
+      - name: Commit lockfile updates if needed
+        run: |
+          echo "Checking for lockfile updates..."
+          [ -f Pipfile ] && git add Pipfile || true
+          [ -f Pipfile.lock ] && git add Pipfile.lock || true
+          if ! git diff --cached --quiet; then
+            echo "Committing lockfile updates..."
+            git config user.name "the-agent-abot"
+            git config user.email "the-agent-abot@users.noreply.github.com"
+            git commit -m "Auto-lock: Update dependencies"
+            git remote set-url origin https://x-access-token:${{ env.TOKEN }}@github.com/${{ github.repository }}.git
+            git pull origin ${{ github.head_ref }} --rebase
+            git push origin HEAD:${{ github.head_ref }}
+            echo "Lockfile updates committed"
+          else
+            echo "No lockfile updates found"
+          fi
+
+      - name: Comment on PR to notify about locking
+        env:
+          GH_TOKEN: ${{ env.TOKEN }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "🔒 Auto-locked! Make sure to pull the latest changes before merging."
+
+      - name: Remove locked label on failure or cancellation
+        if: always() && (failure() || cancelled())
+        uses: actions-ecosystem/action-remove-labels@v1
+        continue-on-error: true
+        with:
+          github_token: ${{ env.TOKEN }}
+          labels: Locked
