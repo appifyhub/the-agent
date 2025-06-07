@@ -6,9 +6,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import RedirectResponse
 
 from api.auth import verify_api_key, verify_telegram_auth_key, verify_jwt_credentials, get_user_id_from_jwt
+from api.models.release_output_payload import ReleaseOutputPayload
+from api.models.sponsorship_payload import SponsorshipPayload
 from api.settings_controller import SettingsController, SettingsType
+from api.sponsorships_controller import SponsorshipsController
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.price_alert import PriceAlertCRUD
+from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.sql import get_session, initialize_db
@@ -17,7 +21,6 @@ from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.telegram_price_alert_responder import respond_with_announcements
 from features.chat.telegram.telegram_summary_responder import respond_with_summary
 from features.chat.telegram.telegram_update_responder import respond_to_update
-from features.release_summarizer.raw_notes_payload import ReleaseOutputPayload
 from util.config import config
 from util.safe_printer_mixin import sprint
 from util.translations_cache import TranslationsCache
@@ -121,7 +124,7 @@ def get_settings(
     resource_id: str,
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
-) -> dict[str, Any]:
+) -> dict:
     try:
         sprint(f"Fetching '{settings_type}' settings for resource '{resource_id}'")
         invoker_id_hex = get_user_id_from_jwt(token)
@@ -148,7 +151,7 @@ def save_settings(
     request_data: dict[str, Any],
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
-):
+) -> dict:
     try:
         sprint(f"Saving '{settings_type}' settings for resource '{resource_id}'")
         invoker_id_hex = get_user_id_from_jwt(token)
@@ -195,7 +198,7 @@ def get_chats(
     resource_id: str,
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
-):
+) -> list[dict]:
     try:
         sprint(f"Fetching all chats for {resource_id}")
         invoker_id_hex = get_user_id_from_jwt(token)
@@ -209,4 +212,77 @@ def get_chats(
         return settings_controller.fetch_admin_chats(resource_id)
     except Exception as e:
         sprint("Failed to get chats", e)
+        raise HTTPException(status_code = 500, detail = {"reason": str(e)})
+
+
+@app.get("/user/{resource_id}/sponsorships")
+def get_sponsorships(
+    resource_id: str,
+    db = Depends(get_session),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
+) -> list[dict]:
+    try:
+        sprint(f"Fetching sponsorships for {resource_id}")
+        invoker_id_hex = get_user_id_from_jwt(token)
+        sprint(f"  Invoker ID: {invoker_id_hex}")
+        sponsorships_controller = SponsorshipsController(
+            invoker_user_id_hex = invoker_id_hex,
+            user_dao = UserCRUD(db),
+            sponsorship_dao = SponsorshipCRUD(db),
+            telegram_sdk = TelegramBotSDK(db),
+            chat_config_dao = ChatConfigCRUD(db),
+        )
+        return sponsorships_controller.fetch_sponsorships(resource_id)
+    except Exception as e:
+        sprint("Failed to get sponsorships", e)
+        raise HTTPException(status_code = 500, detail = {"reason": str(e)})
+
+
+@app.post("/user/{resource_id}/sponsorships")
+def sponsor_user(
+    resource_id: str,
+    payload: SponsorshipPayload,
+    db = Depends(get_session),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
+) -> dict:
+    try:
+        sprint(f"Sponsoring user from {resource_id}")
+        invoker_id_hex = get_user_id_from_jwt(token)
+        sprint(f"  Invoker ID: {invoker_id_hex}")
+        sponsorships_controller = SponsorshipsController(
+            invoker_user_id_hex = invoker_id_hex,
+            user_dao = UserCRUD(db),
+            sponsorship_dao = SponsorshipCRUD(db),
+            telegram_sdk = TelegramBotSDK(db),
+            chat_config_dao = ChatConfigCRUD(db),
+        )
+        sponsorships_controller.sponsor_user(resource_id, payload.receiver_telegram_username)
+        return {"status": "OK"}
+    except Exception as e:
+        sprint("Failed to sponsor user", e)
+        raise HTTPException(status_code = 500, detail = {"reason": str(e)})
+
+
+@app.delete("/user/{resource_id}/sponsorships/{receiver_telegram_username}")
+def unsponsor_user(
+    resource_id: str,
+    receiver_telegram_username: str,
+    db = Depends(get_session),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
+) -> dict:
+    try:
+        sprint(f"Unsponsoring user from {resource_id}")
+        invoker_id_hex = get_user_id_from_jwt(token)
+        sprint(f"  Invoker ID: {invoker_id_hex}")
+        sponsorships_controller = SponsorshipsController(
+            invoker_user_id_hex = invoker_id_hex,
+            user_dao = UserCRUD(db),
+            sponsorship_dao = SponsorshipCRUD(db),
+            telegram_sdk = TelegramBotSDK(db),
+            chat_config_dao = ChatConfigCRUD(db),
+        )
+        sponsorships_controller.unsponsor_user(resource_id, receiver_telegram_username)
+        return {"status": "OK"}
+    except Exception as e:
+        sprint("Failed to unsponsor user", e)
         raise HTTPException(status_code = 500, detail = {"reason": str(e)})

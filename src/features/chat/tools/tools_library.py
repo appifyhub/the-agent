@@ -2,6 +2,7 @@ import json
 
 from langchain_core.tools import tool
 
+from api.settings_controller import SettingsController
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
 from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
@@ -15,7 +16,6 @@ from features.chat.attachments_content_resolver import AttachmentsContentResolve
 from features.chat.generative_imaging_manager import GenerativeImagingManager
 from features.chat.image_edit_manager import ImageEditManager
 from features.chat.price_alert_manager import PriceAlertManager
-from api.settings_controller import SettingsController
 from features.chat.sponsorship_manager import SponsorshipManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.tools.base_tool_binder import BaseToolBinder
@@ -448,7 +448,10 @@ def configure_settings(
                 user_dao = UserCRUD(db),
                 chat_config_dao = ChatConfigCRUD(db),
             )
-            settings_link = manager.create_settings_link(raw_settings_type = raw_settings_type, chat_id = chat_id)
+            settings_link = manager.create_settings_link(
+                raw_settings_type = raw_settings_type,
+                target_chat_id = chat_id,
+            )
             # let's send the settings link to the user's private chat, for security and privacy reasons
             destination_chat_id = manager.invoker_user.telegram_chat_id
             if not destination_chat_id:
