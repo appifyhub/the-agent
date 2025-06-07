@@ -7,7 +7,7 @@ from db.crud.user import UserCRUD
 from db.model.user import UserDB
 from db.schema.user import User
 from features.chat.command_processor import CommandProcessor, COMMAND_START, COMMAND_SETTINGS
-from features.chat.settings_manager import SettingsManager
+from api.settings_controller import SettingsController
 from features.chat.sponsorship_manager import SponsorshipManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
@@ -17,7 +17,7 @@ class CommandProcessorTest(unittest.TestCase):
     user: User
     mock_user_dao: UserCRUD
     mock_sponsorship_manager: SponsorshipManager
-    mock_settings_manager: SettingsManager
+    mock_settings_controller: SettingsController
     mock_telegram_sdk: TelegramBotSDK
     processor: CommandProcessor
 
@@ -34,18 +34,18 @@ class CommandProcessorTest(unittest.TestCase):
         )
         self.mock_user_dao = Mock(spec = UserCRUD)
         self.mock_sponsorship_manager = Mock(spec = SponsorshipManager)
-        self.mock_settings_manager = Mock(spec = SettingsManager)
+        self.mock_settings_controller = Mock(spec = SettingsController)
         self.mock_telegram_sdk = Mock(spec = TelegramBotSDK)
 
         # Setup default return values
         self.mock_sponsorship_manager.accept_sponsorship.return_value = False
-        self.mock_settings_manager.create_settings_link.return_value = "https://example.com/settings?token=abc123"
+        self.mock_settings_controller.create_settings_link.return_value = "https://example.com/settings?token=abc123"
 
         self.processor = CommandProcessor(
             invoker = self.user,
             user_dao = self.mock_user_dao,
             sponsorship_manager = self.mock_sponsorship_manager,
-            settings_manager = self.mock_settings_manager,
+            settings_controller = self.mock_settings_controller,
             telegram_sdk = self.mock_telegram_sdk,
         )
 
@@ -63,7 +63,7 @@ class CommandProcessorTest(unittest.TestCase):
         # noinspection PyUnresolvedReferences
         self.mock_sponsorship_manager.accept_sponsorship.assert_called_once_with(self.user)
         # noinspection PyUnresolvedReferences
-        self.mock_settings_manager.create_settings_link.assert_called_once()
+        self.mock_settings_controller.create_settings_link.assert_called_once()
         # noinspection PyUnresolvedReferences
         self.mock_telegram_sdk.send_button_link.assert_called_once_with(
             self.user.telegram_chat_id,
@@ -78,7 +78,7 @@ class CommandProcessorTest(unittest.TestCase):
         # noinspection PyUnresolvedReferences
         self.mock_sponsorship_manager.accept_sponsorship.assert_called_once_with(self.user)
         # noinspection PyUnresolvedReferences
-        self.mock_settings_manager.create_settings_link.assert_not_called()
+        self.mock_settings_controller.create_settings_link.assert_not_called()
         # noinspection PyUnresolvedReferences
         self.mock_telegram_sdk.send_button_link.assert_not_called()
 
@@ -88,7 +88,7 @@ class CommandProcessorTest(unittest.TestCase):
         # noinspection PyUnresolvedReferences
         self.mock_sponsorship_manager.accept_sponsorship.assert_not_called()
         # noinspection PyUnresolvedReferences
-        self.mock_settings_manager.create_settings_link.assert_called_once()
+        self.mock_settings_controller.create_settings_link.assert_called_once()
         # noinspection PyUnresolvedReferences
         self.mock_telegram_sdk.send_button_link.assert_called_once_with(
             self.user.telegram_chat_id,
@@ -100,7 +100,7 @@ class CommandProcessorTest(unittest.TestCase):
         result = self.processor.execute(f"/{COMMAND_START}@{bot_tag}")
         self.assertEqual(result, CommandProcessor.Result.success)
         # noinspection PyUnresolvedReferences
-        self.mock_settings_manager.create_settings_link.assert_called_once()
+        self.mock_settings_controller.create_settings_link.assert_called_once()
         # noinspection PyUnresolvedReferences
         self.mock_telegram_sdk.send_button_link.assert_called_once()
 
@@ -109,7 +109,7 @@ class CommandProcessorTest(unittest.TestCase):
         result = self.processor.execute(f"/{COMMAND_SETTINGS}@{bot_tag}")
         self.assertEqual(result, CommandProcessor.Result.success)
         # noinspection PyUnresolvedReferences
-        self.mock_settings_manager.create_settings_link.assert_called_once()
+        self.mock_settings_controller.create_settings_link.assert_called_once()
         # noinspection PyUnresolvedReferences
         self.mock_telegram_sdk.send_button_link.assert_called_once()
 
@@ -117,7 +117,7 @@ class CommandProcessorTest(unittest.TestCase):
         result = self.processor.execute(f"/{COMMAND_START}@wrong_bot")
         self.assertEqual(result, CommandProcessor.Result.unknown)
         # noinspection PyUnresolvedReferences
-        self.mock_settings_manager.create_settings_link.assert_not_called()
+        self.mock_settings_controller.create_settings_link.assert_not_called()
         # noinspection PyUnresolvedReferences
         self.mock_telegram_sdk.send_button_link.assert_not_called()
 
@@ -125,7 +125,7 @@ class CommandProcessorTest(unittest.TestCase):
         result = self.processor.execute("/unknown_command")
         self.assertEqual(result, CommandProcessor.Result.unknown)
         # noinspection PyUnresolvedReferences
-        self.mock_settings_manager.create_settings_link.assert_not_called()
+        self.mock_settings_controller.create_settings_link.assert_not_called()
         # noinspection PyUnresolvedReferences
         self.mock_telegram_sdk.send_button_link.assert_not_called()
 
@@ -133,7 +133,7 @@ class CommandProcessorTest(unittest.TestCase):
         result = self.processor.execute(f"/{COMMAND_START} some extra arguments")
         self.assertEqual(result, CommandProcessor.Result.success)
         # noinspection PyUnresolvedReferences
-        self.mock_settings_manager.create_settings_link.assert_called_once()
+        self.mock_settings_controller.create_settings_link.assert_called_once()
         # noinspection PyUnresolvedReferences
         self.mock_telegram_sdk.send_button_link.assert_called_once()
 
@@ -141,12 +141,12 @@ class CommandProcessorTest(unittest.TestCase):
         result = self.processor.execute(f"/{COMMAND_SETTINGS} some extra arguments")
         self.assertEqual(result, CommandProcessor.Result.success)
         # noinspection PyUnresolvedReferences
-        self.mock_settings_manager.create_settings_link.assert_called_once()
+        self.mock_settings_controller.create_settings_link.assert_called_once()
         # noinspection PyUnresolvedReferences
         self.mock_telegram_sdk.send_button_link.assert_called_once()
 
-    def test_exception_in_settings_manager(self):
-        self.mock_settings_manager.create_settings_link.side_effect = Exception("Settings error")
+    def test_exception_in_settings_controller(self):
+        self.mock_settings_controller.create_settings_link.side_effect = Exception("Settings error")
 
         result = self.processor.execute(f"/{COMMAND_START}")
         self.assertEqual(result, CommandProcessor.Result.failed)

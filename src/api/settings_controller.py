@@ -18,7 +18,7 @@ DEF_SETTINGS_TYPE: SettingsType = "user"
 SETTINGS_TOKEN_VAR: str = "token"
 
 
-class SettingsManager(SafePrinterMixin):
+class SettingsController(SafePrinterMixin):
     invoker_user: User
 
     __telegram_sdk: TelegramBotSDK

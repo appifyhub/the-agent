@@ -3,6 +3,7 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 from uuid import UUID
 
+from api.settings_controller import SettingsController
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.user import UserCRUD
 from db.model.chat_config import ChatConfigDB
@@ -10,14 +11,13 @@ from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User, UserSave
 from features.chat.chat_config_manager import ChatConfigManager
-from features.chat.settings_manager import SettingsManager
 from features.chat.telegram.model.chat_member import ChatMemberAdministrator
 from features.chat.telegram.model.user import User as TelegramUser
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from util.functions import mask_secret
 
 
-class SettingsManagerTest(unittest.TestCase):
+class SettingsControllerTest(unittest.TestCase):
     invoker_user: User
     invoker_telegram_user: TelegramUser
     chat_config: ChatConfig
@@ -96,7 +96,7 @@ class SettingsManagerTest(unittest.TestCase):
         self.mock_chat_config_dao.get.return_value = private_chat
         self.mock_chat_config_dao.get_all.return_value = [private_chat]
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -113,8 +113,8 @@ class SettingsManagerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
         # Mock get_admin_chats_for_user to return the chat config
-        with patch.object(SettingsManager, 'get_admin_chats_for_user', return_value = [self.chat_config]):
-            manager = SettingsManager(
+        with patch.object(SettingsController, 'get_admin_chats_for_user', return_value = [self.chat_config]):
+            manager = SettingsController(
                 invoker_user_id_hex = self.invoker_user.id.hex,
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
@@ -128,7 +128,7 @@ class SettingsManagerTest(unittest.TestCase):
     def test_create_settings_link_failure_invalid_settings_type(self):
         self.mock_user_dao.get.return_value = self.invoker_user
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -142,7 +142,7 @@ class SettingsManagerTest(unittest.TestCase):
     def test_create_settings_link_failure_chat_settings_no_chat_id(self):
         self.mock_user_dao.get.return_value = self.invoker_user
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -157,7 +157,7 @@ class SettingsManagerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = None
 
         with self.assertRaises(ValueError) as context:
-            SettingsManager(
+            SettingsController(
                 invoker_user_id_hex = self.invoker_user.id.hex,
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
@@ -169,8 +169,8 @@ class SettingsManagerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
 
-        with patch.object(SettingsManager, 'get_admin_chats_for_user', return_value = [self.chat_config]):
-            manager = SettingsManager(
+        with patch.object(SettingsController, 'get_admin_chats_for_user', return_value = [self.chat_config]):
+            manager = SettingsController(
                 invoker_user_id_hex = self.invoker_user.id.hex,
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
@@ -182,7 +182,7 @@ class SettingsManagerTest(unittest.TestCase):
     def test_authorize_for_chat_not_found(self):
         self.mock_user_dao.get.return_value = self.invoker_user
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -198,8 +198,8 @@ class SettingsManagerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
 
-        with patch.object(SettingsManager, 'get_admin_chats_for_user', return_value = []):
-            manager = SettingsManager(
+        with patch.object(SettingsController, 'get_admin_chats_for_user', return_value = []):
+            manager = SettingsController(
                 invoker_user_id_hex = self.invoker_user.id.hex,
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
@@ -213,7 +213,7 @@ class SettingsManagerTest(unittest.TestCase):
     def test_authorize_for_user_different_user(self):
         self.mock_user_dao.get.return_value = self.invoker_user  # for __init__
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -239,7 +239,7 @@ class SettingsManagerTest(unittest.TestCase):
     def test_authorize_for_user_not_found(self):
         self.mock_user_dao.get.return_value = self.invoker_user  # for __init__
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -256,8 +256,8 @@ class SettingsManagerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
 
-        with patch.object(SettingsManager, 'get_admin_chats_for_user', return_value = [self.chat_config]):
-            manager = SettingsManager(
+        with patch.object(SettingsController, 'get_admin_chats_for_user', return_value = [self.chat_config]):
+            manager = SettingsController(
                 invoker_user_id_hex = self.invoker_user.id.hex,
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
@@ -271,7 +271,7 @@ class SettingsManagerTest(unittest.TestCase):
     def test_fetch_chat_settings_failure_chat_not_found(self):
         self.mock_user_dao.get.return_value = self.invoker_user
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -286,7 +286,7 @@ class SettingsManagerTest(unittest.TestCase):
     def test_fetch_user_settings_success(self):
         self.mock_user_dao.get.return_value = self.invoker_user
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -300,7 +300,7 @@ class SettingsManagerTest(unittest.TestCase):
     def test_fetch_user_settings_failure_user_not_found(self):
         self.mock_user_dao.get.return_value = self.invoker_user  # for __init__
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -332,8 +332,8 @@ class SettingsManagerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
 
-        with patch.object(SettingsManager, 'get_admin_chats_for_user', return_value = [self.chat_config]):
-            manager = SettingsManager(
+        with patch.object(SettingsController, 'get_admin_chats_for_user', return_value = [self.chat_config]):
+            manager = SettingsController(
                 invoker_user_id_hex = self.invoker_user.id.hex,
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
@@ -377,7 +377,7 @@ class SettingsManagerTest(unittest.TestCase):
             created_at = self.invoker_user.created_at,
         )
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -399,8 +399,8 @@ class SettingsManagerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
 
-        with patch.object(SettingsManager, 'get_admin_chats_for_user', return_value = [self.chat_config]):
-            manager = SettingsManager(
+        with patch.object(SettingsController, 'get_admin_chats_for_user', return_value = [self.chat_config]):
+            manager = SettingsController(
                 invoker_user_id_hex = self.invoker_user.id.hex,
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
@@ -430,8 +430,8 @@ class SettingsManagerTest(unittest.TestCase):
         mock_change_chat_language.return_value = (ChatConfigManager.Result.success, "")
         mock_change_chat_reply_chance.return_value = (ChatConfigManager.Result.failure, "Error")
 
-        with patch.object(SettingsManager, 'get_admin_chats_for_user', return_value = [self.chat_config]):
-            manager = SettingsManager(
+        with patch.object(SettingsController, 'get_admin_chats_for_user', return_value = [self.chat_config]):
+            manager = SettingsController(
                 invoker_user_id_hex = self.invoker_user.id.hex,
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
@@ -464,8 +464,8 @@ class SettingsManagerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
 
-        with patch.object(SettingsManager, 'get_admin_chats_for_user', return_value = [self.chat_config]):
-            manager = SettingsManager(
+        with patch.object(SettingsController, 'get_admin_chats_for_user', return_value = [self.chat_config]):
+            manager = SettingsController(
                 invoker_user_id_hex = self.invoker_user.id.hex,
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
@@ -493,7 +493,7 @@ class SettingsManagerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -560,7 +560,7 @@ class SettingsManagerTest(unittest.TestCase):
         self.mock_user_dao.reset_mock()
         self.mock_user_dao.get.return_value = self.invoker_user
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -613,7 +613,7 @@ class SettingsManagerTest(unittest.TestCase):
         self.mock_user_dao.reset_mock()
         self.mock_user_dao.get.return_value = self.invoker_user
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -667,7 +667,7 @@ class SettingsManagerTest(unittest.TestCase):
         self.mock_user_dao.reset_mock()
         self.mock_user_dao.get.return_value = self.invoker_user
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -695,7 +695,7 @@ class SettingsManagerTest(unittest.TestCase):
 
         telegram_sdk_for_test = Mock(spec = TelegramBotSDK)
 
-        manager_for_test = SettingsManager(
+        manager_for_test = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = telegram_sdk_for_test,
             user_dao = user_dao_for_test,
@@ -713,7 +713,7 @@ class SettingsManagerTest(unittest.TestCase):
         self.mock_user_dao.reset_mock()
         self.mock_user_dao.get.return_value = self.invoker_user
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -771,8 +771,8 @@ class SettingsManagerTest(unittest.TestCase):
         self.mock_user_dao.reset_mock()
         self.mock_user_dao.get.return_value = self.invoker_user  # Ensures __init__ and the method call get the user
 
-        # Initialize SettingsManager
-        manager = SettingsManager(
+        # Initialize
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -802,7 +802,7 @@ class SettingsManagerTest(unittest.TestCase):
         # noinspection PyUnresolvedReferences
         self.mock_telegram_sdk.get_chat_administrators.assert_any_call(chat_config3.chat_id)
 
-    @patch.object(SettingsManager, "get_admin_chats_for_user")
+    @patch.object(SettingsController, "get_admin_chats_for_user")
     def test_fetch_admin_chats_success(self, mock_get_admin_chats_for_user):
         self.invoker_user.telegram_chat_id = "invoker_chat_id"  # As in setUp
         own_chat_config = ChatConfig(
@@ -831,7 +831,7 @@ class SettingsManagerTest(unittest.TestCase):
         )
         mock_get_admin_chats_for_user.return_value = [own_chat_config, group_chat_config, no_title_chat_config]
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -860,11 +860,11 @@ class SettingsManagerTest(unittest.TestCase):
         ]
         self.assertListEqual(result, expected_results)
 
-    @patch.object(SettingsManager, "get_admin_chats_for_user")
+    @patch.object(SettingsController, "get_admin_chats_for_user")
     def test_fetch_admin_chats_no_chats_found(self, mock_get_admin_chats_for_user):
         mock_get_admin_chats_for_user.return_value = []
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -875,14 +875,14 @@ class SettingsManagerTest(unittest.TestCase):
         self.assertEqual(len(result), 0)
         mock_get_admin_chats_for_user.assert_called_once_with(self.invoker_user)
 
-    @patch.object(SettingsManager, "get_admin_chats_for_user")
+    @patch.object(SettingsController, "get_admin_chats_for_user")
     def test_fetch_admin_chats_invoker_no_telegram_id(self, mock_get_admin_chats_for_user):
         original_telegram_user_id = self.invoker_user.telegram_user_id
         self.invoker_user.telegram_user_id = None
         self.mock_user_dao.get.return_value = self.invoker_user
         mock_get_admin_chats_for_user.return_value = []
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -910,7 +910,7 @@ class SettingsManagerTest(unittest.TestCase):
         private_chat_config_db = ChatConfigDB(**private_chat_config.model_dump())
         self.mock_chat_config_dao.get_all.return_value = [private_chat_config_db]
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -939,7 +939,7 @@ class SettingsManagerTest(unittest.TestCase):
         private_chat_config_db = ChatConfigDB(**private_chat_config.model_dump())
         self.mock_chat_config_dao.get_all.return_value = [private_chat_config_db]
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -973,9 +973,9 @@ class SettingsManagerTest(unittest.TestCase):
                 return [private_chat_config]
             return []
 
-        with patch.object(SettingsManager, 'get_admin_chats_for_user', side_effect = mock_get_admin_chats_for_user), \
-            patch.object(SettingsManager, '_SettingsManager__validate_chat', return_value = private_chat_config):
-            manager = SettingsManager(
+        with patch.object(SettingsController, 'get_admin_chats_for_user', side_effect = mock_get_admin_chats_for_user), \
+            patch.object(SettingsController, '_SettingsController__validate_chat', return_value = private_chat_config):
+            manager = SettingsController(
                 invoker_user_id_hex = self.invoker_user.id.hex,
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
@@ -994,8 +994,8 @@ class SettingsManagerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
 
-        with patch.object(SettingsManager, 'get_admin_chats_for_user', return_value = [self.chat_config]):
-            manager = SettingsManager(
+        with patch.object(SettingsController, 'get_admin_chats_for_user', return_value = [self.chat_config]):
+            manager = SettingsController(
                 invoker_user_id_hex = self.invoker_user.id.hex,
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
@@ -1013,7 +1013,7 @@ class SettingsManagerTest(unittest.TestCase):
         self.invoker_user.telegram_chat_id = None
         self.mock_user_dao.get.return_value = self.invoker_user
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
@@ -1047,11 +1047,11 @@ class SettingsManagerTest(unittest.TestCase):
         )
 
         with patch.object(
-            SettingsManager,
+            SettingsController,
             "get_admin_chats_for_user",
             return_value = [own_chat_config, other_chat_config]
         ):
-            manager = SettingsManager(
+            manager = SettingsController(
                 invoker_user_id_hex = self.invoker_user.id.hex,
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
@@ -1081,8 +1081,8 @@ class SettingsManagerTest(unittest.TestCase):
             is_private = False,
         )
 
-        with patch.object(SettingsManager, "get_admin_chats_for_user", return_value = [chat_config]):
-            manager = SettingsManager(
+        with patch.object(SettingsController, "get_admin_chats_for_user", return_value = [chat_config]):
+            manager = SettingsController(
                 invoker_user_id_hex = self.invoker_user.id.hex,
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
@@ -1134,7 +1134,7 @@ class SettingsManagerTest(unittest.TestCase):
         admin_member = self.create_admin_member(self.invoker_telegram_user, is_manager = True)
         self.mock_telegram_sdk.get_chat_administrators.return_value = [admin_member]
 
-        manager = SettingsManager(
+        manager = SettingsController(
             invoker_user_id_hex = self.invoker_user.id.hex,
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
