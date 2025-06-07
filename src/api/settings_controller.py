@@ -5,7 +5,7 @@ from db.crud.chat_config import ChatConfigCRUD
 from db.crud.user import UserCRUD
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User, UserSave
-from features.auth import create_jwt_token
+from api.auth import create_jwt_token
 from features.chat.chat_config_manager import ChatConfigManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from util.config import config

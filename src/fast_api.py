@@ -5,13 +5,13 @@ from fastapi import Depends, FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import RedirectResponse
 
+from api.auth import verify_api_key, verify_telegram_auth_key, verify_jwt_credentials, get_user_id_from_jwt
 from api.settings_controller import SettingsController, SettingsType
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.price_alert import PriceAlertCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.sql import get_session, initialize_db
-from features.auth import verify_api_key, verify_telegram_auth_key, verify_jwt_credentials, get_user_id_from_jwt
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.telegram_price_alert_responder import respond_with_announcements
