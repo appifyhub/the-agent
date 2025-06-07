@@ -4,11 +4,11 @@ import re
 from enum import Enum
 from typing import Any
 
+from api.models.release_output_payload import ReleaseOutputPayload
 from db.crud.chat_config import ChatConfigCRUD
 from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
-from features.release_summarizer.raw_notes_payload import ReleaseOutputPayload
 from features.release_summarizer.release_summarizer import ReleaseSummarizer
 from util.safe_printer_mixin import sprint
 from util.translations_cache import TranslationsCache, DEFAULT_LANGUAGE, DEFAULT_ISO_CODE
