@@ -220,7 +220,7 @@ def get_sponsorships(
     resource_id: str,
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
-) -> list[dict]:
+) -> dict:
     try:
         sprint(f"Fetching sponsorships for {resource_id}")
         invoker_id_hex = get_user_id_from_jwt(token)

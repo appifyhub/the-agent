@@ -4,6 +4,7 @@ from api.authorization_service import AuthorizationService
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
+from db.model.user import UserDB
 from db.schema.sponsorship import Sponsorship
 from db.schema.user import User
 from features.chat.sponsorship_manager import SponsorshipManager
@@ -13,8 +14,7 @@ from util.safe_printer_mixin import SafePrinterMixin
 
 
 class SponsorshipsController(SafePrinterMixin):
-    invoker_user: User
-
+    __invoker_user: User
     __authorization_service: AuthorizationService
     __sponsorship_manager: SponsorshipManager
     __user_dao: UserCRUD
@@ -33,25 +33,33 @@ class SponsorshipsController(SafePrinterMixin):
         self.__sponsorship_manager = SponsorshipManager(user_dao, sponsorship_dao)
         self.__user_dao = user_dao
         self.__sponsorship_dao = sponsorship_dao
-        self.invoker_user = self.__authorization_service.validate_user(invoker_user_id_hex)
+        self.__invoker_user = self.__authorization_service.validate_user(invoker_user_id_hex)
 
-    def fetch_sponsorships(self, user_id_hex: str) -> list[dict[str, Any]]:
+    def fetch_sponsorships(self, user_id_hex: str) -> dict[str, Any]:
         self.sprint(f"Fetching sponsorships for user '{user_id_hex}'")
-        user = self.__authorization_service.authorize_for_user(self.invoker_user, user_id_hex)
+        user = self.__authorization_service.authorize_for_user(self.__invoker_user, user_id_hex)
         sponsorships_db = self.__sponsorship_dao.get_all_by_sponsor(user.id)
+        max_sponsorships = (
+            config.max_sponsorships_per_user
+            if self.__invoker_user.group != UserDB.Group.developer
+            else config.max_users
+        )
         if not sponsorships_db:
             self.sprint("  No sponsorships found")
-            return []
+            return {
+                "sponsorships": [],
+                "max_sponsorships": max_sponsorships,
+            }
 
         sponsorships = [Sponsorship.model_validate(sponsorship_db) for sponsorship_db in sponsorships_db]
-        result: list[dict[str, Any]] = []
+        output_sponsorships: list[dict[str, Any]] = []
         for sponsorship in sponsorships:
             receiver_user_db = self.__user_dao.get(sponsorship.receiver_id)
             if not receiver_user_db:
                 self.sprint(f"  Receiver user with id {sponsorship.receiver_id} not found, skipping.")
                 continue
             receiver_user = User.model_validate(receiver_user_db)
-            result.append(
+            output_sponsorships.append(
                 {
                     "full_name": receiver_user.full_name,
                     "telegram_username": receiver_user.telegram_username,
@@ -59,11 +67,14 @@ class SponsorshipsController(SafePrinterMixin):
                     "accepted_at": sponsorship.accepted_at.isoformat() if sponsorship.accepted_at else None,
                 }
             )
-        return result
+        return {
+            "sponsorships": output_sponsorships,
+            "max_sponsorships": max_sponsorships,
+        }
 
     def sponsor_user(self, sponsor_user_id_hex: str, receiver_telegram_username: str):
-        user = self.__authorization_service.authorize_for_user(self.invoker_user, sponsor_user_id_hex)
-        self.sprint(f"Sponsoring user '@{receiver_telegram_username}' by '{self.invoker_user.id.hex}'")
+        user = self.__authorization_service.authorize_for_user(self.__invoker_user, sponsor_user_id_hex)
+        self.sprint(f"Sponsoring user '@{receiver_telegram_username}' by '{self.__invoker_user.id.hex}'")
         result, message = self.__sponsorship_manager.sponsor_user(
             sponsor_user_id_hex = user.id.hex,
             receiver_telegram_username = receiver_telegram_username,
@@ -73,8 +84,8 @@ class SponsorshipsController(SafePrinterMixin):
         self.sprint(f"  Successfully sponsored '@{receiver_telegram_username}'")
 
     def unsponsor_user(self, sponsor_user_id_hex: str, receiver_telegram_username: str):
-        user = self.__authorization_service.authorize_for_user(self.invoker_user, sponsor_user_id_hex)
-        self.sprint(f"Unsponsoring user '@{receiver_telegram_username}' by '{self.invoker_user.id.hex}'")
+        user = self.__authorization_service.authorize_for_user(self.__invoker_user, sponsor_user_id_hex)
+        self.sprint(f"Unsponsoring user '@{receiver_telegram_username}' by '{self.__invoker_user.id.hex}'")
         result, message = self.__sponsorship_manager.unsponsor_user(
             sponsor_user_id_hex = user.id.hex,
             receiver_telegram_username = receiver_telegram_username,
