@@ -6,7 +6,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 from jose import jwt
 from starlette.status import HTTP_403_FORBIDDEN, HTTP_401_UNAUTHORIZED
 
-from features.auth import (
+from api.auth import (
     verify_api_key,
     verify_telegram_auth_key,
     verify_jwt_credentials,
@@ -32,13 +32,13 @@ class AuthTest(unittest.TestCase):
         self.assertEqual(context.exception.status_code, HTTP_403_FORBIDDEN)
         self.assertEqual(context.exception.detail, "Could not validate the API key")
 
-    @patch("features.auth.config")
+    @patch("api.auth.config")
     def test_valid_api_key(self, mock_config: MagicMock):
         mock_config.api_key = "VALI-DKEY"
         api_key = verify_api_key("VALI-DKEY")
         self.assertEqual(api_key, "VALI-DKEY")
 
-    @patch("features.auth.config")
+    @patch("api.auth.config")
     def test_missing_telegram_auth_key(self, mock_config: MagicMock):
         mock_config.telegram_must_auth = True
         with self.assertRaises(HTTPException) as context:
@@ -48,7 +48,7 @@ class AuthTest(unittest.TestCase):
         self.assertEqual(context.exception.status_code, HTTP_403_FORBIDDEN)
         self.assertEqual(context.exception.detail, "Could not validate the Telegram auth token")
 
-    @patch("features.auth.config")
+    @patch("api.auth.config")
     def test_invalid_telegram_auth_key(self, mock_config: MagicMock):
         mock_config.telegram_must_auth = True
         with self.assertRaises(HTTPException) as context:
@@ -60,7 +60,7 @@ class AuthTest(unittest.TestCase):
         auth_key = verify_telegram_auth_key("")
         self.assertEqual(auth_key, "")
 
-    @patch("features.auth.config")
+    @patch("api.auth.config")
     def test_valid_telegram_auth_key(self, mock_config: MagicMock):
         mock_config.telegram_must_auth = True
         mock_config.telegram_auth_key = "VALI-DKEY"
@@ -74,7 +74,7 @@ class AuthTest(unittest.TestCase):
         self.assertEqual(context.exception.status_code, HTTP_401_UNAUTHORIZED)
         self.assertEqual(context.exception.detail, "Could not validate access credentials")
 
-    @patch("features.auth.jwt")
+    @patch("api.auth.jwt")
     def test_invalid_jwt_token(self, mock_jwt: MagicMock):
         mock_jwt.decode.side_effect = Exception()
         with self.assertRaises(HTTPException) as context:
@@ -82,8 +82,8 @@ class AuthTest(unittest.TestCase):
         self.assertEqual(context.exception.status_code, HTTP_401_UNAUTHORIZED)
         self.assertEqual(context.exception.detail, "Could not validate access credentials")
 
-    @patch("features.auth.jwt")
-    @patch("features.auth.config")
+    @patch("api.auth.jwt")
+    @patch("api.auth.config")
     def test_valid_jwt_token(self, mock_config: MagicMock, mock_jwt: MagicMock):
         mock_config.jwt_secret_key = "secret"
         expected_payload = {"sub": "1234"}

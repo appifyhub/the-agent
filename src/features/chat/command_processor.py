@@ -2,7 +2,7 @@ from enum import Enum
 
 from db.crud.user import UserCRUD
 from db.schema.user import User
-from features.chat.settings_manager import SettingsManager
+from api.settings_controller import SettingsController
 from features.chat.sponsorship_manager import SponsorshipManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
@@ -22,7 +22,7 @@ class CommandProcessor(SafePrinterMixin):
     __invoker: User
     __user_dao: UserCRUD
     __sponsorship_manager: SponsorshipManager
-    __settings_manager: SettingsManager
+    __settings_controller: SettingsController
     __telegram_sdk: TelegramBotSDK
 
     def __init__(
@@ -30,14 +30,14 @@ class CommandProcessor(SafePrinterMixin):
         invoker: User,
         user_dao: UserCRUD,
         sponsorship_manager: SponsorshipManager,
-        settings_manager: SettingsManager,
+        settings_controller: SettingsController,
         telegram_sdk: TelegramBotSDK,
     ):
         super().__init__(config.verbose)
         self.__invoker = invoker
         self.__user_dao = user_dao
         self.__sponsorship_manager = sponsorship_manager
-        self.__settings_manager = settings_manager
+        self.__settings_controller = settings_controller
         self.__telegram_sdk = telegram_sdk
 
     def execute(self, raw_input: str) -> Result:
@@ -78,7 +78,7 @@ class CommandProcessor(SafePrinterMixin):
                     self.sprint("Accepted a sponsorship by messaging the bot")
                     return CommandProcessor.Result.success
             # no sponsorship accepted, so let's share the settings link
-            link_url = self.__settings_manager.create_settings_link()
+            link_url = self.__settings_controller.create_settings_link()
             self.__telegram_sdk.send_button_link(self.__invoker.telegram_chat_id, link_url)
             self.sprint("Shared the settings link with the user")
             return CommandProcessor.Result.success

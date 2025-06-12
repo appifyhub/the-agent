@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 from langchain_core.messages import AIMessage
 
+from api.models.release_output_payload import ReleaseOutputPayload
 from db.crud.chat_config import ChatConfigCRUD
 from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig
@@ -14,9 +15,9 @@ from features.chat.telegram.telegram_summary_responder import (
     respond_with_summary,
     get_version_change_type,
     is_chat_subscribed,
-    VersionChangeType, _strip_title_formatting,
+    VersionChangeType,
+    _strip_title_formatting,
 )
-from features.release_summarizer.raw_notes_payload import ReleaseOutputPayload
 from util.translations_cache import TranslationsCache
 
 
