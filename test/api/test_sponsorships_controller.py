@@ -458,3 +458,64 @@ class SponsorshipsControllerTest(unittest.TestCase):
                     receiver_telegram_username = self.receiver_user.telegram_username,
                 )
             self.assertIn("Unauthorized", str(context.exception))
+
+    @patch.object(SponsorshipManager, "unsponsor_self", return_value = (SponsorshipManager.Result.success, "Success"))
+    def test_unsponsor_self_success(self, mock_unsponsor_self):
+        with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
+            mock_auth_service = MockAuthService.return_value
+            mock_auth_service.validate_user.return_value = self.invoker_user
+            mock_auth_service.authorize_for_user.return_value = self.receiver_user
+
+            controller = SponsorshipsController(
+                invoker_user_id_hex = self.invoker_user.id.hex,
+                user_dao = self.mock_user_dao,
+                sponsorship_dao = self.mock_sponsorship_dao,
+                telegram_sdk = self.mock_telegram_sdk,
+                chat_config_dao = self.mock_chat_config_dao,
+            )
+
+            controller.unsponsor_self(self.receiver_user.id.hex)
+
+            mock_unsponsor_self.assert_called_once_with(self.receiver_user.id.hex)
+
+    # noinspection PyUnusedLocal
+    @patch.object(
+        SponsorshipManager,
+        "unsponsor_self",
+        return_value = (SponsorshipManager.Result.failure, "No sponsorships to remove")
+    )
+    def test_unsponsor_self_failure_no_sponsorships(self, mock_unsponsor_self):
+        with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
+            mock_auth_service = MockAuthService.return_value
+            mock_auth_service.validate_user.return_value = self.invoker_user
+            mock_auth_service.authorize_for_user.return_value = self.receiver_user
+
+            controller = SponsorshipsController(
+                invoker_user_id_hex = self.invoker_user.id.hex,
+                user_dao = self.mock_user_dao,
+                sponsorship_dao = self.mock_sponsorship_dao,
+                telegram_sdk = self.mock_telegram_sdk,
+                chat_config_dao = self.mock_chat_config_dao,
+            )
+
+            with self.assertRaises(ValueError) as context:
+                controller.unsponsor_self(self.receiver_user.id.hex)
+            self.assertIn("No sponsorships to remove", str(context.exception))
+
+    def test_unsponsor_self_failure_unauthorized(self):
+        with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
+            mock_auth_service = MockAuthService.return_value
+            mock_auth_service.validate_user.return_value = self.invoker_user
+            mock_auth_service.authorize_for_user.side_effect = ValueError("Unauthorized")
+
+            controller = SponsorshipsController(
+                invoker_user_id_hex = self.invoker_user.id.hex,
+                user_dao = self.mock_user_dao,
+                sponsorship_dao = self.mock_sponsorship_dao,
+                telegram_sdk = self.mock_telegram_sdk,
+                chat_config_dao = self.mock_chat_config_dao,
+            )
+
+            with self.assertRaises(ValueError) as context:
+                controller.unsponsor_self(self.receiver_user.id.hex)
+            self.assertIn("Unauthorized", str(context.exception))

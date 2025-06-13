@@ -136,12 +136,6 @@ class SponsorshipManager(SafePrinterMixin):
             return SponsorshipManager.Result.failure, message
         sponsor_user = User.model_validate(sponsor_user_db)
 
-        # check if sponsor has a valid API key
-        if not sponsor_user.open_ai_key:
-            message = f"Sponsor '{sponsor_user.id}' has no valid API key set up"
-            self.sprint(message)
-            return SponsorshipManager.Result.failure, message
-
         # check if receiver exists
         receiver_user_db = self.__user_dao.get_by_telegram_username(receiver_telegram_username)
         if not receiver_user_db:
@@ -184,6 +178,33 @@ class SponsorshipManager(SafePrinterMixin):
         message = f"Sponsorship revoked!{message_appendix}"
         self.sprint(message)
         return SponsorshipManager.Result.success, message
+
+    def unsponsor_self(self, user_id_hex: str) -> tuple[Result, str]:
+        self.sprint(f"User '{user_id_hex}' is unsponsoring themselves")
+
+        # check if user exists
+        user_db = self.__user_dao.get(UUID(hex = user_id_hex))
+        if not user_db:
+            message = f"User '{user_id_hex}' not found"
+            self.sprint(message)
+            return SponsorshipManager.Result.failure, message
+        user = User.model_validate(user_db)
+
+        # check if user has any sponsorships as receiver
+        sponsorships_db = self.__sponsorship_dao.get_all_by_receiver(user.id)
+        if not sponsorships_db:
+            message = f"User '{user.id}' has no sponsorships to remove"
+            self.sprint(message)
+            return SponsorshipManager.Result.failure, message
+        # assuming only one sponsorship per user
+        sponsorship = Sponsorship.model_validate(sponsorships_db[0])
+
+        # find the sponsor and call unsponsor_user
+        if not user.telegram_username:
+            message = f"User '{user.id}' has no telegram username"
+            self.sprint(message)
+            return SponsorshipManager.Result.failure, message
+        return self.unsponsor_user(sponsorship.sponsor_id.hex, user.telegram_username)
 
     def accept_sponsorship(self, receiver: User) -> bool:
         self.sprint(f"User '{receiver.id}' is trying to accept a sponsorship")

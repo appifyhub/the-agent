@@ -1,4 +1,5 @@
 import unittest
+import unittest.mock
 from datetime import datetime, timedelta
 from unittest.mock import Mock
 from uuid import UUID
@@ -326,3 +327,122 @@ class SponsorshipManagerTest(unittest.TestCase):
         self.assertEqual(result, 2)
         # noinspection PyUnresolvedReferences
         self.mock_sponsorship_dao.delete_all_by_receiver.assert_called_once_with(self.user.id)
+
+    def test_unsponsor_self_success(self):
+        user_id_hex = self.user.id.hex
+        sponsor_user = User(
+            id = UUID(int = 2),
+            full_name = "Sponsor User",
+            telegram_username = "sponsor_username",
+            telegram_chat_id = "sponsor_chat_id",
+            telegram_user_id = 2,
+            open_ai_key = "sponsor_api_key",
+            group = UserDB.Group.standard,
+            created_at = datetime.now().date(),
+        )
+        sponsor_user_db = UserDB(**sponsor_user.model_dump())
+        user_db = UserDB(**self.user.model_dump())
+
+        # Create a mock sponsorship where user is the receiver
+        sponsorship_db = Mock(
+            sponsor_id = sponsor_user.id,
+            receiver_id = self.user.id,
+            sponsored_at = datetime.now(),
+            accepted_at = datetime.now(),
+        )
+
+        # user lookup, then unsponsor_user lookups
+        self.mock_user_dao.get.side_effect = [
+            user_db, sponsor_user_db, user_db
+        ]
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = [sponsorship_db]
+        self.mock_user_dao.get_by_telegram_username.return_value = user_db
+        self.mock_sponsorship_dao.get.return_value = sponsorship_db
+
+        result, msg = self.manager.unsponsor_self(user_id_hex)
+
+        self.assertEqual(result, SponsorshipManager.Result.success)
+        self.assertIn("Sponsorship revoked", msg)
+        # noinspection PyUnresolvedReferences
+        self.mock_sponsorship_dao.delete.assert_called_once_with(sponsor_user.id, self.user.id)
+
+    def test_unsponsor_self_failure_user_not_found(self):
+        user_id_hex = self.user.id.hex
+
+        self.mock_user_dao.get.return_value = None
+
+        result, msg = self.manager.unsponsor_self(user_id_hex)
+
+        self.assertEqual(result, SponsorshipManager.Result.failure)
+        self.assertIn("User '", msg)
+        self.assertIn("not found", msg)
+
+    def test_unsponsor_self_failure_no_sponsorships(self):
+        user_id_hex = self.user.id.hex
+        user_db = UserDB(**self.user.model_dump())
+
+        self.mock_user_dao.get.return_value = user_db
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+
+        result, msg = self.manager.unsponsor_self(user_id_hex)
+
+        self.assertEqual(result, SponsorshipManager.Result.failure)
+        self.assertIn("has no sponsorships to remove", msg)
+
+    def test_unsponsor_self_failure_no_telegram_username(self):
+        user_id_hex = self.user.id.hex
+        user_without_username = self.user.model_copy(update = {"telegram_username": None})
+        user_db = UserDB(**user_without_username.model_dump())
+
+        # Create a mock sponsorship
+        sponsorship_db = Mock(
+            sponsor_id = UUID(int = 2),
+            receiver_id = self.user.id,
+            sponsored_at = datetime.now(),
+            accepted_at = datetime.now(),
+        )
+
+        self.mock_user_dao.get.return_value = user_db
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = [sponsorship_db]
+
+        result, msg = self.manager.unsponsor_self(user_id_hex)
+
+        self.assertEqual(result, SponsorshipManager.Result.failure)
+        self.assertIn("has no telegram username", msg)
+
+    def test_unsponsor_self_calls_unsponsor_user(self):
+        user_id_hex = self.user.id.hex
+        sponsor_user = User(
+            id = UUID(int = 2),
+            full_name = "Sponsor User",
+            telegram_username = "sponsor_username",
+            telegram_chat_id = "sponsor_chat_id",
+            telegram_user_id = 2,
+            open_ai_key = "sponsor_api_key",
+            group = UserDB.Group.standard,
+            created_at = datetime.now().date(),
+        )
+        sponsor_user_db = UserDB(**sponsor_user.model_dump())
+        user_db = UserDB(**self.user.model_dump())
+
+        # Create a mock sponsorship
+        sponsorship_db = Mock(
+            sponsor_id = sponsor_user.id,
+            receiver_id = self.user.id,
+            sponsored_at = datetime.now(),
+            accepted_at = datetime.now(),
+        )
+
+        self.mock_user_dao.get.side_effect = [user_db, sponsor_user_db, user_db]
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = [sponsorship_db]
+        self.mock_user_dao.get_by_telegram_username.return_value = user_db
+        self.mock_sponsorship_dao.get.return_value = sponsorship_db
+
+        # Mock the unsponsor_user method to verify it's called correctly
+        with unittest.mock.patch.object(self.manager, 'unsponsor_user') as mock_unsponsor:
+            mock_unsponsor.return_value = (SponsorshipManager.Result.success, "Test message")
+
+            result, msg = self.manager.unsponsor_self(user_id_hex)
+
+            mock_unsponsor.assert_called_once_with(sponsor_user.id.hex, self.user.telegram_username)
+            self.assertEqual(result, SponsorshipManager.Result.success)
