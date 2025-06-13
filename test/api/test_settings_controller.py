@@ -5,6 +5,7 @@ from uuid import UUID
 
 from api.settings_controller import SettingsController
 from db.crud.chat_config import ChatConfigCRUD
+from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
@@ -23,6 +24,7 @@ class SettingsControllerTest(unittest.TestCase):
     chat_config: ChatConfig
     mock_user_dao: UserCRUD
     mock_chat_config_dao: ChatConfigCRUD
+    mock_sponsorship_dao: SponsorshipCRUD
     mock_telegram_sdk: TelegramBotSDK
 
     def setUp(self):
@@ -58,6 +60,8 @@ class SettingsControllerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao = Mock(spec = ChatConfigCRUD)
         self.mock_chat_config_dao.get.return_value = self.chat_config
+        self.mock_sponsorship_dao = Mock(spec = SponsorshipCRUD)
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
         self.mock_telegram_sdk = Mock(spec = TelegramBotSDK)
         self.mock_telegram_sdk.get_chat_member.return_value = self.chat_member
 
@@ -101,6 +105,7 @@ class SettingsControllerTest(unittest.TestCase):
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
             chat_config_dao = self.mock_chat_config_dao,
+            sponsorship_dao = self.mock_sponsorship_dao,
         )
         link = manager.create_settings_link(raw_settings_type = "user")
 
@@ -123,6 +128,7 @@ class SettingsControllerTest(unittest.TestCase):
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
                 chat_config_dao = self.mock_chat_config_dao,
+                sponsorship_dao = self.mock_sponsorship_dao,
             )
             link = manager.create_settings_link(raw_settings_type = "chat", target_chat_id = self.chat_config.chat_id)
 
@@ -137,6 +143,7 @@ class SettingsControllerTest(unittest.TestCase):
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
             chat_config_dao = self.mock_chat_config_dao,
+            sponsorship_dao = self.mock_sponsorship_dao,
         )
 
         with self.assertRaises(ValueError) as context:
@@ -151,6 +158,7 @@ class SettingsControllerTest(unittest.TestCase):
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
             chat_config_dao = self.mock_chat_config_dao,
+            sponsorship_dao = self.mock_sponsorship_dao,
         )
 
         with self.assertRaises(ValueError) as context:
@@ -168,6 +176,7 @@ class SettingsControllerTest(unittest.TestCase):
                     telegram_sdk = self.mock_telegram_sdk,
                     user_dao = self.mock_user_dao,
                     chat_config_dao = self.mock_chat_config_dao,
+                    sponsorship_dao = self.mock_sponsorship_dao,
                 )
             self.assertIn("User not found", str(context.exception))
 
@@ -185,6 +194,7 @@ class SettingsControllerTest(unittest.TestCase):
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
                 chat_config_dao = self.mock_chat_config_dao,
+                sponsorship_dao = self.mock_sponsorship_dao,
             )
             settings = manager.fetch_chat_settings(self.chat_config.chat_id)
 
@@ -204,6 +214,7 @@ class SettingsControllerTest(unittest.TestCase):
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
                 chat_config_dao = self.mock_chat_config_dao,
+                sponsorship_dao = self.mock_sponsorship_dao,
             )
             settings = manager.fetch_user_settings(self.invoker_user.id.hex)
 
@@ -240,6 +251,7 @@ class SettingsControllerTest(unittest.TestCase):
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
                 chat_config_dao = self.mock_chat_config_dao,
+                sponsorship_dao = self.mock_sponsorship_dao,
             )
 
             manager.save_chat_settings(
@@ -289,6 +301,7 @@ class SettingsControllerTest(unittest.TestCase):
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
                 chat_config_dao = self.mock_chat_config_dao,
+                sponsorship_dao = self.mock_sponsorship_dao,
             )
 
             manager.save_user_settings(
@@ -316,6 +329,7 @@ class SettingsControllerTest(unittest.TestCase):
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
                 chat_config_dao = self.mock_chat_config_dao,
+                sponsorship_dao = self.mock_sponsorship_dao,
             )
 
             with self.assertRaises(ValueError) as context:
@@ -351,6 +365,7 @@ class SettingsControllerTest(unittest.TestCase):
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
                 chat_config_dao = self.mock_chat_config_dao,
+                sponsorship_dao = self.mock_sponsorship_dao,
             )
 
             with self.assertRaises(ValueError) as context:
@@ -389,6 +404,7 @@ class SettingsControllerTest(unittest.TestCase):
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
                 chat_config_dao = self.mock_chat_config_dao,
+                sponsorship_dao = self.mock_sponsorship_dao,
             )
 
             with self.assertRaises(ValueError) as context:
@@ -417,6 +433,7 @@ class SettingsControllerTest(unittest.TestCase):
             telegram_sdk = self.mock_telegram_sdk,
             user_dao = self.mock_user_dao,
             chat_config_dao = self.mock_chat_config_dao,
+            sponsorship_dao = self.mock_sponsorship_dao,
         )
 
         with self.assertRaises(TypeError):
@@ -468,6 +485,7 @@ class SettingsControllerTest(unittest.TestCase):
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
                 chat_config_dao = self.mock_chat_config_dao,
+                sponsorship_dao = self.mock_sponsorship_dao,
             )
             result = manager.fetch_admin_chats(self.invoker_user.id.hex)
 
@@ -504,6 +522,7 @@ class SettingsControllerTest(unittest.TestCase):
                 telegram_sdk = self.mock_telegram_sdk,
                 user_dao = self.mock_user_dao,
                 chat_config_dao = self.mock_chat_config_dao,
+                sponsorship_dao = self.mock_sponsorship_dao,
             )
             result = manager.fetch_admin_chats(self.invoker_user.id.hex)
 

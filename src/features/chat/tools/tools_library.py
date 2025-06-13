@@ -447,6 +447,7 @@ def configure_settings(
                 telegram_sdk = telegram_sdk,
                 user_dao = UserCRUD(db),
                 chat_config_dao = ChatConfigCRUD(db),
+                sponsorship_dao = SponsorshipCRUD(db),
             )
             settings_link = manager.create_settings_link(
                 raw_settings_type = raw_settings_type,

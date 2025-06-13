@@ -134,6 +134,7 @@ def get_settings(
             telegram_sdk = TelegramBotSDK(db),
             user_dao = UserCRUD(db),
             chat_config_dao = ChatConfigCRUD(db),
+            sponsorship_dao = SponsorshipCRUD(db),
         )
         if settings_type == "user":
             return settings_controller.fetch_user_settings(resource_id)
@@ -161,6 +162,7 @@ def save_settings(
             telegram_sdk = TelegramBotSDK(db),
             user_dao = UserCRUD(db),
             chat_config_dao = ChatConfigCRUD(db),
+            sponsorship_dao = SponsorshipCRUD(db),
         )
         if settings_type == "user":
             open_ai_key = request_data.get("open_ai_key") or ""
@@ -208,6 +210,7 @@ def get_chats(
             telegram_sdk = TelegramBotSDK(db),
             user_dao = UserCRUD(db),
             chat_config_dao = ChatConfigCRUD(db),
+            sponsorship_dao = SponsorshipCRUD(db),
         )
         return settings_controller.fetch_admin_chats(resource_id)
     except Exception as e:
