@@ -134,6 +134,7 @@ def get_settings(
             telegram_sdk = TelegramBotSDK(db),
             user_dao = UserCRUD(db),
             chat_config_dao = ChatConfigCRUD(db),
+            sponsorship_dao = SponsorshipCRUD(db),
         )
         if settings_type == "user":
             return settings_controller.fetch_user_settings(resource_id)
@@ -161,6 +162,7 @@ def save_settings(
             telegram_sdk = TelegramBotSDK(db),
             user_dao = UserCRUD(db),
             chat_config_dao = ChatConfigCRUD(db),
+            sponsorship_dao = SponsorshipCRUD(db),
         )
         if settings_type == "user":
             open_ai_key = request_data.get("open_ai_key") or ""
@@ -208,6 +210,7 @@ def get_chats(
             telegram_sdk = TelegramBotSDK(db),
             user_dao = UserCRUD(db),
             chat_config_dao = ChatConfigCRUD(db),
+            sponsorship_dao = SponsorshipCRUD(db),
         )
         return settings_controller.fetch_admin_chats(resource_id)
     except Exception as e:
@@ -285,4 +288,40 @@ def unsponsor_user(
         return {"status": "OK"}
     except Exception as e:
         sprint("Failed to unsponsor user", e)
+        raise HTTPException(status_code = 500, detail = {"reason": str(e)})
+
+
+@app.delete("/user/{resource_id}/sponsored")
+def unsponsor_self(
+    resource_id: str,
+    db = Depends(get_session),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
+) -> dict:
+    try:
+        sprint(f"User {resource_id} is unsponsoring themselves")
+        invoker_id_hex = get_user_id_from_jwt(token)
+        sprint(f"  Invoker ID: {invoker_id_hex}")
+        user_dao = UserCRUD(db)
+        sponsorship_dao = SponsorshipCRUD(db)
+        telegram_bot_sdk = TelegramBotSDK(db)
+        chat_config_dao = ChatConfigCRUD(db)
+        settings_controller = SettingsController(
+            invoker_user_id_hex = resource_id,
+            telegram_sdk = telegram_bot_sdk,
+            user_dao = user_dao,
+            chat_config_dao = chat_config_dao,
+            sponsorship_dao = sponsorship_dao,
+        )
+        sponsorships_controller = SponsorshipsController(
+            invoker_user_id_hex = invoker_id_hex,
+            user_dao = user_dao,
+            sponsorship_dao = sponsorship_dao,
+            telegram_sdk = telegram_bot_sdk,
+            chat_config_dao = chat_config_dao,
+        )
+        sponsorships_controller.unsponsor_self(resource_id)
+        settings_link = settings_controller.create_settings_link()
+        return {"settings_link": settings_link}
+    except Exception as e:
+        sprint("Failed to unsponsor self", e)
         raise HTTPException(status_code = 500, detail = {"reason": str(e)})

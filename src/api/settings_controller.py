@@ -3,8 +3,10 @@ from typing import Literal, Any, TypeAlias, Annotated, get_args
 from api.auth import create_jwt_token
 from api.authorization_service import AuthorizationService
 from db.crud.chat_config import ChatConfigCRUD
+from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.schema.chat_config import ChatConfig
+from db.schema.sponsorship import Sponsorship
 from db.schema.user import User, UserSave
 from features.chat.chat_config_manager import ChatConfigManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
@@ -24,6 +26,7 @@ class SettingsController(SafePrinterMixin):
     __authorization_service: AuthorizationService
     __chat_config_manager: ChatConfigManager
     __user_dao: UserCRUD
+    __sponsorship_dao: SponsorshipCRUD
 
     def __init__(
         self,
@@ -31,11 +34,13 @@ class SettingsController(SafePrinterMixin):
         telegram_sdk: TelegramBotSDK,
         user_dao: UserCRUD,
         chat_config_dao: ChatConfigCRUD,
+        sponsorship_dao: SponsorshipCRUD,
     ):
         super().__init__(config.verbose)
         self.__authorization_service = AuthorizationService(telegram_sdk, user_dao, chat_config_dao)
         self.__chat_config_manager = ChatConfigManager(chat_config_dao)
         self.__user_dao = user_dao
+        self.__sponsorship_dao = sponsorship_dao
         self.invoker_user = self.__authorization_service.validate_user(invoker_user_id_hex)
 
     def __validate_settings_type(self, settings_type: str) -> SettingsType:
@@ -51,6 +56,7 @@ class SettingsController(SafePrinterMixin):
         resource_id: str
         lang_iso_code: str = "en"
         settings_type = self.__validate_settings_type(raw_settings_type) if raw_settings_type else DEF_SETTINGS_TYPE
+
         if settings_type == "user":
             user_chat_id: str | None = self.invoker_user.telegram_chat_id
             chat_config: ChatConfig | None = None
@@ -78,12 +84,23 @@ class SettingsController(SafePrinterMixin):
             message = f"Invalid settings type '{settings_type}'"
             self.sprint(message)
             raise ValueError(message)
+
+        sponsorships_db = self.__sponsorship_dao.get_all_by_receiver(self.invoker_user.id)
+        sponsorship = Sponsorship.model_validate(sponsorships_db[0]) if sponsorships_db else None
+        sponsor_db = self.__user_dao.get(sponsorship.sponsor_id) if sponsorship else None
+        sponsor = User.model_validate(sponsor_db) if sponsor_db else None
+        sponsor_full_name = sponsor.full_name if sponsor else None
+        sponsor_username = sponsor.telegram_username if sponsor else None
+        sponsored_by = sponsor_full_name or sponsor_username
+
         token_payload = {
             "iss": config.telegram_bot_name,  # issuer, app name
             "sub": self.invoker_user.id.hex,  # subject, user's unique identifier
-            "telegram_user_id": self.invoker_user.telegram_user_id,
-            "telegram_username": self.invoker_user.telegram_username,
+            "telegram_user_id": self.invoker_user.telegram_user_id or -1,
+            "telegram_username": self.invoker_user.telegram_username or "<?>",
         }
+        if sponsored_by:
+            token_payload["sponsored_by"] = sponsored_by
         jwt_token = create_jwt_token(token_payload, config.jwt_expires_in_minutes)
         settings_url_base = f"{config.backoffice_url_base}/{lang_iso_code}/{settings_type}/{resource_id}/settings"
         return f"{settings_url_base}?{SETTINGS_TOKEN_VAR}={jwt_token}"
