@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from langchain_core.messages import AIMessage
 
+from api.settings_controller import SettingsController
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
 from db.crud.sponsorship import SponsorshipCRUD
@@ -8,7 +9,6 @@ from db.crud.user import UserCRUD
 from db.schema.chat_message import ChatMessage
 from db.sql import get_detached_session
 from features.chat.command_processor import CommandProcessor
-from api.settings_controller import SettingsController
 from features.chat.sponsorship_manager import SponsorshipManager
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
 from features.chat.telegram.model.update import Update
@@ -73,6 +73,7 @@ def respond_to_update(update: Update) -> bool:
                 telegram_sdk = telegram_bot_sdk,
                 user_dao = user_dao,
                 chat_config_dao = chat_config_dao,
+                sponsorship_dao = sponsorship_dao,
             )
             command_processor = CommandProcessor(
                 invoker = resolved_domain_data.author,

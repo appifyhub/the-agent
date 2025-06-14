@@ -93,3 +93,11 @@ class SponsorshipsController(SafePrinterMixin):
         if result == SponsorshipManager.Result.failure:
             raise ValueError(message)
         self.sprint(f"  Successfully unsponsored '@{receiver_telegram_username}'")
+
+    def unsponsor_self(self, user_id_hex: str):
+        user = self.__authorization_service.authorize_for_user(self.__invoker_user, user_id_hex)
+        self.sprint(f"User '{user.id.hex}' is unsponsoring themselves")
+        result, message = self.__sponsorship_manager.unsponsor_self(user.id.hex)
+        if result == SponsorshipManager.Result.failure:
+            raise ValueError(message)
+        self.sprint("  Successfully unsponsored self")
