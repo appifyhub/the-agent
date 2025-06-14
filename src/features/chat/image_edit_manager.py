@@ -3,7 +3,6 @@ from uuid import UUID
 
 from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
 from db.crud.user import UserCRUD
-from db.model.user import UserDB
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.user import User
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
@@ -79,10 +78,6 @@ class ImageEditManager(SafePrinterMixin):
             self.sprint(message)
             raise ValueError(message)
         self.__invoker_user = User.model_validate(invoker_user_db)
-        if self.__invoker_user.group < UserDB.Group.beta:
-            message = f"Invoker '{invoker_user_id_hex}' is not allowed to edit images"
-            self.sprint(message)
-            raise ValueError(message)
 
     def __remove_background(self) -> tuple[Result, list[str]]:
         self.sprint(f"Removing background from {len(self.__attachments)} images")

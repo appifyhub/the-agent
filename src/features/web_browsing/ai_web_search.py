@@ -5,7 +5,6 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, AIMessage, HumanMessage
 
 from db.crud.user import UserCRUD
-from db.model.user import UserDB
 from db.schema.user import User
 from features.ai_tools.external_ai_tool_library import SONAR
 from features.prompting import prompt_library
@@ -40,12 +39,7 @@ class AIWebSearch(SafePrinterMixin):
             message = f"Invoker '{invoker_user_id_hex}' not found"
             self.sprint(message)
             raise ValueError(message)
-        invoker_user = User.model_validate(invoker_user_db)
-
-        if invoker_user.group < UserDB.Group.beta:
-            message = f"Invoker '{invoker_user_id_hex}' is not allowed to use AI web search"
-            self.sprint(message)
-            raise ValueError(message)
+        User.model_validate(invoker_user_db)
 
     def execute(self) -> AIMessage:
         self.sprint(f"Starting AI web search for {self.__llm_input[-1].content.replace('\n', ' \\n ')}")

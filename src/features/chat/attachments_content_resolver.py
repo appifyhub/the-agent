@@ -10,7 +10,6 @@ from db.crud.chat_message import ChatMessageCRUD
 from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
-from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
@@ -96,11 +95,6 @@ class AttachmentsContentResolver(SafePrinterMixin):
             self.sprint(message)
             raise ValueError(message)
         self.__invoker = User.model_validate(invoker_user_db)
-        # check if invoker has enough access rights
-        if self.__invoker.group < UserDB.Group.beta:
-            message = f"Invoker '{invoker_user_id_hex}' is not allowed to resolve attachments"
-            self.sprint(message)
-            raise ValueError(message)
 
     @property
     def resolution_status(self) -> Result:

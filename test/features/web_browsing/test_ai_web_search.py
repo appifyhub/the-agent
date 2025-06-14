@@ -25,7 +25,7 @@ class AIWebSearchTest(unittest.TestCase):
             telegram_chat_id = "test_chat_id",
             telegram_user_id = 1,
             open_ai_key = "test_api_key",
-            group = UserDB.Group.beta,
+            group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
         self.mock_user_crud = MagicMock()
@@ -34,13 +34,6 @@ class AIWebSearchTest(unittest.TestCase):
     def test_init_valid_user(self):
         search = AIWebSearch(self.user.id.hex, "test query", self.mock_user_crud)
         self.assertIsInstance(search, AIWebSearch)
-
-    def test_init_insufficient_user_permissions(self):
-        new_user = User(**self.user.model_dump())
-        new_user.group = UserDB.Group.standard
-        self.mock_user_crud.get.return_value = new_user
-        with self.assertRaises(ValueError):
-            AIWebSearch(new_user.id.hex, "test query", self.mock_user_crud)
 
     def test_init_user_not_found(self):
         self.mock_user_crud.get.return_value = None

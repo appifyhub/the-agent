@@ -13,8 +13,6 @@ class UserDB(BaseModel):
 
     class Group(Enum):
         standard = "standard"
-        beta = "beta"
-        alpha = "alpha"
         developer = "developer"
 
         def __lt__(self, other):
@@ -22,9 +20,7 @@ class UserDB(BaseModel):
                 return NotImplemented
             hierarchy = {
                 "standard": 1,
-                "beta": 2,
-                "alpha": 3,
-                "developer": 4,
+                "developer": 2,
             }
             return hierarchy[self.value] < hierarchy[other.value]
 
@@ -33,9 +29,7 @@ class UserDB(BaseModel):
                 return NotImplemented
             hierarchy = {
                 "standard": 1,
-                "beta": 2,
-                "alpha": 3,
-                "developer": 4,
+                "developer": 2,
             }
             return hierarchy[self.value] >= hierarchy[other.value]
 

@@ -7,7 +7,6 @@ from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AI
 from pydantic import SecretStr
 
 from db.crud.user import UserCRUD
-from db.model.user import UserDB
 from db.schema.user import User
 from features.ai_tools.external_ai_tool_library import CLAUDE_3_5_HAIKU
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
@@ -63,10 +62,6 @@ class GenerativeImagingManager(SafePrinterMixin):
             self.sprint(message)
             raise ValueError(message)
         self.__invoker_user = User.model_validate(invoker_user_db)
-        if self.__invoker_user.group < UserDB.Group.beta:
-            message = f"Invoker '{invoker_user_id_hex}' is not allowed to generate images"
-            self.sprint(message)
-            raise ValueError(message)
 
     def execute(self) -> Result:
         self.sprint(f"Generating image for chat '{self.__chat_id}'")
