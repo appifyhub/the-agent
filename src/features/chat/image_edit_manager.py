@@ -9,9 +9,8 @@ from db.schema.user import User
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.sdk.telegram_bot_sdk_utils import TelegramBotSDKUtils
 from features.images.image_background_remover import ImageBackgroundRemover
-from features.images.image_background_replacer import ImageBackgroundReplacer
 from features.images.image_contents_restorer import ImageContentsRestorer
-from features.images.stickerizer import Stickerizer
+from features.images.image_editor import ImageEditor
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
@@ -24,9 +23,8 @@ class ImageEditManager(SafePrinterMixin):
 
     class Operation(Enum):
         remove_background = "remove-background"
-        replace_background = "replace-background"
         restore_image = "restore-image"
-        stickerize = "stickerize"
+        edit_image = "edit-image"
 
         @staticmethod
         def values():
@@ -112,35 +110,6 @@ class ImageEditManager(SafePrinterMixin):
             result = ImageEditManager.Result.failed
         return result, urls
 
-    def __stickerize(self) -> tuple[Result, list[str]]:
-        self.sprint(f"Stickerizing {len(self.__attachments)} images")
-        result = ImageEditManager.Result.success
-        urls: list[str] = []
-        for attachment in self.__attachments:
-            try:
-                stickerizer = Stickerizer(
-                    image_url = attachment.last_url,
-                    mime_type = attachment.mime_type,
-                    face_name = self.__invoker_user.full_name,
-                    operation_guidance = self.__operation_guidance,
-                    replicate_api_key = config.replicate_api_token,
-                    anthropic_api_key = config.anthropic_token,
-                )
-                image_url = stickerizer.execute()
-                if not image_url:
-                    self.sprint(f"Failed to stickerize attachment '{attachment.id}'")
-                    result = ImageEditManager.Result.partial
-                    continue
-                self.sprint(f"Stickerized attachment '{attachment.id}'")
-                urls.append(image_url)
-            except Exception as e:
-                self.sprint(f"Failed to stickerize attachment '{attachment.id}'", e)
-                result = ImageEditManager.Result.partial
-        if not urls:
-            self.sprint("Failed to stickerize all images")
-            result = ImageEditManager.Result.failed
-        return result, urls
-
     def __restore_image(self) -> tuple[Result, list[str]]:
         self.sprint(f"Restoring {len(self.__attachments)} images")
         result = ImageEditManager.Result.success
@@ -171,34 +140,30 @@ class ImageEditManager(SafePrinterMixin):
             result = ImageEditManager.Result.failed
         return result, urls
 
-    def __replace_background(self) -> tuple[Result, list[str]]:
-        self.sprint(f"Replacing image background on {len(self.__attachments)} images")
+    def __edit_image(self) -> tuple[Result, list[str]]:
+        self.sprint(f"Editing {len(self.__attachments)} images")
         result = ImageEditManager.Result.success
         urls: list[str] = []
         for attachment in self.__attachments:
             try:
-                remover = ImageBackgroundReplacer(
-                    job_id = attachment.id,
+                editor = ImageEditor(
                     image_url = attachment.last_url,
-                    mime_type = attachment.mime_type,
-                    change_request = self.__operation_guidance,
                     replicate_api_key = config.replicate_api_token,
-                    anthropic_api_key = config.anthropic_token,
-                    open_ai_api_key = config.open_ai_token,
-                    how_many_variants = 1,
+                    context = self.__operation_guidance,
+                    mime_type = attachment.mime_type,
                 )
-                replacement_results = remover.execute()
-                if not replacement_results:
-                    self.sprint(f"Failed to replace background in attachment '{attachment.id}'")
+                editing_result = editor.execute()
+                if not editing_result:
+                    self.sprint(f"Failed to edit image from attachment '{attachment.id}'")
                     result = ImageEditManager.Result.partial
                     continue
-                self.sprint(f"Image background attachment '{attachment.id}' replaced")
-                urls.extend(replacement_results)
+                self.sprint(f"Image from attachment '{attachment.id}' was edited")
+                urls.append(editing_result)
             except Exception as e:
-                self.sprint(f"Failed to replace background in attachment '{attachment.id}'", e)
+                self.sprint(f"Failed to edit image from attachment '{attachment.id}'", e)
                 result = ImageEditManager.Result.partial
         if not urls:
-            self.sprint("Failed to replace background in all images")
+            self.sprint("Failed to restore all images")
             result = ImageEditManager.Result.failed
         return result, urls
 
@@ -223,23 +188,14 @@ class ImageEditManager(SafePrinterMixin):
                 self.sprint("Image restored and sent successfully")
             return result, {"images_restored": len(urls)}
 
-        elif self.__operation == ImageEditManager.Operation.replace_background:
-            result, urls = self.__replace_background()
+        elif self.__operation == ImageEditManager.Operation.edit_image:
+            result, urls = self.__edit_image()
             urls = self.__clean_urls(urls)
             for image_url in urls:
-                self.sprint(f"Sending images with replaced backgrounds to chat '{self.__chat_id}'")
-                self.__bot_sdk.send_document(self.__chat_id, image_url, thumbnail = image_url)
-                self.sprint("Backgrounds replaced and images sent successfully")
-            return result, {"image_backgrounds_replaced": len(urls)}
-
-        elif self.__operation == ImageEditManager.Operation.stickerize:
-            result, urls = self.__stickerize()
-            urls = self.__clean_urls(urls)
-            for image_url in urls:
-                self.sprint(f"Sending stickerized image to chat '{self.__chat_id}'")
-                self.__bot_sdk.send_document(self.__chat_id, image_url, thumbnail = image_url)
-                self.sprint("Image stickerized and sent successfully")
-            return result, {"images_stickerized": len(urls)}
+                self.sprint(f"Sending edited image to chat '{self.__chat_id}': {image_url}")
+                self.__bot_sdk.send_photo(self.__chat_id, image_url)
+                self.sprint("Image edited and sent successfully")
+            return result, {"images_edited": len(urls)}
 
         else:
             raise ValueError(f"Unknown operation '{self.__operation.value}'")

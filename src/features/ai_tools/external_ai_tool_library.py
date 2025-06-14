@@ -225,13 +225,6 @@ BACKGROUND_REMOVAL = ExternalAiTool(
     types = [ToolType.images],
 )
 
-BACKGROUND_REPLACEMENT = ExternalAiTool(
-    id = "wolverinn/realistic-background:1fbd2b79f5cc40346dece1f1bba461c4239e012497b479ade7a493979b493ca4",
-    name = "Hardy's Background Replacement",
-    provider = REPLICATE,
-    types = [ToolType.images],
-)
-
 IMAGE_RESTORATION = ExternalAiTool(
     id = "sczhou/codeformer:cc4956dd26fa5a7185d5660cc9100fab1b8070a1d1654a8bb5eb6d443b020bb2",
     name = "Shangchen's Image Restoration",
@@ -253,9 +246,9 @@ IMAGE_GENERATION_FLUX = ExternalAiTool(
     types = [ToolType.images],
 )
 
-IMAGE_TO_STICKER = ExternalAiTool(
-    id = "fofr/face-to-sticker:764d4827ea159608a07cdde8ddf1c6000019627515eb02b6b449695fd547e5ef",
-    name = "Fofr's Face to Sticker",
+IMAGE_EDITING_FLUX_KONTEXT_PRO = ExternalAiTool(
+    id = "black-forest-labs/flux-kontext-pro",
+    name = "Black Forest's Flux Kontext Pro",
     provider = REPLICATE,
     types = [ToolType.images],
 )
@@ -298,9 +291,7 @@ ALL_AI_TOOLS = [
     CRYPTO_CURRENCY_EXCHANGE,
     # Replicate
     BACKGROUND_REMOVAL,
-    BACKGROUND_REPLACEMENT,
     IMAGE_RESTORATION,
     IMAGE_INPAINTING,
     IMAGE_GENERATION_FLUX,
-    IMAGE_TO_STICKER,
 ]
