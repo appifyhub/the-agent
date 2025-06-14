@@ -234,9 +234,3 @@ class SponsorshipManager(SafePrinterMixin):
         sponsorship = Sponsorship.model_validate(sponsorship_db)
         self.sprint(f"Sponsorship from '{sponsorship.sponsor_id}' to '{sponsorship.receiver_id}' accepted")
         return True
-
-    def purge_accepted_sponsorships(self, receiver: User) -> int:
-        self.sprint(f"Purging accepted sponsorships for user '{receiver.id}'")
-        deleted_count = self.__sponsorship_dao.delete_all_by_receiver(receiver.id)
-        self.sprint(f"Deleted {deleted_count} accepted sponsorships for '{receiver.id}'")
-        return deleted_count

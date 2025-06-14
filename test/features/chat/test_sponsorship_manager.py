@@ -319,15 +319,6 @@ class SponsorshipManagerTest(unittest.TestCase):
 
         self.assertFalse(result)
 
-    def test_purge_accepted_sponsorships(self):
-        self.mock_sponsorship_dao.delete_all_by_receiver.return_value = 2
-
-        result = self.manager.purge_accepted_sponsorships(self.user)
-
-        self.assertEqual(result, 2)
-        # noinspection PyUnresolvedReferences
-        self.mock_sponsorship_dao.delete_all_by_receiver.assert_called_once_with(self.user.id)
-
     def test_unsponsor_self_success(self):
         user_id_hex = self.user.id.hex
         sponsor_user = User(
