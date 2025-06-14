@@ -36,7 +36,7 @@ class ImageEditManagerTest(unittest.TestCase):
             telegram_chat_id = "test_chat_id",
             telegram_user_id = 1,
             open_ai_key = "test_api_key",
-            group = UserDB.Group.beta,
+            group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
         self.mock_user_dao.get.return_value = self.user
@@ -78,20 +78,6 @@ class ImageEditManagerTest(unittest.TestCase):
 
     def test_init_user_not_found(self):
         self.mock_user_dao.get.return_value = None
-        with self.assertRaises(ValueError):
-            ImageEditManager(
-                self.chat_id,
-                self.attachment_ids,
-                self.invoker_user_id_hex,
-                self.operation_name,
-                self.mock_bot_sdk,
-                self.mock_user_dao,
-                self.mock_chat_message_attachment_dao,
-            )
-
-    def test_init_user_not_allowed(self):
-        self.user.group = UserDB.Group.standard
-        self.mock_user_dao.get.return_value = self.user.model_dump()
         with self.assertRaises(ValueError):
             ImageEditManager(
                 self.chat_id,

@@ -38,7 +38,7 @@ class ExchangeRateFetcherTest(unittest.TestCase):
             telegram_chat_id = "test_chat_id",
             telegram_user_id = 1,
             open_ai_key = "test_api_key",
-            group = UserDB.Group.beta,
+            group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
         self.mock_user_crud = MagicMock()
@@ -84,13 +84,6 @@ class ExchangeRateFetcherTest(unittest.TestCase):
         expected_rate = 1.2 * 0.000025
         expected_result = {"from": "EUR", "to": "BTC", "rate": expected_rate, "amount": 1000000, "value": 30}
         self.assertEqual(result, expected_result)
-
-    def test_execute_insufficient_user_permissions(self):
-        new_user = User(**self.user.model_dump())
-        new_user.group = UserDB.Group.standard
-        self.mock_user_crud.get.return_value = new_user
-        with self.assertRaises(ValueError):
-            ExchangeRateFetcher(new_user.id.hex, self.mock_user_crud, self.mock_cache_crud)
 
     # noinspection PyUnusedLocal
     @patch("features.currencies.exchange_rate_fetcher.sleep", return_value = None)

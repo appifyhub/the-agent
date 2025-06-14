@@ -7,7 +7,6 @@ from tenacity import sleep
 
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
-from db.model.user import UserDB
 from db.schema.tools_cache import ToolsCacheSave, ToolsCache
 from db.schema.user import User
 from features.ai_tools.external_ai_tool_library import FIAT_CURRENCY_EXCHANGE, CRYPTO_CURRENCY_EXCHANGE
@@ -39,12 +38,7 @@ class ExchangeRateFetcher(SafePrinterMixin):
             message = f"Invoker '{invoker_user_id_hex}' not found"
             self.sprint(message)
             raise ValueError(message)
-        invoker_user = User.model_validate(invoker_user_db)
-
-        if invoker_user.group < UserDB.Group.beta:
-            message = f"Invoker '{invoker_user_id_hex}' is not allowed to exchange currencies"
-            self.sprint(message)
-            raise ValueError(message)
+        User.model_validate(invoker_user_db)
 
     def execute(
         self,

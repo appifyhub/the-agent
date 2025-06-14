@@ -33,7 +33,7 @@ class GenerativeImagingManagerTest(unittest.TestCase):
             telegram_chat_id = "test_chat_id",
             telegram_user_id = 1,
             open_ai_key = "test_api_key",
-            group = UserDB.Group.alpha,
+            group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
         self.mock_bot_sdk = MagicMock(spec = TelegramBotSDK)
@@ -53,17 +53,6 @@ class GenerativeImagingManagerTest(unittest.TestCase):
 
     def test_init_user_not_found(self):
         self.mock_user_dao.get.return_value = None
-        with self.assertRaises(ValueError):
-            GenerativeImagingManager(
-                self.chat_id,
-                self.raw_prompt,
-                self.invoker_user_id_hex,
-                self.mock_bot_sdk,
-                self.mock_user_dao,
-            )
-
-    def test_init_user_not_allowed(self):
-        self.user.group = UserDB.Group.standard
         with self.assertRaises(ValueError):
             GenerativeImagingManager(
                 self.chat_id,
