@@ -281,7 +281,7 @@ class TelegramDataResolverTest(unittest.TestCase):
             full_name = "Existing User",
             telegram_chat_id = "c1",
             open_ai_key = "sk-key",
-            group = UserDB.Group.alpha,
+            group = UserDB.Group.developer,
         )
         existing_user_db = self.sql.user_crud().save(existing_user_data)
         existing_user = User.model_validate(existing_user_db)
@@ -316,7 +316,7 @@ class TelegramDataResolverTest(unittest.TestCase):
             telegram_chat_id = "c1",
             telegram_user_id = 1,
             open_ai_key = None,
-            group = UserDB.Group.alpha,
+            group = UserDB.Group.developer,
             created_at = datetime.now().date(),
         )
 

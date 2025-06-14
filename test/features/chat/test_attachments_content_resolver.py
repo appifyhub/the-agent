@@ -40,7 +40,7 @@ class AttachmentsContentResolverTest(unittest.TestCase):
 
         self.invoker_user = User(
             id = UUID(int = 1),
-            group = UserDB.Group.beta,
+            group = UserDB.Group.standard,
             open_ai_key = "test_open_ai_key",
             created_at = datetime.now().date(),
         )
@@ -139,25 +139,6 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
                 cache_dao = self.mock_cache_crud,
             )
-
-    def test_insufficient_user_perms(self):
-        self.invoker_user.group = UserDB.Group.standard
-        self.mock_user_crud.get.return_value = self.invoker_user.model_dump()
-
-        with self.assertRaises(ValueError) as context:
-            AttachmentsContentResolver(
-                chat_id = "1",
-                invoker_user_id_hex = "00000000-0000-0000-0000-000000000001",
-                additional_context = "context",
-                attachment_ids = ["1"],
-                bot_sdk = self.mock_bot_sdk,
-                user_dao = self.mock_user_crud,
-                chat_config_dao = self.mock_chat_config_crud,
-                chat_message_dao = self.mock_chat_message_crud,
-                chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
-                cache_dao = self.mock_cache_crud,
-            )
-        self.assertTrue("not allowed to resolve attachments" in str(context.exception))
 
     def test_missing_chat_config(self):
         self.mock_chat_config_crud.get.return_value = None

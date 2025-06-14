@@ -146,7 +146,7 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "654321",
             telegram_user_id = 654321,
             open_ai_key = "updated-key",
-            group = UserDB.Group.beta,
+            group = UserDB.Group.developer,
         )
         updated_user = self.sql.user_crud().update(update_data)
 
@@ -187,7 +187,7 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "654321",
             telegram_user_id = 654321,
             open_ai_key = "updated-key",
-            group = UserDB.Group.beta,
+            group = UserDB.Group.developer,
         )
         updated_user = self.sql.user_crud().save(update_data)
         self.assertIsNotNone(updated_user)
