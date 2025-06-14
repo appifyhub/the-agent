@@ -92,6 +92,10 @@ chat_telegram: str = (
             "Message attachments have unique IDs, which are usually found the bottom of messages (when available).",
             "Attachment IDs look like long strings of text, e.g. \"bx345a6f7asf722af46t4t\".",
             "These attachment IDs can only be used for tool calls, and you can NEVER mention them in your responses.",
+            "User messages can quote earlier messages using '>>' at the start of each message.",
+            "Quotes are then followed by the text of the new message. Multiple nested quotes are allowed, e.g. '>>>>'.",
+            "Make sure you're using this information correctly and not quoting your own messages and misinterpreting.",
+            "Everything quoted by the same number of '>>' is part of the same earlier message.",
         ),
     )
     .append(__chat_telegram_format)
@@ -436,6 +440,7 @@ observer_computer_vision: str = __base.add_section(
         "If you're unable to analyze the image, say that, and don't shy away from being technical about it.",
         "There might be additional text or context provided by your partners, usually copied from a chat.",
         "Chat messages sometimes contain quotations ('>>') or attachment IDs ('📎').",
+        "You should differentiate between the quoted attachments and the actual attachments.",
     )
 ).build()
 

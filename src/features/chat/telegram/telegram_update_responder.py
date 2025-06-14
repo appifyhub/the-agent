@@ -1,12 +1,16 @@
+from itertools import chain
+
 from fastapi import HTTPException
 from langchain_core.messages import AIMessage
 
 from api.settings_controller import SettingsController
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
+from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.schema.chat_message import ChatMessage
+from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.sql import get_detached_session
 from features.chat.command_processor import CommandProcessor
 from features.chat.sponsorship_manager import SponsorshipManager
@@ -29,15 +33,16 @@ def respond_to_update(update: Update) -> bool:
         sprint(f"Received a Telegram update: `{update}`")
 
     with get_detached_session() as db:
-        user_dao = UserCRUD(db)
-        sponsorship_dao = SponsorshipCRUD(db)
-        sponsorship_manager = SponsorshipManager(user_dao, sponsorship_dao)
-        chat_message_dao = ChatMessageCRUD(db)
-        chat_config_dao = ChatConfigCRUD(db)
         telegram_bot_sdk = TelegramBotSDK(db)
         telegram_domain_mapper = TelegramDomainMapper()
         domain_langchain_mapper = DomainLangchainMapper()
         telegram_data_resolver = TelegramDataResolver(db, telegram_bot_sdk.api)
+        user_dao = UserCRUD(db)
+        sponsorship_dao = SponsorshipCRUD(db)
+        chat_message_dao = ChatMessageCRUD(db)
+        chat_message_attachment_dao = ChatMessageAttachmentCRUD(db)
+        chat_config_dao = ChatConfigCRUD(db)
+        sponsorship_manager = SponsorshipManager(user_dao, sponsorship_dao)
 
         def map_to_langchain(message):
             return domain_langchain_mapper.map_to_langchain(user_dao.get(message.author_id), message)
@@ -60,6 +65,19 @@ def respond_to_update(update: Update) -> bool:
                 limit = config.chat_history_depth,
             )
             past_messages = [ChatMessage.model_validate(chat_message) for chat_message in past_messages_db]
+            # now we flat-map to get attachments: chat_message_attachment_dao.get_by_message(chat_id, message_id)
+            # but we only have a singular get by 1 message, so we need to fetch all attachments for each message
+            past_attachments_db = list(
+                chain.from_iterable(
+                    chat_message_attachment_dao.get_by_message(message.chat_id, message.message_id)
+                    for message in past_messages
+                )
+            )
+            past_attachment_ids = [
+                ChatMessageAttachment.model_validate(attachment).id
+                for attachment in past_attachments_db
+            ]
+
             # DB sorting is date descending
             langchain_messages = [map_to_langchain(message) for message in past_messages][::-1]
 
@@ -92,12 +110,13 @@ def respond_to_update(update: Update) -> bool:
                 resolved_domain_data.chat,
                 resolved_domain_data.author,
                 langchain_messages,
-                domain_update.message.text,  # excluding the resolver formatting
+                past_attachment_ids,
+                domain_update.message.text,  # excludes the resolver formatting
                 command_processor,
                 progress_notifier,
             )
             answer = telegram_chat_bot.execute()
-            if not answer.content:
+            if not answer or not answer.content:
                 sprint("Resolved an empty response, skipping bot reply")
                 return False
 
