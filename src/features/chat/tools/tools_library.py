@@ -84,6 +84,7 @@ def process_attachments(
     """
     Processes the contents of the given attachments. Allowed operations are:
         - 'describe' (default): Describes the image contents, transcribes audio, searches docs
+        - 'edit-image': Edits the image based on the provided context (e.g. "Replace background with a space vortex")
         - 'remove-background': Removes the image background
         - 'restore-image': Restores an old/broken image (primarily faces)
 
