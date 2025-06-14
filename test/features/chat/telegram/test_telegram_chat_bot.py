@@ -56,6 +56,7 @@ class TelegramChatBotTest(unittest.TestCase):
             self.chat_config,
             self.user,
             [HumanMessage("Test message")],
+            [],  # attachment_ids
             "Test message",
             self.command_processor_mock,
             self.progress_notifier_mock,
@@ -169,7 +170,7 @@ class TelegramChatBotTest(unittest.TestCase):
     def test_execute_no_reply_needed(self, mock_should_reply):
         mock_should_reply.return_value = False
         result = self.bot.execute()
-        self.assertEqual(result, AIMessage(""))
+        self.assertIsNone(result)
 
     @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.process_commands")
     @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.should_reply")
@@ -177,7 +178,7 @@ class TelegramChatBotTest(unittest.TestCase):
         mock_should_reply.return_value = True
         mock_process_commands.return_value = (AIMessage(""), CommandProcessor.Result.success)
         result = self.bot.execute()
-        self.assertEqual(result, AIMessage(""))
+        self.assertIsNone(result)
 
     @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.process_commands")
     @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.should_reply")
@@ -212,13 +213,15 @@ class TelegramChatBotTest(unittest.TestCase):
         mock_should_reply.return_value = True
         mock_process_commands.return_value = (AIMessage(""), CommandProcessor.Result.unknown)
         tool_call = {"id": "1", "name": "test_tool", "args": {}}
-        self.llm_tools_mock.invoke.side_effect = [
-            AIMessage(content = "", tool_calls = [tool_call]),
-            AIMessage("Final response")
-        ]
+
+        # Create AI messages with tool_calls attribute
+        ai_with_tools = AIMessage(content = "", tool_calls = [tool_call])
+        ai_final = AIMessage("Final response")
+
+        self.llm_tools_mock.invoke.side_effect = [ai_with_tools, ai_final]
         self.tools_library_mock.invoke.return_value = "Tool result"
         result = self.bot.execute()
-        self.assertEqual(result, AIMessage("Final response"))
+        self.assertEqual(result.content, "Final response")
 
     @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.process_commands")
     @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.should_reply")

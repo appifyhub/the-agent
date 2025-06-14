@@ -1,4 +1,5 @@
 import random
+import re
 from typing import TypeVar, Any, Tuple
 
 from langchain_core.language_models import BaseChatModel, LanguageModelInput
@@ -27,7 +28,8 @@ class TelegramChatBot(SafePrinterMixin):
     __invoker: User
     __tools_library: ToolsLibrary
     __messages: list[BaseMessage]
-    __raw_last_message: str
+    __attachment_ids: list[str]
+    __raw_last_message: str  # excludes the resolver formatting
     __command_processor: CommandProcessor
     __progress_notifier: TelegramProgressNotifier
     __llm_base: BaseChatModel
@@ -38,6 +40,7 @@ class TelegramChatBot(SafePrinterMixin):
         chat: ChatConfig,
         invoker: User,
         messages: list[BaseMessage],
+        attachment_ids: list[str],
         raw_last_message: str,
         command_processor: CommandProcessor,
         progress_notifier: TelegramProgressNotifier,
@@ -63,6 +66,7 @@ class TelegramChatBot(SafePrinterMixin):
             )
         )
         self.__messages.extend(messages)
+        self.__attachment_ids = attachment_ids
         self.__raw_last_message = raw_last_message
         self.__command_processor = command_processor
         self.__progress_notifier = progress_notifier
@@ -84,18 +88,18 @@ class TelegramChatBot(SafePrinterMixin):
     def __last_message(self) -> BaseMessage:
         return self.__messages[-1]
 
-    def execute(self) -> AIMessage:
+    def execute(self) -> AIMessage | None:
         self.sprint(f"Starting chat completion for '{self.__last_message.content}'")
 
         # check if a reply is needed at all
         if not self.should_reply():
-            return AIMessage("")
+            return None
 
         # handle commands first
         answer, status = self.process_commands()
         if status == CommandProcessor.Result.success:
             # command was processed successfully, no reply is needed
-            return AIMessage("")
+            return None
         if status == CommandProcessor.Result.failed:
             # command was not processed successfully, reply with the error
             return answer
@@ -116,11 +120,36 @@ class TelegramChatBot(SafePrinterMixin):
                 # noinspection Pydantic
                 if not answer.tool_calls:
                     self.sprint(f"Iteration #{iteration} has no tool calls.")
-                    self.sprint(f"Finishing with {type(answer)}: {len(answer.content)} characters")
                     if not isinstance(answer, AIMessage):
                         raise AssertionError(f"Received a non-AI message from LLM: {answer}")
+                    system_correction_added = False
+                    for attachment_id in self.__attachment_ids:
+                        clean_attachment_id = re.sub(r"[ _-]", "", attachment_id)
+                        truncated_attachment_id = attachment_id[-10:]
+                        if (
+                            attachment_id in str(answer.content)
+                            or clean_attachment_id in str(answer.content)
+                            or truncated_attachment_id in str(answer.content)
+                        ):
+                            self.sprint("Found approximate attachment ID in the answer, adding system correction")
+                            system_correction = SystemMessage(
+                                "Error: Attachment IDs should never be sent to users. "
+                                "You probably meant to call a tool. "
+                                "When calling tools, make sure to call the tools using verbatim attachment IDs, "
+                                "without any truncation, cleaning, or formatting. "
+                                "Please use the tools to process attachments instead. "
+                                "Disregard this instruction for the remainder of the conversation. "
+                            )
+                            self.__add_message(system_correction)
+                            system_correction_added = True
+                            break
+                    if system_correction_added:
+                        iteration += 1
+                        continue
+                    self.sprint(f"Finishing with {type(answer)}: {len(answer.content)} characters")
                     return answer
-                self.sprint(f"Iteration #{iteration} has some tool calls, processing now...")
+
+                self.sprint(f"Iteration #{iteration} has tool calls, processing...")
                 iteration += 1
 
                 # noinspection Pydantic
