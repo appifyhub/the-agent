@@ -85,9 +85,7 @@ def process_attachments(
     Processes the contents of the given attachments. Allowed operations are:
         - 'describe' (default): Describes the image contents, transcribes audio, searches docs
         - 'remove-background': Removes the image background
-        - 'replace-background': Replaces the image background; requires context to know what to replace it with
         - 'restore-image': Restores an old/broken image (primarily faces)
-        - 'stickerize': Creates a sticker; context can specify the emotion like 'sad' or 'shocked'
 
     Args:
         chat_id: [mandatory] A unique identifier of the chat, usually found in the metadata
