@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 from api.settings_controller import SettingsController
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
+from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.sql_util import SQLUtil
@@ -18,63 +19,41 @@ from features.chat.telegram.telegram_update_responder import respond_to_update
 
 
 class TelegramUpdateResponderTest(unittest.TestCase):
-    user_dao: UserCRUD
-    sponsorship_dao: SponsorshipCRUD
-    sponsorship_manager: SponsorshipManager
-    chat_messages_dao: ChatMessageCRUD
-    chat_config_dao: ChatConfigCRUD
-    settings_controller: SettingsController
+    sql: SQLUtil
+    update: Update
+    telegram_bot_sdk: TelegramBotSDK
     telegram_domain_mapper: TelegramDomainMapper
     telegram_data_resolver: TelegramDataResolver
     domain_langchain_mapper: DomainLangchainMapper
-    telegram_bot_sdk: TelegramBotSDK
-    update: Update
-    sql: SQLUtil
+    user_dao: UserCRUD
+    sponsorship_dao: SponsorshipCRUD
+    chat_messages_dao: ChatMessageCRUD
+    chat_message_attachment_dao: ChatMessageAttachmentCRUD
+    chat_config_dao: ChatConfigCRUD
+    sponsorship_manager: SponsorshipManager
+    settings_controller: SettingsController
 
     def setUp(self):
         # create all the mocks
-        self.user_dao = Mock(spec = UserCRUD)
-        self.sponsorship_dao = Mock(spec = SponsorshipCRUD)
-        self.sponsorship_manager = Mock(spec = SponsorshipManager)
-        self.chat_messages_dao = Mock(spec = ChatMessageCRUD)
-        self.chat_config_dao = Mock(spec = ChatConfigCRUD)
-        self.settings_controller = Mock(spec = SettingsController)
+        self.sql = SQLUtil()
+        self.update = Mock(spec = Update)
+        self.telegram_bot_sdk = Mock(spec = TelegramBotSDK)
+        self.telegram_bot_sdk.api = Mock(spec = TelegramBotAPI)
         self.telegram_domain_mapper = Mock(spec = TelegramDomainMapper)
         self.telegram_data_resolver = Mock(spec = TelegramDataResolver)
         self.domain_langchain_mapper = Mock(spec = DomainLangchainMapper)
-        self.telegram_bot_sdk = Mock(spec = TelegramBotSDK)
-        self.telegram_bot_sdk.api = Mock(spec = TelegramBotAPI)
-        self.update = Mock(spec = Update)
-        self.sql = SQLUtil()
+        self.user_dao = Mock(spec = UserCRUD)
+        self.sponsorship_dao = Mock(spec = SponsorshipCRUD)
+        self.chat_messages_dao = Mock(spec = ChatMessageCRUD)
+        self.chat_message_attachment_dao = Mock(spec = ChatMessageAttachmentCRUD)
+        self.chat_config_dao = Mock(spec = ChatConfigCRUD)
+        self.sponsorship_manager = Mock(spec = SponsorshipManager)
+        self.settings_controller = Mock(spec = SettingsController)
         # patch all dependencies in the correct namespace where they are used in telegram_update_responder
         patcher_get_detached_session = patch("features.chat.telegram.telegram_update_responder.get_detached_session")
         self.addCleanup(patcher_get_detached_session.stop)
         self.mock_get_detached_session = patcher_get_detached_session.start()
         self.mock_get_detached_session.return_value.__enter__.return_value = self.sql.start_session()
-        patcher_user_crud = patch(
-            "features.chat.telegram.telegram_update_responder.UserCRUD",
-            return_value = self.user_dao,
-        )
-        patcher_sponsorship_crud = patch(
-            "features.chat.telegram.telegram_update_responder.SponsorshipCRUD",
-            return_value = self.sponsorship_dao,
-        )
-        patcher_sponsorship_manager = patch(
-            "features.chat.telegram.telegram_update_responder.SponsorshipManager",
-            return_value = self.sponsorship_manager,
-        )
-        patcher_chat_message_crud = patch(
-            "features.chat.telegram.telegram_update_responder.ChatMessageCRUD",
-            return_value = self.chat_messages_dao,
-        )
-        patcher_chat_config_crud = patch(
-            "features.chat.telegram.telegram_update_responder.ChatConfigCRUD",
-            return_value = self.chat_config_dao,
-        )
-        patcher_settings_controller = patch(
-            "features.chat.telegram.telegram_update_responder.SettingsController",
-            return_value = self.settings_controller,
-        )
         patcher_telegram_bot_sdk = patch(
             "features.chat.telegram.telegram_update_responder.TelegramBotSDK",
             return_value = self.telegram_bot_sdk,
@@ -91,29 +70,60 @@ class TelegramUpdateResponderTest(unittest.TestCase):
             "features.chat.telegram.telegram_update_responder.TelegramDataResolver",
             return_value = self.telegram_data_resolver,
         )
+        patcher_user_crud = patch(
+            "features.chat.telegram.telegram_update_responder.UserCRUD",
+            return_value = self.user_dao,
+        )
+        patcher_sponsorship_crud = patch(
+            "features.chat.telegram.telegram_update_responder.SponsorshipCRUD",
+            return_value = self.sponsorship_dao,
+        )
+        patcher_chat_message_crud = patch(
+            "features.chat.telegram.telegram_update_responder.ChatMessageCRUD",
+            return_value = self.chat_messages_dao,
+        )
+        patcher_chat_message_attachment_crud = patch(
+            "features.chat.telegram.telegram_update_responder.ChatMessageAttachmentCRUD",
+            return_value = self.chat_message_attachment_dao,
+        )
+        patcher_chat_config_crud = patch(
+            "features.chat.telegram.telegram_update_responder.ChatConfigCRUD",
+            return_value = self.chat_config_dao,
+        )
+        patcher_sponsorship_manager = patch(
+            "features.chat.telegram.telegram_update_responder.SponsorshipManager",
+            return_value = self.sponsorship_manager,
+        )
+        patcher_settings_controller = patch(
+            "features.chat.telegram.telegram_update_responder.SettingsController",
+            return_value = self.settings_controller,
+        )
+
         # start the patchers
-        patcher_user_crud.start()
-        patcher_sponsorship_crud.start()
-        patcher_sponsorship_manager.start()
-        patcher_chat_message_crud.start()
-        patcher_chat_config_crud.start()
-        patcher_settings_controller.start()
         patcher_telegram_bot_sdk.start()
         patcher_telegram_domain_mapper.start()
         patcher_domain_langchain_mapper.start()
         patcher_telegram_data_resolver.start()
+        patcher_user_crud.start()
+        patcher_sponsorship_crud.start()
+        patcher_chat_message_crud.start()
+        patcher_chat_message_attachment_crud.start()
+        patcher_chat_config_crud.start()
+        patcher_sponsorship_manager.start()
+        patcher_settings_controller.start()
 
         # make sure to stop the patchers after the test
-        self.addCleanup(patcher_user_crud.stop)
-        self.addCleanup(patcher_sponsorship_crud.stop)
-        self.addCleanup(patcher_sponsorship_manager.stop)
-        self.addCleanup(patcher_chat_message_crud.stop)
-        self.addCleanup(patcher_chat_config_crud.stop)
-        self.addCleanup(patcher_settings_controller.stop)
         self.addCleanup(patcher_telegram_bot_sdk.stop)
         self.addCleanup(patcher_telegram_domain_mapper.stop)
         self.addCleanup(patcher_domain_langchain_mapper.stop)
         self.addCleanup(patcher_telegram_data_resolver.stop)
+        self.addCleanup(patcher_user_crud.stop)
+        self.addCleanup(patcher_sponsorship_crud.stop)
+        self.addCleanup(patcher_chat_message_crud.stop)
+        self.addCleanup(patcher_chat_message_attachment_crud.stop)
+        self.addCleanup(patcher_chat_config_crud.stop)
+        self.addCleanup(patcher_sponsorship_manager.stop)
+        self.addCleanup(patcher_settings_controller.stop)
 
     def tearDown(self):
         self.sql.end_session()
