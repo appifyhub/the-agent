@@ -13,7 +13,7 @@ from features.sponsorships.sponsorship_service import SponsorshipService
 from util.config import config
 
 
-class SponsorshipManagerTest(unittest.TestCase):
+class SponsorshipServiceTest(unittest.TestCase):
     user: User
     mock_user_dao: UserCRUD
     mock_sponsorship_dao: SponsorshipCRUD
