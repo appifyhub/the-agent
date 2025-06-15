@@ -115,8 +115,16 @@ class TelegramChatBot(SafePrinterMixin):
             iteration = 1
             self.__progress_notifier.start()
             while True:
+                # don't blow up the costs
+                if iteration > config.max_chatbot_iterations:
+                    message = f"Reached max iterations ({config.max_chatbot_iterations}), finishing"
+                    self.sprint(message)
+                    raise OverflowError(message)
+
+                # run the actual LLM completion
                 llm_answer = self.__llm_tools.invoke(self.__messages)
                 answer = self.__add_message(llm_answer)
+
                 # noinspection Pydantic
                 if not answer.tool_calls:
                     self.sprint(f"Iteration #{iteration} has no tool calls.")

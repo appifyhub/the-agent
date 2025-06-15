@@ -233,3 +233,27 @@ class TelegramChatBotTest(unittest.TestCase):
         self.assertIn("⚡", result.content)
         self.assertIn("Test error", result.content)
         self.assertIn("/settings", result.content)
+
+    @patch("features.chat.telegram.telegram_chat_bot.config")
+    @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.process_commands")
+    @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.should_reply")
+    def test_execute_max_iterations_exceeded(self, mock_should_reply, mock_process_commands, mock_config):
+        mock_should_reply.return_value = True
+        mock_process_commands.return_value = (AIMessage(""), CommandProcessor.Result.unknown)
+        mock_config.max_chatbot_iterations = 2
+
+        # Create AI messages with tool_calls to simulate continued iterations
+        tool_call = {"id": "1", "name": "test_tool", "args": {}}
+        ai_with_tools = AIMessage(content = "", tool_calls = [tool_call])
+
+        # Make the LLM always return messages with tool calls to continue iterations
+        self.llm_tools_mock.invoke.return_value = ai_with_tools
+        self.tools_library_mock.invoke.return_value = "Tool result"
+
+        result = self.bot.execute()
+
+        # The OverflowError should be caught and converted to an AIMessage with error content
+        self.assertIsInstance(result, AIMessage)
+        self.assertIn("⚡", result.content)  # Error indicator
+        self.assertIn("Reached max iterations", result.content)
+        self.assertIn("2", result.content)  # Should include the max iterations count

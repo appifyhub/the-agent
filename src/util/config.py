@@ -12,6 +12,7 @@ class Config(metaclass = Singleton):
     web_retry_delay_s: int
     web_timeout_s: int
     max_users: int
+    max_chatbot_iterations: int
     website_url: str
     db_url: str
     api_key: str
@@ -48,6 +49,7 @@ class Config(metaclass = Singleton):
         def_web_retry_delay_s: int = 1,
         def_web_timeout_s: int = 10,
         def_max_users: int = 100,
+        def_max_chatbot_iterations: int = 20,
         def_website_url: str = "https://agent.appifyhub.com",
         def_db_user: str = "root",
         def_db_pass: str = "root",
@@ -78,18 +80,15 @@ class Config(metaclass = Singleton):
         def_backoffice_url_base: str = "http://127.0.0.1.nip.io:5173",
         def_version: str = "dev",
     ):
-        self.max_sponsorships_per_user = int(
-            self.__env(
-                "MAX_SPONSORSHIPS_PER_USER",
-                lambda: str(def_max_sponsorships_per_user)
-            ),
-        )
+        # @formatter:off
+        self.max_sponsorships_per_user = int(self.__env("MAX_SPONSORSHIPS_PER_USER",lambda: str(def_max_sponsorships_per_user)))
         self.verbose = self.__env("VERBOSE", lambda: str(def_verbose)).lower() == "true"
         self.log_telegram_update = self.__env("LOG_TG_UPDATE", lambda: str(def_log_telegram_update)).lower() == "true"
         self.web_retries = int(self.__env("WEB_RETRIES", lambda: str(def_web_retries)))
         self.web_retry_delay_s = int(self.__env("WEB_RETRY_DELAY_S", lambda: str(def_web_retry_delay_s)))
         self.web_timeout_s = int(self.__env("WEB_TIMEOUT_S", lambda: str(def_web_timeout_s)))
         self.max_users = int(self.__env("MAX_USERS", lambda: str(def_max_users)))
+        self.max_chatbot_iterations = int(self.__env("MAX_CHATBOT_ITERATIONS", lambda: str(def_max_chatbot_iterations)))
         self.website_url = self.__env("WEBSITE_URL", lambda: def_website_url)
         self.__set_up_db(def_db_user, def_db_pass, def_db_host, def_db_name)
         self.api_key = self.__env("API_KEY", lambda: def_api_key)
@@ -116,6 +115,7 @@ class Config(metaclass = Singleton):
         self.jwt_expires_in_minutes = int(self.__env("JWT_EXPIRES_IN_MINUTES", lambda: str(def_jwt_expires_in_minutes)))
         self.backoffice_url_base = self.__env("BACKOFFICE_URL_BASE", lambda: def_backoffice_url_base)
         self.version = self.__env("VERSION", lambda: def_version)
+        # @formatter:on
 
     def __set_up_db(self, def_db_user: str, def_db_pass: str, def_db_host: str, def_db_name: str) -> None:
         db_user = self.__env("POSTGRES_USER", lambda: def_db_user)
