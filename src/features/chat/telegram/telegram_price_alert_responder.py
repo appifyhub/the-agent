@@ -5,10 +5,10 @@ from db.crud.price_alert import PriceAlertCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.schema.chat_config import ChatConfig
+from features.announcements.information_announcer import InformationAnnouncer
 from features.chat.price_alert_manager import PriceAlertManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
-from features.information_announcer import InformationAnnouncer
 from util.safe_printer_mixin import sprint
 from util.translations_cache import TranslationsCache, DEFAULT_LANGUAGE, DEFAULT_ISO_CODE
 
