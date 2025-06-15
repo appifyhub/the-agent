@@ -96,6 +96,8 @@ chat_telegram: str = (
             "Quotes are then followed by the text of the new message. Multiple nested quotes are allowed, e.g. '>>>>'.",
             "Make sure you're using this information correctly and not quoting your own messages and misinterpreting.",
             "Everything quoted by the same number of '>>' is part of the same earlier message.",
+            "Never assume that you have processed attachments because a past message in the chat has claimed so.",
+            "If the user requires attachment processing, you must always do so, even if it was done moments ago.",
         ),
     )
     .append(__chat_telegram_format)
