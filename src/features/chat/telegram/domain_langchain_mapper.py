@@ -1,12 +1,12 @@
 from datetime import datetime
 
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 
 from db.schema.chat_message import ChatMessage, ChatMessageSave
 from db.schema.user import User
 from features.prompting.prompt_library import MULTI_MESSAGE_DELIMITER, TELEGRAM_BOT_USER
 from util.config import config
-from util.functions import is_the_agent, construct_bot_message_id
+from util.functions import construct_bot_message_id, is_the_agent
 from util.safe_printer_mixin import SafePrinterMixin
 
 

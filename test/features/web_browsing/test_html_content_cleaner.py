@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.schema.tools_cache import ToolsCache
-from features.web_browsing.html_content_cleaner import HTMLContentCleaner, CACHE_TTL
+from features.web_browsing.html_content_cleaner import CACHE_TTL, HTMLContentCleaner
 
 
 class HTMLContentCleanerTest(unittest.TestCase):

@@ -3,7 +3,7 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 
 from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
-from db.schema.chat_message_attachment import ChatMessageAttachmentSave, ChatMessageAttachment
+from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessageAttachmentSave
 from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.sdk.telegram_bot_sdk_utils import TelegramBotSDKUtils
 
@@ -23,12 +23,12 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
             "last_url": "http://old.url",
             "last_url_until": int(datetime.now().timestamp()),
             "extension": "jpg",
-            "mime_type": "image/jpeg"
+            "mime_type": "image/jpeg",
         }
 
         self.api_file_info = Mock(
             file_size = 2000,
-            file_path = "files/test.png"
+            file_path = "files/test.png",
         )
         self.mock_bot_api.get_file_info.return_value = self.api_file_info
 
@@ -36,7 +36,7 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         result = TelegramBotSDKUtils.refresh_attachments(
             sources = [],
             bot_api = self.mock_bot_api,
-            chat_message_attachment_dao = self.mock_attachment_dao
+            chat_message_attachment_dao = self.mock_attachment_dao,
         )
         self.assertEqual(result, [])
 
@@ -45,13 +45,13 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         sources = ["id1", "id2"]
         mock_refresh.side_effect = [
             ChatMessageAttachment(id = "id1", chat_id = "chat1", message_id = "msg1"),
-            ChatMessageAttachment(id = "id2", chat_id = "chat1", message_id = "msg2")
+            ChatMessageAttachment(id = "id2", chat_id = "chat1", message_id = "msg2"),
         ]
 
         result = TelegramBotSDKUtils.refresh_attachments(
             sources = sources,
             bot_api = self.mock_bot_api,
-            chat_message_attachment_dao = self.mock_attachment_dao
+            chat_message_attachment_dao = self.mock_attachment_dao,
         )
 
         self.assertEqual(len(result), 2)
@@ -63,7 +63,7 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
             chat_id = "chat_123",
             message_id = "msg_123",
             last_url = "http://fresh.url",
-            last_url_until = int((datetime.now().timestamp()) + 3600)
+            last_url_until = int((datetime.now().timestamp()) + 3600),
         )
 
         self.mock_attachment_dao.save.return_value = attachment.model_dump()
@@ -71,7 +71,7 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         result = TelegramBotSDKUtils.refresh_attachment(
             source = attachment,
             bot_api = self.mock_bot_api,
-            chat_message_attachment_dao = self.mock_attachment_dao
+            chat_message_attachment_dao = self.mock_attachment_dao,
         )
 
         self.assertEqual(result.id, attachment.id)
@@ -86,20 +86,20 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
             chat_id = "chat_123",
             message_id = "msg_123",
             last_url = "http://stale.url",
-            last_url_until = int(datetime.now().timestamp()) - 3600
+            last_url_until = int(datetime.now().timestamp()) - 3600,
         )
 
         self.mock_attachment_dao.get.return_value = stale_attachment.model_dump()
         self.mock_attachment_dao.save.return_value = {
             **stale_attachment.model_dump(),
             "last_url": "http://new.url",
-            "size": 2000
+            "size": 2000,
         }
 
         result = TelegramBotSDKUtils.refresh_attachment(
             source = stale_attachment,
             bot_api = self.mock_bot_api,
-            chat_message_attachment_dao = self.mock_attachment_dao
+            chat_message_attachment_dao = self.mock_attachment_dao,
         )
 
         self.mock_bot_api.get_file_info.assert_called_once_with(self.attachment_id)

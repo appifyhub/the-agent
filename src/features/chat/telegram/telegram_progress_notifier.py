@@ -1,6 +1,6 @@
 import random
 import time
-from threading import Thread, Lock, Event
+from threading import Event, Lock, Thread
 
 from db.schema.chat_config import ChatConfig
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK

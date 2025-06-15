@@ -1,8 +1,9 @@
 import unittest
 
+from db.sql_util import SQLUtil
+
 from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfigSave
-from db.sql_util import SQLUtil
 
 
 class ChatConfigCRUDTest(unittest.TestCase):
@@ -54,10 +55,10 @@ class ChatConfigCRUDTest(unittest.TestCase):
     def test_get_all_chat_configs(self):
         chat_configs = [
             self.sql.chat_config_crud().create(
-                ChatConfigSave(chat_id = "chat1")
+                ChatConfigSave(chat_id = "chat1"),
             ),
             self.sql.chat_config_crud().create(
-                ChatConfigSave(chat_id = "chat2")
+                ChatConfigSave(chat_id = "chat2"),
             ),
         ]
 

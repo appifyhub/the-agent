@@ -1,5 +1,5 @@
 import re
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 
 from readabilipy import simple_json_from_html_string
 
@@ -55,7 +55,7 @@ class HTMLContentCleaner(SafePrinterMixin):
         # clean other tags
         self.plain_text = self._remove_menus(self.plain_text)  # navigation components
         self.plain_text = re.sub(r"<li>(.*?)</li>", r"\n- \1\n", self.plain_text)  # list items
-        self.plain_text = re.sub(r"<[ou]l>\s*</[ou]l>", '', self.plain_text)  # empty lists
+        self.plain_text = re.sub(r"<[ou]l>\s*</[ou]l>", "", self.plain_text)  # empty lists
         self.plain_text = re.sub(r"<[^>]+>", " ", self.plain_text)  # remove remaining tags
         # remove extra whitespace
         self.plain_text = re.sub(r"\n\s*\n+", "\n", self.plain_text)  # empty newlines
@@ -65,7 +65,7 @@ class HTMLContentCleaner(SafePrinterMixin):
                 key = cache_key,
                 value = self.plain_text,
                 expires_at = datetime.now() + CACHE_TTL,
-            )
+            ),
         )
         self.sprint(f"Cleaned up HTML contents, received {len(self.plain_text)} content items")
         return self.plain_text
@@ -73,14 +73,14 @@ class HTMLContentCleaner(SafePrinterMixin):
     @staticmethod
     def _remove_menus(html):
         patterns = [
-            r'<nav\b[^>]*>.*?</nav>',
-            r'<header\b[^>]*>.*?</header>',
-            r'<menu\b[^>]*>.*?</menu>',
+            r"<nav\b[^>]*>.*?</nav>",
+            r"<header\b[^>]*>.*?</header>",
+            r"<menu\b[^>]*>.*?</menu>",
             r'<div\b[^>]*class=["\'](?:[^"\']*)(?:menu|navigation|navbar|nav-bar|nav)(?:[^"\']*)["\'][^>]*>.*?</div>',
             r'<ul\b[^>]*class=["\'](?:[^"\']*)(?:menu|navigation|navbar|nav-bar|nav)(?:[^"\']*)["\'][^>]*>.*?</ul>',
             r'<div\b[^>]*id=["\'](?:menu|nav)(?:[^"\']*)["\'][^>]*>.*?</div>',
         ]
         result = html
         for pattern in patterns:
-            result = re.sub(pattern, '', result, flags = re.DOTALL | re.IGNORECASE)
+            result = re.sub(pattern, "", result, flags = re.DOTALL | re.IGNORECASE)
         return result

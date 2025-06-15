@@ -1,17 +1,17 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 from jose import jwt
-from starlette.status import HTTP_403_FORBIDDEN, HTTP_401_UNAUTHORIZED
+from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_403_FORBIDDEN
 
 from api.auth import (
-    verify_api_key,
-    verify_telegram_auth_key,
-    verify_jwt_credentials,
     create_jwt_token,
     get_user_id_from_jwt,
+    verify_api_key,
+    verify_jwt_credentials,
+    verify_telegram_auth_key,
 )
 from util.config import config
 

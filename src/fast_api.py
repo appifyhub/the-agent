@@ -1,11 +1,11 @@
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException, BackgroundTasks
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import RedirectResponse
 
-from api.auth import verify_api_key, verify_telegram_auth_key, verify_jwt_credentials, get_user_id_from_jwt
+from api.auth import get_user_id_from_jwt, verify_api_key, verify_jwt_credentials, verify_telegram_auth_key
 from api.models.release_output_payload import ReleaseOutputPayload
 from api.models.sponsorship_payload import SponsorshipPayload
 from api.settings_controller import SettingsController, SettingsType

@@ -1,4 +1,4 @@
-from typing import Literal, Any, TypeAlias, Annotated, get_args
+from typing import Annotated, Any, Literal, TypeAlias, get_args
 
 from api.auth import create_jwt_token
 from api.authorization_service import AuthorizationService
@@ -75,7 +75,7 @@ class SettingsController(SafePrinterMixin):
                 self.sprint(message)
                 raise ValueError(message)
             authorized_chat_config: ChatConfig = self.__authorization_service.authorize_for_chat(
-                self.invoker_user, target_chat_id
+                self.invoker_user, target_chat_id,
             )
             lang_iso_code = authorized_chat_config.language_iso_code or "en"
             resource_id = authorized_chat_config.chat_id

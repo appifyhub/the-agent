@@ -5,7 +5,7 @@ from uuid import UUID
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.model.user import UserDB
-from db.schema.sponsorship import SponsorshipSave, Sponsorship
+from db.schema.sponsorship import Sponsorship, SponsorshipSave
 from db.schema.user import User, UserSave
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
@@ -90,7 +90,7 @@ class SponsorshipService(SafePrinterMixin):
                     telegram_user_id = receiver_user.telegram_user_id,
                     open_ai_key = sponsor_user.open_ai_key,
                     group = receiver_user.group,
-                )
+                ),
             )
             receiver_user = User.model_validate(receiver_user_db)
             accepted_at = datetime.now()
@@ -107,7 +107,7 @@ class SponsorshipService(SafePrinterMixin):
                     telegram_user_id = None,
                     open_ai_key = sponsor_user.open_ai_key,
                     group = UserDB.Group.standard,
-                )
+                ),
             )
             receiver_user = User.model_validate(receiver_user_db)
             accepted_at = None
@@ -119,7 +119,7 @@ class SponsorshipService(SafePrinterMixin):
                 sponsor_id = sponsor_user.id,
                 receiver_id = receiver_user.id,
                 accepted_at = accepted_at,
-            )
+            ),
         )
         sponsorship = Sponsorship.model_validate(sponsorship_db)
         self.sprint(f"Sponsorship created from '{sponsorship.sponsor_id}' to '{sponsorship.receiver_id}'")
@@ -169,7 +169,7 @@ class SponsorshipService(SafePrinterMixin):
                     telegram_user_id = receiver_user.telegram_user_id,
                     open_ai_key = None,
                     group = receiver_user.group,
-                )
+                ),
             )
             message_appendix = (
                 " Shared API key was also removed from the receiver."
@@ -229,7 +229,7 @@ class SponsorshipService(SafePrinterMixin):
                 sponsor_id = sponsorship.sponsor_id,
                 receiver_id = sponsorship.receiver_id,
                 accepted_at = datetime.now(),
-            )
+            ),
         )
         sponsorship = Sponsorship.model_validate(sponsorship_db)
         self.sprint(f"Sponsorship from '{sponsorship.sponsor_id}' to '{sponsorship.receiver_id}' accepted")

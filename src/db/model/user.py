@@ -2,7 +2,8 @@ import uuid
 from datetime import date
 from enum import Enum
 
-from sqlalchemy import Column, String, Date, Enum as EnumSQL, BigInteger
+from sqlalchemy import BigInteger, Column, Date, String
+from sqlalchemy import Enum as EnumSQL
 from sqlalchemy.dialects.postgresql import UUID
 
 from db.model.base import BaseModel

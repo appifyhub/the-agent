@@ -35,7 +35,7 @@ class StableDiffusionImageGeneratorTest(unittest.TestCase):
                 "num_inference_steps": 30,
                 "safety_tolerance": 5,
                 "num_outputs": 1,
-            }
+            },
         )
 
     @patch("features.images.stable_diffusion_image_generator.replicate.Client")
@@ -47,7 +47,7 @@ class StableDiffusionImageGeneratorTest(unittest.TestCase):
 
     @patch("features.images.stable_diffusion_image_generator.replicate.Client")
     def test_execute_empty_result(self, mock_client):
-        mock_client.return_value.run.return_value = ''
+        mock_client.return_value.run.return_value = ""
         generator = StableDiffusionImageGenerator(self.prompt, self.replicate_api_key)
         result = generator.execute()
-        self.assertEqual(result, '')
+        self.assertEqual(result, "")

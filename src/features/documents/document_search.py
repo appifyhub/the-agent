@@ -3,12 +3,12 @@ from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_openai import OpenAIEmbeddings
 from pydantic import SecretStr
 
-from features.ai_tools.external_ai_tool_library import TEXT_EMBEDDING_3_SMALL, CLAUDE_4_SONNET
+from features.ai_tools.external_ai_tool_library import CLAUDE_4_SONNET, TEXT_EMBEDDING_3_SMALL
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin

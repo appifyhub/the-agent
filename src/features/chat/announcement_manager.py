@@ -3,7 +3,7 @@ from uuid import UUID
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from pydantic import SecretStr
 
 from db.crud.chat_config import ChatConfigCRUD
@@ -19,7 +19,7 @@ from features.prompting import prompt_library
 from util.config import config
 from util.functions import construct_bot_message_id
 from util.safe_printer_mixin import SafePrinterMixin
-from util.translations_cache import TranslationsCache, DEFAULT_LANGUAGE, DEFAULT_ISO_CODE
+from util.translations_cache import DEFAULT_ISO_CODE, DEFAULT_LANGUAGE, TranslationsCache
 
 
 class AnnouncementManager(SafePrinterMixin):

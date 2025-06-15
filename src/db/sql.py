@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from typing import Generator
 
 from requests import Session
-from sqlalchemy import create_engine, Engine
+from sqlalchemy import Engine, create_engine
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
 
@@ -35,12 +35,12 @@ def __create_db_engine(
         try:
             if multi_connection_setup:
                 created_engine = create_engine(
-                    url = db_url,         # where the DB is at
-                    pool_pre_ping = True, # check connections before using them
-                    pool_recycle = 300,   # recycle connections after 5 minutes
-                    pool_size = 3,        # start with a modest pool size
-                    max_overflow = 10,    # allow more connections as requirements grow
-                    pool_timeout = 10,    # wait for a few seconds for available connections
+                    url = db_url,          # where the DB is at
+                    pool_pre_ping = True,  # check connections before using them
+                    pool_recycle = 300,    # recycle connections after 5 minutes
+                    pool_size = 3,         # start with a modest pool size
+                    max_overflow = 10,     # allow more connections as requirements grow
+                    pool_timeout = 10,     # wait for a few seconds for available connections
                 )
             else:
                 created_engine = create_engine(db_url)

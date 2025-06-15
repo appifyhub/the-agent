@@ -71,7 +71,7 @@ def respond_to_update(update: Update) -> bool:
                 chain.from_iterable(
                     chat_message_attachment_dao.get_by_message(message.chat_id, message.message_id)
                     for message in past_messages
-                )
+                ),
             )
             past_attachment_ids = [
                 ChatMessageAttachment.model_validate(attachment).id

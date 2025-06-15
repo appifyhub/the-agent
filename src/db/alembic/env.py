@@ -6,18 +6,25 @@ from sqlalchemy import engine_from_config, pool
 
 # Base model is used by alembic
 from db.model.base import BaseModel
+
 # noinspection PyUnresolvedReferences
 from db.model.chat_config import ChatConfigDB  # used by alembic  # noqa: F401
+
 # noinspection PyUnresolvedReferences
 from db.model.chat_message import ChatMessageDB  # used by alembic  # noqa: F401
+
 # noinspection PyUnresolvedReferences
 from db.model.chat_message_attachment import ChatMessageAttachmentDB  # used by alembic  # noqa: F401
-# noinspection PyUnresolvedReferences
-from db.model.sponsorship import SponsorshipDB  # used by alembic  # noqa: F401
+
 # noinspection PyUnresolvedReferences
 from db.model.price_alert import PriceAlertDB  # used by alembic  # noqa: F401
+
+# noinspection PyUnresolvedReferences
+from db.model.sponsorship import SponsorshipDB  # used by alembic  # noqa: F401
+
 # noinspection PyUnresolvedReferences
 from db.model.tools_cache import ToolsCacheDB  # noqa: F401
+
 # noinspection PyUnresolvedReferences
 from db.model.user import UserDB  # used by alembic  # noqa: F401
 from util.config import config as app_config

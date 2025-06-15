@@ -7,10 +7,10 @@ from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
 from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
 from db.crud.user import UserCRUD
-from db.schema.chat_config import ChatConfigSave, ChatConfig
-from db.schema.chat_message import ChatMessageSave, ChatMessage
-from db.schema.chat_message_attachment import ChatMessageAttachmentSave, ChatMessageAttachment
-from db.schema.user import UserSave, User
+from db.schema.chat_config import ChatConfig, ChatConfigSave
+from db.schema.chat_message import ChatMessage, ChatMessageSave
+from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessageAttachmentSave
+from db.schema.user import User, UserSave
 from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.sdk.telegram_bot_sdk_utils import TelegramBotSDKUtils
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper

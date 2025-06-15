@@ -39,7 +39,7 @@ class SponsorshipManagerTest(unittest.TestCase):
             accepted_at = None,
             sponsor_id = self.user.id,
             receiver_id = self.user.id,
-            sponsored_at = datetime.now() - timedelta(days = 1)
+            sponsored_at = datetime.now() - timedelta(days = 1),
         )
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = [mock_sponsorship]
         self.mock_sponsorship_dao.save.return_value = {
@@ -198,15 +198,15 @@ class SponsorshipManagerTest(unittest.TestCase):
             spec = User,
             id = UUID(int = 2),
             open_ai_key = None,
-            full_name = 'Receiver User',
+            full_name = "Receiver User",
             telegram_username = receiver_telegram_username,
-            telegram_chat_id = 'receiver_chat_id',
+            telegram_chat_id = "receiver_chat_id",
             telegram_user_id = 2,
         )
         self.mock_user_dao.get.return_value = self.user
         self.mock_user_dao.get_by_telegram_username.return_value = receiver_user
         self.mock_sponsorship_dao.get_all_by_receiver.side_effect = [
-            [], [Mock(spec = Sponsorship)]
+            [], [Mock(spec = Sponsorship)],
         ]
         self.mock_sponsorship_dao.get_all_by_sponsor.return_value = []
 
@@ -344,7 +344,7 @@ class SponsorshipManagerTest(unittest.TestCase):
 
         # user lookup, then unsponsor_user lookups
         self.mock_user_dao.get.side_effect = [
-            user_db, sponsor_user_db, user_db
+            user_db, sponsor_user_db, user_db,
         ]
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = [sponsorship_db]
         self.mock_user_dao.get_by_telegram_username.return_value = user_db
@@ -430,7 +430,7 @@ class SponsorshipManagerTest(unittest.TestCase):
         self.mock_sponsorship_dao.get.return_value = sponsorship_db
 
         # Mock the unsponsor_user method to verify it's called correctly
-        with unittest.mock.patch.object(self.manager, 'unsponsor_user') as mock_unsponsor:
+        with unittest.mock.patch.object(self.manager, "unsponsor_user") as mock_unsponsor:
             mock_unsponsor.return_value = (SponsorshipService.Result.success, "Test message")
 
             result, msg = self.manager.unsponsor_self(user_id_hex)

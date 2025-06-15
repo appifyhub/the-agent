@@ -10,7 +10,7 @@ from db.schema.chat_config import ChatConfig
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.tools_cache import ToolsCache
 from db.schema.user import User
-from features.chat.attachments_content_resolver import AttachmentsContentResolver, CACHE_TTL
+from features.chat.attachments_content_resolver import CACHE_TTL, AttachmentsContentResolver
 from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from util.config import config

@@ -65,7 +65,7 @@ class SponsorshipsController(SafePrinterMixin):
                     "telegram_username": receiver_user.telegram_username,
                     "sponsored_at": sponsorship.sponsored_at.isoformat(),
                     "accepted_at": sponsorship.accepted_at.isoformat() if sponsorship.accepted_at else None,
-                }
+                },
             )
         return {
             "sponsorships": output_sponsorships,

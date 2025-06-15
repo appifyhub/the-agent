@@ -1,8 +1,9 @@
 import unittest
 
+from db.sql_util import SQLUtil
+
 from db.model.user import UserDB
 from db.schema.user import UserSave
-from db.sql_util import SQLUtil
 
 
 class UserCRUDTest(unittest.TestCase):

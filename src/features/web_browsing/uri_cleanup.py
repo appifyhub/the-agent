@@ -1,4 +1,4 @@
-from urllib.parse import urlparse, parse_qs, urlencode
+from urllib.parse import parse_qs, urlencode, urlparse
 
 # it's not perfect but it's a start
 WEB_SUBDOMAINS = ["www", "www1", "www2", "w3", "web", "www-s1"]
@@ -22,7 +22,7 @@ def simplify_url(url: str) -> str:
     # remove useless subdomains
     parsed_url = urlparse(url_parts[0])
     simple_domain = ".".join(
-        [domain_part for domain_part in parsed_url.netloc.split(".") if domain_part not in WEB_SUBDOMAINS]
+        [domain_part for domain_part in parsed_url.netloc.split(".") if domain_part not in WEB_SUBDOMAINS],
     )
     simple_url = f"{simple_domain}{parsed_url.path or ""}"
     # remove tracking parameters from the query string

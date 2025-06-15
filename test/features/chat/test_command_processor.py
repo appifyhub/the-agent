@@ -7,7 +7,7 @@ from api.settings_controller import SettingsController
 from db.crud.user import UserCRUD
 from db.model.user import UserDB
 from db.schema.user import User
-from features.chat.command_processor import CommandProcessor, COMMAND_START, COMMAND_SETTINGS
+from features.chat.command_processor import COMMAND_SETTINGS, COMMAND_START, CommandProcessor
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from features.sponsorships.sponsorship_service import SponsorshipService
@@ -67,7 +67,7 @@ class CommandProcessorTest(unittest.TestCase):
         # noinspection PyUnresolvedReferences
         self.mock_telegram_sdk.send_button_link.assert_called_once_with(
             self.user.telegram_chat_id,
-            "https://example.com/settings?token=abc123"
+            "https://example.com/settings?token=abc123",
         )
 
     def test_start_command_with_sponsorship(self):
@@ -92,7 +92,7 @@ class CommandProcessorTest(unittest.TestCase):
         # noinspection PyUnresolvedReferences
         self.mock_telegram_sdk.send_button_link.assert_called_once_with(
             self.user.telegram_chat_id,
-            "https://example.com/settings?token=abc123"
+            "https://example.com/settings?token=abc123",
         )
 
     def test_start_command_with_bot_tag(self):

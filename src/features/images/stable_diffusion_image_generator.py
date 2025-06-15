@@ -37,7 +37,7 @@ class StableDiffusionImageGenerator(SafePrinterMixin):
                     "num_inference_steps": 30,
                     "safety_tolerance": 5,
                     "num_outputs": 1,
-                }
+                },
             )
             if isinstance(result, list):
                 if result and isinstance(result[0], str):

@@ -10,8 +10,8 @@ from typing import Sequence, Union
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '2969eb167237'
-down_revision: Union[str, None] = 'd238f6160b28'
+revision: str = "2969eb167237"
+down_revision: Union[str, None] = "d238f6160b28"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -22,6 +22,7 @@ def upgrade() -> None:
 
     # then we update the constraints
     op.execute("CREATE TYPE group_new AS ENUM ('standard', 'developer')")
+    # noinspection SqlResolve
     op.execute("ALTER TABLE simulants ALTER COLUMN \"group\" TYPE group_new USING \"group\"::text::group_new")
 
     # and  then clean up types
@@ -32,6 +33,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     # first we create the old enum type again and update constraints
     op.execute("CREATE TYPE group_new AS ENUM ('standard', 'beta', 'alpha', 'developer')")
+    # noinspection SqlResolve
     op.execute("ALTER TABLE simulants ALTER COLUMN \"group\" TYPE group_new USING \"group\"::text::group_new")
 
     # and then clean up types

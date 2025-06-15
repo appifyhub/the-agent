@@ -1,13 +1,14 @@
 import unittest
 from unittest.mock import Mock, patch
 
+from db.sql_util import SQLUtil
+
 from api.settings_controller import SettingsController
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
 from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
-from db.sql_util import SQLUtil
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
@@ -194,7 +195,7 @@ class TelegramUpdateResponderTest(unittest.TestCase):
         self.telegram_domain_mapper.map_update.return_value = Mock()
         self.telegram_data_resolver.resolve.return_value = Mock(
             chat = Mock(chat_id = "123"),
-            author = None
+            author = None,
         )
 
         error_message = "Test error"

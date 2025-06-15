@@ -6,7 +6,7 @@ from db.crud.chat_config import ChatConfigCRUD
 from db.crud.price_alert import PriceAlertCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
-from features.chat.price_alert_manager import PriceAlertManager, DATETIME_PRINT_FORMAT
+from features.chat.price_alert_manager import DATETIME_PRINT_FORMAT, PriceAlertManager
 from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.telegram_price_alert_responder import respond_with_announcements
@@ -31,9 +31,9 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         self.translations = Mock(spec = TranslationsCache)
 
     # noinspection PyUnusedLocal
-    @patch('features.chat.telegram.telegram_price_alert_responder.ExchangeRateFetcher')
-    @patch('features.chat.telegram.telegram_price_alert_responder.PriceAlertManager.check_triggered_alerts')
-    @patch('features.chat.telegram.telegram_price_alert_responder.InformationAnnouncer')
+    @patch("features.chat.telegram.telegram_price_alert_responder.ExchangeRateFetcher")
+    @patch("features.chat.telegram.telegram_price_alert_responder.PriceAlertManager.check_triggered_alerts")
+    @patch("features.chat.telegram.telegram_price_alert_responder.InformationAnnouncer")
     def test_successful_announcements(self, mock_announcer, mock_check_alerts, mock_rate_fetcher):
         # Create actual TriggeredAlert objects
         triggered_alerts = [
@@ -41,13 +41,13 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
                 chat_id = "123", base_currency = "BTC", desired_currency = "USD", threshold_percent = 5,
                 old_rate = 10000, old_rate_time = datetime(2023, 1, 1).strftime(DATETIME_PRINT_FORMAT),
                 new_rate = 11000, new_rate_time = datetime(2023, 1, 2).strftime(DATETIME_PRINT_FORMAT),
-                price_change_percent = 10
+                price_change_percent = 10,
             ),
             PriceAlertManager.TriggeredAlert(
                 chat_id = "456", base_currency = "ETH", desired_currency = "EUR", threshold_percent = 3,
                 old_rate = 2000, old_rate_time = datetime(2023, 1, 1).strftime(DATETIME_PRINT_FORMAT),
                 new_rate = 2100, new_rate_time = datetime(2023, 1, 2).strftime(DATETIME_PRINT_FORMAT),
-                price_change_percent = 5
+                price_change_percent = 5,
             ),
         ]
         mock_check_alerts.return_value = triggered_alerts
@@ -83,8 +83,8 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         self.assertEqual(self.telegram_bot_sdk.send_text_message.call_count, 2)
 
     # noinspection PyUnusedLocal
-    @patch('features.chat.telegram.telegram_price_alert_responder.ExchangeRateFetcher')
-    @patch('features.chat.telegram.telegram_price_alert_responder.PriceAlertManager.check_triggered_alerts')
+    @patch("features.chat.telegram.telegram_price_alert_responder.ExchangeRateFetcher")
+    @patch("features.chat.telegram.telegram_price_alert_responder.PriceAlertManager.check_triggered_alerts")
     def test_no_triggered_alerts(self, mock_check_alerts, mock_rate_fetcher):
         mock_check_alerts.return_value = []
 
@@ -105,9 +105,9 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         self.telegram_bot_sdk.send_text_message.assert_not_called()
 
     # noinspection PyUnusedLocal
-    @patch('features.chat.telegram.telegram_price_alert_responder.ExchangeRateFetcher')
-    @patch('features.chat.telegram.telegram_price_alert_responder.PriceAlertManager.check_triggered_alerts')
-    @patch('features.chat.telegram.telegram_price_alert_responder.InformationAnnouncer')
+    @patch("features.chat.telegram.telegram_price_alert_responder.ExchangeRateFetcher")
+    @patch("features.chat.telegram.telegram_price_alert_responder.PriceAlertManager.check_triggered_alerts")
+    @patch("features.chat.telegram.telegram_price_alert_responder.InformationAnnouncer")
     def test_announcement_creation_failure(self, mock_announcer, mock_check_alerts, mock_rate_fetcher):
         mock_check_alerts.return_value = [
             Mock(chat_id = "123", base_currency = "BTC", desired_currency = "USD", threshold_percent = 5),
@@ -116,7 +116,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         self.chat_config_dao.get.return_value = {
             "chat_id": "123",
             "language_name": "English",
-            "language_iso_code": "en"
+            "language_iso_code": "en",
         }
 
         mock_announcer_instance = Mock()
@@ -142,8 +142,8 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         self.telegram_bot_sdk.send_text_message.assert_not_called()
 
     # noinspection PyUnusedLocal
-    @patch('features.chat.telegram.telegram_price_alert_responder.ExchangeRateFetcher')
-    @patch('features.chat.telegram.telegram_price_alert_responder.PriceAlertManager.check_triggered_alerts')
+    @patch("features.chat.telegram.telegram_price_alert_responder.ExchangeRateFetcher")
+    @patch("features.chat.telegram.telegram_price_alert_responder.PriceAlertManager.check_triggered_alerts")
     def test_notification_failure(self, mock_check_alerts, mock_rate_fetcher):
         mock_check_alerts.return_value = [
             Mock(chat_id = "123", base_currency = "BTC", desired_currency = "USD", threshold_percent = 5),
@@ -152,7 +152,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         self.chat_config_dao.get.return_value = {
             "chat_id": "123",
             "language_name": "English",
-            "language_iso_code": "en"
+            "language_iso_code": "en",
         }
         self.translations.get.return_value = "Cached announcement"
         self.telegram_bot_sdk.send_text_message.side_effect = Exception("Notification failed")
@@ -174,8 +174,8 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         self.telegram_bot_sdk.send_text_message.assert_called_once()
 
     # noinspection PyUnusedLocal
-    @patch('features.chat.telegram.telegram_price_alert_responder.ExchangeRateFetcher')
-    @patch('features.chat.telegram.telegram_price_alert_responder.PriceAlertManager.check_triggered_alerts')
+    @patch("features.chat.telegram.telegram_price_alert_responder.ExchangeRateFetcher")
+    @patch("features.chat.telegram.telegram_price_alert_responder.PriceAlertManager.check_triggered_alerts")
     def test_cached_announcement(self, mock_check_alerts, mock_rate_fetcher):
         mock_check_alerts.return_value = [
             Mock(chat_id = "123", base_currency = "BTC", desired_currency = "USD", threshold_percent = 5),
@@ -184,7 +184,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         self.chat_config_dao.get.return_value = {
             "chat_id": "123",
             "language_name": "English",
-            "language_iso_code": "en"
+            "language_iso_code": "en",
         }
         self.translations.get.return_value = "Cached announcement"
 
