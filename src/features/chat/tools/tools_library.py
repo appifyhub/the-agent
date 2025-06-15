@@ -16,10 +16,10 @@ from features.chat.attachments_content_resolver import AttachmentsContentResolve
 from features.chat.generative_imaging_manager import GenerativeImagingManager
 from features.chat.image_edit_manager import ImageEditManager
 from features.chat.price_alert_manager import PriceAlertManager
-from features.chat.sponsorship_manager import SponsorshipManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.tools.base_tool_binder import BaseToolBinder
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
+from features.sponsorships.sponsorship_service import SponsorshipService
 from features.support.user_support_manager import UserSupportManager
 from features.web_browsing.ai_web_search import AIWebSearch
 from features.web_browsing.html_content_cleaner import HTMLContentCleaner
@@ -42,9 +42,9 @@ def sponsor_friend(user_id: str, friend_telegram_username: str) -> str:
     """
     try:
         with get_detached_session() as db:
-            sponsorship_manager = SponsorshipManager(UserCRUD(db), SponsorshipCRUD(db))
-            result, message = sponsorship_manager.sponsor_user(user_id, friend_telegram_username)
-            if result == SponsorshipManager.Result.failure:
+            sponsorship_service = SponsorshipService(UserCRUD(db), SponsorshipCRUD(db))
+            result, message = sponsorship_service.sponsor_user(user_id, friend_telegram_username)
+            if result == SponsorshipService.Result.failure:
                 return json.dumps({"result": "Failure", "reason": message})
             return json.dumps({"result": "Success", "next_step": message})
     except Exception as e:
@@ -63,9 +63,9 @@ def unsponsor_friend(user_id: str, friend_telegram_username: str) -> str:
     """
     try:
         with get_detached_session() as db:
-            sponsorship_manager = SponsorshipManager(UserCRUD(db), SponsorshipCRUD(db))
-            result, message = sponsorship_manager.unsponsor_user(user_id, friend_telegram_username)
-            if result == SponsorshipManager.Result.failure:
+            sponsorship_service = SponsorshipService(UserCRUD(db), SponsorshipCRUD(db))
+            result, message = sponsorship_service.unsponsor_user(user_id, friend_telegram_username)
+            if result == SponsorshipService.Result.failure:
                 return json.dumps({"result": "Failure", "reason": message})
             return json.dumps({"result": "Success", "next_step": message})
     except Exception as e:

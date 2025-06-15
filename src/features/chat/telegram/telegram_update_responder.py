@@ -13,7 +13,6 @@ from db.schema.chat_message import ChatMessage
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.sql import get_detached_session
 from features.chat.command_processor import CommandProcessor
-from features.chat.sponsorship_manager import SponsorshipManager
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
@@ -23,6 +22,7 @@ from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
 from features.prompting import prompt_library
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
+from features.sponsorships.sponsorship_service import SponsorshipService
 from util.config import config
 from util.functions import silent
 from util.safe_printer_mixin import sprint
@@ -42,7 +42,7 @@ def respond_to_update(update: Update) -> bool:
         chat_message_dao = ChatMessageCRUD(db)
         chat_message_attachment_dao = ChatMessageAttachmentCRUD(db)
         chat_config_dao = ChatConfigCRUD(db)
-        sponsorship_manager = SponsorshipManager(user_dao, sponsorship_dao)
+        sponsorship_service = SponsorshipService(user_dao, sponsorship_dao)
 
         def map_to_langchain(message):
             return domain_langchain_mapper.map_to_langchain(user_dao.get(message.author_id), message)
@@ -96,7 +96,7 @@ def respond_to_update(update: Update) -> bool:
             command_processor = CommandProcessor(
                 invoker = resolved_domain_data.author,
                 user_dao = user_dao,
-                sponsorship_manager = sponsorship_manager,
+                sponsorship_service = sponsorship_service,
                 settings_controller = settings_controller,
                 telegram_sdk = telegram_bot_sdk,
             )

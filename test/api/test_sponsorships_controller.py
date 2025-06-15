@@ -11,8 +11,8 @@ from db.model.sponsorship import SponsorshipDB
 from db.model.user import UserDB
 from db.schema.sponsorship import Sponsorship
 from db.schema.user import User
-from features.chat.sponsorship_manager import SponsorshipManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from features.sponsorships.sponsorship_service import SponsorshipService
 from util.config import config
 
 
@@ -313,7 +313,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
                 controller.fetch_sponsorships(self.sponsor_user.id.hex)
             self.assertIn("Unauthorized", str(context.exception))
 
-    @patch.object(SponsorshipManager, "sponsor_user", return_value = (SponsorshipManager.Result.success, "Success"))
+    @patch.object(SponsorshipService, "sponsor_user", return_value = (SponsorshipService.Result.success, "Success"))
     def test_sponsor_user_success(self, mock_sponsor_user):
         with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
             mock_auth_service = MockAuthService.return_value
@@ -340,9 +340,9 @@ class SponsorshipsControllerTest(unittest.TestCase):
 
     # noinspection PyUnusedLocal
     @patch.object(
-        SponsorshipManager,
+        SponsorshipService,
         "sponsor_user",
-        return_value = (SponsorshipManager.Result.failure, "User already sponsored")
+        return_value = (SponsorshipService.Result.failure, "User already sponsored")
     )
     def test_sponsor_user_failure_already_sponsored(self, mock_sponsor_user):
         with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
@@ -386,7 +386,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
                 )
             self.assertIn("Unauthorized", str(context.exception))
 
-    @patch.object(SponsorshipManager, "unsponsor_user", return_value = (SponsorshipManager.Result.success, "Success"))
+    @patch.object(SponsorshipService, "unsponsor_user", return_value = (SponsorshipService.Result.success, "Success"))
     def test_unsponsor_user_success(self, mock_unsponsor_user):
         with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
             mock_auth_service = MockAuthService.return_value
@@ -413,9 +413,9 @@ class SponsorshipsControllerTest(unittest.TestCase):
 
     # noinspection PyUnusedLocal
     @patch.object(
-        SponsorshipManager,
+        SponsorshipService,
         "unsponsor_user",
-        return_value = (SponsorshipManager.Result.failure, "Sponsorship not found")
+        return_value = (SponsorshipService.Result.failure, "Sponsorship not found")
     )
     def test_unsponsor_user_failure_not_found(self, mock_unsponsor_user):
         with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
@@ -459,7 +459,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
                 )
             self.assertIn("Unauthorized", str(context.exception))
 
-    @patch.object(SponsorshipManager, "unsponsor_self", return_value = (SponsorshipManager.Result.success, "Success"))
+    @patch.object(SponsorshipService, "unsponsor_self", return_value = (SponsorshipService.Result.success, "Success"))
     def test_unsponsor_self_success(self, mock_unsponsor_self):
         with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
             mock_auth_service = MockAuthService.return_value
@@ -480,9 +480,9 @@ class SponsorshipsControllerTest(unittest.TestCase):
 
     # noinspection PyUnusedLocal
     @patch.object(
-        SponsorshipManager,
+        SponsorshipService,
         "unsponsor_self",
-        return_value = (SponsorshipManager.Result.failure, "No sponsorships to remove")
+        return_value = (SponsorshipService.Result.failure, "No sponsorships to remove")
     )
     def test_unsponsor_self_failure_no_sponsorships(self, mock_unsponsor_self):
         with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
