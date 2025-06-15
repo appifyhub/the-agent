@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 
 from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
-from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier, ChatConfig
+from features.chat.telegram.telegram_progress_notifier import ChatConfig, TelegramProgressNotifier
 
 
 class TelegramProgressNotifierTest(unittest.TestCase):
@@ -19,7 +19,7 @@ class TelegramProgressNotifierTest(unittest.TestCase):
             language_name = "English",
             title = "Test Chat",
             is_private = True,
-            reply_chance_percent = 100
+            reply_chance_percent = 100,
         )
         self.message_id = "test_message_id"
         self.mock_bot_sdk = Mock(spec = TelegramBotSDK)
@@ -28,7 +28,7 @@ class TelegramProgressNotifierTest(unittest.TestCase):
             chat_config = self.chat_config,
             message_id = self.message_id,
             bot_sdk = self.mock_bot_sdk,
-            auto_start = False
+            auto_start = False,
         )
 
     # noinspection PyUnresolvedReferences

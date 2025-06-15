@@ -82,7 +82,7 @@ class SettingsControllerTest(unittest.TestCase):
             can_invite_users = is_manager,
             can_post_stories = is_manager,
             can_edit_stories = is_manager,
-            can_delete_stories = is_manager
+            can_delete_stories = is_manager,
         )
 
     def test_create_settings_link_success_user_settings(self):
@@ -118,7 +118,7 @@ class SettingsControllerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
         # Mock authorization service to allow access
-        with patch('api.settings_controller.AuthorizationService') as MockAuthService:
+        with patch("api.settings_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_chat.return_value = self.chat_config
@@ -166,7 +166,7 @@ class SettingsControllerTest(unittest.TestCase):
         self.assertIn("Chat ID must be provided", str(context.exception))
 
     def test_validate_invoker_not_found(self):
-        with patch('api.settings_controller.AuthorizationService') as MockAuthService:
+        with patch("api.settings_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.side_effect = ValueError("User not found")
 
@@ -184,7 +184,7 @@ class SettingsControllerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
 
-        with patch('api.settings_controller.AuthorizationService') as MockAuthService:
+        with patch("api.settings_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_chat.return_value = self.chat_config
@@ -204,7 +204,7 @@ class SettingsControllerTest(unittest.TestCase):
     def test_fetch_user_settings_success(self):
         self.mock_user_dao.get.return_value = self.invoker_user
 
-        with patch('api.settings_controller.AuthorizationService') as MockAuthService:
+        with patch("api.settings_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_user.return_value = self.invoker_user
@@ -225,12 +225,12 @@ class SettingsControllerTest(unittest.TestCase):
     @patch.object(
         ChatConfigManager,
         "change_chat_reply_chance",
-        return_value = (ChatConfigManager.Result.success, "")
+        return_value = (ChatConfigManager.Result.success, ""),
     )
     @patch.object(
         ChatConfigManager,
         "change_chat_release_notifications",
-        return_value = (ChatConfigManager.Result.success, "")
+        return_value = (ChatConfigManager.Result.success, ""),
     )
     def test_save_chat_settings_success(
         self,
@@ -241,7 +241,7 @@ class SettingsControllerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
 
-        with patch('api.settings_controller.AuthorizationService') as MockAuthService:
+        with patch("api.settings_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_chat.return_value = self.chat_config
@@ -291,7 +291,7 @@ class SettingsControllerTest(unittest.TestCase):
             created_at = self.invoker_user.created_at,
         )
 
-        with patch('api.settings_controller.AuthorizationService') as MockAuthService:
+        with patch("api.settings_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_user.return_value = self.invoker_user
@@ -319,7 +319,7 @@ class SettingsControllerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
 
-        with patch('api.settings_controller.AuthorizationService') as MockAuthService:
+        with patch("api.settings_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_chat.return_value = self.chat_config
@@ -346,7 +346,7 @@ class SettingsControllerTest(unittest.TestCase):
     @patch.object(
         ChatConfigManager,
         "change_chat_reply_chance",
-        return_value = (ChatConfigManager.Result.failure, "Error")
+        return_value = (ChatConfigManager.Result.failure, "Error"),
     )
     def test_save_chat_settings_failure_reply_chance(self, mock_change_chat_reply_chance, mock_change_chat_language):
         self.mock_user_dao.get.return_value = self.invoker_user
@@ -355,7 +355,7 @@ class SettingsControllerTest(unittest.TestCase):
         mock_change_chat_language.return_value = (ChatConfigManager.Result.success, "")
         mock_change_chat_reply_chance.return_value = (ChatConfigManager.Result.failure, "Error")
 
-        with patch('api.settings_controller.AuthorizationService') as MockAuthService:
+        with patch("api.settings_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_chat.return_value = self.chat_config
@@ -383,7 +383,7 @@ class SettingsControllerTest(unittest.TestCase):
     @patch.object(
         ChatConfigManager,
         "change_chat_release_notifications",
-        return_value = (ChatConfigManager.Result.failure, "Invalid notifications level")
+        return_value = (ChatConfigManager.Result.failure, "Invalid notifications level"),
     )
     def test_save_chat_settings_failure_release_notifications(
         self,
@@ -394,7 +394,7 @@ class SettingsControllerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
 
-        with patch('api.settings_controller.AuthorizationService') as MockAuthService:
+        with patch("api.settings_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_chat.return_value = self.chat_config
@@ -413,7 +413,7 @@ class SettingsControllerTest(unittest.TestCase):
                     language_name = "Spanish",
                     language_iso_code = "es",
                     reply_chance_percent = 50,
-                    release_notifications = "invalid_level"
+                    release_notifications = "invalid_level",
                 )
             self.assertIn("Invalid notifications level", str(context.exception))
 
@@ -454,7 +454,7 @@ class SettingsControllerTest(unittest.TestCase):
             language_iso_code = "en",
             reply_chance_percent = 100,
             is_private = True,
-            release_notifications = ChatConfigDB.ReleaseNotifications.all
+            release_notifications = ChatConfigDB.ReleaseNotifications.all,
         )
         group_chat_config = ChatConfig(
             chat_id = "group_chat_123",
@@ -462,7 +462,7 @@ class SettingsControllerTest(unittest.TestCase):
             language_iso_code = "es",
             reply_chance_percent = 50,
             is_private = False,
-            release_notifications = ChatConfigDB.ReleaseNotifications.all
+            release_notifications = ChatConfigDB.ReleaseNotifications.all,
         )
         no_title_chat_config = ChatConfig(
             chat_id = "no_title_chat_456",
@@ -470,10 +470,10 @@ class SettingsControllerTest(unittest.TestCase):
             language_iso_code = "fr",
             reply_chance_percent = 75,
             is_private = False,
-            release_notifications = ChatConfigDB.ReleaseNotifications.all
+            release_notifications = ChatConfigDB.ReleaseNotifications.all,
         )
 
-        with patch('api.settings_controller.AuthorizationService') as MockAuthService:
+        with patch("api.settings_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_user.return_value = self.invoker_user
@@ -495,23 +495,23 @@ class SettingsControllerTest(unittest.TestCase):
                 {
                     "chat_id": own_chat_config.chat_id,
                     "title": own_chat_config.title,
-                    "is_own": True  # Because chat_id matches invoker's telegram_user_id
+                    "is_own": True,  # Because chat_id matches invoker's telegram_user_id
                 },
                 {
                     "chat_id": group_chat_config.chat_id,
                     "title": group_chat_config.title,
-                    "is_own": False  # Because chat_id does not match
+                    "is_own": False,  # Because chat_id does not match
                 },
                 {
                     "chat_id": no_title_chat_config.chat_id,
                     "title": no_title_chat_config.title,  # Should be None
-                    "is_own": False  # Because chat_id does not match
-                }
+                    "is_own": False,  # Because chat_id does not match
+                },
             ]
             self.assertListEqual(result, expected_results)
 
     def test_fetch_admin_chats_no_chats_found(self):
-        with patch('api.settings_controller.AuthorizationService') as MockAuthService:
+        with patch("api.settings_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_user.return_value = self.invoker_user

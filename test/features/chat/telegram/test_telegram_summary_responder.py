@@ -11,12 +11,14 @@ from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig
 from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+
+# noinspection PyProtectedMember
 from features.chat.telegram.telegram_summary_responder import (
-    respond_with_summary,
-    get_version_change_type,
-    is_chat_subscribed,
     VersionChangeType,
     _strip_title_formatting,
+    get_version_change_type,
+    is_chat_subscribed,
+    respond_with_summary,
 )
 from util.translations_cache import TranslationsCache
 
@@ -39,7 +41,7 @@ class TelegramSummaryResponderTest(unittest.TestCase):
             "release_notes_b64": base64.b64encode(b"notes").decode(),
         }
         self.payload = ReleaseOutputPayload(
-            release_output_b64 = base64.b64encode(json.dumps(release_output_json).encode()).decode()
+            release_output_b64 = base64.b64encode(json.dumps(release_output_json).encode()).decode(),
         )
 
     def test_version_change_type_major(self):
@@ -199,5 +201,5 @@ class TelegramSummaryResponderTest(unittest.TestCase):
                 is_private = True,
                 reply_chance_percent = 100,
                 release_notifications = notifications,
-            )
+            ),
         )

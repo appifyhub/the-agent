@@ -50,7 +50,7 @@ class ImageEditManagerTest(unittest.TestCase):
             last_url = "http://test.com/image.png",
             last_url_until = int(datetime.now().timestamp()) + 3600,
             extension = "png",
-            mime_type = "image/png"
+            mime_type = "image/png",
         )
         self.mock_chat_message_attachment_dao.get.return_value = self.mock_attachment_db
         self.attachment = ChatMessageAttachment.model_validate(self.mock_attachment_db)
@@ -225,7 +225,7 @@ class ImageEditManagerTest(unittest.TestCase):
         mock_refresh.return_value = [self.attachment]
         mock_restore.return_value = ImageContentsRestorer.Result(
             restored_url = "http://test.com/restored_image.png",
-            inpainted_url = "http://test.com/inpainted_image.png"
+            inpainted_url = "http://test.com/inpainted_image.png",
         )
         self.mock_bot_sdk.send_document.return_value = {"result": {"message_id": 123}}
 

@@ -1,16 +1,16 @@
 import json
 from datetime import datetime, timedelta
-from typing import Dict, Any
+from typing import Any, Dict
 from uuid import UUID
 
 from tenacity import sleep
 
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
-from db.schema.tools_cache import ToolsCacheSave, ToolsCache
+from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from db.schema.user import User
-from features.ai_tools.external_ai_tool_library import FIAT_CURRENCY_EXCHANGE, CRYPTO_CURRENCY_EXCHANGE
-from features.currencies.supported_currencies import SUPPORTED_FIAT, SUPPORTED_CRYPTO
+from features.ai_tools.external_ai_tool_library import CRYPTO_CURRENCY_EXCHANGE, FIAT_CURRENCY_EXCHANGE
+from features.currencies.supported_currencies import SUPPORTED_CRYPTO, SUPPORTED_FIAT
 from features.web_browsing.web_fetcher import WebFetcher
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin

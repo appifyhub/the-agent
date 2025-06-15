@@ -87,7 +87,7 @@ class PriceAlertManager(SafePrinterMixin):
                 threshold_percent = threshold_percent,
                 last_price = current_rate,
                 last_price_time = datetime.now(),
-            )
+            ),
         )
         price_alert = PriceAlert.model_validate(price_alert_db)
         return PriceAlertManager.ActiveAlert(
@@ -171,7 +171,7 @@ class PriceAlertManager(SafePrinterMixin):
                         new_rate = current_rate,
                         new_rate_time = datetime.now().strftime(DATETIME_PRINT_FORMAT),
                         price_change_percent = price_change_percent,
-                    )
+                    ),
                 )
                 price_alert_dao.update(
                     PriceAlertSave(
@@ -181,7 +181,7 @@ class PriceAlertManager(SafePrinterMixin):
                         threshold_percent = alert.threshold_percent,
                         last_price = current_rate,
                         last_price_time = datetime.now(),
-                    )
+                    ),
                 )
         return triggered_alerts
 

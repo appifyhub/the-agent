@@ -11,7 +11,7 @@ from db.crud.user import UserCRUD
 from db.model.user import UserDB
 from db.schema.tools_cache import ToolsCache
 from db.schema.user import User
-from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher, CACHE_TTL
+from features.currencies.exchange_rate_fetcher import CACHE_TTL, ExchangeRateFetcher
 from features.web_browsing.web_fetcher import WebFetcher
 from util.config import config
 

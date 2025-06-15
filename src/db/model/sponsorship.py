@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, DateTime, PrimaryKeyConstraint
+from sqlalchemy import Column, DateTime, ForeignKey, PrimaryKeyConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 

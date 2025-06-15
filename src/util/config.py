@@ -1,10 +1,12 @@
+# ruff: noqa: E501
+
 import os
 from typing import Callable
 
 from util.singleton import Singleton
 
 
-class Config(metaclass = Singleton):
+class Config(metaclass=Singleton):
     max_sponsorships_per_user: int
     verbose: bool
     log_telegram_update: bool
@@ -81,7 +83,7 @@ class Config(metaclass = Singleton):
         def_version: str = "dev",
     ):
         # @formatter:off
-        self.max_sponsorships_per_user = int(self.__env("MAX_SPONSORSHIPS_PER_USER",lambda: str(def_max_sponsorships_per_user)))
+        self.max_sponsorships_per_user = int(self.__env("MAX_SPONSORSHIPS_PER_USER", lambda: str(def_max_sponsorships_per_user)))
         self.verbose = self.__env("VERBOSE", lambda: str(def_verbose)).lower() == "true"
         self.log_telegram_update = self.__env("LOG_TG_UPDATE", lambda: str(def_log_telegram_update)).lower() == "true"
         self.web_retries = int(self.__env("WEB_RETRIES", lambda: str(def_web_retries)))

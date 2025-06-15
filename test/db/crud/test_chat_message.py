@@ -1,11 +1,12 @@
 import unittest
 from datetime import datetime, timedelta
 
+from db.sql_util import SQLUtil
+
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfigSave
 from db.schema.chat_message import ChatMessageSave
 from db.schema.user import UserSave
-from db.sql_util import SQLUtil
 
 
 class ChatMessageCRUDTest(unittest.TestCase):
@@ -27,7 +28,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
                 telegram_user_id = 123456,
                 open_ai_key = "test-key",
                 group = UserDB.Group.standard,
-            )
+            ),
         )
         chat_message_data = ChatMessageSave(
             chat_id = chat.chat_id,
@@ -55,7 +56,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
                 telegram_user_id = 123456,
                 open_ai_key = "test-key",
                 group = UserDB.Group.standard,
-            )
+            ),
         )
         chat_message_data = ChatMessageSave(
             chat_id = chat.chat_id,
@@ -68,7 +69,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
 
         fetched_chat_message = self.sql.chat_message_crud().get(
             created_chat_message.chat_id,
-            created_chat_message.message_id
+            created_chat_message.message_id,
         )
 
         self.assertEqual(fetched_chat_message.chat_id, created_chat_message.chat_id)
@@ -86,14 +87,14 @@ class ChatMessageCRUDTest(unittest.TestCase):
                 telegram_user_id = 123456,
                 open_ai_key = "test-key",
                 group = UserDB.Group.standard,
-            )
+            ),
         )
         chat_messages = [
             self.sql.chat_message_crud().create(
-                ChatMessageSave(chat_id = chat1.chat_id, message_id = "msg1", author_id = user.id, text = "no1")
+                ChatMessageSave(chat_id = chat1.chat_id, message_id = "msg1", author_id = user.id, text = "no1"),
             ),
             self.sql.chat_message_crud().create(
-                ChatMessageSave(chat_id = chat2.chat_id, message_id = "msg2", author_id = user.id, text = "no2")
+                ChatMessageSave(chat_id = chat2.chat_id, message_id = "msg2", author_id = user.id, text = "no2"),
             ),
         ]
 
@@ -116,7 +117,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
                 telegram_user_id = 123456,
                 open_ai_key = "test-key",
                 group = UserDB.Group.standard,
-            )
+            ),
         )
 
         base_time = datetime.now()
@@ -127,8 +128,8 @@ class ChatMessageCRUDTest(unittest.TestCase):
                     message_id = f"msg{i}",
                     author_id = user.id,
                     text = f"Message {i} for chat1",
-                    sent_at = base_time + timedelta(minutes = i)
-                )
+                    sent_at = base_time + timedelta(minutes = i),
+                ),
             ) for i in range(1, 6)
         ]
         chat2_messages = [
@@ -138,8 +139,8 @@ class ChatMessageCRUDTest(unittest.TestCase):
                     message_id = f"msg{i}",
                     author_id = user.id,
                     text = f"Message {i} for chat2",
-                    sent_at = base_time + timedelta(minutes = i + 10)
-                )
+                    sent_at = base_time + timedelta(minutes = i + 10),
+                ),
             ) for i in range(1, 4)
         ]
 
@@ -161,7 +162,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
         paginated_chat1_messages = self.sql.chat_message_crud().get_latest_chat_messages(
             chat1.chat_id,
             skip = 2,
-            limit = 2
+            limit = 2,
         )
         fetched_chat2_messages = self.sql.chat_message_crud().get_latest_chat_messages(chat2.chat_id)
         self.assertEqual(len(paginated_chat1_messages), 2)
@@ -185,7 +186,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
                 telegram_user_id = 123456,
                 open_ai_key = "test-key",
                 group = UserDB.Group.standard,
-            )
+            ),
         )
         chat_message_data = ChatMessageSave(
             chat_id = chat.chat_id,
@@ -219,7 +220,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
                 telegram_user_id = 123456,
                 open_ai_key = "test-key",
                 group = UserDB.Group.standard,
-            )
+            ),
         )
         chat_message_data = ChatMessageSave(
             chat_id = chat.chat_id,
@@ -244,7 +245,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
             message_id = saved_chat_message.message_id,
             author_id = saved_chat_message.author_id,
             sent_at = saved_chat_message.sent_at,
-            text = "Updated text!"
+            text = "Updated text!",
         )
         updated_chat_message = self.sql.chat_message_crud().save(update_data)
         self.assertIsNotNone(updated_chat_message)
@@ -264,7 +265,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
                 telegram_user_id = 123456,
                 open_ai_key = "test-key",
                 group = UserDB.Group.standard,
-            )
+            ),
         )
         chat_message_data = ChatMessageSave(
             chat_id = chat.chat_id,
@@ -283,5 +284,5 @@ class ChatMessageCRUDTest(unittest.TestCase):
         self.assertEqual(deleted_chat_message.chat_id, created_chat_message.chat_id)
         self.assertEqual(deleted_chat_message.message_id, created_chat_message.message_id)
         self.assertIsNone(
-            self.sql.chat_message_crud().get(created_chat_message.chat_id, created_chat_message.message_id)
+            self.sql.chat_message_crud().get(created_chat_message.chat_id, created_chat_message.message_id),
         )

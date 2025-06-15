@@ -1,6 +1,6 @@
 import io
 import unittest
-from unittest.mock import patch, MagicMock, ANY, call
+from unittest.mock import ANY, MagicMock, call, patch
 
 import requests_mock
 from langchain_core.messages import AIMessage
@@ -94,10 +94,10 @@ class AudioTranscriberTest(unittest.TestCase):
         # noinspection PyUnresolvedReferences
         result = transcriber._AudioTranscriber__convert_to_wav("ogg")
 
-        self.assertEqual(result, b'')
+        self.assertEqual(result, b"")
         expected_calls = [
-            call(ANY, format = 'ogg'),
-            call(ANY, format = 'ogg')
+            call(ANY, format = "ogg"),
+            call(ANY, format = "ogg"),
         ]
         mock_audio_segment.from_file.assert_has_calls(expected_calls, any_order = True)
         self.assertEqual(mock_audio_segment.from_file.call_count, 2)

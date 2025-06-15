@@ -1,5 +1,5 @@
 import base64
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from uuid import UUID
 
@@ -15,7 +15,7 @@ from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from db.schema.user import User
 from features.audio.audio_transcriber import AudioTranscriber
-from features.chat.supported_files import KNOWN_IMAGE_FORMATS, KNOWN_AUDIO_FORMATS, KNOWN_DOCS_FORMATS
+from features.chat.supported_files import KNOWN_AUDIO_FORMATS, KNOWN_DOCS_FORMATS, KNOWN_IMAGE_FORMATS
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.sdk.telegram_bot_sdk_utils import TelegramBotSDKUtils
 from features.documents.document_search import DocumentSearch
@@ -166,7 +166,7 @@ class AttachmentsContentResolver(SafePrinterMixin):
                             key = cache_key,
                             value = content,
                             expires_at = datetime.now() + CACHE_TTL,
-                        )
+                        ),
                     )
                 self.contents.append(content)
             except Exception as e:

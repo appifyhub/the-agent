@@ -2,7 +2,7 @@ import unittest
 from datetime import date
 from uuid import UUID
 
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 
 from db.schema.chat_message import ChatMessage
 from db.schema.user import User

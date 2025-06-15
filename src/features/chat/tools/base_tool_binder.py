@@ -1,4 +1,4 @@
-from typing import Dict, Callable, Any
+from typing import Any, Callable, Dict
 
 from langchain_core.language_models import BaseChatModel, LanguageModelInput
 from langchain_core.messages import BaseMessage

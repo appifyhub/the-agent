@@ -1,7 +1,7 @@
 import json
 import platform
 import time
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 import requests
@@ -104,7 +104,7 @@ class WebFetcher(SafePrinterMixin):
                     except Exception:
                         self.sprint(f"Failed to decode content from {self.url}")
                         content_text = None
-                    if b'\x00' in content_bytes or content_text is None:
+                    if b"\x00" in content_bytes or content_text is None:
                         self.sprint(f"Not caching binary or invalid content from {self.url}")
                         self.html = None
                         break
@@ -114,7 +114,7 @@ class WebFetcher(SafePrinterMixin):
                         key = self.__cache_key,
                         value = self.html,
                         expires_at = datetime.now() + self.__cache_ttl_html,
-                    )
+                    ),
                 )
                 break
             except (RequestException, Timeout) as e:
@@ -158,7 +158,7 @@ class WebFetcher(SafePrinterMixin):
                         key = self.__cache_key,
                         value = json.dumps(self.json),
                         expires_at = datetime.now() + self.__cache_ttl_json,
-                    )
+                    ),
                 )
                 break
             except (RequestException, Timeout) as e:

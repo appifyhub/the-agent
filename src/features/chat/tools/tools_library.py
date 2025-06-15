@@ -1,3 +1,5 @@
+# ruff: noqa: E501
+
 import json
 
 from langchain_core.tools import tool
@@ -16,10 +18,10 @@ from features.chat.attachments_content_resolver import AttachmentsContentResolve
 from features.chat.generative_imaging_manager import GenerativeImagingManager
 from features.chat.image_edit_manager import ImageEditManager
 from features.chat.price_alert_manager import PriceAlertManager
-from features.chat.sponsorship_manager import SponsorshipManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.tools.base_tool_binder import BaseToolBinder
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
+from features.sponsorships.sponsorship_service import SponsorshipService
 from features.support.user_support_manager import UserSupportManager
 from features.web_browsing.ai_web_search import AIWebSearch
 from features.web_browsing.html_content_cleaner import HTMLContentCleaner
@@ -42,9 +44,9 @@ def sponsor_friend(user_id: str, friend_telegram_username: str) -> str:
     """
     try:
         with get_detached_session() as db:
-            sponsorship_manager = SponsorshipManager(UserCRUD(db), SponsorshipCRUD(db))
-            result, message = sponsorship_manager.sponsor_user(user_id, friend_telegram_username)
-            if result == SponsorshipManager.Result.failure:
+            sponsorship_service = SponsorshipService(UserCRUD(db), SponsorshipCRUD(db))
+            result, message = sponsorship_service.sponsor_user(user_id, friend_telegram_username)
+            if result == SponsorshipService.Result.failure:
                 return json.dumps({"result": "Failure", "reason": message})
             return json.dumps({"result": "Success", "next_step": message})
     except Exception as e:
@@ -63,9 +65,9 @@ def unsponsor_friend(user_id: str, friend_telegram_username: str) -> str:
     """
     try:
         with get_detached_session() as db:
-            sponsorship_manager = SponsorshipManager(UserCRUD(db), SponsorshipCRUD(db))
-            result, message = sponsorship_manager.unsponsor_user(user_id, friend_telegram_username)
-            if result == SponsorshipManager.Result.failure:
+            sponsorship_service = SponsorshipService(UserCRUD(db), SponsorshipCRUD(db))
+            result, message = sponsorship_service.unsponsor_user(user_id, friend_telegram_username)
+            if result == SponsorshipService.Result.failure:
                 return json.dumps({"result": "Failure", "reason": message})
             return json.dumps({"result": "Success", "next_step": message})
     except Exception as e:
@@ -106,7 +108,7 @@ def process_attachments(
                     chat_id = chat_id,
                     invoker_user_id_hex = user_id,
                     additional_context = context,
-                    attachment_ids = attachment_ids.split(','),
+                    attachment_ids = attachment_ids.split(","),
                     bot_sdk = TelegramBotSDK(db),
                     user_dao = UserCRUD(db),
                     chat_config_dao = ChatConfigCRUD(db),
@@ -121,7 +123,7 @@ def process_attachments(
             elif operation in editing_operations:
                 manager = ImageEditManager(
                     chat_id = chat_id,
-                    attachment_ids = attachment_ids.split(','),
+                    attachment_ids = attachment_ids.split(","),
                     invoker_user_id_hex = user_id,
                     operation_name = operation,
                     operation_guidance = context,
@@ -137,7 +139,7 @@ def process_attachments(
                         "result": result.value,
                         "stats": stats,
                         "next_step": "Relay this status update to the partner",
-                    }
+                    },
                 )
             else:
                 # Unknown operation, must report back
@@ -160,7 +162,7 @@ def fetch_web_content(url: str) -> str:
             tools_cache_dao = ToolsCacheCRUD(db)
             html = WebFetcher(url, tools_cache_dao, auto_fetch_html = True).html
             text = HTMLContentCleaner(str(html), tools_cache_dao).clean_up()
-            result = text[:TOOL_TRUNCATE_LENGTH] + '...' if len(text) > TOOL_TRUNCATE_LENGTH else text
+            result = text[:TOOL_TRUNCATE_LENGTH] + "..." if len(text) > TOOL_TRUNCATE_LENGTH else text
             return json.dumps({"result": "Success", "content": result})
     except Exception as e:
         sprint("Tool call failed", e)
@@ -333,7 +335,7 @@ def announce_maintenance_or_news(user_id: str, raw_announcement: str) -> str:
                     "result": "Success",
                     "summary": results,
                     "next_step": "Report these summary numbers back to the developer-user",
-                }
+                },
             )
     except Exception as e:
         sprint("Tool call failed", e)
@@ -368,7 +370,7 @@ def deliver_message(author_user_id: str, message: str, target_telegram_username:
                     "result": "Success",
                     "summary": results,
                     "next_step": "Report these summary numbers back to the developer-user",
-                }
+                },
             )
     except Exception as e:
         sprint("Tool call failed", e)
@@ -414,7 +416,7 @@ def request_feature_bug_or_support(
                     "result": "Success",
                     "github_issue_url": issue_url,
                     "next_step": "Report this resolution back to the partner",
-                }
+                },
             )
     except Exception as e:
         sprint("Tool call failed", e)
@@ -459,7 +461,7 @@ def configure_settings(
                     {
                         "result": "Error",
                         "error": "Author has no private chat with the bot; cannot send settings link",
-                    }
+                    },
                 )
             telegram_sdk.send_button_link(destination_chat_id, settings_link)
             next_step: str
@@ -471,7 +473,7 @@ def configure_settings(
                 {
                     "result": "Success",
                     "next_step": next_step,
-                }
+                },
             )
     except Exception as e:
         sprint("Tool call failed", e)
@@ -489,7 +491,7 @@ def get_version() -> str:
                 "result": "Success",
                 "version": f"v{config.version}",
                 "next_step": "Notify the user of the current (latest) version",
-            }
+            },
         )
     except Exception as e:
         sprint("Tool call failed", e)
@@ -516,5 +518,5 @@ class ToolsLibrary(BaseToolBinder):
                 "request_feature_bug_or_support": request_feature_bug_or_support,
                 "configure_settings": configure_settings,
                 "get_version": get_version,
-            }
+            },
         )

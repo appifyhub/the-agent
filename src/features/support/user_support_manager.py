@@ -5,7 +5,7 @@ from uuid import UUID
 import requests
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from pydantic import SecretStr
 
 from db.crud.user import UserCRUD

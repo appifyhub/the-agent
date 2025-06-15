@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta
 from time import sleep
-from typing import Dict, Any
+from typing import Any, Dict
 
 import requests
 
 from db.crud.tools_cache import ToolsCacheCRUD
-from db.schema.tools_cache import ToolsCacheSave, ToolsCache
+from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from features.ai_tools.external_ai_tool_library import TWITTER_API
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
@@ -49,7 +49,7 @@ class TwitterStatusFetcher(SafePrinterMixin):
                 key = cache_key,
                 value = resolved_content,
                 expires_at = datetime.now() + CACHE_TTL,
-            )
+            ),
         )
         self.sprint(f"Cache updated for key '{cache_key}'")
         return resolved_content
@@ -83,7 +83,7 @@ class TwitterStatusFetcher(SafePrinterMixin):
                     f"@{username} · {name}",
                     f"[Locale:{language_iso_code}] Bio: \"{bio}\"",
                     f"```\n{post_text}\n```",
-                ]
+                ],
             )
             photo_contents = self.__resolve_photo_contents(tweet, text_contents)
             return "\n".join([text_contents, photo_contents or ""]).strip()

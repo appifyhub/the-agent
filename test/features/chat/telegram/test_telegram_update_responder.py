@@ -1,14 +1,14 @@
 import unittest
 from unittest.mock import Mock, patch
 
+from db.sql_util import SQLUtil
+
 from api.settings_controller import SettingsController
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
 from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
-from db.sql_util import SQLUtil
-from features.chat.sponsorship_manager import SponsorshipManager
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
@@ -16,6 +16,7 @@ from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.chat.telegram.telegram_update_responder import respond_to_update
+from features.sponsorships.sponsorship_service import SponsorshipService
 
 
 class TelegramUpdateResponderTest(unittest.TestCase):
@@ -30,7 +31,7 @@ class TelegramUpdateResponderTest(unittest.TestCase):
     chat_messages_dao: ChatMessageCRUD
     chat_message_attachment_dao: ChatMessageAttachmentCRUD
     chat_config_dao: ChatConfigCRUD
-    sponsorship_manager: SponsorshipManager
+    sponsorship_service: SponsorshipService
     settings_controller: SettingsController
 
     def setUp(self):
@@ -47,7 +48,7 @@ class TelegramUpdateResponderTest(unittest.TestCase):
         self.chat_messages_dao = Mock(spec = ChatMessageCRUD)
         self.chat_message_attachment_dao = Mock(spec = ChatMessageAttachmentCRUD)
         self.chat_config_dao = Mock(spec = ChatConfigCRUD)
-        self.sponsorship_manager = Mock(spec = SponsorshipManager)
+        self.sponsorship_service = Mock(spec = SponsorshipService)
         self.settings_controller = Mock(spec = SettingsController)
         # patch all dependencies in the correct namespace where they are used in telegram_update_responder
         patcher_get_detached_session = patch("features.chat.telegram.telegram_update_responder.get_detached_session")
@@ -90,9 +91,9 @@ class TelegramUpdateResponderTest(unittest.TestCase):
             "features.chat.telegram.telegram_update_responder.ChatConfigCRUD",
             return_value = self.chat_config_dao,
         )
-        patcher_sponsorship_manager = patch(
-            "features.chat.telegram.telegram_update_responder.SponsorshipManager",
-            return_value = self.sponsorship_manager,
+        patcher_sponsorship_service = patch(
+            "features.chat.telegram.telegram_update_responder.SponsorshipService",
+            return_value = self.sponsorship_service,
         )
         patcher_settings_controller = patch(
             "features.chat.telegram.telegram_update_responder.SettingsController",
@@ -109,7 +110,7 @@ class TelegramUpdateResponderTest(unittest.TestCase):
         patcher_chat_message_crud.start()
         patcher_chat_message_attachment_crud.start()
         patcher_chat_config_crud.start()
-        patcher_sponsorship_manager.start()
+        patcher_sponsorship_service.start()
         patcher_settings_controller.start()
 
         # make sure to stop the patchers after the test
@@ -122,7 +123,7 @@ class TelegramUpdateResponderTest(unittest.TestCase):
         self.addCleanup(patcher_chat_message_crud.stop)
         self.addCleanup(patcher_chat_message_attachment_crud.stop)
         self.addCleanup(patcher_chat_config_crud.stop)
-        self.addCleanup(patcher_sponsorship_manager.stop)
+        self.addCleanup(patcher_sponsorship_service.stop)
         self.addCleanup(patcher_settings_controller.stop)
 
     def tearDown(self):
@@ -194,7 +195,7 @@ class TelegramUpdateResponderTest(unittest.TestCase):
         self.telegram_domain_mapper.map_update.return_value = Mock()
         self.telegram_data_resolver.resolve.return_value = Mock(
             chat = Mock(chat_id = "123"),
-            author = None
+            author = None,
         )
 
         error_message = "Test error"

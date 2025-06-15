@@ -8,10 +8,10 @@ from api.models.release_output_payload import ReleaseOutputPayload
 from db.crud.chat_config import ChatConfigCRUD
 from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig
+from features.announcements.release_summarizer import ReleaseSummarizer
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
-from features.release_summarizer.release_summarizer import ReleaseSummarizer
 from util.safe_printer_mixin import sprint
-from util.translations_cache import TranslationsCache, DEFAULT_LANGUAGE, DEFAULT_ISO_CODE
+from util.translations_cache import DEFAULT_ISO_CODE, DEFAULT_LANGUAGE, TranslationsCache
 
 
 class SummaryResult:
@@ -45,7 +45,7 @@ class SummaryResult:
             "chats_subscribed": self.chats_subscribed,
             "chats_unsubscribed": self.chats_unsubscribed,
             "chats_notified": self.chats_notified,
-            "summaries_created": self.summaries_created
+            "summaries_created": self.summaries_created,
         }
 
 
@@ -180,4 +180,4 @@ def is_chat_subscribed(chat: ChatConfig, change_type: VersionChangeType) -> bool
 
 
 def _strip_title_formatting(text: str) -> str:
-    return re.sub(r'^(#\s*)+', '', text)
+    return re.sub(r"^(#\s*)+", "", text)

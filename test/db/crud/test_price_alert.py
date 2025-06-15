@@ -1,9 +1,10 @@
 import unittest
 from datetime import datetime, timedelta
 
+from db.sql_util import SQLUtil
+
 from db.schema.chat_config import ChatConfigSave
 from db.schema.price_alert import PriceAlertSave
-from db.sql_util import SQLUtil
 
 
 class PriceAlertCRUDTest(unittest.TestCase):
@@ -65,13 +66,13 @@ class PriceAlertCRUDTest(unittest.TestCase):
                 PriceAlertSave(
                     chat_id = chat1.chat_id, base_currency = "USD", desired_currency = "EUR",
                     threshold_percent = 5, last_price = 0.85,
-                )
+                ),
             ),
             self.sql.price_alert_crud().create(
                 PriceAlertSave(
                     chat_id = chat2.chat_id, base_currency = "USD", desired_currency = "GBP",
                     threshold_percent = 3, last_price = 0.75,
-                )
+                ),
             ),
         ]
 
@@ -92,20 +93,20 @@ class PriceAlertCRUDTest(unittest.TestCase):
                 PriceAlertSave(
                     chat_id = chat1.chat_id, base_currency = "USD", desired_currency = "EUR",
                     threshold_percent = 5, last_price = 0.85,
-                )
+                ),
             ),
             self.sql.price_alert_crud().create(
                 PriceAlertSave(
                     chat_id = chat1.chat_id, base_currency = "USD", desired_currency = "GBP",
                     threshold_percent = 3, last_price = 0.75,
-                )
+                ),
             ),
         ]
         self.sql.price_alert_crud().create(
             PriceAlertSave(
                 chat_id = chat2.chat_id, base_currency = "USD", desired_currency = "JPY",
                 threshold_percent = 2, last_price = 110.0,
-            )
+            ),
         )
 
         fetched_chat1_alerts = self.sql.price_alert_crud().get_alerts_by_chat(chat1.chat_id)
@@ -210,5 +211,5 @@ class PriceAlertCRUDTest(unittest.TestCase):
                 created_price_alert.chat_id,
                 created_price_alert.base_currency,
                 created_price_alert.desired_currency,
-            )
+            ),
         )

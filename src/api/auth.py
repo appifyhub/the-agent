@@ -1,10 +1,10 @@
-from datetime import timedelta, datetime, timezone
-from typing import Dict, Any
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict
 
 from fastapi import HTTPException, Security
-from fastapi.security import APIKeyHeader, HTTPBearer, HTTPAuthorizationCredentials
-from jose import jwt, ExpiredSignatureError
-from starlette.status import HTTP_403_FORBIDDEN, HTTP_401_UNAUTHORIZED
+from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
+from jose import ExpiredSignatureError, jwt
+from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_403_FORBIDDEN
 
 from util.config import config
 from util.safe_printer_mixin import sprint
@@ -75,7 +75,7 @@ def create_jwt_token(payload: Dict[str, Any], expires_in_minutes: int) -> str:
             "exp": now + expires_in,
             "iat": now,
             "version": config.version,
-        }
+        },
     )
     encoded_jwt = jwt.encode(to_encode, config.jwt_secret_key, algorithm = __JWT_ALGORITHM)
     return encoded_jwt

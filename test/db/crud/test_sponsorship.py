@@ -1,9 +1,10 @@
 import unittest
 from datetime import datetime
 
+from db.sql_util import SQLUtil
+
 from db.schema.sponsorship import SponsorshipSave
 from db.schema.user import UserSave
-from db.sql_util import SQLUtil
 
 
 class SponsorshipCRUDTest(unittest.TestCase):

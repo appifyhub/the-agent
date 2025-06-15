@@ -1,9 +1,10 @@
 import unittest
 from datetime import datetime, timedelta
 
+from db.sql_util import SQLUtil
+
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.schema.tools_cache import ToolsCacheSave
-from db.sql_util import SQLUtil
 
 
 class ToolsCacheCRUDTest(unittest.TestCase):
@@ -43,10 +44,10 @@ class ToolsCacheCRUDTest(unittest.TestCase):
     def test_get_all_tools_caches(self):
         tools_caches = [
             self.sql.tools_cache_crud().create(
-                ToolsCacheSave(key = "tool1", value = "value1", expires_at = datetime.now() + timedelta(days = 1))
+                ToolsCacheSave(key = "tool1", value = "value1", expires_at = datetime.now() + timedelta(days = 1)),
             ),
             self.sql.tools_cache_crud().create(
-                ToolsCacheSave(key = "tool2", value = "value2", expires_at = datetime.now() + timedelta(days = 1))
+                ToolsCacheSave(key = "tool2", value = "value2", expires_at = datetime.now() + timedelta(days = 1)),
             ),
         ]
 
@@ -117,10 +118,10 @@ class ToolsCacheCRUDTest(unittest.TestCase):
     def test_delete_expired_tools_cache(self):
         # Creating tools cache entries with varying expiration times
         tools_cache_not_expired = self.sql.tools_cache_crud().create(
-            ToolsCacheSave(key = "tool1", value = "value1", expires_at = datetime.now() + timedelta(days = 1))
+            ToolsCacheSave(key = "tool1", value = "value1", expires_at = datetime.now() + timedelta(days = 1)),
         )
         tools_cache_expired = self.sql.tools_cache_crud().create(
-            ToolsCacheSave(key = "tool2", value = "value2", expires_at = datetime.now() - timedelta(days = 1))
+            ToolsCacheSave(key = "tool2", value = "value2", expires_at = datetime.now() - timedelta(days = 1)),
         )
 
         # Deleting expired cache entries

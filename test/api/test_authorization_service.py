@@ -76,7 +76,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             can_invite_users = is_manager,
             can_post_stories = is_manager,
             can_edit_stories = is_manager,
-            can_delete_stories = is_manager
+            can_delete_stories = is_manager,
         )
 
     def test_validate_chat_success(self):
@@ -136,7 +136,7 @@ class AuthorizationServiceTest(unittest.TestCase):
         self.mock_chat_config_dao.get_all.return_value = [self.chat_config]
         other_admin = self.create_admin_member(
             TelegramUser(id = 999, is_bot = False, first_name = "Other"),
-            is_manager = True
+            is_manager = True,
         )
         self.mock_telegram_sdk.get_chat_administrators.return_value = [other_admin]
 
@@ -210,7 +210,7 @@ class AuthorizationServiceTest(unittest.TestCase):
         admin_member_invoker = self.create_admin_member(self.invoker_telegram_user, is_manager = True)
         admin_member_other = self.create_admin_member(
             TelegramUser(id = 67890, is_bot = False, first_name = "Other", username = "other_admin"),
-            is_manager = True
+            is_manager = True,
         )
 
         self.mock_chat_config_dao.get_all.return_value = [chat_config_1_db, chat_config_2_db, chat_config_3_db]
@@ -242,15 +242,15 @@ class AuthorizationServiceTest(unittest.TestCase):
     def test_get_authorized_chats_success_user_administers_multiple_chats(self):
         chat_config1 = ChatConfig(
             chat_id = "chat_id_1", title = "Admin Chat 1", language_iso_code = "en", reply_chance_percent = 50,
-            is_private = False, release_notifications = ChatConfigDB.ReleaseNotifications.all
+            is_private = False, release_notifications = ChatConfigDB.ReleaseNotifications.all,
         )
         chat_config2 = ChatConfig(
             chat_id = "chat_id_2", title = "Non-Admin Chat", language_iso_code = "es", reply_chance_percent = 70,
-            is_private = False, release_notifications = ChatConfigDB.ReleaseNotifications.all
+            is_private = False, release_notifications = ChatConfigDB.ReleaseNotifications.all,
         )
         chat_config3 = ChatConfig(
             chat_id = "chat_id_3", title = "Admin Chat 2", language_iso_code = "fr", reply_chance_percent = 60,
-            is_private = False, release_notifications = ChatConfigDB.ReleaseNotifications.all
+            is_private = False, release_notifications = ChatConfigDB.ReleaseNotifications.all,
         )
         all_chat_configs = [chat_config1, chat_config2, chat_config3]
         self.mock_chat_config_dao.get_all.return_value = all_chat_configs
@@ -258,7 +258,7 @@ class AuthorizationServiceTest(unittest.TestCase):
         admin_member = self.create_admin_member(self.invoker_telegram_user, is_manager = True)
         other_admin_member = self.create_admin_member(
             TelegramUser(id = 999, is_bot = False, first_name = "OtherAdmin"),
-            is_manager = True
+            is_manager = True,
         )
 
         def mock_get_admins(chat_id_param):

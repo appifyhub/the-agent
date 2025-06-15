@@ -9,10 +9,10 @@ from requests_mock.mocker import Mocker
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.schema.tools_cache import ToolsCache
 from features.web_browsing.web_fetcher import (
-    WebFetcher,
-    DEFAULT_HEADERS,
     DEFAULT_CACHE_TTL_HTML,
     DEFAULT_CACHE_TTL_JSON,
+    DEFAULT_HEADERS,
+    WebFetcher,
 )
 from util.config import config
 
@@ -97,6 +97,7 @@ class WebFetcherTest(unittest.TestCase):
         self.assertIsNone(result)
         self.assertIsNone(fetcher.html)
         # Ensure nothing was cached
+        # noinspection PyUnresolvedReferences
         self.mock_cache_crud.save.assert_not_called()
 
     @requests_mock.Mocker()
@@ -266,7 +267,7 @@ class WebFetcherTest(unittest.TestCase):
         mock_cache_entry = {
             "key": "test_cache_key",
             "value": expected_html,
-            "expires_at": (datetime.now() + timedelta(hours = 1)).isoformat()
+            "expires_at": (datetime.now() + timedelta(hours = 1)).isoformat(),
         }
         self.mock_cache_crud.get.return_value = mock_cache_entry
 
@@ -295,7 +296,7 @@ class WebFetcherTest(unittest.TestCase):
         mock_cache_entry = {
             "key": "test_cache_key",
             "value": json.dumps(expected_json),
-            "expires_at": (datetime.now() + timedelta(hours = 1)).isoformat()
+            "expires_at": (datetime.now() + timedelta(hours = 1)).isoformat(),
         }
         self.mock_cache_crud.get.return_value = mock_cache_entry
 
@@ -311,7 +312,7 @@ class WebFetcherTest(unittest.TestCase):
         mock_cache_entry = {
             "key": "test_cache_key",
             "value": "Cached HTML content",
-            "expires_at": (datetime.now() + timedelta(hours = 1)).isoformat()
+            "expires_at": (datetime.now() + timedelta(hours = 1)).isoformat(),
         }
         self.mock_cache_crud.get.return_value = mock_cache_entry
 
@@ -338,7 +339,7 @@ class WebFetcherTest(unittest.TestCase):
         mock_cache_entry = {
             "key": "test_cache_key",
             "value": json.dumps({"key": "Cached value"}),
-            "expires_at": (datetime.now() + timedelta(hours = 1)).isoformat()
+            "expires_at": (datetime.now() + timedelta(hours = 1)).isoformat(),
         }
         self.mock_cache_crud.get.return_value = mock_cache_entry
 
