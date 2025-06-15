@@ -1,10 +1,10 @@
 from features.ai_tools.external_ai_tool import ExternalAiTool, ToolType
 from features.ai_tools.external_ai_tool_provider_library import (
     ANTHROPIC,
+    COINMARKETCAP,
     OPEN_AI,
     PERPLEXITY,
     RAPID_API,
-    COINMARKETCAP,
     REPLICATE,
 )
 

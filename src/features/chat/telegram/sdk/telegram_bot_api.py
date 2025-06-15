@@ -3,7 +3,7 @@ import re
 
 import requests
 from pydantic import TypeAdapter
-from requests import Response, RequestException
+from requests import RequestException, Response
 
 from features.chat.telegram.model.attachment.file import File
 from features.chat.telegram.model.chat_member import ChatMember
@@ -36,7 +36,7 @@ class TelegramBotAPI(SafePrinterMixin):
     ) -> dict:
         self.sprint(f"Sending message to chat #{chat_id}")
         url = f"{self.__bot_api_url}/sendMessage"
-        cleaned_text = re.sub(r'(?<!\b)_(?!\b)', r'\\_', text)
+        cleaned_text = re.sub(r"(?<!\b)_(?!\b)", r"\\_", text)
         if link_preview_options is None:
             link_preview_options = {
                 "is_disabled": False,
@@ -70,7 +70,7 @@ class TelegramBotAPI(SafePrinterMixin):
             "disable_notification": disable_notification,
         }
         if caption:
-            payload["caption"] = re.sub(r'(?<!\b)_(?!\b)', r'\\_', caption)
+            payload["caption"] = re.sub(r"(?<!\b)_(?!\b)", r"\\_", caption)
             payload["parse_mode"] = parse_mode
         response = requests.post(url, json = payload, timeout = config.web_timeout_s)
         self.__raise_for_status(response)
@@ -95,7 +95,7 @@ class TelegramBotAPI(SafePrinterMixin):
         if thumbnail:
             payload["thumbnail"] = thumbnail
         if caption:
-            payload["caption"] = re.sub(r'(?<!\b)_(?!\b)', r'\\_', caption)
+            payload["caption"] = re.sub(r"(?<!\b)_(?!\b)", r"\\_", caption)
             payload["parse_mode"] = parse_mode
         response = requests.post(url, json = payload, timeout = config.web_timeout_s)
         self.__raise_for_status(response)
@@ -142,9 +142,9 @@ class TelegramBotAPI(SafePrinterMixin):
                     {
                         "text": button_text,
                         "url": link_url,
-                    }
-                ]]
-            }
+                    },
+                ]],
+            },
         }
         response = requests.post(f"{self.__bot_api_url}/sendMessage", json = payload, timeout = config.web_timeout_s)
         self.__raise_for_status(response)

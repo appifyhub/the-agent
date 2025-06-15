@@ -11,8 +11,8 @@ from db.model.sponsorship import SponsorshipDB
 from db.model.user import UserDB
 from db.schema.sponsorship import Sponsorship
 from db.schema.user import User
-from features.chat.sponsorship_manager import SponsorshipManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from features.sponsorships.sponsorship_service import SponsorshipService
 from util.config import config
 
 
@@ -70,7 +70,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
         self.mock_telegram_sdk = Mock(spec = TelegramBotSDK)
 
     def test_init_success(self):
-        with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
+        with patch("api.sponsorships_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
 
@@ -87,7 +87,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
             mock_auth_service.validate_user.assert_called_once_with(self.invoker_user.id.hex)
 
     def test_init_failure_invalid_user(self):
-        with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
+        with patch("api.sponsorships_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.side_effect = ValueError("User not found")
 
@@ -122,7 +122,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
         self.mock_sponsorship_dao.get_all_by_sponsor.return_value = [sponsorship_db]
         self.mock_user_dao.get.return_value = receiver_user_db
 
-        with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
+        with patch("api.sponsorships_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_user.return_value = self.sponsor_user
@@ -153,7 +153,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
     def test_fetch_sponsorships_success_no_sponsorships(self):
         self.mock_sponsorship_dao.get_all_by_sponsor.return_value = []
 
-        with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
+        with patch("api.sponsorships_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_user.return_value = self.sponsor_user
@@ -186,7 +186,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
         self.mock_sponsorship_dao.get_all_by_sponsor.return_value = [sponsorship_db]
         self.mock_user_dao.get.return_value = None  # Receiver user not found
 
-        with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
+        with patch("api.sponsorships_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_user.return_value = self.sponsor_user
@@ -229,7 +229,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
         self.mock_sponsorship_dao.get_all_by_sponsor.return_value = [sponsorship_db]
         self.mock_user_dao.get.return_value = receiver_user_db
 
-        with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
+        with patch("api.sponsorships_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_user.return_value = self.sponsor_user
@@ -274,7 +274,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
         self.mock_sponsorship_dao.get_all_by_sponsor.return_value = [sponsorship_db]
         self.mock_user_dao.get.return_value = receiver_user_db
 
-        with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
+        with patch("api.sponsorships_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = developer_user
             mock_auth_service.authorize_for_user.return_value = self.sponsor_user
@@ -296,7 +296,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
             self.assertEqual(result["max_sponsorships"], config.max_users)
 
     def test_fetch_sponsorships_failure_unauthorized(self):
-        with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
+        with patch("api.sponsorships_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_user.side_effect = ValueError("Unauthorized")
@@ -313,9 +313,9 @@ class SponsorshipsControllerTest(unittest.TestCase):
                 controller.fetch_sponsorships(self.sponsor_user.id.hex)
             self.assertIn("Unauthorized", str(context.exception))
 
-    @patch.object(SponsorshipManager, "sponsor_user", return_value = (SponsorshipManager.Result.success, "Success"))
+    @patch.object(SponsorshipService, "sponsor_user", return_value = (SponsorshipService.Result.success, "Success"))
     def test_sponsor_user_success(self, mock_sponsor_user):
-        with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
+        with patch("api.sponsorships_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_user.return_value = self.sponsor_user
@@ -340,12 +340,12 @@ class SponsorshipsControllerTest(unittest.TestCase):
 
     # noinspection PyUnusedLocal
     @patch.object(
-        SponsorshipManager,
+        SponsorshipService,
         "sponsor_user",
-        return_value = (SponsorshipManager.Result.failure, "User already sponsored")
+        return_value = (SponsorshipService.Result.failure, "User already sponsored"),
     )
     def test_sponsor_user_failure_already_sponsored(self, mock_sponsor_user):
-        with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
+        with patch("api.sponsorships_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_user.return_value = self.sponsor_user
@@ -366,7 +366,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
             self.assertIn("User already sponsored", str(context.exception))
 
     def test_sponsor_user_failure_unauthorized(self):
-        with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
+        with patch("api.sponsorships_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_user.side_effect = ValueError("Unauthorized")
@@ -386,9 +386,9 @@ class SponsorshipsControllerTest(unittest.TestCase):
                 )
             self.assertIn("Unauthorized", str(context.exception))
 
-    @patch.object(SponsorshipManager, "unsponsor_user", return_value = (SponsorshipManager.Result.success, "Success"))
+    @patch.object(SponsorshipService, "unsponsor_user", return_value = (SponsorshipService.Result.success, "Success"))
     def test_unsponsor_user_success(self, mock_unsponsor_user):
-        with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
+        with patch("api.sponsorships_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_user.return_value = self.sponsor_user
@@ -413,12 +413,12 @@ class SponsorshipsControllerTest(unittest.TestCase):
 
     # noinspection PyUnusedLocal
     @patch.object(
-        SponsorshipManager,
+        SponsorshipService,
         "unsponsor_user",
-        return_value = (SponsorshipManager.Result.failure, "Sponsorship not found")
+        return_value = (SponsorshipService.Result.failure, "Sponsorship not found"),
     )
     def test_unsponsor_user_failure_not_found(self, mock_unsponsor_user):
-        with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
+        with patch("api.sponsorships_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_user.return_value = self.sponsor_user
@@ -439,7 +439,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
             self.assertIn("Sponsorship not found", str(context.exception))
 
     def test_unsponsor_user_failure_unauthorized(self):
-        with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
+        with patch("api.sponsorships_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_user.side_effect = ValueError("Unauthorized")
@@ -459,9 +459,9 @@ class SponsorshipsControllerTest(unittest.TestCase):
                 )
             self.assertIn("Unauthorized", str(context.exception))
 
-    @patch.object(SponsorshipManager, "unsponsor_self", return_value = (SponsorshipManager.Result.success, "Success"))
+    @patch.object(SponsorshipService, "unsponsor_self", return_value = (SponsorshipService.Result.success, "Success"))
     def test_unsponsor_self_success(self, mock_unsponsor_self):
-        with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
+        with patch("api.sponsorships_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_user.return_value = self.receiver_user
@@ -480,12 +480,12 @@ class SponsorshipsControllerTest(unittest.TestCase):
 
     # noinspection PyUnusedLocal
     @patch.object(
-        SponsorshipManager,
+        SponsorshipService,
         "unsponsor_self",
-        return_value = (SponsorshipManager.Result.failure, "No sponsorships to remove")
+        return_value = (SponsorshipService.Result.failure, "No sponsorships to remove"),
     )
     def test_unsponsor_self_failure_no_sponsorships(self, mock_unsponsor_self):
-        with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
+        with patch("api.sponsorships_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_user.return_value = self.receiver_user
@@ -503,7 +503,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
             self.assertIn("No sponsorships to remove", str(context.exception))
 
     def test_unsponsor_self_failure_unauthorized(self):
-        with patch('api.sponsorships_controller.AuthorizationService') as MockAuthService:
+        with patch("api.sponsorships_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
             mock_auth_service.validate_user.return_value = self.invoker_user
             mock_auth_service.authorize_for_user.side_effect = ValueError("Unauthorized")

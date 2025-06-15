@@ -3,13 +3,14 @@ from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
+from db.sql_util import SQLUtil
+
 from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
-from db.schema.chat_config import ChatConfigSave, ChatConfig
-from db.schema.chat_message import ChatMessageSave, ChatMessage
-from db.schema.chat_message_attachment import ChatMessageAttachmentSave, ChatMessageAttachment
-from db.schema.user import UserSave, User
-from db.sql_util import SQLUtil
+from db.schema.chat_config import ChatConfig, ChatConfigSave
+from db.schema.chat_message import ChatMessage, ChatMessageSave
+from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessageAttachmentSave
+from db.schema.user import User, UserSave
 from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper

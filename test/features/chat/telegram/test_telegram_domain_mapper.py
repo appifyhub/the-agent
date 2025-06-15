@@ -38,7 +38,7 @@ class TelegramDomainMapperTest(unittest.TestCase):
                         last_name = "Last",
                         username = "username",
                         is_bot = True,
-                    )
+                    ),
                 },
                 audio = Audio(file_id = "a1", file_unique_id = "a", file_size = 1, mime_type = "audio/mpeg"),
                 document = Document(file_id = "d2", file_unique_id = "d", file_size = 2),
@@ -64,6 +64,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_map_message_filled(self):
+        # 'from' is a reserved keyword in Python, so we use a workaround to access it
+        # noinspection PyArgumentList
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,
@@ -81,6 +83,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
         self.assertEqual(result.text, "This is a test message")
 
     def test_map_message_empty(self):
+        # 'from' is a reserved keyword in Python, so we use a workaround to access it
+        # noinspection PyArgumentList
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,
@@ -109,7 +113,7 @@ class TelegramDomainMapperTest(unittest.TestCase):
                     last_name = "Last",
                     username = "username",
                     is_bot = False,
-                )
+                ),
             },
         )
 
@@ -124,6 +128,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
         self.assertEqual(result.group, UserDB.Group.standard)
 
     def test_map_author_empty(self):
+        # 'from' is a reserved keyword in Python, so we use a workaround to access it
+        # noinspection PyArgumentList
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,
@@ -135,6 +141,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_map_text_as_reply_filled(self):
+        # 'from' is a reserved keyword in Python, so we use a workaround to access it
+        # noinspection PyArgumentList
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,
@@ -155,6 +163,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
         self.assertEqual(result, expected_text)
 
     def test_map_text_as_reply_empty(self):
+        # 'from' is a reserved keyword in Python, so we use a workaround to access it
+        # noinspection PyArgumentList
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,
@@ -166,6 +176,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
         self.assertEqual(result, "")
 
     def test_map_text_filled(self):
+        # 'from' is a reserved keyword in Python, so we use a workaround to access it
+        # noinspection PyArgumentList
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,
@@ -195,6 +207,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
         self.assertEqual(result, expected_text)
 
     def test_map_text_empty(self):
+        # 'from' is a reserved keyword in Python, so we use a workaround to access it
+        # noinspection PyArgumentList
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,
@@ -206,6 +220,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
         self.assertEqual(result, "")
 
     def test_map_chat_filled(self):
+        # 'from' is a reserved keyword in Python, so we use a workaround to access it
+        # noinspection PyArgumentList
         message = Message(
             chat = Chat(
                 id = 10,
@@ -227,6 +243,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
         self.assertEqual(result.reply_chance_percent, 100)
 
     def test_map_chat_empty(self):
+        # 'from' is a reserved keyword in Python, so we use a workaround to access it
+        # noinspection PyArgumentList
         message = Message(
             chat = Chat(id = 10, type = "channel"),
             message_id = 100,
@@ -279,6 +297,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
         self.assertEqual(result, "#10")
 
     def test_map_attachments_as_text_filled(self):
+        # 'from' is a reserved keyword in Python, so we use a workaround to access it
+        # noinspection PyArgumentList
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,
@@ -292,6 +312,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
         self.assertEqual(result, "[ a1 (audio/mpeg), d2 ]")
 
     def test_map_attachments_as_text_empty(self):
+        # 'from' is a reserved keyword in Python, so we use a workaround to access it
+        # noinspection PyArgumentList
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,
@@ -303,6 +325,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_map_attachments_filled(self):
+        # 'from' is a reserved keyword in Python, so we use a workaround to access it
+        # noinspection PyArgumentList
         message = Message(
             message_id = 100,
             chat = Chat(id = 10, type = "private"),
@@ -357,6 +381,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
         self.assertIsNone(result[3].last_url_until)
 
     def test_map_attachments_empty(self):
+        # 'from' is a reserved keyword in Python, so we use a workaround to access it
+        # noinspection PyArgumentList
         message = Message(
             chat = Chat(id = 10, type = "private"),
             message_id = 100,

@@ -1,6 +1,6 @@
 import unittest
 
-from util.translations_cache import TranslationsCache, DEFAULT_LANGUAGE, DEFAULT_ISO_CODE
+from util.translations_cache import DEFAULT_ISO_CODE, DEFAULT_LANGUAGE, TranslationsCache
 
 
 class TranslationsCacheTest(unittest.TestCase):

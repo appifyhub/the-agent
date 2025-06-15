@@ -161,7 +161,7 @@ class TelegramDomainMapper(SafePrinterMixin):
                     chat_id = str(message.chat.id),
                     message_id = str(message.message_id),
                     mime_type = message.audio.mime_type,
-                )
+                ),
             )
         if message.document:
             # self.sprint(f"Mapping document: {message.document}")
@@ -176,7 +176,7 @@ class TelegramDomainMapper(SafePrinterMixin):
                     chat_id = str(message.chat.id),
                     message_id = str(message.message_id),
                     mime_type = message.document.mime_type,
-                )
+                ),
             )
         if message.photo:
             largest_photo = max(message.photo, key = lambda size: size.width * size.height)
@@ -192,7 +192,7 @@ class TelegramDomainMapper(SafePrinterMixin):
                     chat_id = str(message.chat.id),
                     message_id = str(message.message_id),
                     mime_type = None,
-                )
+                ),
             )
         if message.voice:
             # self.sprint(f"Mapping voice: {message.voice}")
@@ -207,7 +207,7 @@ class TelegramDomainMapper(SafePrinterMixin):
                     chat_id = str(message.chat.id),
                     message_id = str(message.message_id),
                     mime_type = message.voice.mime_type,
-                )
+                ),
             )
         return attachments
 

@@ -7,7 +7,7 @@ import requests
 from httpx import Timeout
 from replicate import Client
 
-from features.ai_tools.external_ai_tool_library import IMAGE_RESTORATION, IMAGE_INPAINTING
+from features.ai_tools.external_ai_tool_library import IMAGE_INPAINTING, IMAGE_RESTORATION
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from util.config import config
 from util.functions import first_key_with_value

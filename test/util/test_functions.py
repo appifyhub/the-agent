@@ -4,7 +4,7 @@ from uuid import UUID
 
 from db.schema.user import User
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
-from util.functions import is_the_agent, construct_bot_message_id, silent, first_key_with_value, mask_secret
+from util.functions import construct_bot_message_id, first_key_with_value, is_the_agent, mask_secret, silent
 
 
 class FunctionsTest(unittest.TestCase):

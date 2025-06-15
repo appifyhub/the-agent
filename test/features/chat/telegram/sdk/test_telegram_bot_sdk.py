@@ -27,11 +27,11 @@ class TelegramBotSDKTest(unittest.TestCase):
                 "message_id": self.message_id,
                 "chat": {
                     "id": self.chat_id,
-                    "type": "private"  # Required field
+                    "type": "private",  # Required field
                 },
                 "date": 1234567890,  # Required field
-                "text": "test message"
-            }
+                "text": "test message",
+            },
         }
         self.mock_api.send_text_message.return_value = self.api_response
         self.mock_api.send_photo.return_value = self.api_response
@@ -55,7 +55,7 @@ class TelegramBotSDKTest(unittest.TestCase):
             text = text,
             parse_mode = "markdown",
             disable_notification = False,
-            link_preview_options = None
+            link_preview_options = None,
         )
         self.assertEqual(result, expected_message)
 
@@ -71,7 +71,7 @@ class TelegramBotSDKTest(unittest.TestCase):
         result = self.sdk.send_photo(
             chat_id = self.chat_id,
             photo_url = photo_url,
-            caption = caption
+            caption = caption,
         )
 
         # noinspection PyUnresolvedReferences
@@ -80,7 +80,7 @@ class TelegramBotSDKTest(unittest.TestCase):
             photo_url = photo_url,
             caption = caption,
             parse_mode = "markdown",
-            disable_notification = False
+            disable_notification = False,
         )
         self.assertEqual(result, expected_message)
 
@@ -93,13 +93,13 @@ class TelegramBotSDKTest(unittest.TestCase):
         mock_map_update.return_value = Mock()
         mock_resolve.return_value = Mock(
             message = expected_message,
-            attachments = [Mock()]  # Add at least one attachment
+            attachments = [Mock()],  # Add at least one attachment
         )
 
         result = self.sdk.send_document(
             chat_id = self.chat_id,
             document_url = doc_url,
-            caption = caption
+            caption = caption,
         )
 
         # noinspection PyUnresolvedReferences
@@ -109,7 +109,7 @@ class TelegramBotSDKTest(unittest.TestCase):
             caption = caption,
             parse_mode = "markdown",
             thumbnail = None,
-            disable_notification = False
+            disable_notification = False,
         )
         self.assertEqual(result, expected_message)
 
@@ -130,7 +130,7 @@ class TelegramBotSDKTest(unittest.TestCase):
         self.mock_api.set_reaction.assert_called_once_with(
             chat_id = self.chat_id,
             message_id = self.message_id,
-            reaction = reaction
+            reaction = reaction,
         )
 
     @patch.object(TelegramDomainMapper, "map_update")

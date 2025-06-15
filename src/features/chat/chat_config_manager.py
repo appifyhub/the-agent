@@ -1,10 +1,10 @@
 from enum import Enum
 
 from db.crud.chat_config import ChatConfigCRUD
+from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig, ChatConfigSave
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
-from db.model.chat_config import ChatConfigDB
 
 
 class ChatConfigManager(SafePrinterMixin):

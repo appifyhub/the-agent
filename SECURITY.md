@@ -3,8 +3,8 @@
 ## Supported Versions
 
 | Product | Version | Supported          |
-| ------- | ------- | ------------------ |
-|   All   |   All   | :white_check_mark: |
+|---------|---------|--------------------|
+| All     | All     | :white_check_mark: |
 
 ## Reporting a Vulnerability
 

@@ -9,7 +9,7 @@ from requests_mock.mocker import Mocker
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.schema.tools_cache import ToolsCache
 from features.ai_tools.external_ai_tool_library import TWITTER_API
-from features.web_browsing.twitter_status_fetcher import TwitterStatusFetcher, CACHE_TTL
+from features.web_browsing.twitter_status_fetcher import CACHE_TTL, TwitterStatusFetcher
 from util.config import config
 
 
@@ -64,15 +64,15 @@ class TwitterStatusFetcherTest(unittest.TestCase):
                                                 "name": "Test User",
                                                 "screen_name": "testuser",
                                                 "description": "Test bio",
-                                            }
-                                        }
-                                    }
+                                            },
+                                        },
+                                    },
                                 },
                                 "legacy": {"full_text": "Test tweet content", "lang": "en"},
-                            }
-                        }
-                    }
-                }
+                            },
+                        },
+                    },
+                },
             },
         )
         fetcher = TwitterStatusFetcher("123456789", self.mock_cache_crud)
@@ -111,10 +111,10 @@ class TwitterStatusFetcherTest(unittest.TestCase):
                 "data": {
                     "data": {
                         "tweetResult": {
-                            "result": {"core": {"user_results": {"result": {"legacy": {}}}}, "legacy": {}}
-                        }
-                    }
-                }
+                            "result": {"core": {"user_results": {"result": {"legacy": {}}}}, "legacy": {}},
+                        },
+                    },
+                },
             },
         )
         fetcher = TwitterStatusFetcher("123456789", self.mock_cache_crud)
@@ -159,8 +159,8 @@ class TwitterStatusFetcherTest(unittest.TestCase):
                         "media_url_https": "https://example.com/video.mp4",
                         "type": "video",
                     },
-                ]
-            }
+                ],
+            },
         }
 
         # noinspection PyUnresolvedReferences
@@ -206,8 +206,8 @@ class TwitterStatusFetcherTest(unittest.TestCase):
             "data": {
                 "data": {
                     "tweetResult": {"result": {"core": {"user_results": {"result": {"legacy": {}}}}, "legacy": {}}},
-                }
-            }
+                },
+            },
         }
         # noinspection PyUnresolvedReferences
         result = fetcher._TwitterStatusFetcher__resolve_content(response)

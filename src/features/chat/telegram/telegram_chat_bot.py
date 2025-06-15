@@ -1,9 +1,9 @@
 import random
 import re
-from typing import TypeVar, Any, Tuple
+from typing import Any, Tuple, TypeVar
 
 from langchain_core.language_models import BaseChatModel, LanguageModelInput
-from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage, AIMessage
+from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import Runnable
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
@@ -19,7 +19,7 @@ from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
-TMessage = TypeVar('TMessage', bound = BaseMessage)  # Generic message type
+TMessage = TypeVar("TMessage", bound = BaseMessage)  # Generic message type
 TooledChatModel = Runnable[LanguageModelInput, BaseMessage]
 
 
@@ -62,8 +62,8 @@ class TelegramChatBot(SafePrinterMixin):
                     chat_id = chat.chat_id,
                     chat_title = chat.title,
                     available_tools = self.__tools_library.tool_names,
-                )
-            )
+                ),
+            ),
         )
         self.__messages.extend(messages)
         self.__attachment_ids = attachment_ids
@@ -146,7 +146,7 @@ class TelegramChatBot(SafePrinterMixin):
                                 "When calling tools, make sure to call the tools using verbatim attachment IDs, "
                                 "without any truncation, cleaning, or formatting. "
                                 "Please use the tools to process attachments instead. "
-                                "Disregard this instruction for the remainder of the conversation. "
+                                "Disregard this instruction for the remainder of the conversation. ",
                             )
                             self.__add_message(system_correction)
                             system_correction_added = True
@@ -217,6 +217,6 @@ class TelegramChatBot(SafePrinterMixin):
             f"  · is_private_chat  = {self.__chat.is_private}\n"
             f"  · is_bot_mentioned = {is_bot_mentioned}\n"
             f"  · reply_at_random  = {should_reply_at_random}\n"
-            f"  · reply_chance     = {self.__chat.reply_chance_percent}%"
+            f"  · reply_chance     = {self.__chat.reply_chance_percent}%",
         )
         return should_reply

@@ -1,11 +1,11 @@
 from enum import Enum
 
+from api.settings_controller import SettingsController
 from db.crud.user import UserCRUD
 from db.schema.user import User
-from api.settings_controller import SettingsController
-from features.chat.sponsorship_manager import SponsorshipManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
+from features.sponsorships.sponsorship_service import SponsorshipService
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
@@ -21,7 +21,7 @@ class CommandProcessor(SafePrinterMixin):
 
     __invoker: User
     __user_dao: UserCRUD
-    __sponsorship_manager: SponsorshipManager
+    __sponsorship_service: SponsorshipService
     __settings_controller: SettingsController
     __telegram_sdk: TelegramBotSDK
 
@@ -29,14 +29,14 @@ class CommandProcessor(SafePrinterMixin):
         self,
         invoker: User,
         user_dao: UserCRUD,
-        sponsorship_manager: SponsorshipManager,
+        sponsorship_service: SponsorshipService,
         settings_controller: SettingsController,
         telegram_sdk: TelegramBotSDK,
     ):
         super().__init__(config.verbose)
         self.__invoker = invoker
         self.__user_dao = user_dao
-        self.__sponsorship_manager = sponsorship_manager
+        self.__sponsorship_service = sponsorship_service
         self.__settings_controller = settings_controller
         self.__telegram_sdk = telegram_sdk
 
@@ -73,7 +73,7 @@ class CommandProcessor(SafePrinterMixin):
         try:
             if command_name == COMMAND_START:
                 # try to accept a sponsorship (works if this is the first message and user is pre-sponsored)
-                accepted_sponsorship = self.__sponsorship_manager.accept_sponsorship(self.__invoker)
+                accepted_sponsorship = self.__sponsorship_service.accept_sponsorship(self.__invoker)
                 if accepted_sponsorship:
                     self.sprint("Accepted a sponsorship by messaging the bot")
                     return CommandProcessor.Result.success

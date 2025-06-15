@@ -2,7 +2,7 @@ from uuid import UUID
 
 from langchain_community.chat_models import ChatPerplexity
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import BaseMessage, SystemMessage, AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
 from db.crud.user import UserCRUD
 from db.schema.user import User

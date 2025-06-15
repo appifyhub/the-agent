@@ -37,5 +37,6 @@ pytest = "*"
 requests-mock = "*"
 
 [requires]
+# Python 3.12: keep in sync with pyproject.toml
 python_version = "3.12"
 python_full_version = "3.12.6"

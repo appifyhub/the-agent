@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
 from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
-from db.schema.chat_message_attachment import ChatMessageAttachmentSave, ChatMessageAttachment
+from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessageAttachmentSave
 from features.chat.supported_files import KNOWN_FILE_FORMATS
 from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
 from util.config import config

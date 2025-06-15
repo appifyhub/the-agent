@@ -1,6 +1,7 @@
 from enum import Enum
 
-from sqlalchemy import Column, String, Boolean, Enum as EnumSQL, Integer
+from sqlalchemy import Boolean, Column, Integer, String
+from sqlalchemy import Enum as EnumSQL
 
 from db.model.base import BaseModel
 

@@ -1,7 +1,7 @@
 import hashlib
 import random
 from datetime import datetime
-from typing import Callable, Any, TypeVar
+from typing import Any, Callable, TypeVar
 
 from db.schema.user import User, UserSave
 from features.prompting.prompt_library import TELEGRAM_BOT_USER

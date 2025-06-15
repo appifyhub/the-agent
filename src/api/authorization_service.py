@@ -91,7 +91,7 @@ class AuthorizationService(SafePrinterMixin):
                 not chat.is_private,
                 chat.title.lower() if chat.title else "",
                 chat.chat_id,
-            )
+            ),
         )
         return administered_chats
 
