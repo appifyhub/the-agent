@@ -72,14 +72,9 @@ class AttachmentsContentResolver(SafePrinterMixin):
         self.__chat_message_dao = chat_message_dao
         self.__chat_message_attachment_dao = chat_message_attachment_dao
         self.__cache_dao = cache_dao
-        self.__validate(chat_id, invoker_user_id_hex)
-        self.attachments = TelegramBotSDKUtils.refresh_attachments(
-            sources = attachment_ids,
-            chat_message_attachment_dao = chat_message_attachment_dao,
-            bot_api = bot_sdk.api,
-        )
+        self.__validate(chat_id, invoker_user_id_hex, attachment_ids)
 
-    def __validate(self, chat_id: str, invoker_user_id_hex: str):
+    def __validate(self, chat_id: str, invoker_user_id_hex: str, attachment_ids: list[str]) -> None:
         self.sprint(f"Validating user '{invoker_user_id_hex}' and attachment resolution for chat '{chat_id}'")
         # check if chat exists
         chat_config_db = self.__chat_config_dao.get(chat_id)
@@ -95,6 +90,26 @@ class AttachmentsContentResolver(SafePrinterMixin):
             self.sprint(message)
             raise ValueError(message)
         self.__invoker = User.model_validate(invoker_user_db)
+        # check if attachments exist
+        if not attachment_ids:
+            message = "Malformed LLM Input Error: No attachment IDs provided, you may retry only once"
+            self.sprint(message)
+            raise ValueError(message)
+        for attachment_id in attachment_ids:
+            if not attachment_id:
+                message = "Malformed LLM Input Error: Attachment ID cannot be empty, you may retry only once"
+                self.sprint(message)
+                raise ValueError(message)
+            attachment_db = self.__chat_message_attachment_dao.get(attachment_id)
+            if not attachment_db:
+                message = f"Malformed LLM Input Error: Attachment '{attachment_id}' not found in DB, you may retry only once"
+                self.sprint(message)
+                raise ValueError(message)
+        self.attachments = TelegramBotSDKUtils.refresh_attachments(
+            sources = attachment_ids,
+            chat_message_attachment_dao = self.__chat_message_attachment_dao,
+            bot_api = self.__bot_sdk.api,
+        )
 
     @property
     def resolution_status(self) -> Result:

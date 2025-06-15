@@ -91,7 +91,7 @@ def process_attachments(
     Args:
         chat_id: [mandatory] A unique identifier of the chat, usually found in the metadata
         user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
-        attachment_ids: [mandatory] A comma-separated list of verbatim, unique 📎 attachment IDs that need to be resolved (located in each message), including any commas or underscores
+        attachment_ids: [mandatory] A comma-separated list of verbatim, unique 📎 attachment IDs that need to be resolved (located in each message); include any dashes, underscores or other symbols; these IDs are not to be cleaned or truncated
         operation: [mandatory] The action to perform on the attachments
         context: [optional] Additional task context or guidance, e.g. the user's message/question/caption, if available
     """

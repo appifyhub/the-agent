@@ -157,6 +157,56 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 cache_dao = self.mock_cache_crud,
             )
 
+    def test_empty_attachment_ids_list(self):
+        with self.assertRaises(ValueError) as context:
+            AttachmentsContentResolver(
+                chat_id = "1",
+                invoker_user_id_hex = "00000000-0000-0000-0000-000000000001",
+                additional_context = "context",
+                attachment_ids = [],
+                bot_sdk = self.mock_bot_sdk,
+                user_dao = self.mock_user_crud,
+                chat_config_dao = self.mock_chat_config_crud,
+                chat_message_dao = self.mock_chat_message_crud,
+                chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
+                cache_dao = self.mock_cache_crud,
+            )
+        self.assertIn("No attachment IDs provided", str(context.exception))
+
+    def test_empty_attachment_id_string(self):
+        with self.assertRaises(ValueError) as context:
+            AttachmentsContentResolver(
+                chat_id = "1",
+                invoker_user_id_hex = "00000000-0000-0000-0000-000000000001",
+                additional_context = "context",
+                attachment_ids = [""],
+                bot_sdk = self.mock_bot_sdk,
+                user_dao = self.mock_user_crud,
+                chat_config_dao = self.mock_chat_config_crud,
+                chat_message_dao = self.mock_chat_message_crud,
+                chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
+                cache_dao = self.mock_cache_crud,
+            )
+        self.assertIn("Attachment ID cannot be empty", str(context.exception))
+
+    def test_attachment_not_found_in_db(self):
+        self.mock_chat_message_attachment_crud.get.return_value = None
+
+        with self.assertRaises(ValueError) as context:
+            AttachmentsContentResolver(
+                chat_id = "1",
+                invoker_user_id_hex = "00000000-0000-0000-0000-000000000001",
+                additional_context = "context",
+                attachment_ids = ["nonexistent"],
+                bot_sdk = self.mock_bot_sdk,
+                user_dao = self.mock_user_crud,
+                chat_config_dao = self.mock_chat_config_crud,
+                chat_message_dao = self.mock_chat_message_crud,
+                chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
+                cache_dao = self.mock_cache_crud,
+            )
+        self.assertIn("not found in DB", str(context.exception))
+
     @requests_mock.Mocker()
     def test_fetch_text_content_with_audio(self, m: requests_mock.Mocker):
         audio_attachment = ChatMessageAttachment(
