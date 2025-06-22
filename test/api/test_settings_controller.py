@@ -10,7 +10,7 @@ from db.crud.user import UserCRUD
 from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
-from db.schema.user import User, UserSave
+from db.schema.user import User
 from features.chat.chat_config_manager import ChatConfigManager
 from features.chat.telegram.model.chat_member import ChatMemberAdministrator
 from features.chat.telegram.model.user import User as TelegramUser
@@ -35,6 +35,11 @@ class SettingsControllerTest(unittest.TestCase):
             telegram_chat_id = "invoker_chat_id",
             telegram_user_id = 1,
             open_ai_key = "invoker_api_key",
+            anthropic_key = "test_anthropic_key",
+            perplexity_key = "test_perplexity_key",
+            replicate_key = "test_replicate_key",
+            rapid_api_key = "test_rapid_api_key",
+            coinmarketcap_key = "test_coinmarketcap_key",
             group = UserDB.Group.developer,
             created_at = datetime.now().date(),
         )
@@ -221,6 +226,37 @@ class SettingsControllerTest(unittest.TestCase):
             self.assertEqual(settings["id"], self.invoker_user.id.hex)
             self.assertEqual(settings["open_ai_key"], mask_secret(self.invoker_user.open_ai_key))
 
+    def test_fetch_user_settings_masks_all_token_fields(self):
+        self.mock_user_dao.get.return_value = self.invoker_user
+
+        with patch("api.settings_controller.AuthorizationService") as MockAuthService:
+            mock_auth_service = MockAuthService.return_value
+            mock_auth_service.validate_user.return_value = self.invoker_user
+            mock_auth_service.authorize_for_user.return_value = self.invoker_user
+
+            manager = SettingsController(
+                invoker_user_id_hex = self.invoker_user.id.hex,
+                telegram_sdk = self.mock_telegram_sdk,
+                user_dao = self.mock_user_dao,
+                chat_config_dao = self.mock_chat_config_dao,
+                sponsorship_dao = self.mock_sponsorship_dao,
+            )
+            settings = manager.fetch_user_settings(self.invoker_user.id.hex)
+
+            # Verify all token fields are masked
+            self.assertEqual(settings["open_ai_key"], mask_secret(self.invoker_user.open_ai_key))
+            self.assertEqual(settings["anthropic_key"], mask_secret(self.invoker_user.anthropic_key))
+            self.assertEqual(settings["perplexity_key"], mask_secret(self.invoker_user.perplexity_key))
+            self.assertEqual(settings["replicate_key"], mask_secret(self.invoker_user.replicate_key))
+            self.assertEqual(settings["rapid_api_key"], mask_secret(self.invoker_user.rapid_api_key))
+            self.assertEqual(settings["coinmarketcap_key"], mask_secret(self.invoker_user.coinmarketcap_key))
+
+            # Verify no token is exposed in plain text
+            for key, value in settings.items():
+                if key.endswith("_key"):
+                    self.assertNotIn("test_", str(value), f"Token field '{key}' should be masked but contains test data")
+                    self.assertNotIn("api_key", str(value), f"Token field '{key}' should be masked but contains api_key")
+
     @patch.object(ChatConfigManager, "change_chat_language", return_value = (ChatConfigManager.Result.success, ""))
     @patch.object(
         ChatConfigManager,
@@ -276,20 +312,24 @@ class SettingsControllerTest(unittest.TestCase):
                 raw_selection = "all",
             )
 
-    def test_save_user_settings_success(self):
-        self.mock_user_dao.get.return_value = self.invoker_user
-
-        # Configure mock to return a proper UserDB instance
-        self.mock_user_dao.save.return_value = UserDB(
+    def test_save_user_settings_with_all_tokens(self):
+        # Create a proper UserDB mock for the save return value
+        saved_user_db = UserDB(
             id = self.invoker_user.id,
             full_name = self.invoker_user.full_name,
             telegram_username = self.invoker_user.telegram_username,
             telegram_chat_id = self.invoker_user.telegram_chat_id,
             telegram_user_id = self.invoker_user.telegram_user_id,
-            open_ai_key = "new_open_ai_key",
+            open_ai_key = "new_openai_key",
+            anthropic_key = "new_anthropic_key",
+            perplexity_key = "new_perplexity_key",
+            replicate_key = "new_replicate_key",
+            rapid_api_key = "new_rapid_api_key",
+            coinmarketcap_key = "new_coinmarketcap_key",
             group = self.invoker_user.group,
             created_at = self.invoker_user.created_at,
         )
+        self.mock_user_dao.save.return_value = saved_user_db
 
         with patch("api.settings_controller.AuthorizationService") as MockAuthService:
             mock_auth_service = MockAuthService.return_value
@@ -304,14 +344,27 @@ class SettingsControllerTest(unittest.TestCase):
                 sponsorship_dao = self.mock_sponsorship_dao,
             )
 
-            manager.save_user_settings(
+            result = manager.save_user_settings(
                 user_id_hex = self.invoker_user.id.hex,
-                open_ai_key = "new_open_ai_key",
+                open_ai_key = "new_openai_key",
+                anthropic_key = "new_anthropic_key",
+                perplexity_key = "new_perplexity_key",
+                replicate_key = "new_replicate_key",
+                rapid_api_key = "new_rapid_api_key",
+                coinmarketcap_key = "new_coinmarketcap_key",
             )
 
-            self.invoker_user.open_ai_key = "new_open_ai_key"
-            # noinspection PyUnresolvedReferences
-            self.mock_user_dao.save.assert_called_once_with(UserSave(**self.invoker_user.model_dump()))
+            # Verify the save was called with the updated data
+            self.mock_user_dao.save.assert_called_once()
+            saved_user_data = self.mock_user_dao.save.call_args[0][0]
+
+            self.assertEqual(saved_user_data.open_ai_key, "new_openai_key")
+            self.assertEqual(saved_user_data.anthropic_key, "new_anthropic_key")
+            self.assertEqual(saved_user_data.perplexity_key, "new_perplexity_key")
+            self.assertEqual(saved_user_data.replicate_key, "new_replicate_key")
+            self.assertEqual(saved_user_data.rapid_api_key, "new_rapid_api_key")
+            self.assertEqual(saved_user_data.coinmarketcap_key, "new_coinmarketcap_key")
+            self.assertIsNone(result)  # Method returns None
 
     # noinspection PyUnusedLocal
     @patch.object(ChatConfigManager, "change_chat_language", return_value = (ChatConfigManager.Result.failure, "Error"))

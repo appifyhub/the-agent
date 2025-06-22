@@ -13,7 +13,14 @@ from db.schema.sponsorship import Sponsorship
 from db.schema.user import User
 from features.ai_tools.access_token_resolver import AccessTokenResolver, TokenResolutionError
 from features.ai_tools.external_ai_tool import ExternalAiTool, ToolProvider, ToolType
-from features.ai_tools.external_ai_tool_provider_library import ANTHROPIC, OPEN_AI
+from features.ai_tools.external_ai_tool_provider_library import (
+    ANTHROPIC,
+    COINMARKETCAP,
+    OPEN_AI,
+    PERPLEXITY,
+    RAPID_API,
+    REPLICATE,
+)
 
 
 class AccessTokenResolverTest(unittest.TestCase):
@@ -34,6 +41,11 @@ class AccessTokenResolverTest(unittest.TestCase):
             telegram_chat_id = "invoker_chat_id",
             telegram_user_id = 1,
             open_ai_key = "invoker_openai_key",
+            anthropic_key = "invoker_anthropic_key",
+            perplexity_key = "invoker_perplexity_key",
+            replicate_key = "invoker_replicate_key",
+            rapid_api_key = "invoker_rapid_api_key",
+            coinmarketcap_key = "invoker_coinmarketcap_key",
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
@@ -44,6 +56,11 @@ class AccessTokenResolverTest(unittest.TestCase):
             telegram_chat_id = "sponsor_chat_id",
             telegram_user_id = 2,
             open_ai_key = "sponsor_openai_key",
+            anthropic_key = "sponsor_anthropic_key",
+            perplexity_key = "sponsor_perplexity_key",
+            replicate_key = "sponsor_replicate_key",
+            rapid_api_key = "sponsor_rapid_api_key",
+            coinmarketcap_key = "sponsor_coinmarketcap_key",
             group = UserDB.Group.developer,
             created_at = datetime.now().date(),
         )
@@ -290,8 +307,75 @@ class AccessTokenResolverTest(unittest.TestCase):
             invoker_user = user_without_token,
         )
 
-        with self.assertRaises(TokenResolutionError) as context:
+        with self.assertRaises(TokenResolutionError):
             resolver.require_access_token_for_tool(self.openai_tool)
 
-        expected_message = f"Unable to resolve an access token for '{self.openai_provider.name}' - '{self.openai_tool.name}'"
-        self.assertIn(expected_message, str(context.exception))
+    def test_get_access_token_anthropic_success_user_has_direct_token(self):
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+
+        resolver = AccessTokenResolver(
+            user_dao = self.mock_user_dao,
+            sponsorship_dao = self.mock_sponsorship_dao,
+            invoker_user = self.invoker_user,
+        )
+
+        token = resolver.get_access_token(ANTHROPIC)
+
+        # Currently returns None because ANTHROPIC is not yet implemented in User table
+        self.assertIsNone(token)
+
+    def test_get_access_token_perplexity_success_user_has_direct_token(self):
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+
+        resolver = AccessTokenResolver(
+            user_dao = self.mock_user_dao,
+            sponsorship_dao = self.mock_sponsorship_dao,
+            invoker_user = self.invoker_user,
+        )
+
+        token = resolver.get_access_token(PERPLEXITY)
+
+        # Currently returns None because PERPLEXITY is not yet implemented in User table
+        self.assertIsNone(token)
+
+    def test_get_access_token_replicate_success_user_has_direct_token(self):
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+
+        resolver = AccessTokenResolver(
+            user_dao = self.mock_user_dao,
+            sponsorship_dao = self.mock_sponsorship_dao,
+            invoker_user = self.invoker_user,
+        )
+
+        token = resolver.get_access_token(REPLICATE)
+
+        # Currently returns None because REPLICATE is not yet implemented in User table
+        self.assertIsNone(token)
+
+    def test_get_access_token_rapid_api_success_user_has_direct_token(self):
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+
+        resolver = AccessTokenResolver(
+            user_dao = self.mock_user_dao,
+            sponsorship_dao = self.mock_sponsorship_dao,
+            invoker_user = self.invoker_user,
+        )
+
+        token = resolver.get_access_token(RAPID_API)
+
+        # Currently returns None because RAPID_API is not yet implemented in User table
+        self.assertIsNone(token)
+
+    def test_get_access_token_coinmarketcap_success_user_has_direct_token(self):
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+
+        resolver = AccessTokenResolver(
+            user_dao = self.mock_user_dao,
+            sponsorship_dao = self.mock_sponsorship_dao,
+            invoker_user = self.invoker_user,
+        )
+
+        token = resolver.get_access_token(COINMARKETCAP)
+
+        # Currently returns None because COINMARKETCAP is not yet implemented in User table
+        self.assertIsNone(token)

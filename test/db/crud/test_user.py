@@ -22,6 +22,11 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
             open_ai_key = "test-key",
+            anthropic_key = "test-anthropic-key",
+            perplexity_key = "test-perplexity-key",
+            replicate_key = "test-replicate-key",
+            rapid_api_key = "test-rapid-api-key",
+            coinmarketcap_key = "test-coinmarketcap-key",
             group = UserDB.Group.standard,
         )
 
@@ -32,6 +37,11 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(user.telegram_username, user_data.telegram_username)
         self.assertEqual(user.telegram_chat_id, user_data.telegram_chat_id)
         self.assertEqual(user.open_ai_key, user_data.open_ai_key)
+        self.assertEqual(user.anthropic_key, user_data.anthropic_key)
+        self.assertEqual(user.perplexity_key, user_data.perplexity_key)
+        self.assertEqual(user.replicate_key, user_data.replicate_key)
+        self.assertEqual(user.rapid_api_key, user_data.rapid_api_key)
+        self.assertEqual(user.coinmarketcap_key, user_data.coinmarketcap_key)
         self.assertEqual(user.group.value, user_data.group.value)
         self.assertEqual(user.telegram_user_id, user_data.telegram_user_id)
         self.assertIsNotNone(user.created_at)
@@ -43,6 +53,11 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
             open_ai_key = "test-key",
+            anthropic_key = "test-anthropic-key",
+            perplexity_key = "test-perplexity-key",
+            replicate_key = "test-replicate-key",
+            rapid_api_key = "test-rapid-api-key",
+            coinmarketcap_key = "test-coinmarketcap-key",
             group = UserDB.Group.standard,
         )
         created_user = self.sql.user_crud().create(user_data)
@@ -76,6 +91,11 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "1234561",
             telegram_user_id = 1234561,
             open_ai_key = "test-key-1",
+            anthropic_key = "test-anthropic-key-1",
+            perplexity_key = "test-perplexity-key-1",
+            replicate_key = "test-replicate-key-1",
+            rapid_api_key = "test-rapid-api-key-1",
+            coinmarketcap_key = "test-coinmarketcap-key-1",
             group = UserDB.Group.standard,
         )
         user_data2 = UserSave(
@@ -84,6 +104,11 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "1234562",
             telegram_user_id = 1234562,
             open_ai_key = "test-key-2",
+            anthropic_key = "test-anthropic-key-2",
+            perplexity_key = "test-perplexity-key-2",
+            replicate_key = "test-replicate-key-2",
+            rapid_api_key = "test-rapid-api-key-2",
+            coinmarketcap_key = "test-coinmarketcap-key-2",
             group = UserDB.Group.standard,
         )
         self.sql.user_crud().create(user_data1)
@@ -99,6 +124,11 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "123456",
             telegram_user_id = 55555,
             open_ai_key = "test-key",
+            anthropic_key = "test-anthropic-key",
+            perplexity_key = "test-perplexity-key",
+            replicate_key = "test-replicate-key",
+            rapid_api_key = "test-rapid-api-key",
+            coinmarketcap_key = "test-coinmarketcap-key",
             group = UserDB.Group.standard,
         )
         created_user = self.sql.user_crud().create(user_data)
@@ -117,6 +147,11 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "123456",
             telegram_user_id = 55555,
             open_ai_key = "test-key",
+            anthropic_key = "test-anthropic-key",
+            perplexity_key = "test-perplexity-key",
+            replicate_key = "test-replicate-key",
+            rapid_api_key = "test-rapid-api-key",
+            coinmarketcap_key = "test-coinmarketcap-key",
             group = UserDB.Group.standard,
         )
         created_user = self.sql.user_crud().create(user_data)
@@ -136,6 +171,11 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
             open_ai_key = "test-key",
+            anthropic_key = "test-anthropic-key",
+            perplexity_key = "test-perplexity-key",
+            replicate_key = "test-replicate-key",
+            rapid_api_key = "test-rapid-api-key",
+            coinmarketcap_key = "test-coinmarketcap-key",
             group = UserDB.Group.standard,
         )
         created_user = self.sql.user_crud().create(user_data)
@@ -147,6 +187,11 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "654321",
             telegram_user_id = 654321,
             open_ai_key = "updated-key",
+            anthropic_key = "updated-anthropic-key",
+            perplexity_key = "updated-perplexity-key",
+            replicate_key = "updated-replicate-key",
+            rapid_api_key = "updated-rapid-api-key",
+            coinmarketcap_key = "updated-coinmarketcap-key",
             group = UserDB.Group.developer,
         )
         updated_user = self.sql.user_crud().update(update_data)
@@ -156,6 +201,11 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(updated_user.telegram_username, update_data.telegram_username)
         self.assertEqual(updated_user.telegram_chat_id, update_data.telegram_chat_id)
         self.assertEqual(updated_user.open_ai_key, update_data.open_ai_key)
+        self.assertEqual(updated_user.anthropic_key, update_data.anthropic_key)
+        self.assertEqual(updated_user.perplexity_key, update_data.perplexity_key)
+        self.assertEqual(updated_user.replicate_key, update_data.replicate_key)
+        self.assertEqual(updated_user.rapid_api_key, update_data.rapid_api_key)
+        self.assertEqual(updated_user.coinmarketcap_key, update_data.coinmarketcap_key)
         self.assertEqual(updated_user.group.value, update_data.group.value)
         self.assertEqual(updated_user.telegram_user_id, update_data.telegram_user_id)
         self.assertEqual(updated_user.created_at, created_user.created_at)
@@ -167,6 +217,11 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
             open_ai_key = "test-key",
+            anthropic_key = "test-anthropic-key",
+            perplexity_key = "test-perplexity-key",
+            replicate_key = "test-replicate-key",
+            rapid_api_key = "test-rapid-api-key",
+            coinmarketcap_key = "test-coinmarketcap-key",
             group = UserDB.Group.standard,
         )
 
@@ -178,6 +233,11 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(saved_user.telegram_chat_id, user_data.telegram_chat_id)
         self.assertEqual(saved_user.telegram_user_id, user_data.telegram_user_id)
         self.assertEqual(saved_user.open_ai_key, user_data.open_ai_key)
+        self.assertEqual(saved_user.anthropic_key, user_data.anthropic_key)
+        self.assertEqual(saved_user.perplexity_key, user_data.perplexity_key)
+        self.assertEqual(saved_user.replicate_key, user_data.replicate_key)
+        self.assertEqual(saved_user.rapid_api_key, user_data.rapid_api_key)
+        self.assertEqual(saved_user.coinmarketcap_key, user_data.coinmarketcap_key)
         self.assertEqual(saved_user.group.value, user_data.group.value)
 
         # Now, save should update the existing record
@@ -188,6 +248,11 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "654321",
             telegram_user_id = 654321,
             open_ai_key = "updated-key",
+            anthropic_key = "updated-anthropic-key",
+            perplexity_key = "updated-perplexity-key",
+            replicate_key = "updated-replicate-key",
+            rapid_api_key = "updated-rapid-api-key",
+            coinmarketcap_key = "updated-coinmarketcap-key",
             group = UserDB.Group.developer,
         )
         updated_user = self.sql.user_crud().save(update_data)
@@ -197,6 +262,11 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(updated_user.telegram_chat_id, update_data.telegram_chat_id)
         self.assertEqual(updated_user.telegram_user_id, update_data.telegram_user_id)
         self.assertEqual(updated_user.open_ai_key, update_data.open_ai_key)
+        self.assertEqual(updated_user.anthropic_key, update_data.anthropic_key)
+        self.assertEqual(updated_user.perplexity_key, update_data.perplexity_key)
+        self.assertEqual(updated_user.replicate_key, update_data.replicate_key)
+        self.assertEqual(updated_user.rapid_api_key, update_data.rapid_api_key)
+        self.assertEqual(updated_user.coinmarketcap_key, update_data.coinmarketcap_key)
         self.assertEqual(updated_user.group.value, update_data.group.value)
 
     def test_delete_user(self):
@@ -206,6 +276,11 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
             open_ai_key = "test-key",
+            anthropic_key = "test-anthropic-key",
+            perplexity_key = "test-perplexity-key",
+            replicate_key = "test-replicate-key",
+            rapid_api_key = "test-rapid-api-key",
+            coinmarketcap_key = "test-coinmarketcap-key",
             group = UserDB.Group.standard,
         )
         created_user = self.sql.user_crud().create(user_data)

@@ -40,8 +40,17 @@ class AttachmentsContentResolverTest(unittest.TestCase):
 
         self.invoker_user = User(
             id = UUID(int = 1),
+            full_name = "Test User",
+            telegram_username = "test_user",
+            telegram_chat_id = "test_chat_id",
+            telegram_user_id = 1,
+            open_ai_key = "test_openai_key",
+            anthropic_key = "test_anthropic_key",
+            perplexity_key = "test_perplexity_key",
+            replicate_key = "test_replicate_key",
+            rapid_api_key = "test_rapid_api_key",
+            coinmarketcap_key = "test_coinmarketcap_key",
             group = UserDB.Group.standard,
-            open_ai_key = "test_open_ai_key",
             created_at = datetime.now().date(),
         )
         self.chat_config = ChatConfig(
@@ -243,7 +252,7 @@ class AttachmentsContentResolverTest(unittest.TestCase):
             mock_audio_transcriber.assert_called_once_with(
                 job_id = "2",
                 audio_url = "http://test.com/audio.mp3",
-                open_ai_api_key = "test_open_ai_key",
+                open_ai_api_key = "test_openai_key",
                 def_extension = "mp3",
                 audio_content = b"audio data",
                 language_name = "Spanish",
@@ -287,7 +296,7 @@ class AttachmentsContentResolverTest(unittest.TestCase):
             mock_document_search.assert_called_once_with(
                 job_id = "4",
                 document_url = "http://test.com/document.pdf",
-                open_ai_api_key = "test_open_ai_key",
+                open_ai_api_key = "test_openai_key",
                 additional_context = "context",
             )
             mock_document_instance.execute.assert_called_once()

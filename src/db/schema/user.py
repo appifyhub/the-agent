@@ -12,6 +12,11 @@ class UserBase(BaseModel):
     telegram_chat_id: str | None = None
     telegram_user_id: int | None = None
     open_ai_key: str | None = None
+    anthropic_key: str | None = None
+    perplexity_key: str | None = None
+    replicate_key: str | None = None
+    rapid_api_key: str | None = None
+    coinmarketcap_key: str | None = None
     group: UserDB.Group = UserDB.Group.standard
 
 
@@ -22,4 +27,4 @@ class UserSave(UserBase):
 class User(UserBase):
     id: UUID
     created_at: date
-    model_config = ConfigDict(from_attributes = True)
+    model_config = ConfigDict(from_attributes=True)

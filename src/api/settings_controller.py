@@ -75,7 +75,8 @@ class SettingsController(SafePrinterMixin):
                 self.sprint(message)
                 raise ValueError(message)
             authorized_chat_config: ChatConfig = self.__authorization_service.authorize_for_chat(
-                self.invoker_user, target_chat_id,
+                self.invoker_user,
+                target_chat_id,
             )
             lang_iso_code = authorized_chat_config.language_iso_code or "en"
             resource_id = authorized_chat_config.chat_id
@@ -117,6 +118,11 @@ class SettingsController(SafePrinterMixin):
         output = User.model_dump(user)
         output["id"] = user.id.hex
         output["open_ai_key"] = mask_secret(output.get("open_ai_key"))
+        output["anthropic_key"] = mask_secret(output.get("anthropic_key"))
+        output["perplexity_key"] = mask_secret(output.get("perplexity_key"))
+        output["replicate_key"] = mask_secret(output.get("replicate_key"))
+        output["rapid_api_key"] = mask_secret(output.get("rapid_api_key"))
+        output["coinmarketcap_key"] = mask_secret(output.get("coinmarketcap_key"))
         return output
 
     def save_chat_settings(
@@ -130,32 +136,53 @@ class SettingsController(SafePrinterMixin):
         self.sprint(f"Saving chat settings for chat '{chat_id}'")
         chat_config = self.__authorization_service.authorize_for_chat(self.invoker_user, chat_id)
         result, message = self.__chat_config_manager.change_chat_language(
-            chat_id = chat_config.chat_id,
-            language_name = language_name,
-            language_iso_code = language_iso_code,
+            chat_id=chat_config.chat_id,
+            language_name=language_name,
+            language_iso_code=language_iso_code,
         )
         if result == ChatConfigManager.Result.failure:
             raise ValueError(message)
         self.sprint("  Chat language changed")
         result, message = self.__chat_config_manager.change_chat_reply_chance(
-            chat_id = chat_config.chat_id,
-            reply_chance_percent = reply_chance_percent,
+            chat_id=chat_config.chat_id,
+            reply_chance_percent=reply_chance_percent,
         )
         if result == ChatConfigManager.Result.failure:
             raise ValueError(message)
         self.sprint("  Reply chance changed")
         result, message = self.__chat_config_manager.change_chat_release_notifications(
-            chat_id = chat_config.chat_id,
-            raw_selection = release_notifications,
+            chat_id=chat_config.chat_id,
+            raw_selection=release_notifications,
         )
         if result == ChatConfigManager.Result.failure:
             raise ValueError(message)
         self.sprint("  Release notifications changed")
 
-    def save_user_settings(self, user_id_hex: str, open_ai_key: str):
+    def save_user_settings(
+        self,
+        user_id_hex: str,
+        open_ai_key: str | None = None,
+        anthropic_key: str | None = None,
+        perplexity_key: str | None = None,
+        replicate_key: str | None = None,
+        rapid_api_key: str | None = None,
+        coinmarketcap_key: str | None = None,
+    ):
         self.sprint(f"Saving user settings for user '{user_id_hex}'")
         user = self.__authorization_service.authorize_for_user(self.invoker_user, user_id_hex)
-        user.open_ai_key = open_ai_key
+        # comparing to None explicitly to support empty strings
+        if open_ai_key is not None:
+            user.open_ai_key = open_ai_key or None
+        if anthropic_key is not None:
+            user.anthropic_key = anthropic_key or None
+        if perplexity_key is not None:
+            user.perplexity_key = perplexity_key or None
+        if replicate_key is not None:
+            user.replicate_key = replicate_key or None
+        if rapid_api_key is not None:
+            user.rapid_api_key = rapid_api_key or None
+        if coinmarketcap_key is not None:
+            user.coinmarketcap_key = coinmarketcap_key or None
         user_db = self.__user_dao.save(UserSave(**user.model_dump()))
         User.model_validate(user_db)
         self.sprint("  User settings saved")

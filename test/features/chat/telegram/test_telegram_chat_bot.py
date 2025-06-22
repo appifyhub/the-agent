@@ -1,5 +1,5 @@
 import unittest
-from datetime import date
+from datetime import datetime
 from unittest.mock import Mock, patch
 from uuid import UUID
 
@@ -30,13 +30,18 @@ class TelegramChatBotTest(unittest.TestCase):
     def setUp(self):
         self.user = User(
             id = UUID(int = 1),
-            created_at = date.today(),
             full_name = "Test User",
             telegram_username = "test_user",
-            telegram_chat_id = "12345",
-            telegram_user_id = 67890,
-            open_ai_key = "test_key",
+            telegram_chat_id = "test_chat_id",
+            telegram_user_id = 1,
+            open_ai_key = "test_openai_key",
+            anthropic_key = None,
+            perplexity_key = None,
+            replicate_key = None,
+            rapid_api_key = None,
+            coinmarketcap_key = None,
             group = UserDB.Group.standard,
+            created_at = datetime.now().date(),
         )
         self.chat_config = ChatConfig(
             chat_id = "12345",

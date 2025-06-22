@@ -47,7 +47,8 @@ class TelegramDataResolver(SafePrinterMixin):
             if is_the_agent(mapping_result.author):
                 mapping_result.author.telegram_chat_id = None  # bot has no private chat
             resolved_author = self.resolve_author(mapping_result.author)
-            mapping_result.message.author_id = resolved_author.id
+            if resolved_author:
+                mapping_result.message.author_id = resolved_author.id
         resolved_chat_message = self.resolve_chat_message(mapping_result.message)
         resolved_attachments = [
             self.resolve_chat_message_attachment(attachment) for attachment in mapping_result.attachments
@@ -89,6 +90,11 @@ class TelegramDataResolver(SafePrinterMixin):
             mapped_data.id = old_user.id
             mapped_data.telegram_chat_id = mapped_data.telegram_chat_id or old_user.telegram_chat_id
             mapped_data.open_ai_key = old_user.open_ai_key
+            mapped_data.anthropic_key = old_user.anthropic_key
+            mapped_data.perplexity_key = old_user.perplexity_key
+            mapped_data.replicate_key = old_user.replicate_key
+            mapped_data.rapid_api_key = old_user.rapid_api_key
+            mapped_data.coinmarketcap_key = old_user.coinmarketcap_key
             mapped_data.group = old_user.group
         else:
             # new users can only be added until the user limit is reached
@@ -96,9 +102,19 @@ class TelegramDataResolver(SafePrinterMixin):
             if user_count >= config.max_users:
                 self.sprint(f"User limit reached: {user_count}/{config.max_users}")
                 raise ValueError("User limit reached, try again later")
-        # reset the token value to None so that there's no confusion going forward
+        # reset token values to None so that there's no confusion going forward
         if not mapped_data.open_ai_key or not mapped_data.open_ai_key.strip():
             mapped_data.open_ai_key = None
+        if not mapped_data.anthropic_key or not mapped_data.anthropic_key.strip():
+            mapped_data.anthropic_key = None
+        if not mapped_data.perplexity_key or not mapped_data.perplexity_key.strip():
+            mapped_data.perplexity_key = None
+        if not mapped_data.replicate_key or not mapped_data.replicate_key.strip():
+            mapped_data.replicate_key = None
+        if not mapped_data.rapid_api_key or not mapped_data.rapid_api_key.strip():
+            mapped_data.rapid_api_key = None
+        if not mapped_data.coinmarketcap_key or not mapped_data.coinmarketcap_key.strip():
+            mapped_data.coinmarketcap_key = None
         return User.model_validate(db.save(mapped_data))
 
     def resolve_chat_message(self, mapped_data: ChatMessageSave) -> ChatMessage:

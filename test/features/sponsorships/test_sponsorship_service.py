@@ -27,6 +27,11 @@ class SponsorshipServiceTest(unittest.TestCase):
             telegram_chat_id = "test_chat_id",
             telegram_user_id = 1,
             open_ai_key = "test_api_key",
+            anthropic_key = None,
+            perplexity_key = None,
+            replicate_key = None,
+            rapid_api_key = None,
+            coinmarketcap_key = None,
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
@@ -66,6 +71,11 @@ class SponsorshipServiceTest(unittest.TestCase):
             telegram_chat_id = "receiver_chat_id",
             telegram_user_id = 2,
             open_ai_key = None,
+            anthropic_key = None,
+            perplexity_key = None,
+            replicate_key = None,
+            rapid_api_key = None,
+            coinmarketcap_key = None,
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
@@ -145,6 +155,11 @@ class SponsorshipServiceTest(unittest.TestCase):
         mock_new_user.telegram_chat_id = "new_chat_id"
         mock_new_user.telegram_user_id = 2
         mock_new_user.open_ai_key = developer_user.open_ai_key
+        mock_new_user.anthropic_key = None
+        mock_new_user.perplexity_key = None
+        mock_new_user.replicate_key = None
+        mock_new_user.rapid_api_key = None
+        mock_new_user.coinmarketcap_key = None
         mock_new_user.group = UserDB.Group.standard
         mock_new_user.created_at = datetime.now().date()
 
@@ -206,7 +221,8 @@ class SponsorshipServiceTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = self.user
         self.mock_user_dao.get_by_telegram_username.return_value = receiver_user
         self.mock_sponsorship_dao.get_all_by_receiver.side_effect = [
-            [], [Mock(spec = Sponsorship)],
+            [],
+            [Mock(spec = Sponsorship)],
         ]
         self.mock_sponsorship_dao.get_all_by_sponsor.return_value = []
 
@@ -242,6 +258,11 @@ class SponsorshipServiceTest(unittest.TestCase):
             telegram_chat_id = "receiver_chat_id",
             telegram_user_id = 2,
             open_ai_key = "test_api_key",
+            anthropic_key = None,
+            perplexity_key = None,
+            replicate_key = None,
+            rapid_api_key = None,
+            coinmarketcap_key = None,
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
@@ -291,6 +312,11 @@ class SponsorshipServiceTest(unittest.TestCase):
             telegram_chat_id = "receiver_chat_id",
             telegram_user_id = 2,
             open_ai_key = None,
+            anthropic_key = None,
+            perplexity_key = None,
+            replicate_key = None,
+            rapid_api_key = None,
+            coinmarketcap_key = None,
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
@@ -328,6 +354,11 @@ class SponsorshipServiceTest(unittest.TestCase):
             telegram_chat_id = "sponsor_chat_id",
             telegram_user_id = 2,
             open_ai_key = "sponsor_api_key",
+            anthropic_key = None,
+            perplexity_key = None,
+            replicate_key = None,
+            rapid_api_key = None,
+            coinmarketcap_key = None,
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
@@ -344,7 +375,9 @@ class SponsorshipServiceTest(unittest.TestCase):
 
         # user lookup, then unsponsor_user lookups
         self.mock_user_dao.get.side_effect = [
-            user_db, sponsor_user_db, user_db,
+            user_db,
+            sponsor_user_db,
+            user_db,
         ]
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = [sponsorship_db]
         self.mock_user_dao.get_by_telegram_username.return_value = user_db
