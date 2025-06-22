@@ -118,8 +118,15 @@ class AccessTokenResolver(SafePrinterMixin):
         match provider.id:
             case OPEN_AI.id:
                 return user.open_ai_key
-            case ANTHROPIC.id | PERPLEXITY.id | REPLICATE.id | RAPID_API.id | COINMARKETCAP.id:
-                self.sprint(f"Provider '{provider.id}' not yet implemented in User table")
-                return None
+            case ANTHROPIC.id:
+                return user.anthropic_key
+            case PERPLEXITY.id:
+                return user.perplexity_key
+            case REPLICATE.id:
+                return user.replicate_key
+            case RAPID_API.id:
+                return user.rapid_api_key
+            case COINMARKETCAP.id:
+                return user.coinmarketcap_key
         self.sprint(f"Unknown provider '{provider.id}'")
         return None

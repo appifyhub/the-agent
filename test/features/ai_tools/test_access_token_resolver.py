@@ -224,13 +224,22 @@ class AccessTokenResolverTest(unittest.TestCase):
         # Set up mock to return empty list to avoid sponsorship lookup since user has direct token
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
 
+        # Create a truly unsupported provider
+        unsupported_provider = ToolProvider(
+            id = "unsupported",
+            name = "Unsupported Provider",
+            token_management_url = "https://example.com",
+            token_format = "test-token",
+            tools = ["test-tool"],
+        )
+
         resolver = AccessTokenResolver(
             user_dao = self.mock_user_dao,
             sponsorship_dao = self.mock_sponsorship_dao,
             invoker_user = self.invoker_user,
         )
 
-        token = resolver.get_access_token(self.anthropic_provider)
+        token = resolver.get_access_token(unsupported_provider)
 
         self.assertIsNone(token)
 
@@ -321,8 +330,9 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         token = resolver.get_access_token(ANTHROPIC)
 
-        # Currently returns None because ANTHROPIC is not yet implemented in User table
-        self.assertIsNone(token)
+        self.assertIsNotNone(token)
+        self.assertIsInstance(token, SecretStr)
+        self.assertEqual(token.get_secret_value(), self.invoker_user.anthropic_key)
 
     def test_get_access_token_perplexity_success_user_has_direct_token(self):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
@@ -335,8 +345,9 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         token = resolver.get_access_token(PERPLEXITY)
 
-        # Currently returns None because PERPLEXITY is not yet implemented in User table
-        self.assertIsNone(token)
+        self.assertIsNotNone(token)
+        self.assertIsInstance(token, SecretStr)
+        self.assertEqual(token.get_secret_value(), self.invoker_user.perplexity_key)
 
     def test_get_access_token_replicate_success_user_has_direct_token(self):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
@@ -349,8 +360,9 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         token = resolver.get_access_token(REPLICATE)
 
-        # Currently returns None because REPLICATE is not yet implemented in User table
-        self.assertIsNone(token)
+        self.assertIsNotNone(token)
+        self.assertIsInstance(token, SecretStr)
+        self.assertEqual(token.get_secret_value(), self.invoker_user.replicate_key)
 
     def test_get_access_token_rapid_api_success_user_has_direct_token(self):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
@@ -363,8 +375,9 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         token = resolver.get_access_token(RAPID_API)
 
-        # Currently returns None because RAPID_API is not yet implemented in User table
-        self.assertIsNone(token)
+        self.assertIsNotNone(token)
+        self.assertIsInstance(token, SecretStr)
+        self.assertEqual(token.get_secret_value(), self.invoker_user.rapid_api_key)
 
     def test_get_access_token_coinmarketcap_success_user_has_direct_token(self):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
@@ -377,5 +390,6 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         token = resolver.get_access_token(COINMARKETCAP)
 
-        # Currently returns None because COINMARKETCAP is not yet implemented in User table
-        self.assertIsNone(token)
+        self.assertIsNotNone(token)
+        self.assertIsInstance(token, SecretStr)
+        self.assertEqual(token.get_secret_value(), self.invoker_user.coinmarketcap_key)
