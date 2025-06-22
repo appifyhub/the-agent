@@ -136,23 +136,23 @@ class SettingsController(SafePrinterMixin):
         self.sprint(f"Saving chat settings for chat '{chat_id}'")
         chat_config = self.__authorization_service.authorize_for_chat(self.invoker_user, chat_id)
         result, message = self.__chat_config_manager.change_chat_language(
-            chat_id=chat_config.chat_id,
-            language_name=language_name,
-            language_iso_code=language_iso_code,
+            chat_id = chat_config.chat_id,
+            language_name = language_name,
+            language_iso_code = language_iso_code,
         )
         if result == ChatConfigManager.Result.failure:
             raise ValueError(message)
         self.sprint("  Chat language changed")
         result, message = self.__chat_config_manager.change_chat_reply_chance(
-            chat_id=chat_config.chat_id,
-            reply_chance_percent=reply_chance_percent,
+            chat_id = chat_config.chat_id,
+            reply_chance_percent = reply_chance_percent,
         )
         if result == ChatConfigManager.Result.failure:
             raise ValueError(message)
         self.sprint("  Reply chance changed")
         result, message = self.__chat_config_manager.change_chat_release_notifications(
-            chat_id=chat_config.chat_id,
-            raw_selection=release_notifications,
+            chat_id = chat_config.chat_id,
+            raw_selection = release_notifications,
         )
         if result == ChatConfigManager.Result.failure:
             raise ValueError(message)

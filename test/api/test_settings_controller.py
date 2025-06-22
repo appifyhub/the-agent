@@ -254,8 +254,16 @@ class SettingsControllerTest(unittest.TestCase):
             # Verify no token is exposed in plain text
             for key, value in settings.items():
                 if key.endswith("_key"):
-                    self.assertNotIn("test_", str(value), f"Token field '{key}' should be masked but contains test data")
-                    self.assertNotIn("api_key", str(value), f"Token field '{key}' should be masked but contains api_key")
+                    self.assertNotIn(
+                        "test_",
+                        str(value),
+                        f"Token field '{key}' should be masked but contains test data",
+                    )
+                    self.assertNotIn(
+                        "api_key",
+                        str(value),
+                        f"Token field '{key}' should be masked but contains api_key",
+                    )
 
     @patch.object(ChatConfigManager, "change_chat_language", return_value = (ChatConfigManager.Result.success, ""))
     @patch.object(
@@ -355,7 +363,9 @@ class SettingsControllerTest(unittest.TestCase):
             )
 
             # Verify the save was called with the updated data
+            # noinspection PyUnresolvedReferences
             self.mock_user_dao.save.assert_called_once()
+            # noinspection PyUnresolvedReferences
             saved_user_data = self.mock_user_dao.save.call_args[0][0]
 
             self.assertEqual(saved_user_data.open_ai_key, "new_openai_key")

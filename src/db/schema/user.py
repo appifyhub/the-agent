@@ -27,4 +27,4 @@ class UserSave(UserBase):
 class User(UserBase):
     id: UUID
     created_at: date
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes = True)

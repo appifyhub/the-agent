@@ -6,7 +6,7 @@ from typing import Callable
 from util.singleton import Singleton
 
 
-class Config(metaclass=Singleton):
+class Config(metaclass = Singleton):
     max_sponsorships_per_user: int
     verbose: bool
     log_telegram_update: bool

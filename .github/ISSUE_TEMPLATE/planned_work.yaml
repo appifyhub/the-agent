@@ -1,7 +1,7 @@
 name: Planned Work
 description: Documented work that was planned ahead
 title: "Planned Work Title Here"
-labels: ["Planned", "Enhancement", "Feature"]
+labels: [ "Planned", "Enhancement", "Feature" ]
 
 body:
   - type: markdown

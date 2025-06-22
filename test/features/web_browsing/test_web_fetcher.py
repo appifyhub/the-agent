@@ -88,7 +88,7 @@ class WebFetcherTest(unittest.TestCase):
     def test_fetch_html_binary_content(self, m: Mocker):
         # Simulate binary PDF response with NUL bytes
         binary_content = b"%PDF-1.4\x00binarydata"
-        m.get(DEFAULT_URL, content=binary_content, status_code=200, headers={"Content-Type": "application/pdf"})
+        m.get(DEFAULT_URL, content = binary_content, status_code = 200, headers = {"Content-Type": "application/pdf"})
         self.mock_cache_crud.get.return_value = None
 
         fetcher = WebFetcher(DEFAULT_URL, self.mock_cache_crud)
