@@ -1,2 +1,2 @@
 #!/bin/sh
-pipenv run ruff check
+pipenv run ruff check --fix

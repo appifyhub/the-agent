@@ -43,6 +43,7 @@ select = [
     "I", # isort
     "COM812", # missing-trailing-comma
     "Q", # flake8-quotes (enforce quote style)
+    "W292", # missing-newline-at-end-of-file (ensure files end with a newline)
 ]
 
 # Specific rules for spacing around equals
