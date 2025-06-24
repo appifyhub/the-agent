@@ -2,11 +2,12 @@ import os
 import tempfile
 from urllib.parse import urlparse
 
-import replicate
 import requests
 from httpx import Timeout
-from replicate import Client
+from pydantic import SecretStr
+from replicate.client import Client
 
+from features.ai_tools.external_ai_tool import ExternalAiTool
 from features.ai_tools.external_ai_tool_library import BACKGROUND_REMOVAL
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from util.config import config
@@ -25,16 +26,20 @@ class ImageBackgroundRemover(SafePrinterMixin):
     def __init__(
         self,
         image_url: str,
-        replicate_api_key: str,
+        replicate_api_key: SecretStr,
         mime_type: str | None = None,
     ):
         super().__init__(config.verbose)
         self.__image_url = image_url
         self.__mime_type = mime_type
-        self.__replicate = replicate.Client(
-            api_token = replicate_api_key,
+        self.__replicate = Client(
+            api_token = replicate_api_key.get_secret_value(),
             timeout = Timeout(BOOT_AND_RUN_TIMEOUT_S),
         )
+
+    @staticmethod
+    def get_tool() -> ExternalAiTool:
+        return BACKGROUND_REMOVAL
 
     def execute(self) -> str | None:
         self.sprint("Starting background removal")
@@ -46,7 +51,7 @@ class ImageBackgroundRemover(SafePrinterMixin):
                 temp_file.flush()
                 with open(temp_file.name, "rb") as file:
                     input_data = {"image": file}
-                    result = self.__replicate.run(BACKGROUND_REMOVAL.id, input = input_data)
+                    result = self.__replicate.run(ImageBackgroundRemover.get_tool().id, input = input_data)
             if not result:
                 self.sprint("Failed to remove background (no output URL)")
                 return None

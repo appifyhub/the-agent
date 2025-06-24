@@ -115,6 +115,7 @@ def process_attachments(
                     chat_message_dao = ChatMessageCRUD(db),
                     chat_message_attachment_dao = ChatMessageAttachmentCRUD(db),
                     cache_dao = ToolsCacheCRUD(db),
+                    sponsorship_dao = SponsorshipCRUD(db),
                 )
                 result = content_resolver.execute()
                 if result == AttachmentsContentResolver.Result.failed:
@@ -130,6 +131,7 @@ def process_attachments(
                     bot_sdk = TelegramBotSDK(db),
                     user_dao = UserCRUD(db),
                     chat_message_attachment_dao = ChatMessageAttachmentCRUD(db),
+                    sponsorship_dao = SponsorshipCRUD(db),
                 )
                 result, stats = manager.execute()
                 if result == ImageEditManager.Result.failed:
@@ -182,7 +184,7 @@ def get_exchange_rate(user_id: str, base_currency: str, desired_currency: str, a
     """
     try:
         with get_detached_session() as db:
-            fetcher = ExchangeRateFetcher(user_id, UserCRUD(db), ToolsCacheCRUD(db))
+            fetcher = ExchangeRateFetcher(user_id, UserCRUD(db), ToolsCacheCRUD(db), SponsorshipCRUD(db))
             result = fetcher.execute(base_currency, desired_currency, amount or 1.0)
             return json.dumps({"result": "Success", "exchange_rate": result})
     except Exception as e:
@@ -207,7 +209,7 @@ def set_up_currency_price_alert(
     try:
         with get_detached_session() as db:
             user_dao = UserCRUD(db)
-            fetcher = ExchangeRateFetcher(user_id, user_dao, ToolsCacheCRUD(db))
+            fetcher = ExchangeRateFetcher(user_id, user_dao, ToolsCacheCRUD(db), SponsorshipCRUD(db))
             alert_manager = PriceAlertManager(
                 chat_id, user_id, user_dao, ChatConfigCRUD(db), PriceAlertCRUD(db), fetcher,
             )
@@ -232,7 +234,7 @@ def remove_currency_price_alerts(chat_id: str, user_id: str, base_currency: str,
     try:
         with get_detached_session() as db:
             user_dao = UserCRUD(db)
-            fetcher = ExchangeRateFetcher(user_id, user_dao, ToolsCacheCRUD(db))
+            fetcher = ExchangeRateFetcher(user_id, user_dao, ToolsCacheCRUD(db), SponsorshipCRUD(db))
             alert_manager = PriceAlertManager(
                 chat_id, user_id, user_dao, ChatConfigCRUD(db), PriceAlertCRUD(db), fetcher,
             )
@@ -255,7 +257,7 @@ def list_currency_price_alerts(chat_id: str, user_id: str) -> str:
     try:
         with get_detached_session() as db:
             user_dao = UserCRUD(db)
-            fetcher = ExchangeRateFetcher(user_id, user_dao, ToolsCacheCRUD(db))
+            fetcher = ExchangeRateFetcher(user_id, user_dao, ToolsCacheCRUD(db), SponsorshipCRUD(db))
             alert_manager = PriceAlertManager(
                 chat_id, user_id, user_dao, ChatConfigCRUD(db), PriceAlertCRUD(db), fetcher,
             )
@@ -278,7 +280,14 @@ def generate_image(chat_id: str, user_id: str, prompt: str) -> str:
     """
     try:
         with get_detached_session() as db:
-            imaging = GenerativeImagingManager(chat_id, prompt, user_id, TelegramBotSDK(db), UserCRUD(db))
+            imaging = GenerativeImagingManager(
+                chat_id,
+                prompt,
+                user_id,
+                TelegramBotSDK(db),
+                UserCRUD(db),
+                SponsorshipCRUD(db),
+            )
             result = imaging.execute()
             if result == GenerativeImagingManager.Result.failed:
                 raise ValueError("Failed to generate the image")
@@ -299,7 +308,7 @@ def ai_web_search(user_id: str, search_query: str) -> str:
     """
     try:
         with get_detached_session() as db:
-            search = AIWebSearch(user_id, search_query, UserCRUD(db))
+            search = AIWebSearch(user_id, search_query, UserCRUD(db), SponsorshipCRUD(db))
             result = search.execute()
             if not result.content:
                 raise ValueError("Answer not received")
@@ -409,6 +418,7 @@ def request_feature_bug_or_support(
                 include_full_name = include_full_name,
                 request_type_str = request_type,
                 user_dao = UserCRUD(db),
+                sponsorship_dao = SponsorshipCRUD(db),
             )
             issue_url = manager.execute()
             return json.dumps(

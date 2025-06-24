@@ -28,6 +28,7 @@ class ImageEditManagerTest(unittest.TestCase):
         self.mock_bot_sdk.api = MagicMock(spec = TelegramBotAPI)
         self.mock_user_dao = MagicMock(spec = UserCRUD)
         self.mock_chat_message_attachment_dao = MagicMock(spec = ChatMessageAttachmentCRUD)
+        self.mock_sponsorship_dao = MagicMock()
 
         self.user = User(
             id = UUID(hex = self.invoker_user_id_hex),
@@ -36,6 +37,7 @@ class ImageEditManagerTest(unittest.TestCase):
             telegram_chat_id = "test_chat_id",
             telegram_user_id = 1,
             open_ai_key = "test_api_key",
+            replicate_key = "test_replicate_key",
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
@@ -73,6 +75,7 @@ class ImageEditManagerTest(unittest.TestCase):
                 self.mock_bot_sdk,
                 self.mock_user_dao,
                 self.mock_chat_message_attachment_dao,
+                self.mock_sponsorship_dao,
             )
             self.assertIsInstance(manager, ImageEditManager)
 
@@ -87,6 +90,7 @@ class ImageEditManagerTest(unittest.TestCase):
                 self.mock_bot_sdk,
                 self.mock_user_dao,
                 self.mock_chat_message_attachment_dao,
+                self.mock_sponsorship_dao,
             )
 
     def test_init_invalid_operation(self):
@@ -99,6 +103,7 @@ class ImageEditManagerTest(unittest.TestCase):
                 self.mock_bot_sdk,
                 self.mock_user_dao,
                 self.mock_chat_message_attachment_dao,
+                self.mock_sponsorship_dao,
             )
 
     @patch.object(TelegramBotSDKUtils, "refresh_attachments")
@@ -116,6 +121,7 @@ class ImageEditManagerTest(unittest.TestCase):
             self.mock_bot_sdk,
             self.mock_user_dao,
             self.mock_chat_message_attachment_dao,
+            self.mock_sponsorship_dao,
         )
         result, stats = manager.execute()
 
@@ -142,6 +148,7 @@ class ImageEditManagerTest(unittest.TestCase):
             self.mock_bot_sdk,
             self.mock_user_dao,
             self.mock_chat_message_attachment_dao,
+            self.mock_sponsorship_dao,
         )
         result, stats = manager.execute()
 
@@ -164,6 +171,7 @@ class ImageEditManagerTest(unittest.TestCase):
             self.mock_bot_sdk,
             self.mock_user_dao,
             self.mock_chat_message_attachment_dao,
+            self.mock_sponsorship_dao,
         )
         result, stats = manager.execute()
 
@@ -184,6 +192,7 @@ class ImageEditManagerTest(unittest.TestCase):
             self.mock_bot_sdk,
             self.mock_user_dao,
             self.mock_chat_message_attachment_dao,
+            self.mock_sponsorship_dao,
         )
         # We're forcibly changing the operation to an invalid one to test the execution
         manager._ImageEditManager__operation = MagicMock()
@@ -207,6 +216,7 @@ class ImageEditManagerTest(unittest.TestCase):
             self.mock_bot_sdk,
             self.mock_user_dao,
             self.mock_chat_message_attachment_dao,
+            self.mock_sponsorship_dao,
         )
         result, stats = manager.execute()
 
@@ -237,6 +247,7 @@ class ImageEditManagerTest(unittest.TestCase):
             self.mock_bot_sdk,
             self.mock_user_dao,
             self.mock_chat_message_attachment_dao,
+            self.mock_sponsorship_dao,
         )
         result, stats = manager.execute()
 

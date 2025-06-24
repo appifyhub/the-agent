@@ -2,10 +2,9 @@ import time
 from contextlib import contextmanager
 from typing import Generator
 
-from requests import Session
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 from db.model.base import BaseModel
 from util.config import config

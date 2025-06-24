@@ -8,12 +8,14 @@ import requests
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
 from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
+from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.schema.chat_config import ChatConfig
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from db.schema.user import User
+from features.ai_tools.access_token_resolver import AccessTokenResolver
 from features.audio.audio_transcriber import AudioTranscriber
 from features.chat.supported_files import KNOWN_AUDIO_FORMATS, KNOWN_DOCS_FORMATS, KNOWN_IMAGE_FORMATS
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
@@ -48,6 +50,7 @@ class AttachmentsContentResolver(SafePrinterMixin):
     __chat_message_dao: ChatMessageCRUD
     __chat_message_attachment_dao: ChatMessageAttachmentCRUD
     __cache_dao: ToolsCacheCRUD
+    __token_resolver: AccessTokenResolver
 
     def __init__(
         self,
@@ -61,6 +64,7 @@ class AttachmentsContentResolver(SafePrinterMixin):
         chat_message_dao: ChatMessageCRUD,
         chat_message_attachment_dao: ChatMessageAttachmentCRUD,
         cache_dao: ToolsCacheCRUD,
+        sponsorship_dao: SponsorshipCRUD,
     ):
         super().__init__(config.verbose)
         self.attachments = []
@@ -72,7 +76,13 @@ class AttachmentsContentResolver(SafePrinterMixin):
         self.__chat_message_dao = chat_message_dao
         self.__chat_message_attachment_dao = chat_message_attachment_dao
         self.__cache_dao = cache_dao
+
         self.__validate(chat_id, invoker_user_id_hex, attachment_ids)
+        self.__token_resolver = AccessTokenResolver(
+            user_dao = user_dao,
+            sponsorship_dao = sponsorship_dao,
+            invoker_user = self.__invoker,
+        )
 
     def __validate(self, chat_id: str, invoker_user_id_hex: str, attachment_ids: list[str]) -> None:
         self.sprint(f"Validating user '{invoker_user_id_hex}' and attachment resolution for chat '{chat_id}'")
@@ -145,6 +155,10 @@ class AttachmentsContentResolver(SafePrinterMixin):
 
         self.contents = []
         for attachment in self.attachments:
+            if attachment is None:
+                self.sprint("Skipping None attachment")
+                self.contents.append(None)
+                continue
             # assuming the URL will never change... users might ask more questions about the same attachment
             additional_content_hash = digest_md5(self.__additional_context) if self.__additional_context else "*"
             unique_identifier = f"{attachment.id}-{additional_content_hash}"
@@ -185,20 +199,28 @@ class AttachmentsContentResolver(SafePrinterMixin):
 
         # handle images
         if attachment.mime_type in KNOWN_IMAGE_FORMATS.values() or attachment.extension in KNOWN_IMAGE_FORMATS.keys():
+            vision_token = self.__token_resolver.require_access_token_for_tool(ComputerVisionAnalyzer.get_tool())
             return ComputerVisionAnalyzer(
                 job_id = attachment.id,
                 image_mime_type = attachment.mime_type,
-                open_ai_api_key = self.__invoker.open_ai_key,
+                open_ai_api_key = vision_token,
                 image_b64 = base64.b64encode(contents).decode("utf-8"),
                 additional_context = self.__additional_context,
             ).execute()
 
         # handle audio
         if attachment.mime_type in KNOWN_AUDIO_FORMATS.values() or attachment.extension in KNOWN_AUDIO_FORMATS.keys():
+            transcriber_token = self.__token_resolver.require_access_token_for_tool(
+                AudioTranscriber.get_transcriber_tool(),
+            )
+            copywriter_token = self.__token_resolver.require_access_token_for_tool(
+                AudioTranscriber.get_copywriter_tool(),
+            )
             return AudioTranscriber(
                 job_id = attachment.id,
                 audio_url = attachment.last_url,
-                open_ai_api_key = self.__invoker.open_ai_key,
+                open_ai_api_key = transcriber_token,
+                anthropic_token = copywriter_token,
                 def_extension = attachment.extension,
                 audio_content = contents,
                 language_name = self.__chat_config.language_name,
@@ -207,10 +229,13 @@ class AttachmentsContentResolver(SafePrinterMixin):
 
         # handle documents
         if attachment.mime_type in KNOWN_DOCS_FORMATS.values() or attachment.extension in KNOWN_DOCS_FORMATS.keys():
+            embedding_token = self.__token_resolver.require_access_token_for_tool(DocumentSearch.get_copywriter_tool())
+            copywriter_token = self.__token_resolver.require_access_token_for_tool(DocumentSearch.get_copywriter_tool())
             return DocumentSearch(
                 job_id = attachment.id,
                 document_url = attachment.last_url,
-                open_ai_api_key = self.__invoker.open_ai_key,
+                open_ai_api_key = embedding_token,
+                anthropic_token = copywriter_token,
                 additional_context = self.__additional_context,
             ).execute()
 

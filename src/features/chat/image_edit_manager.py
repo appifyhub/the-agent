@@ -2,9 +2,11 @@ from enum import Enum
 from uuid import UUID
 
 from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
+from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.user import User
+from features.ai_tools.access_token_resolver import AccessTokenResolver
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.sdk.telegram_bot_sdk_utils import TelegramBotSDKUtils
 from features.images.image_background_remover import ImageBackgroundRemover
@@ -44,6 +46,7 @@ class ImageEditManager(SafePrinterMixin):
     __invoker_user: User
     __user_dao: UserCRUD
     __chat_message_attachment_dao: ChatMessageAttachmentCRUD
+    __token_resolver: AccessTokenResolver
 
     def __init__(
         self,
@@ -54,6 +57,7 @@ class ImageEditManager(SafePrinterMixin):
         bot_sdk: TelegramBotSDK,
         user_dao: UserCRUD,
         chat_message_attachment_dao: ChatMessageAttachmentCRUD,
+        sponsorship_dao: SponsorshipCRUD,
         operation_guidance: str | None = None,
     ):
         super().__init__(config.verbose)
@@ -63,7 +67,14 @@ class ImageEditManager(SafePrinterMixin):
         self.__bot_sdk = bot_sdk
         self.__user_dao = user_dao
         self.__chat_message_attachment_dao = chat_message_attachment_dao
+
         self.__validate(invoker_user_id_hex)
+        self.__token_resolver = AccessTokenResolver(
+            user_dao = user_dao,
+            sponsorship_dao = sponsorship_dao,
+            invoker_user = self.__invoker_user,
+        )
+
         self.__attachments = TelegramBotSDKUtils.refresh_attachments(
             sources = attachment_ids,
             bot_api = bot_sdk.api,
@@ -85,10 +96,15 @@ class ImageEditManager(SafePrinterMixin):
         urls: list[str] = []
         for attachment in self.__attachments:
             try:
+                if not attachment.last_url:
+                    self.sprint(f"Attachment '{attachment.id}' has no URL, skipping")
+                    result = ImageEditManager.Result.partial
+                    continue
+                replicate_token = self.__token_resolver.require_access_token_for_tool(ImageBackgroundRemover.get_tool())
                 remover = ImageBackgroundRemover(
                     image_url = attachment.last_url,
                     mime_type = attachment.mime_type,
-                    replicate_api_key = config.replicate_api_token,
+                    replicate_api_key = replicate_token,
                 )
                 image_url = remover.execute()
                 if not image_url:
@@ -111,10 +127,18 @@ class ImageEditManager(SafePrinterMixin):
         urls: list[str] = []
         for attachment in self.__attachments:
             try:
+                if not attachment.last_url:
+                    self.sprint(f"Attachment '{attachment.id}' has no URL, skipping")
+                    result = ImageEditManager.Result.partial
+                    continue
+                self.__token_resolver.require_access_token_for_tool(ImageContentsRestorer.get_resoration_tool())
+                replicate_token = self.__token_resolver.require_access_token_for_tool(
+                    ImageContentsRestorer.get_inpainting_tool(),
+                )
                 remover = ImageContentsRestorer(
                     image_url = attachment.last_url,
                     mime_type = attachment.mime_type,
-                    replicate_api_key = config.replicate_api_token,
+                    replicate_api_key = replicate_token,
                     # prompts could be added for better accuracy (class supports it)
                 )
                 restoration_result = remover.execute()
@@ -141,9 +165,14 @@ class ImageEditManager(SafePrinterMixin):
         urls: list[str] = []
         for attachment in self.__attachments:
             try:
+                if not attachment.last_url:
+                    self.sprint(f"Attachment '{attachment.id}' has no URL, skipping")
+                    result = ImageEditManager.Result.partial
+                    continue
+                replicate_token = self.__token_resolver.require_access_token_for_tool(ImageEditor.get_tool())
                 editor = ImageEditor(
                     image_url = attachment.last_url,
-                    replicate_api_key = config.replicate_api_token,
+                    replicate_api_key = replicate_token,
                     context = self.__operation_guidance,
                     mime_type = attachment.mime_type,
                 )

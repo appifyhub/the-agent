@@ -33,6 +33,8 @@ class GenerativeImagingManagerTest(unittest.TestCase):
             telegram_chat_id = "test_chat_id",
             telegram_user_id = 1,
             open_ai_key = "test_api_key",
+            replicate_key = "test_replicate_key",
+            anthropic_key = "test_anthropic_key",
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
@@ -40,6 +42,7 @@ class GenerativeImagingManagerTest(unittest.TestCase):
         self.mock_bot_sdk.api = MagicMock(spec = TelegramBotAPI)
         self.mock_user_dao = MagicMock(spec = UserCRUD)
         self.mock_user_dao.get.return_value = self.user
+        self.mock_sponsorship_dao = MagicMock()
 
     def test_init_success(self):
         manager = GenerativeImagingManager(
@@ -48,6 +51,7 @@ class GenerativeImagingManagerTest(unittest.TestCase):
             self.invoker_user_id_hex,
             self.mock_bot_sdk,
             self.mock_user_dao,
+            self.mock_sponsorship_dao,
         )
         self.assertIsInstance(manager, GenerativeImagingManager)
 
@@ -60,6 +64,7 @@ class GenerativeImagingManagerTest(unittest.TestCase):
                 self.invoker_user_id_hex,
                 self.mock_bot_sdk,
                 self.mock_user_dao,
+                self.mock_sponsorship_dao,
             )
 
     @patch("features.chat.generative_imaging_manager.ChatAnthropic")
@@ -78,6 +83,7 @@ class GenerativeImagingManagerTest(unittest.TestCase):
             self.invoker_user_id_hex,
             self.mock_bot_sdk,
             self.mock_user_dao,
+            self.mock_sponsorship_dao,
         )
         result = manager.execute()
 
@@ -98,6 +104,7 @@ class GenerativeImagingManagerTest(unittest.TestCase):
             self.invoker_user_id_hex,
             self.mock_bot_sdk,
             self.mock_user_dao,
+            self.mock_sponsorship_dao,
         )
         result = manager.execute()
 
@@ -120,6 +127,7 @@ class GenerativeImagingManagerTest(unittest.TestCase):
             self.invoker_user_id_hex,
             self.mock_bot_sdk,
             self.mock_user_dao,
+            self.mock_sponsorship_dao,
         )
         result = manager.execute()
 
@@ -144,6 +152,7 @@ class GenerativeImagingManagerTest(unittest.TestCase):
             self.invoker_user_id_hex,
             self.mock_bot_sdk,
             self.mock_user_dao,
+            self.mock_sponsorship_dao,
         )
         result = manager.execute()
 
@@ -164,6 +173,7 @@ class GenerativeImagingManagerTest(unittest.TestCase):
             self.invoker_user_id_hex,
             self.mock_bot_sdk,
             self.mock_user_dao,
+            self.mock_sponsorship_dao,
         )
         result = manager.execute()
 

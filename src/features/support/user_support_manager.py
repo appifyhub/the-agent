@@ -6,10 +6,11 @@ import requests
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-from pydantic import SecretStr
 
+from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.schema.user import User
+from features.ai_tools.access_token_resolver import AccessTokenResolver
 from features.ai_tools.external_ai_tool_library import CLAUDE_4_SONNET
 from features.prompting import prompt_library
 from util.config import config
@@ -33,6 +34,7 @@ class UserSupportManager(SafePrinterMixin):
     invoker: User
     user_dao: UserCRUD
     __copywriter: BaseChatModel
+    __token_resolver: AccessTokenResolver
 
     def __init__(
         self,
@@ -43,6 +45,7 @@ class UserSupportManager(SafePrinterMixin):
         include_full_name: bool,
         request_type_str: str | None,
         user_dao: UserCRUD,
+        sponsorship_dao: SponsorshipCRUD,
     ):
         super().__init__(config.verbose)
         self.user_input = user_input
@@ -52,7 +55,15 @@ class UserSupportManager(SafePrinterMixin):
         self.include_full_name = include_full_name
         self.request_type = self.__resolve_request_type(request_type_str)
         self.user_dao = user_dao
+
         self.__validate_invoker()
+        self.__token_resolver = AccessTokenResolver(
+            user_dao = user_dao,
+            sponsorship_dao = sponsorship_dao,
+            invoker_user = self.invoker,
+        )
+        anthropic_token = self.__token_resolver.require_access_token_for_tool(CLAUDE_4_SONNET)
+
         # noinspection PyArgumentList
         self.__copywriter = ChatAnthropic(
             model_name = CLAUDE_4_SONNET.id,
@@ -60,7 +71,7 @@ class UserSupportManager(SafePrinterMixin):
             max_tokens = 700,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
-            api_key = SecretStr(str(config.anthropic_token)),
+            api_key = anthropic_token,
         )
 
     def __resolve_request_type(self, request_type_str: str | None) -> RequestType:

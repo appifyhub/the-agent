@@ -24,11 +24,13 @@ class UserSupportManagerTest(unittest.TestCase):
             telegram_chat_id = "test_chat_id",
             telegram_user_id = 1,
             open_ai_key = "test_api_key",
+            anthropic_key = "test_anthropic_key",
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
         self.mock_user_dao = Mock()
         self.mock_user_dao.get.return_value = UserDB(**self.user.model_dump())
+        self.mock_sponsorship_dao = Mock()
         self.manager = UserSupportManager(
             user_input = "Test input",
             invoker_user_id_hex = self.user.id.hex,
@@ -37,6 +39,7 @@ class UserSupportManagerTest(unittest.TestCase):
             include_full_name = True,
             request_type_str = "bug",
             user_dao = self.mock_user_dao,
+            sponsorship_dao = self.mock_sponsorship_dao,
         )
 
     def test_resolve_request_type(self):
@@ -50,6 +53,7 @@ class UserSupportManagerTest(unittest.TestCase):
             include_full_name = True,
             request_type_str = "invalid_type",
             user_dao = self.mock_user_dao,
+            sponsorship_dao = self.mock_sponsorship_dao,
         )
         self.assertEqual(manager.request_type, UserSupportManager.RequestType.request)
 

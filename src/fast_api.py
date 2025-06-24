@@ -85,6 +85,7 @@ def notify_of_price_alerts(
         chat_config_dao = ChatConfigCRUD(db),
         price_alert_dao = PriceAlertCRUD(db),
         tools_cache_dao = ToolsCacheCRUD(db),
+        sponsorship_dao = SponsorshipCRUD(db),
         telegram_bot_sdk = TelegramBotSDK(db),
         translations = TranslationsCache(),
     )

@@ -8,7 +8,8 @@ from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_openai import OpenAIEmbeddings
 from pydantic import SecretStr
 
-from features.ai_tools.external_ai_tool_library import CLAUDE_4_SONNET, TEXT_EMBEDDING_3_SMALL
+from features.ai_tools.external_ai_tool import ExternalAiTool
+from features.ai_tools.external_ai_tool_library import CLAUDE_3_7_SONNET, TEXT_EMBEDDING_3_SMALL
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
@@ -29,7 +30,8 @@ class DocumentSearch(SafePrinterMixin):
         self,
         job_id: str,
         document_url: str,
-        open_ai_api_key: str,
+        open_ai_api_key: SecretStr,
+        anthropic_token: SecretStr,
         additional_context: str | None = None,
     ):
         super().__init__(config.verbose)
@@ -38,19 +40,27 @@ class DocumentSearch(SafePrinterMixin):
         self.sprint(f"Loaded document pages: {len(self.__loaded_pages)}")
         # noinspection PyArgumentList
         self.__embeddings = OpenAIEmbeddings(
-            model = TEXT_EMBEDDING_3_SMALL.id,
-            openai_api_key = SecretStr(open_ai_api_key),
+            model = DocumentSearch.get_embedding_tool().id,
+            openai_api_key = open_ai_api_key,
         )
         self.__additional_context = additional_context or DEFAULT_QUESTION
         # noinspection PyArgumentList
         self.__copywriter = ChatAnthropic(
-            model_name = CLAUDE_4_SONNET.id,
+            model_name = DocumentSearch.get_copywriter_tool().id,
             temperature = 0.3,
             max_tokens = 4096,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
-            api_key = SecretStr(str(config.anthropic_token)),
+            api_key = anthropic_token,
         )
+
+    @staticmethod
+    def get_embedding_tool() -> ExternalAiTool:
+        return TEXT_EMBEDDING_3_SMALL
+
+    @staticmethod
+    def get_copywriter_tool() -> ExternalAiTool:
+        return CLAUDE_3_7_SONNET
 
     def execute(self) -> str | None:
         self.sprint(f"Starting document search for job '{self.__job_id}'")

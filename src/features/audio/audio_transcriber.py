@@ -10,6 +10,7 @@ from openai import OpenAI
 from pydantic import SecretStr
 from pydub import AudioSegment
 
+from features.ai_tools.external_ai_tool import ExternalAiTool
 from features.ai_tools.external_ai_tool_library import CLAUDE_3_5_HAIKU, WHISPER_1
 from features.chat.supported_files import (
     EXTENSION_FORMAT_MAP,
@@ -21,6 +22,7 @@ from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
 
+# Not tested as it's just a proxy
 class AudioTranscriber(SafePrinterMixin):
     __job_id: str
     __audio_content: bytes
@@ -34,7 +36,8 @@ class AudioTranscriber(SafePrinterMixin):
         self,
         job_id: str,
         audio_url: str,
-        open_ai_api_key: str,
+        open_ai_api_key: SecretStr,
+        anthropic_token: SecretStr,
         def_extension: str | None = None,
         audio_content: bytes | None = None,
         language_name: str | None = None,
@@ -44,18 +47,26 @@ class AudioTranscriber(SafePrinterMixin):
         self.__job_id = job_id
         self.__resolve_extension(audio_url, def_extension)
         self.__validate_content(audio_url, audio_content)
-        self.__transcriber = OpenAI(api_key = open_ai_api_key)
+        self.__transcriber = OpenAI(api_key = open_ai_api_key.get_secret_value())
         self.__language_name = language_name
         self.__language_iso_code = language_iso_code
         # noinspection PyArgumentList
         self.__copywriter = ChatAnthropic(
-            model_name = CLAUDE_3_5_HAIKU.id,
+            model_name = AudioTranscriber.get_copywriter_tool().id,
             temperature = 0.5,
             max_tokens = 2048,
             timeout = float(config.web_timeout_s) * 2,  # transcribing takes longer
             max_retries = config.web_retries,
-            api_key = SecretStr(str(config.anthropic_token)),
+            api_key = anthropic_token,
         )
+
+    @staticmethod
+    def get_copywriter_tool() -> ExternalAiTool:
+        return CLAUDE_3_5_HAIKU
+
+    @staticmethod
+    def get_transcriber_tool() -> ExternalAiTool:
+        return WHISPER_1
 
     def __validate_content(self, audio_url: str, audio_content: bytes | None):
         self.sprint(f"Fetching and validating audio from URL '{audio_url}'")
@@ -96,7 +107,7 @@ class AudioTranscriber(SafePrinterMixin):
             buffer = io.BytesIO(self.__audio_content)
             buffer.name = f"audio.{self.__extension}"
             transcript = self.__transcriber.audio.transcriptions.create(
-                model = WHISPER_1.id,
+                model = AudioTranscriber.get_transcriber_tool().id,
                 file = buffer,
                 response_format = "text",
             )

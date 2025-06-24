@@ -5,10 +5,13 @@ from uuid import UUID
 
 from tenacity import sleep
 
+from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from db.schema.user import User
+from features.ai_tools.access_token_resolver import AccessTokenResolver
+from features.ai_tools.external_ai_tool import ExternalAiTool
 from features.ai_tools.external_ai_tool_library import CRYPTO_CURRENCY_EXCHANGE, FIAT_CURRENCY_EXCHANGE
 from features.currencies.supported_currencies import SUPPORTED_CRYPTO, SUPPORTED_FIAT
 from features.web_browsing.web_fetcher import WebFetcher
@@ -24,13 +27,33 @@ RATE_LIMIT_DELAY_S = 1
 class ExchangeRateFetcher(SafePrinterMixin):
     __user_dao: UserCRUD
     __cache_dao: ToolsCacheCRUD
+    __token_resolver: AccessTokenResolver | None
 
-    def __init__(self, invoker_user_id_hex: str | None, user_dao: UserCRUD, cache_dao: ToolsCacheCRUD):
+    def __init__(
+        self,
+        invoker_user_id_hex: str | None,
+        user_dao: UserCRUD,
+        cache_dao: ToolsCacheCRUD,
+        sponsorship_dao: SponsorshipCRUD,
+    ):
         super().__init__(config.verbose)
         self.__user_dao = user_dao
         self.__cache_dao = cache_dao
-        if invoker_user_id_hex:  # system invocations don't have an invoker
+        self.__token_resolver = None
+
+        if invoker_user_id_hex:  # system invocations don't have an invoker (for now)
             self.__validate(invoker_user_id_hex)
+            try:
+                self.__token_resolver = AccessTokenResolver(
+                    user_dao = user_dao,
+                    sponsorship_dao = sponsorship_dao,
+                    invoker_user_id_hex = invoker_user_id_hex,
+                )
+                self.sprint("AccessTokenResolver initialized for currency fetching")
+            except Exception as e:
+                self.sprint(f"Error initializing token resolver: {e}")
+        else:
+            self.sprint("System invocation - will use system tokens")
 
     def __validate(self, invoker_user_id_hex: str):
         invoker_user_db = self.__user_dao.get(UUID(hex = invoker_user_id_hex))
@@ -145,7 +168,8 @@ class ExchangeRateFetcher(SafePrinterMixin):
 
         rate: float
         api_url = f"https://pro-api.coinmarketcap.com/{CRYPTO_CURRENCY_EXCHANGE.id.replace(".", "/")}"
-        headers = {"Accept": "application/json", "X-CMC_PRO_API_KEY": config.coinmarketcap_api_token}
+        cmc_token = self.__get_token_with_fallback(CRYPTO_CURRENCY_EXCHANGE, config.coinmarketcap_api_token)
+        headers = {"Accept": "application/json", "X-CMC_PRO_API_KEY": cmc_token}
         if base_currency_code != DEFAULT_FIAT and desired_currency_code != DEFAULT_FIAT:
             # due to API limitations, we must traverse both cryptos through USD
             params_base = {"symbol": base_currency_code, "convert": DEFAULT_FIAT}
@@ -211,7 +235,8 @@ class ExchangeRateFetcher(SafePrinterMixin):
         sleep(RATE_LIMIT_DELAY_S)
         api_url = f"https://{FIAT_CURRENCY_EXCHANGE.id}/currency/convert"
         params = {"format": "json", "from": base_currency_code, "to": desired_currency_code, "amount": "1.0"}
-        headers = {"X-RapidAPI-Key": config.rapid_api_token, "X-RapidAPI-Host": FIAT_CURRENCY_EXCHANGE.id}
+        rapid_api_token = self.__get_token_with_fallback(FIAT_CURRENCY_EXCHANGE, config.rapid_api_token)
+        headers = {"X-RapidAPI-Key": rapid_api_token, "X-RapidAPI-Host": FIAT_CURRENCY_EXCHANGE.id}
         fetcher = WebFetcher(
             api_url,
             self.__cache_dao,
@@ -226,3 +251,19 @@ class ExchangeRateFetcher(SafePrinterMixin):
             self.__save_rate_to_cache(base_currency_code, desired_currency_code, rate)
             return rate
         raise ValueError(f"Invalid rate: {rate}; response data: {json.dumps(response)}")
+
+    def __get_token_with_fallback(self, tool: ExternalAiTool, system_token: str) -> str:
+        """Get token from AccessTokenResolver with fallback to system token."""
+        if self.__token_resolver:
+            try:
+                resolved_token = self.__token_resolver.get_access_token_for_tool(tool)
+                if resolved_token:
+                    self.sprint(f"Using resolved {tool.name} token from AccessTokenResolver")
+                    return resolved_token.get_secret_value()
+                else:
+                    self.sprint(f"No resolved {tool.name} token found, using system fallback")
+            except Exception as e:
+                self.sprint(f"Error resolving {tool.name} token, using system fallback: {e}")
+        else:
+            self.sprint(f"Using system {tool.name} token")
+        return system_token

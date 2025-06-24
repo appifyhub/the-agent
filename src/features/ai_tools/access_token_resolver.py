@@ -25,6 +25,7 @@ class TokenResolutionError(Exception):
         message = f"Unable to resolve an access token for '{tool_provider.name}'"
         if tool:
             message += f" - '{tool.name}'"
+        message += ". Check your profile settings page."
         super().__init__(message)
 
 

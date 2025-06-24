@@ -2,11 +2,12 @@ import os
 import tempfile
 from urllib.parse import urlparse
 
-import replicate
 import requests
 from httpx import Timeout
-from replicate import Client
+from pydantic import SecretStr
+from replicate.client import Client
 
+from features.ai_tools.external_ai_tool import ExternalAiTool
 from features.ai_tools.external_ai_tool_library import IMAGE_INPAINTING, IMAGE_RESTORATION
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from util.config import config
@@ -35,7 +36,7 @@ class ImageContentsRestorer(SafePrinterMixin):
     def __init__(
         self,
         image_url: str,
-        replicate_api_key: str,
+        replicate_api_key: SecretStr,
         prompt_positive: str | None = None,
         prompt_negative: str | None = None,
         mime_type: str | None = None,
@@ -45,10 +46,18 @@ class ImageContentsRestorer(SafePrinterMixin):
         self.__mime_type = mime_type
         self.__prompt_positive = prompt_positive
         self.__prompt_negative = prompt_negative
-        self.__replicate = replicate.Client(
-            api_token = replicate_api_key,
+        self.__replicate = Client(
+            api_token = replicate_api_key.get_secret_value(),
             timeout = Timeout(BOOT_AND_RUN_TIMEOUT_S),
         )
+
+    @staticmethod
+    def get_resoration_tool() -> ExternalAiTool:
+        return IMAGE_RESTORATION
+
+    @staticmethod
+    def get_inpainting_tool() -> ExternalAiTool:
+        return IMAGE_INPAINTING
 
     def execute(self) -> Result:
         result = ImageContentsRestorer.Result(None, None)
@@ -69,12 +78,15 @@ class ImageContentsRestorer(SafePrinterMixin):
                         "background_enhance": True,
                         "codeformer_fidelity": 0.1,
                     }
-                    restored_url = self.__replicate.run(IMAGE_RESTORATION.id, input = input_data)
+                    restored_url = self.__replicate.run(
+                        ImageContentsRestorer.get_resoration_tool().id,
+                        input = input_data,
+                    )
             if not restored_url:
                 raise ValueError("Failed to restore image contents (no output URL)")
             self.sprint("Image contents restoration successful")
             # noinspection PyTypeChecker
-            result.restored_url = restored_url
+            result.restored_url = str(restored_url)
         except Exception as e:
             self.sprint("Error restoring image contents", e)
 
@@ -98,7 +110,10 @@ class ImageContentsRestorer(SafePrinterMixin):
                         "guidance_scale": 0.1,
                         "negative_prompt": self.__prompt_negative or "bad anatomy, ugly, low quality",
                     }
-                    inpainted_url = self.__replicate.run(IMAGE_INPAINTING.id, input = input_data)
+                    inpainted_url = self.__replicate.run(
+                        ImageContentsRestorer.get_inpainting_tool().id,
+                        input = input_data,
+                    )
             if not inpainted_url or not inpainted_url[0]:
                 raise ValueError("Failed to inpaint image details (no output URL)")
             self.sprint("Image detail inpainting successful")
@@ -112,7 +127,7 @@ class ImageContentsRestorer(SafePrinterMixin):
         url_path = urlparse(image_url).path
         file_with_extension = os.path.splitext(url_path)[1]
         if file_with_extension:
-            return f".{file_with_extension.lstrip(".")}"
+            return f".{file_with_extension.lstrip('.')}"
         # if no extension in URL, use MIME type to determine extension
         if self.__mime_type:
             return first_key_with_value(KNOWN_IMAGE_FORMATS, self.__mime_type)

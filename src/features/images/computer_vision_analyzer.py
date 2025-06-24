@@ -3,6 +3,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
+from features.ai_tools.external_ai_tool import ExternalAiTool
 from features.ai_tools.external_ai_tool_library import GPT_4_1_MINI
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from features.prompting import prompt_library
@@ -10,6 +11,7 @@ from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
 
+# Not tested as it's just a proxy
 class ComputerVisionAnalyzer(SafePrinterMixin):
     __job_id: str
     __messages: list[BaseMessage]
@@ -19,7 +21,7 @@ class ComputerVisionAnalyzer(SafePrinterMixin):
         self,
         job_id: str,
         image_mime_type: str,
-        open_ai_api_key: str,
+        open_ai_api_key: SecretStr,
         image_url: str | None = None,
         image_b64: str | None = None,
         additional_context: str | None = None,
@@ -47,13 +49,17 @@ class ComputerVisionAnalyzer(SafePrinterMixin):
         self.__messages.append(SystemMessage(prompt_library.observer_computer_vision))
         self.__messages.append(HumanMessage(content = content))
         self.__vision_model = ChatOpenAI(
-            model = GPT_4_1_MINI.id,
+            model = ComputerVisionAnalyzer.get_tool().id,
             temperature = 0.5,
             max_tokens = 2048,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
-            api_key = SecretStr(str(open_ai_api_key)),
+            api_key = open_ai_api_key,
         )
+
+    @staticmethod
+    def get_tool() -> ExternalAiTool:
+        return GPT_4_1_MINI
 
     def execute(self) -> str | None:
         self.sprint(f"Starting computer vision analysis for job '{self.__job_id}'")

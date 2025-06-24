@@ -2,6 +2,7 @@ import json
 
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.price_alert import PriceAlertCRUD
+from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.schema.chat_config import ChatConfig
@@ -18,10 +19,11 @@ def respond_with_announcements(
     chat_config_dao: ChatConfigCRUD,
     price_alert_dao: PriceAlertCRUD,
     tools_cache_dao: ToolsCacheCRUD,
+    sponsorship_dao: SponsorshipCRUD,
     telegram_bot_sdk: TelegramBotSDK,
     translations: TranslationsCache,
 ) -> dict:
-    rate_fetcher = ExchangeRateFetcher(None, user_dao, tools_cache_dao)
+    rate_fetcher = ExchangeRateFetcher(None, user_dao, tools_cache_dao, sponsorship_dao)
     triggered_alerts = PriceAlertManager.check_triggered_alerts(
         chat_id = None,
         fetcher = rate_fetcher,
@@ -49,7 +51,7 @@ def respond_with_announcements(
                 answer = InformationAnnouncer(raw_information, language_name, language_iso_code).execute()
                 if not answer.content:
                     raise ValueError("LLM Answer not received")
-                announcement_text = translations.save(answer.content, language_name, language_iso_code)
+                announcement_text = translations.save(str(answer.content), language_name, language_iso_code)
                 announcements_created += 1
         except Exception as e:
             sprint("Price alert announcement failed", e)

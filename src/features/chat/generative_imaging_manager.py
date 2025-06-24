@@ -4,10 +4,11 @@ from uuid import UUID
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
-from pydantic import SecretStr
 
+from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.schema.user import User
+from features.ai_tools.access_token_resolver import AccessTokenResolver
 from features.ai_tools.external_ai_tool_library import CLAUDE_3_5_HAIKU
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.images.stable_diffusion_image_generator import StableDiffusionImageGenerator
@@ -27,6 +28,7 @@ class GenerativeImagingManager(SafePrinterMixin):
     __llm_input: list[BaseMessage]
     __copywriter: BaseChatModel
     __user_dao: UserCRUD
+    __token_resolver: AccessTokenResolver
 
     def __init__(
         self,
@@ -35,6 +37,7 @@ class GenerativeImagingManager(SafePrinterMixin):
         invoker_user_id_hex: str,
         bot_sdk: TelegramBotSDK,
         user_dao: UserCRUD,
+        sponsorship_dao: SponsorshipCRUD,
     ):
         super().__init__(config.verbose)
         self.__chat_id = chat_id
@@ -43,6 +46,15 @@ class GenerativeImagingManager(SafePrinterMixin):
         self.__llm_input = []
         self.__llm_input.append(SystemMessage(prompt_library.generator_stable_diffusion))
         self.__llm_input.append(HumanMessage(raw_prompt))
+
+        self.__validate(invoker_user_id_hex)
+        self.__token_resolver = AccessTokenResolver(
+            user_dao = user_dao,
+            sponsorship_dao = sponsorship_dao,
+            invoker_user = self.__invoker_user,
+        )
+        anthropic_token = self.__token_resolver.require_access_token_for_tool(CLAUDE_3_5_HAIKU)
+
         # noinspection PyArgumentList
         self.__copywriter = ChatAnthropic(
             model_name = CLAUDE_3_5_HAIKU.id,
@@ -50,9 +62,8 @@ class GenerativeImagingManager(SafePrinterMixin):
             max_tokens = 200,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
-            api_key = SecretStr(str(config.anthropic_token)),
+            api_key = anthropic_token,
         )
-        self.__validate(invoker_user_id_hex)
 
     def __validate(self, invoker_user_id_hex: str):
         self.sprint("Validating invoker data")
@@ -81,7 +92,10 @@ class GenerativeImagingManager(SafePrinterMixin):
         # let's generate the image now using the corrected prompt
         try:
             self.sprint("Starting image generation")
-            generator = StableDiffusionImageGenerator(prompt, config.replicate_api_token)
+            replicate_token = self.__token_resolver.require_access_token_for_tool(
+                StableDiffusionImageGenerator.get_tool(),
+            )
+            generator = StableDiffusionImageGenerator(prompt, replicate_token)
             image_url = generator.execute()
             if not image_url:
                 self.sprint("Failed to generate image (no image URL found)")

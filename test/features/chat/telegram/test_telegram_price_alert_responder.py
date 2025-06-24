@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.price_alert import PriceAlertCRUD
+from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from features.chat.price_alert_manager import DATETIME_PRINT_FORMAT, PriceAlertManager
@@ -18,6 +19,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
     chat_config_dao: ChatConfigCRUD
     price_alert_dao: PriceAlertCRUD
     tools_cache_dao: ToolsCacheCRUD
+    sponsorship_dao: SponsorshipCRUD
     telegram_bot_sdk: TelegramBotSDK
     translations: TranslationsCache
 
@@ -26,6 +28,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         self.chat_config_dao = Mock(spec = ChatConfigCRUD)
         self.price_alert_dao = Mock(spec = PriceAlertCRUD)
         self.tools_cache_dao = Mock(spec = ToolsCacheCRUD)
+        self.sponsorship_dao = Mock(spec = SponsorshipCRUD)
         self.telegram_bot_sdk = Mock(spec = TelegramBotSDK)
         self.telegram_bot_sdk.api = Mock(spec = TelegramBotAPI)
         self.translations = Mock(spec = TranslationsCache)
@@ -69,6 +72,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
             self.chat_config_dao,
             self.price_alert_dao,
             self.tools_cache_dao,
+            self.sponsorship_dao,
             self.telegram_bot_sdk,
             self.translations,
         )
@@ -93,6 +97,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
             self.chat_config_dao,
             self.price_alert_dao,
             self.tools_cache_dao,
+            self.sponsorship_dao,
             self.telegram_bot_sdk,
             self.translations,
         )
@@ -130,6 +135,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
             self.chat_config_dao,
             self.price_alert_dao,
             self.tools_cache_dao,
+            self.sponsorship_dao,
             self.telegram_bot_sdk,
             self.translations,
         )
@@ -162,6 +168,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
             self.chat_config_dao,
             self.price_alert_dao,
             self.tools_cache_dao,
+            self.sponsorship_dao,
             self.telegram_bot_sdk,
             self.translations,
         )
@@ -193,6 +200,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
             self.chat_config_dao,
             self.price_alert_dao,
             self.tools_cache_dao,
+            self.sponsorship_dao,
             self.telegram_bot_sdk,
             self.translations,
         )

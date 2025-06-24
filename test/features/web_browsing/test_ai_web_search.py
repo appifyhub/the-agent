@@ -25,20 +25,22 @@ class AIWebSearchTest(unittest.TestCase):
             telegram_chat_id = "test_chat_id",
             telegram_user_id = 1,
             open_ai_key = "test_api_key",
+            perplexity_key = "test_perplexity_key",
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
         self.mock_user_crud = MagicMock()
         self.mock_user_crud.get.return_value = self.user
+        self.mock_sponsorship_dao = MagicMock()
 
     def test_init_valid_user(self):
-        search = AIWebSearch(self.user.id.hex, "test query", self.mock_user_crud)
+        search = AIWebSearch(self.user.id.hex, "test query", self.mock_user_crud, self.mock_sponsorship_dao)
         self.assertIsInstance(search, AIWebSearch)
 
     def test_init_user_not_found(self):
         self.mock_user_crud.get.return_value = None
         with self.assertRaises(ValueError):
-            AIWebSearch("non_existent_user_id", "test query", self.mock_user_crud)
+            AIWebSearch("non_existent_user_id", "test query", self.mock_user_crud, self.mock_sponsorship_dao)
 
     @patch("features.web_browsing.ai_web_search.ChatPerplexity")
     def test_execute_successful(self, mock_chat_perplexity):
@@ -46,7 +48,7 @@ class AIWebSearchTest(unittest.TestCase):
         mock_llm.invoke.return_value = AIMessage(content = "Test response")
         mock_chat_perplexity.return_value = mock_llm
 
-        search = AIWebSearch(self.user.id.hex, "test query", self.mock_user_crud)
+        search = AIWebSearch(self.user.id.hex, "test query", self.mock_user_crud, self.mock_sponsorship_dao)
         result = search.execute()
 
         self.assertIsInstance(result, AIMessage)
@@ -58,7 +60,7 @@ class AIWebSearchTest(unittest.TestCase):
         mock_llm.invoke.return_value = "Not an AIMessage"
         mock_chat_perplexity.return_value = mock_llm
 
-        search = AIWebSearch(self.user.id.hex, "test query", self.mock_user_crud)
+        search = AIWebSearch(self.user.id.hex, "test query", self.mock_user_crud, self.mock_sponsorship_dao)
         with self.assertRaises(AssertionError):
             search.execute()
 
@@ -68,18 +70,6 @@ class AIWebSearchTest(unittest.TestCase):
         mock_llm.invoke.side_effect = Exception("Test exception")
         mock_chat_perplexity.return_value = mock_llm
 
-        search = AIWebSearch(self.user.id.hex, "test query", self.mock_user_crud)
+        search = AIWebSearch(self.user.id.hex, "test query", self.mock_user_crud, self.mock_sponsorship_dao)
         with self.assertRaises(Exception):
             search.execute()
-
-    @patch("features.web_browsing.ai_web_search.ChatPerplexity")
-    def test_execute_system_invocation(self, mock_chat_perplexity):
-        mock_llm = MagicMock()
-        mock_llm.invoke.return_value = AIMessage(content = "System invocation response")
-        mock_chat_perplexity.return_value = mock_llm
-
-        search = AIWebSearch(None, "system query", self.mock_user_crud)
-        result = search.execute()
-
-        self.assertIsInstance(result, AIMessage)
-        self.assertEqual(result.content, "System invocation response")

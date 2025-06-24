@@ -2,11 +2,12 @@ import os
 import tempfile
 from urllib.parse import urlparse
 
-import replicate
 import requests
 from httpx import Timeout
-from replicate import Client
+from pydantic import SecretStr
+from replicate.client import Client
 
+from features.ai_tools.external_ai_tool import ExternalAiTool
 from features.ai_tools.external_ai_tool_library import IMAGE_EDITING_FLUX_KONTEXT_PRO
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from util.config import config
@@ -26,7 +27,7 @@ class ImageEditor(SafePrinterMixin):
     def __init__(
         self,
         image_url: str,
-        replicate_api_key: str,
+        replicate_api_key: SecretStr,
         context: str | None = None,
         mime_type: str | None = None,
     ):
@@ -34,10 +35,14 @@ class ImageEditor(SafePrinterMixin):
         self.__context = context
         self.__image_url = image_url
         self.__mime_type = mime_type
-        self.__replicate = replicate.Client(
-            api_token = replicate_api_key,
+        self.__replicate = Client(
+            api_token = replicate_api_key.get_secret_value(),
             timeout = Timeout(BOOT_AND_RUN_TIMEOUT_S),
         )
+
+    @staticmethod
+    def get_tool() -> ExternalAiTool:
+        return IMAGE_EDITING_FLUX_KONTEXT_PRO
 
     def execute(self) -> str | None:
         self.sprint("Starting photo editing")
@@ -55,7 +60,7 @@ class ImageEditor(SafePrinterMixin):
                         "output_format": "png",
                         "safety_tolerance": 2,
                     }
-                    result = self.__replicate.run(IMAGE_EDITING_FLUX_KONTEXT_PRO.id, input = input_data)
+                    result = self.__replicate.run(ImageEditor.get_tool().id, input = input_data)
             if not result:
                 self.sprint("Failed to edit the image (no output URL)")
                 return None
@@ -70,7 +75,7 @@ class ImageEditor(SafePrinterMixin):
         url_path = urlparse(self.__image_url).path
         file_with_extension = os.path.splitext(url_path)[1]
         if file_with_extension:
-            return f".{file_with_extension.lstrip(".")}"
+            return f".{file_with_extension.lstrip('.')}"
         # if no extension in URL, use MIME type to determine extension
         if self.__mime_type:
             return first_key_with_value(KNOWN_IMAGE_FORMATS, self.__mime_type)

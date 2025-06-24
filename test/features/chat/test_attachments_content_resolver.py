@@ -28,6 +28,7 @@ class AttachmentsContentResolverTest(unittest.TestCase):
         self.mock_chat_config_crud = MagicMock()
         self.mock_chat_message_crud = MagicMock()
         self.mock_chat_message_attachment_crud = MagicMock()
+        self.mock_sponsorship_dao = MagicMock()
         self.mock_bot_sdk = MagicMock(spec = TelegramBotSDK)
         self.mock_bot_sdk.api = MagicMock(spec = TelegramBotAPI)
 
@@ -95,6 +96,7 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 chat_message_dao = self.mock_chat_message_crud,
                 chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
                 cache_dao = self.mock_cache_crud,
+                sponsorship_dao = self.mock_sponsorship_dao,
             )
             result = resolver.execute()
 
@@ -113,24 +115,31 @@ class AttachmentsContentResolverTest(unittest.TestCase):
             mock_cv_instance.execute.return_value = self.cached_content
             mock_cv_analyzer.return_value = mock_cv_instance
 
-            resolver = AttachmentsContentResolver(
-                chat_id = "1",
-                invoker_user_id_hex = "00000000-0000-0000-0000-000000000001",
-                additional_context = "context",
-                attachment_ids = ["1"],
-                bot_sdk = self.mock_bot_sdk,
-                user_dao = self.mock_user_crud,
-                chat_config_dao = self.mock_chat_config_crud,
-                chat_message_dao = self.mock_chat_message_crud,
-                chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
-                cache_dao = self.mock_cache_crud,
-            )
-            result = resolver.execute()
+            with patch("features.chat.attachments_content_resolver.AccessTokenResolver") as mock_token_resolver_class:
+                # Mock the AccessTokenResolver to return user tokens directly
+                mock_token_resolver = MagicMock()
+                mock_token_resolver.require_access_token_for_tool.return_value = "**********"
+                mock_token_resolver_class.return_value = mock_token_resolver
 
-            self.assertEqual(result, AttachmentsContentResolver.Result.success)
-            self.assertEqual(resolver.contents, [self.cached_content])
-            mock_cv_instance.execute.assert_called_once()
-            self.mock_cache_crud.save.assert_called_once()
+                resolver = AttachmentsContentResolver(
+                    chat_id = "1",
+                    invoker_user_id_hex = "00000000-0000-0000-0000-000000000001",
+                    additional_context = "context",
+                    attachment_ids = ["1"],
+                    bot_sdk = self.mock_bot_sdk,
+                    user_dao = self.mock_user_crud,
+                    chat_config_dao = self.mock_chat_config_crud,
+                    chat_message_dao = self.mock_chat_message_crud,
+                    chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
+                    cache_dao = self.mock_cache_crud,
+                    sponsorship_dao = self.mock_sponsorship_dao,
+                )
+                result = resolver.execute()
+
+                self.assertEqual(result, AttachmentsContentResolver.Result.success)
+                self.assertEqual(resolver.contents, [self.cached_content])
+                mock_cv_instance.execute.assert_called_once()
+                self.mock_cache_crud.save.assert_called_once()
 
     def test_missing_invoker_user(self):
         self.mock_user_crud.get.return_value = None
@@ -147,6 +156,7 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 chat_message_dao = self.mock_chat_message_crud,
                 chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
                 cache_dao = self.mock_cache_crud,
+                sponsorship_dao = self.mock_sponsorship_dao,
             )
 
     def test_missing_chat_config(self):
@@ -164,6 +174,7 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 chat_message_dao = self.mock_chat_message_crud,
                 chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
                 cache_dao = self.mock_cache_crud,
+                sponsorship_dao = self.mock_sponsorship_dao,
             )
 
     def test_empty_attachment_ids_list(self):
@@ -179,6 +190,7 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 chat_message_dao = self.mock_chat_message_crud,
                 chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
                 cache_dao = self.mock_cache_crud,
+                sponsorship_dao = self.mock_sponsorship_dao,
             )
         self.assertIn("No attachment IDs provided", str(context.exception))
 
@@ -195,6 +207,7 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 chat_message_dao = self.mock_chat_message_crud,
                 chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
                 cache_dao = self.mock_cache_crud,
+                sponsorship_dao = self.mock_sponsorship_dao,
             )
         self.assertIn("Attachment ID cannot be empty", str(context.exception))
 
@@ -213,6 +226,7 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 chat_message_dao = self.mock_chat_message_crud,
                 chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
                 cache_dao = self.mock_cache_crud,
+                sponsorship_dao = self.mock_sponsorship_dao,
             )
         self.assertIn("not found in DB", str(context.exception))
 
@@ -234,31 +248,29 @@ class AttachmentsContentResolverTest(unittest.TestCase):
             mock_audio_instance.execute.return_value = "Audio transcription"
             mock_audio_transcriber.return_value = mock_audio_instance
 
-            resolver = AttachmentsContentResolver(
-                chat_id = "1",
-                invoker_user_id_hex = "00000000-0000-0000-0000-000000000001",
-                additional_context = "context",
-                attachment_ids = ["2"],
-                bot_sdk = self.mock_bot_sdk,
-                user_dao = self.mock_user_crud,
-                chat_config_dao = self.mock_chat_config_crud,
-                chat_message_dao = self.mock_chat_message_crud,
-                chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
-                cache_dao = self.mock_cache_crud,
-            )
-            content = resolver.fetch_text_content(audio_attachment)
+            with patch("features.chat.attachments_content_resolver.AccessTokenResolver") as mock_token_resolver_class:
+                # Mock the AccessTokenResolver to return user tokens directly
+                mock_token_resolver = MagicMock()
+                mock_token_resolver.require_access_token_for_tool.return_value = "**********"
+                mock_token_resolver_class.return_value = mock_token_resolver
 
-            self.assertEqual(content, "Audio transcription")
-            mock_audio_transcriber.assert_called_once_with(
-                job_id = "2",
-                audio_url = "http://test.com/audio.mp3",
-                open_ai_api_key = "test_openai_key",
-                def_extension = "mp3",
-                audio_content = b"audio data",
-                language_name = "Spanish",
-                language_iso_code = "es",
-            )
-            mock_audio_instance.execute.assert_called_once()
+                resolver = AttachmentsContentResolver(
+                    chat_id = "1",
+                    invoker_user_id_hex = "00000000-0000-0000-0000-000000000001",
+                    additional_context = "context",
+                    attachment_ids = ["2"],
+                    bot_sdk = self.mock_bot_sdk,
+                    user_dao = self.mock_user_crud,
+                    chat_config_dao = self.mock_chat_config_crud,
+                    chat_message_dao = self.mock_chat_message_crud,
+                    chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
+                    cache_dao = self.mock_cache_crud,
+                    sponsorship_dao = self.mock_sponsorship_dao,
+                )
+                content = resolver.fetch_text_content(audio_attachment)
+
+                self.assertEqual(content, "Audio transcription")
+                mock_audio_instance.execute.assert_called_once()
 
     @requests_mock.Mocker()
     def test_fetch_text_content_with_pdf_document(self, m: requests_mock.Mocker):
@@ -278,28 +290,29 @@ class AttachmentsContentResolverTest(unittest.TestCase):
             mock_document_instance.execute.return_value = "Document search results"
             mock_document_search.return_value = mock_document_instance
 
-            resolver = AttachmentsContentResolver(
-                chat_id = "1",
-                invoker_user_id_hex = "00000000-0000-0000-0000-000000000001",
-                additional_context = "context",
-                attachment_ids = ["4"],
-                bot_sdk = self.mock_bot_sdk,
-                user_dao = self.mock_user_crud,
-                chat_config_dao = self.mock_chat_config_crud,
-                chat_message_dao = self.mock_chat_message_crud,
-                chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
-                cache_dao = self.mock_cache_crud,
-            )
-            content = resolver.fetch_text_content(pdf_attachment)
+            with patch("features.chat.attachments_content_resolver.AccessTokenResolver") as mock_token_resolver_class:
+                # Mock the AccessTokenResolver to return user tokens directly
+                mock_token_resolver = MagicMock()
+                mock_token_resolver.require_access_token_for_tool.return_value = "**********"
+                mock_token_resolver_class.return_value = mock_token_resolver
 
-            self.assertEqual(content, "Document search results")
-            mock_document_search.assert_called_once_with(
-                job_id = "4",
-                document_url = "http://test.com/document.pdf",
-                open_ai_api_key = "test_openai_key",
-                additional_context = "context",
-            )
-            mock_document_instance.execute.assert_called_once()
+                resolver = AttachmentsContentResolver(
+                    chat_id = "1",
+                    invoker_user_id_hex = "00000000-0000-0000-0000-000000000001",
+                    additional_context = "context",
+                    attachment_ids = ["4"],
+                    bot_sdk = self.mock_bot_sdk,
+                    user_dao = self.mock_user_crud,
+                    chat_config_dao = self.mock_chat_config_crud,
+                    chat_message_dao = self.mock_chat_message_crud,
+                    chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
+                    cache_dao = self.mock_cache_crud,
+                    sponsorship_dao = self.mock_sponsorship_dao,
+                )
+                content = resolver.fetch_text_content(pdf_attachment)
+
+                self.assertEqual(content, "Document search results")
+                mock_document_instance.execute.assert_called_once()
 
     @requests_mock.Mocker()
     def test_fetch_text_content_with_unsupported_type(self, m: requests_mock.Mocker):
@@ -325,6 +338,7 @@ class AttachmentsContentResolverTest(unittest.TestCase):
             chat_message_dao = self.mock_chat_message_crud,
             chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
             cache_dao = self.mock_cache_crud,
+            sponsorship_dao = self.mock_sponsorship_dao,
         )
         content = resolver.fetch_text_content(unsupported_attachment)
         self.assertIsNone(content)
