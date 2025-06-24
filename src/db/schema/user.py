@@ -28,3 +28,15 @@ class User(UserBase):
     id: UUID
     created_at: date
     model_config = ConfigDict(from_attributes = True)
+
+    def has_any_api_key(self) -> bool:
+        return any(
+            [
+                self.open_ai_key,
+                self.anthropic_key,
+                self.perplexity_key,
+                self.replicate_key,
+                self.rapid_api_key,
+                self.coinmarketcap_key,
+            ],
+        )

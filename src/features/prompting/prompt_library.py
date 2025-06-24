@@ -669,7 +669,7 @@ def error_general_problem(reason: str) -> str:
     return MULTI_MESSAGE_DELIMITER.join(
         [
             "⚡",
-            f"```{clean_reason}```",
+            f"```\n{clean_reason}\n```",
             "Type: /settings",
         ],
     )

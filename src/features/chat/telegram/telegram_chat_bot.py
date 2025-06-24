@@ -10,6 +10,7 @@ from pydantic import SecretStr
 
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
+from features.ai_tools.access_token_resolver import AccessTokenResolver
 from features.ai_tools.external_ai_tool_library import GPT_4_1_MINI
 from features.chat.command_processor import CommandProcessor
 from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
@@ -32,6 +33,8 @@ class TelegramChatBot(SafePrinterMixin):
     __raw_last_message: str  # excludes the resolver formatting
     __command_processor: CommandProcessor
     __progress_notifier: TelegramProgressNotifier
+    __access_token_resolver: AccessTokenResolver
+    __llm_access_token: SecretStr | None
     __llm_base: BaseChatModel
     __llm_tools: TooledChatModel
 
@@ -44,6 +47,7 @@ class TelegramChatBot(SafePrinterMixin):
         raw_last_message: str,
         command_processor: CommandProcessor,
         progress_notifier: TelegramProgressNotifier,
+        access_token_resolver: AccessTokenResolver,
     ):
         super().__init__(config.verbose)
         self.__chat = chat
@@ -70,13 +74,16 @@ class TelegramChatBot(SafePrinterMixin):
         self.__raw_last_message = raw_last_message
         self.__command_processor = command_processor
         self.__progress_notifier = progress_notifier
+        self.__access_token_resolver = access_token_resolver
+
+        self.__llm_access_token = self.__access_token_resolver.get_access_token_for_tool(GPT_4_1_MINI)
         self.__llm_base = ChatOpenAI(
             model = GPT_4_1_MINI.id,
             temperature = 0.5,
             max_tokens = 600,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
-            api_key = SecretStr(str(invoker.open_ai_key)),
+            api_key = self.__llm_access_token or SecretStr(str(None)),
         )
         self.__llm_tools = self.__tools_library.bind_tools(self.__llm_base)
 
@@ -105,7 +112,7 @@ class TelegramChatBot(SafePrinterMixin):
             return answer
 
         # not a known command, but also no API key found
-        if not self.__invoker.open_ai_key:
+        if not self.__llm_access_token:
             self.sprint(f"No API key found for #{self.__invoker.id.hex}, skipping LLM processing")
             answer = AIMessage(prompt_library.error_general_problem("Not configured."))
             return answer
@@ -183,7 +190,7 @@ class TelegramChatBot(SafePrinterMixin):
             self.__progress_notifier.stop()
 
     def process_commands(self) -> Tuple[AIMessage, CommandProcessor.Result]:
-        if not self.__invoker.open_ai_key:
+        if not self.__llm_access_token:
             self.sprint(f"No API key found for #{self.__invoker.id}")
         result = self.__command_processor.execute(self.__raw_last_message)
         self.sprint(f"Command processing result is {result.value}")

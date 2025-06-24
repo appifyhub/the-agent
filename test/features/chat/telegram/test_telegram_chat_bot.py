@@ -6,10 +6,12 @@ from uuid import UUID
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import Runnable
+from pydantic import SecretStr
 
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
+from features.ai_tools.access_token_resolver import AccessTokenResolver
 from features.chat.command_processor import CommandProcessor
 from features.chat.telegram.telegram_chat_bot import TelegramChatBot
 from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
@@ -20,6 +22,7 @@ from features.prompting.prompt_library import TELEGRAM_BOT_USER
 class TelegramChatBotTest(unittest.TestCase):
     user: User
     chat_config: ChatConfig
+    access_token_resolver_mock: AccessTokenResolver
     command_processor_mock: CommandProcessor
     progress_notifier_mock: TelegramProgressNotifier
     tools_library_mock: ToolsLibrary
@@ -51,12 +54,14 @@ class TelegramChatBotTest(unittest.TestCase):
             is_private = False,
             reply_chance_percent = 50,
         )
+        self.access_token_resolver_mock = Mock(spec = AccessTokenResolver)
         self.command_processor_mock = Mock(spec = CommandProcessor)
         self.progress_notifier_mock = Mock(spec = TelegramProgressNotifier)
         self.tools_library_mock = Mock(spec = ToolsLibrary)
         self.llm_base_mock = Mock(spec = BaseChatModel)
         self.llm_tools_mock = Mock(spec = Runnable)
 
+        self.access_token_resolver_mock.get_access_token_for_tool.return_value = SecretStr("test_token")
         self.bot = TelegramChatBot(
             self.chat_config,
             self.user,
@@ -65,13 +70,14 @@ class TelegramChatBotTest(unittest.TestCase):
             "Test message",
             self.command_processor_mock,
             self.progress_notifier_mock,
+            self.access_token_resolver_mock,
         )
         self.bot._TelegramChatBot__tools_library = self.tools_library_mock
         self.bot._TelegramChatBot__llm_base = self.llm_base_mock
         self.bot._TelegramChatBot__llm_tools = self.llm_tools_mock
 
     def test_process_commands_no_api_key(self):
-        self.user.open_ai_key = None
+        self.access_token_resolver_mock.get_access_token_for_tool.return_value = None
         self.command_processor_mock.execute.return_value = CommandProcessor.Result.unknown
 
         result, status = self.bot.process_commands()
@@ -198,8 +204,7 @@ class TelegramChatBotTest(unittest.TestCase):
     def test_execute_no_api_key(self, mock_should_reply, mock_process_commands):
         mock_should_reply.return_value = True
         mock_process_commands.return_value = (AIMessage(""), CommandProcessor.Result.unknown)
-        # noinspection PyUnresolvedReferences
-        self.bot._TelegramChatBot__invoker.open_ai_key = None
+        self.bot._TelegramChatBot__llm_access_token = None
         result = self.bot.execute()
         self.assertIn("Not configured.", result.content)
 

@@ -1,7 +1,7 @@
 from itertools import chain
 
 from fastapi import HTTPException
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 
 from api.settings_controller import SettingsController
 from db.crud.chat_config import ChatConfigCRUD
@@ -12,6 +12,7 @@ from db.crud.user import UserCRUD
 from db.schema.chat_message import ChatMessage
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.sql import get_detached_session
+from features.ai_tools.access_token_resolver import AccessTokenResolver
 from features.chat.command_processor import CommandProcessor
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
 from features.chat.telegram.model.update import Update
@@ -44,7 +45,7 @@ def respond_to_update(update: Update) -> bool:
         chat_config_dao = ChatConfigCRUD(db)
         sponsorship_service = SponsorshipService(user_dao, sponsorship_dao)
 
-        def map_to_langchain(message):
+        def map_to_langchain(message) -> HumanMessage | AIMessage:
             return domain_langchain_mapper.map_to_langchain(user_dao.get(message.author_id), message)
 
         user_dao.save(TELEGRAM_BOT_USER)  # save is ignored if bot already exists
@@ -69,14 +70,12 @@ def respond_to_update(update: Update) -> bool:
             # but we only have a singular get by 1 message, so we need to fetch all attachments for each message
             past_attachments_db = list(
                 chain.from_iterable(
-                    chat_message_attachment_dao.get_by_message(message.chat_id, message.message_id)
-                    for message in past_messages
+                    chat_message_attachment_dao.get_by_message(message.chat_id, message.message_id) for message in
+                    past_messages
                 ),
             )
-            past_attachment_ids = [
-                ChatMessageAttachment.model_validate(attachment).id
-                for attachment in past_attachments_db
-            ]
+            past_attachment_ids = [ChatMessageAttachment.model_validate(attachment).id for attachment in
+                                   past_attachments_db]
 
             # DB sorting is date descending
             langchain_messages = [map_to_langchain(message) for message in past_messages][::-1]
@@ -106,6 +105,11 @@ def respond_to_update(update: Update) -> bool:
                 telegram_bot_sdk,
                 auto_start = False,
             )
+            access_token_resolver = AccessTokenResolver(
+                user_dao = user_dao,
+                sponsorship_dao = sponsorship_dao,
+                invoker_user = resolved_domain_data.author,
+            )
             telegram_chat_bot = TelegramChatBot(
                 resolved_domain_data.chat,
                 resolved_domain_data.author,
@@ -114,6 +118,7 @@ def respond_to_update(update: Update) -> bool:
                 domain_update.message.text,  # excludes the resolver formatting
                 command_processor,
                 progress_notifier,
+                access_token_resolver,
             )
             answer = telegram_chat_bot.execute()
             if not answer or not answer.content:

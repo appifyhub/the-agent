@@ -53,9 +53,9 @@ class SponsorshipService(SafePrinterMixin):
             self.sprint(message)
             return SponsorshipService.Result.failure, message
 
-        # check if sponsor has a valid API key
-        if not sponsor_user.open_ai_key:
-            message = f"Sponsor '{sponsor_user.id}' has no valid API key set up"
+        # check if sponsor has any API key
+        if not sponsor_user.has_any_api_key():
+            message = f"Sponsor '{sponsor_user.id}' has no API keys configured"
             self.sprint(message)
             return SponsorshipService.Result.failure, message
 
@@ -66,37 +66,32 @@ class SponsorshipService(SafePrinterMixin):
             self.sprint(message)
             return SponsorshipService.Result.failure, message
 
-        # check if receiver already has a sponsorship or an API key
+        # check if receiver already has a sponsorship
         receiver_user_db = self.__user_dao.get_by_telegram_username(receiver_telegram_username)
+        receiver_user: User
         if receiver_user_db:
             receiver_user = User.model_validate(receiver_user_db)
+            # check if receiver already has a sponsorship
             all_receiver_sponsorships = self.__sponsorship_dao.get_all_by_receiver(receiver_user.id)
             if all_receiver_sponsorships:
                 message = f"Receiver '@{receiver_telegram_username}' already has a sponsorship"
                 self.sprint(message)
                 return SponsorshipService.Result.failure, message
-            if receiver_user.open_ai_key:
-                message = f"Receiver '@{receiver_telegram_username}' already has an API key set up"
+            # check if receiver already has API keys - we don't want to override them
+            if receiver_user.has_any_api_key():
+                message = f"Receiver '@{receiver_telegram_username}' already has API keys configured"
                 self.sprint(message)
                 return SponsorshipService.Result.failure, message
-            # update receiver to use sponsor's API key
-            self.sprint(f"Updating receiver '@{receiver_telegram_username}' to use sponsor's API key")
-            receiver_user_db = self.__user_dao.save(
-                UserSave(
-                    id = receiver_user.id,
-                    full_name = receiver_user.full_name,
-                    telegram_username = receiver_user.telegram_username,
-                    telegram_chat_id = receiver_user.telegram_chat_id,
-                    telegram_user_id = receiver_user.telegram_user_id,
-                    open_ai_key = sponsor_user.open_ai_key,
-                    group = receiver_user.group,
-                ),
-            )
-            receiver_user = User.model_validate(receiver_user_db)
-            accepted_at = datetime.now()
+            # receiver is eligible to be sponsored
+            if receiver_user.telegram_chat_id:
+                self.sprint(f"Receiver '@{receiver_telegram_username}' already has already messaged the bot")
+                accepted_at = datetime.now()
+            else:
+                self.sprint(f"Receiver '@{receiver_telegram_username}' has not messaged the bot yet")
+                accepted_at = None
             message = f"Activated! Send a welcome message to user '@{receiver_user.telegram_username}'"
         else:
-            # create a new user for the receiver persona with the sponsor's API key
+            # create a new user for the receiver
             self.sprint(f"Creating new user for receiver '@{receiver_telegram_username}'")
             receiver_user_db = self.__user_dao.save(
                 UserSave(
@@ -105,7 +100,6 @@ class SponsorshipService(SafePrinterMixin):
                     telegram_username = receiver_telegram_username,
                     telegram_chat_id = None,
                     telegram_user_id = None,
-                    open_ai_key = sponsor_user.open_ai_key,
                     group = UserDB.Group.standard,
                 ),
             )
@@ -156,26 +150,7 @@ class SponsorshipService(SafePrinterMixin):
         self.__sponsorship_dao.delete(sponsor_user.id, receiver_user.id)
         self.sprint(f"Sponsorship from '{sponsorship.sponsor_id}' to '{sponsorship.receiver_id}' deleted")
 
-        # check if receiver's API key needs to be revoked
-        message_appendix = " API key was not shared."
-        if sponsor_user.open_ai_key == receiver_user.open_ai_key:
-            self.sprint(f"Removing API key for receiver '@{receiver_telegram_username}'")
-            self.__user_dao.save(
-                UserSave(
-                    id = receiver_user.id,
-                    full_name = receiver_user.full_name,
-                    telegram_username = receiver_user.telegram_username,
-                    telegram_chat_id = receiver_user.telegram_chat_id,
-                    telegram_user_id = receiver_user.telegram_user_id,
-                    open_ai_key = None,
-                    group = receiver_user.group,
-                ),
-            )
-            message_appendix = (
-                " Shared API key was also removed from the receiver."
-                f" Send a thanks/goodbye message to user '@{receiver_user.telegram_username}'"
-            )
-        message = f"Sponsorship revoked!{message_appendix}"
+        message = f"Sponsorship revoked! Send a thanks/goodbye message to user '@{receiver_user.telegram_username}'"
         self.sprint(message)
         return SponsorshipService.Result.success, message
 
@@ -209,9 +184,9 @@ class SponsorshipService(SafePrinterMixin):
     def accept_sponsorship(self, receiver: User) -> bool:
         self.sprint(f"User '{receiver.id}' is trying to accept a sponsorship")
 
-        # check if user has a valid API key
-        if not receiver.open_ai_key:
-            self.sprint(f"User '{receiver.id}' has no valid API key set up")
+        # check if receiver already has API keys - don't accept sponsorship if they do
+        if receiver.has_any_api_key():
+            self.sprint(f"User '{receiver.id}' already has API keys configured, cannot accept sponsorship")
             return False
 
         # check if user has a sponsorship
