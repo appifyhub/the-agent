@@ -2,6 +2,7 @@ from typing import Annotated, Any, Literal, TypeAlias, get_args
 
 from api.auth import create_jwt_token
 from api.authorization_service import AuthorizationService
+from api.models.masked_user import MaskedUser
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
@@ -11,7 +12,6 @@ from db.schema.user import User, UserSave
 from features.chat.chat_config_manager import ChatConfigManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from util.config import config
-from util.functions import mask_secret
 from util.safe_printer_mixin import SafePrinterMixin
 
 SettingsType: TypeAlias = Annotated[str, Literal["user", "chat"]]
@@ -115,15 +115,7 @@ class SettingsController(SafePrinterMixin):
 
     def fetch_user_settings(self, user_id_hex: str) -> dict[str, Any]:
         user = self.__authorization_service.authorize_for_user(self.invoker_user, user_id_hex)
-        output = User.model_dump(user)
-        output["id"] = user.id.hex
-        output["open_ai_key"] = mask_secret(output.get("open_ai_key"))
-        output["anthropic_key"] = mask_secret(output.get("anthropic_key"))
-        output["perplexity_key"] = mask_secret(output.get("perplexity_key"))
-        output["replicate_key"] = mask_secret(output.get("replicate_key"))
-        output["rapid_api_key"] = mask_secret(output.get("rapid_api_key"))
-        output["coinmarketcap_key"] = mask_secret(output.get("coinmarketcap_key"))
-        return output
+        return MaskedUser.from_user(user).model_dump()
 
     def save_chat_settings(
         self,
