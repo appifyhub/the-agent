@@ -6,9 +6,9 @@ from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.user import User
-from features.ai_tools.access_token_resolver import AccessTokenResolver
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.sdk.telegram_bot_sdk_utils import TelegramBotSDKUtils
+from features.external_tools.access_token_resolver import AccessTokenResolver
 from features.images.image_background_remover import ImageBackgroundRemover
 from features.images.image_contents_restorer import ImageContentsRestorer
 from features.images.image_editor import ImageEditor

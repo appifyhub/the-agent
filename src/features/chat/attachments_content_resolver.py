@@ -15,12 +15,12 @@ from db.schema.chat_config import ChatConfig
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from db.schema.user import User
-from features.ai_tools.access_token_resolver import AccessTokenResolver
 from features.audio.audio_transcriber import AudioTranscriber
 from features.chat.supported_files import KNOWN_AUDIO_FORMATS, KNOWN_DOCS_FORMATS, KNOWN_IMAGE_FORMATS
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.sdk.telegram_bot_sdk_utils import TelegramBotSDKUtils
 from features.documents.document_search import DocumentSearch
+from features.external_tools.access_token_resolver import AccessTokenResolver
 from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
 from util.config import config
 from util.functions import digest_md5

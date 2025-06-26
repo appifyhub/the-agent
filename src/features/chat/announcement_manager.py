@@ -13,8 +13,8 @@ from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.chat_message import ChatMessageSave
 from db.schema.user import User
-from features.ai_tools.external_ai_tool_library import CLAUDE_3_5_SONNET
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from features.external_tools.external_tool_library import CLAUDE_3_5_SONNET
 from features.prompting import prompt_library
 from util.config import config
 from util.functions import construct_bot_message_id

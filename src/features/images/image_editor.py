@@ -7,9 +7,9 @@ from httpx import Timeout
 from pydantic import SecretStr
 from replicate.client import Client
 
-from features.ai_tools.external_ai_tool import ExternalAiTool
-from features.ai_tools.external_ai_tool_library import IMAGE_EDITING_FLUX_KONTEXT_PRO
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
+from features.external_tools.external_tool import ExternalTool
+from features.external_tools.external_tool_library import IMAGE_EDITING_FLUX_KONTEXT_PRO
 from util.config import config
 from util.functions import first_key_with_value
 from util.safe_printer_mixin import SafePrinterMixin
@@ -41,7 +41,7 @@ class ImageEditor(SafePrinterMixin):
         )
 
     @staticmethod
-    def get_tool() -> ExternalAiTool:
+    def get_tool() -> ExternalTool:
         return IMAGE_EDITING_FLUX_KONTEXT_PRO
 
     def execute(self) -> str | None:

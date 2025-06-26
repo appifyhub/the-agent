@@ -3,7 +3,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from pydantic import SecretStr
 
-from features.ai_tools.external_ai_tool_library import CLAUDE_3_5_SONNET
+from features.external_tools.external_tool_library import CLAUDE_3_5_SONNET
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin

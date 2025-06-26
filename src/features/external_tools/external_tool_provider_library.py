@@ -1,8 +1,8 @@
-from features.ai_tools.external_ai_tool import ToolProvider
+from features.external_tools.external_tool import ExternalToolProvider
 
 # All providers array is at the end of the file
 
-OPEN_AI = ToolProvider(
+OPEN_AI = ExternalToolProvider(
     id = "open-ai",
     name = "OpenAI",
     token_management_url = "https://platform.openai.com/api-keys",
@@ -10,7 +10,7 @@ OPEN_AI = ToolProvider(
     tools = ["ChatGPT", "DALL-E", "Whisper", "Image-1"],
 )
 
-ANTHROPIC = ToolProvider(
+ANTHROPIC = ExternalToolProvider(
     id = "anthropic",
     name = "Anthropic",
     token_management_url = "https://console.anthropic.com/settings/keys",
@@ -18,7 +18,7 @@ ANTHROPIC = ToolProvider(
     tools = ["Claude"],
 )
 
-PERPLEXITY = ToolProvider(
+PERPLEXITY = ExternalToolProvider(
     id = "perplexity",
     name = "Perplexity",
     token_management_url = "https://www.perplexity.ai/account/api/keys",
@@ -26,7 +26,7 @@ PERPLEXITY = ToolProvider(
     tools = ["Search", "Research"],
 )
 
-REPLICATE = ToolProvider(
+REPLICATE = ExternalToolProvider(
     id = "replicate",
     name = "Replicate",
     token_management_url = "https://replicate.com/account/api-tokens",
@@ -34,7 +34,7 @@ REPLICATE = ToolProvider(
     tools = ["Photo-Gen, Image-Gen, Image-Edit"],
 )
 
-RAPID_API = ToolProvider(
+RAPID_API = ExternalToolProvider(
     id = "rapid-api",
     name = "RapidAPI",
     token_management_url = "https://docs.rapidapi.com/docs/configuring-api-security",
@@ -42,7 +42,7 @@ RAPID_API = ToolProvider(
     tools = ["Stocks", "X (Twitter)", "Weather"],
 )
 
-COINMARKETCAP = ToolProvider(
+COINMARKETCAP = ExternalToolProvider(
     id = "coinmarketcap-api",
     name = "CoinMarketCap API",
     token_management_url = "https://pro.coinmarketcap.com/account",

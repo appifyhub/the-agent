@@ -7,9 +7,9 @@ from httpx import Timeout
 from pydantic import SecretStr
 from replicate.client import Client
 
-from features.ai_tools.external_ai_tool import ExternalAiTool
-from features.ai_tools.external_ai_tool_library import BACKGROUND_REMOVAL
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
+from features.external_tools.external_tool import ExternalTool
+from features.external_tools.external_tool_library import BACKGROUND_REMOVAL
 from util.config import config
 from util.functions import first_key_with_value
 from util.safe_printer_mixin import SafePrinterMixin
@@ -38,7 +38,7 @@ class ImageBackgroundRemover(SafePrinterMixin):
         )
 
     @staticmethod
-    def get_tool() -> ExternalAiTool:
+    def get_tool() -> ExternalTool:
         return BACKGROUND_REMOVAL
 
     def execute(self) -> str | None:

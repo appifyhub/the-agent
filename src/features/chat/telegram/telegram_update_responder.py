@@ -12,7 +12,6 @@ from db.crud.user import UserCRUD
 from db.schema.chat_message import ChatMessage
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.sql import get_detached_session
-from features.ai_tools.access_token_resolver import AccessTokenResolver
 from features.chat.command_processor import CommandProcessor
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
 from features.chat.telegram.model.update import Update
@@ -21,6 +20,7 @@ from features.chat.telegram.telegram_chat_bot import TelegramChatBot
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
+from features.external_tools.access_token_resolver import AccessTokenResolver
 from features.prompting import prompt_library
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from features.sponsorships.sponsorship_service import SponsorshipService

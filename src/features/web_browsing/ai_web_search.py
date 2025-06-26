@@ -7,8 +7,8 @@ from langchain_perplexity import ChatPerplexity
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.schema.user import User
-from features.ai_tools.access_token_resolver import AccessTokenResolver
-from features.ai_tools.external_ai_tool_library import SONAR
+from features.external_tools.access_token_resolver import AccessTokenResolver
+from features.external_tools.external_tool_library import SONAR
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin

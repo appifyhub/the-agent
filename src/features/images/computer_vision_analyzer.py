@@ -3,9 +3,9 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
-from features.ai_tools.external_ai_tool import ExternalAiTool
-from features.ai_tools.external_ai_tool_library import GPT_4_1_MINI
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
+from features.external_tools.external_tool import ExternalTool
+from features.external_tools.external_tool_library import GPT_4_1_MINI
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
@@ -58,7 +58,7 @@ class ComputerVisionAnalyzer(SafePrinterMixin):
         )
 
     @staticmethod
-    def get_tool() -> ExternalAiTool:
+    def get_tool() -> ExternalTool:
         return GPT_4_1_MINI
 
     def execute(self) -> str | None:

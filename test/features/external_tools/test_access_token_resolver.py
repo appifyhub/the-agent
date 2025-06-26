@@ -11,9 +11,9 @@ from db.model.sponsorship import SponsorshipDB
 from db.model.user import UserDB
 from db.schema.sponsorship import Sponsorship
 from db.schema.user import User
-from features.ai_tools.access_token_resolver import AccessTokenResolver, TokenResolutionError
-from features.ai_tools.external_ai_tool import ExternalAiTool, ToolProvider, ToolType
-from features.ai_tools.external_ai_tool_provider_library import (
+from features.external_tools.access_token_resolver import AccessTokenResolver, TokenResolutionError
+from features.external_tools.external_tool import ExternalTool, ExternalToolProvider, ToolType
+from features.external_tools.external_tool_provider_library import (
     ANTHROPIC,
     COINMARKETCAP,
     OPEN_AI,
@@ -29,9 +29,9 @@ class AccessTokenResolverTest(unittest.TestCase):
     sponsorship: Sponsorship
     mock_user_dao: Mock
     mock_sponsorship_dao: Mock
-    openai_provider: ToolProvider
-    anthropic_provider: ToolProvider
-    openai_tool: ExternalAiTool
+    openai_provider: ExternalToolProvider
+    anthropic_provider: ExternalToolProvider
+    openai_tool: ExternalTool
 
     def setUp(self):
         self.invoker_user = User(
@@ -76,7 +76,7 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         self.openai_provider = OPEN_AI
         self.anthropic_provider = ANTHROPIC
-        self.openai_tool = ExternalAiTool(
+        self.openai_tool = ExternalTool(
             id = "test-gpt-4",
             name = "Test GPT-4",
             provider = self.openai_provider,
@@ -225,7 +225,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
 
         # Create a truly unsupported provider
-        unsupported_provider = ToolProvider(
+        unsupported_provider = ExternalToolProvider(
             id = "unsupported",
             name = "Unsupported Provider",
             token_management_url = "https://example.com",

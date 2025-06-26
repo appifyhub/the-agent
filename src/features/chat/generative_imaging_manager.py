@@ -8,9 +8,9 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.schema.user import User
-from features.ai_tools.access_token_resolver import AccessTokenResolver
-from features.ai_tools.external_ai_tool_library import CLAUDE_3_5_HAIKU
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from features.external_tools.access_token_resolver import AccessTokenResolver
+from features.external_tools.external_tool_library import CLAUDE_3_5_HAIKU
 from features.images.stable_diffusion_image_generator import StableDiffusionImageGenerator
 from features.prompting import prompt_library
 from util.config import config

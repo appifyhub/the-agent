@@ -10,10 +10,10 @@ from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from db.schema.user import User
-from features.ai_tools.access_token_resolver import AccessTokenResolver
-from features.ai_tools.external_ai_tool import ExternalAiTool
-from features.ai_tools.external_ai_tool_library import CRYPTO_CURRENCY_EXCHANGE, FIAT_CURRENCY_EXCHANGE
 from features.currencies.supported_currencies import SUPPORTED_CRYPTO, SUPPORTED_FIAT
+from features.external_tools.access_token_resolver import AccessTokenResolver
+from features.external_tools.external_tool import ExternalTool
+from features.external_tools.external_tool_library import CRYPTO_CURRENCY_EXCHANGE, FIAT_CURRENCY_EXCHANGE
 from features.web_browsing.web_fetcher import WebFetcher
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
@@ -252,7 +252,7 @@ class ExchangeRateFetcher(SafePrinterMixin):
             return rate
         raise ValueError(f"Invalid rate: {rate}; response data: {json.dumps(response)}")
 
-    def __get_token_with_fallback(self, tool: ExternalAiTool, system_token: str) -> str:
+    def __get_token_with_fallback(self, tool: ExternalTool, system_token: str) -> str:
         """Get token from AccessTokenResolver with fallback to system token."""
         if self.__token_resolver:
             try:

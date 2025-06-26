@@ -10,11 +10,11 @@ from pydantic import SecretStr
 
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
-from features.ai_tools.access_token_resolver import AccessTokenResolver
-from features.ai_tools.external_ai_tool_library import GPT_4_1_MINI
 from features.chat.command_processor import CommandProcessor
 from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
 from features.chat.tools.tools_library import ToolsLibrary
+from features.external_tools.access_token_resolver import AccessTokenResolver
+from features.external_tools.external_tool_library import GPT_4_1_MINI
 from features.prompting import prompt_library
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config

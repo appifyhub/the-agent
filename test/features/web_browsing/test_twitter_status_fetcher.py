@@ -8,7 +8,7 @@ from requests_mock.mocker import Mocker
 
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.schema.tools_cache import ToolsCache
-from features.ai_tools.external_ai_tool_library import TWITTER_API
+from features.external_tools.external_tool_library import TWITTER_API
 from features.web_browsing.twitter_status_fetcher import CACHE_TTL, TwitterStatusFetcher
 from util.config import config
 

@@ -6,8 +6,8 @@ from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.schema.sponsorship import Sponsorship
 from db.schema.user import User
-from features.ai_tools.external_ai_tool import ExternalAiTool, ToolProvider
-from features.ai_tools.external_ai_tool_provider_library import (
+from features.external_tools.external_tool import ExternalTool, ExternalToolProvider
+from features.external_tools.external_tool_provider_library import (
     ANTHROPIC,
     COINMARKETCAP,
     OPEN_AI,
@@ -21,7 +21,7 @@ from util.safe_printer_mixin import SafePrinterMixin
 
 class TokenResolutionError(Exception):
 
-    def __init__(self, tool_provider: ToolProvider, tool: ExternalAiTool | None = None):
+    def __init__(self, tool_provider: ExternalToolProvider, tool: ExternalTool | None = None):
         message = f"Unable to resolve an access token for '{tool_provider.name}'"
         if tool:
             message += f" - '{tool.name}'"
@@ -65,23 +65,23 @@ class AccessTokenResolver(SafePrinterMixin):
             raise ValueError(message)
         self.__invoker = User.model_validate(invoker_user_db)
 
-    def require_access_token_for_tool(self, tool: ExternalAiTool) -> SecretStr:
+    def require_access_token_for_tool(self, tool: ExternalTool) -> SecretStr:
         token = self.get_access_token_for_tool(tool)
         if token is None:
             raise TokenResolutionError(tool.provider, tool)
         return token
 
-    def require_access_token(self, provider: ToolProvider) -> SecretStr:
+    def require_access_token(self, provider: ExternalToolProvider) -> SecretStr:
         token = self.get_access_token(provider)
         if token is None:
             raise TokenResolutionError(provider)
         return token
 
-    def get_access_token_for_tool(self, tool: ExternalAiTool) -> SecretStr | None:
+    def get_access_token_for_tool(self, tool: ExternalTool) -> SecretStr | None:
         self.sprint(f"Resolving access token for tool '{tool.id}'")
         return self.get_access_token(tool.provider)
 
-    def get_access_token(self, provider: ToolProvider) -> SecretStr | None:
+    def get_access_token(self, provider: ExternalToolProvider) -> SecretStr | None:
         self.sprint(f"Resolving access token for provider '{provider.id}'")
 
         # check if invoker has direct token
@@ -115,7 +115,7 @@ class AccessTokenResolver(SafePrinterMixin):
         self.sprint(f"No token found for provider '{provider.id}'")
         return None
 
-    def __get_user_token_for_provider(self, user: User, provider: ToolProvider) -> str | None:
+    def __get_user_token_for_provider(self, user: User, provider: ExternalToolProvider) -> str | None:
         match provider.id:
             case OPEN_AI.id:
                 return user.open_ai_key

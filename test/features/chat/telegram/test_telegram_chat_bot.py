@@ -11,11 +11,11 @@ from pydantic import SecretStr
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
-from features.ai_tools.access_token_resolver import AccessTokenResolver
 from features.chat.command_processor import CommandProcessor
 from features.chat.telegram.telegram_chat_bot import TelegramChatBot
 from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
 from features.chat.tools.tools_library import ToolsLibrary
+from features.external_tools.access_token_resolver import AccessTokenResolver
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 
 

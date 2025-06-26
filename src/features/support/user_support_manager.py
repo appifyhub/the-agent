@@ -10,8 +10,8 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.schema.user import User
-from features.ai_tools.access_token_resolver import AccessTokenResolver
-from features.ai_tools.external_ai_tool_library import CLAUDE_4_SONNET
+from features.external_tools.access_token_resolver import AccessTokenResolver
+from features.external_tools.external_tool_library import CLAUDE_4_SONNET
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin

@@ -3,7 +3,7 @@ from enum import Enum
 
 
 @dataclass(frozen = True)
-class ToolProvider:
+class ExternalToolProvider:
     id: str
     name: str
     token_management_url: str
@@ -11,8 +11,7 @@ class ToolProvider:
     tools: list[str]
 
 
-@dataclass(frozen = True)
-class ToolType(Enum):
+class ToolType(str, Enum):
     llm = "llm"  # core generative text models
     vision = "vision"  # vision features
     hearing = "hearing"  # hearing features
@@ -23,8 +22,8 @@ class ToolType(Enum):
 
 
 @dataclass(frozen = True)
-class ExternalAiTool:
+class ExternalTool:
     id: str
     name: str
-    provider: ToolProvider
+    provider: ExternalToolProvider
     types: list[ToolType]

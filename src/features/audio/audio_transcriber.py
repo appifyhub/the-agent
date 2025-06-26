@@ -10,13 +10,13 @@ from openai import OpenAI
 from pydantic import SecretStr
 from pydub import AudioSegment
 
-from features.ai_tools.external_ai_tool import ExternalAiTool
-from features.ai_tools.external_ai_tool_library import CLAUDE_3_5_HAIKU, WHISPER_1
 from features.chat.supported_files import (
     EXTENSION_FORMAT_MAP,
     SUPPORTED_AUDIO_FORMATS,
     TARGET_AUDIO_FORMAT,
 )
+from features.external_tools.external_tool import ExternalTool
+from features.external_tools.external_tool_library import CLAUDE_3_5_HAIKU, WHISPER_1
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
@@ -61,11 +61,11 @@ class AudioTranscriber(SafePrinterMixin):
         )
 
     @staticmethod
-    def get_copywriter_tool() -> ExternalAiTool:
+    def get_copywriter_tool() -> ExternalTool:
         return CLAUDE_3_5_HAIKU
 
     @staticmethod
-    def get_transcriber_tool() -> ExternalAiTool:
+    def get_transcriber_tool() -> ExternalTool:
         return WHISPER_1
 
     def __validate_content(self, audio_url: str, audio_content: bytes | None):

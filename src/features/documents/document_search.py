@@ -8,8 +8,8 @@ from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_openai import OpenAIEmbeddings
 from pydantic import SecretStr
 
-from features.ai_tools.external_ai_tool import ExternalAiTool
-from features.ai_tools.external_ai_tool_library import CLAUDE_3_7_SONNET, TEXT_EMBEDDING_3_SMALL
+from features.external_tools.external_tool import ExternalTool
+from features.external_tools.external_tool_library import CLAUDE_3_7_SONNET, TEXT_EMBEDDING_3_SMALL
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
@@ -55,11 +55,11 @@ class DocumentSearch(SafePrinterMixin):
         )
 
     @staticmethod
-    def get_embedding_tool() -> ExternalAiTool:
+    def get_embedding_tool() -> ExternalTool:
         return TEXT_EMBEDDING_3_SMALL
 
     @staticmethod
-    def get_copywriter_tool() -> ExternalAiTool:
+    def get_copywriter_tool() -> ExternalTool:
         return CLAUDE_3_7_SONNET
 
     def execute(self) -> str | None:
