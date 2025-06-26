@@ -1,7 +1,9 @@
-from typing import Annotated, Any, Literal, TypeAlias, get_args
+from dataclasses import asdict
+from typing import Annotated, Any, List, Literal, TypeAlias, get_args
 
 from api.auth import create_jwt_token
 from api.authorization_service import AuthorizationService
+from api.models.external_tools_response import ExternalToolProviderResponse, ExternalToolResponse, ExternalToolsResponse
 from api.models.masked_user import MaskedUser
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.sponsorship import SponsorshipCRUD
@@ -11,6 +13,9 @@ from db.schema.sponsorship import Sponsorship
 from db.schema.user import User, UserSave
 from features.chat.chat_config_manager import ChatConfigManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from features.external_tools.access_token_resolver import AccessTokenResolver
+from features.external_tools.external_tool_library import ALL_EXTERNAL_TOOLS
+from features.external_tools.external_tool_provider_library import ALL_PROVIDERS
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
@@ -105,6 +110,19 @@ class SettingsController(SafePrinterMixin):
         jwt_token = create_jwt_token(token_payload, config.jwt_expires_in_minutes)
         settings_url_base = f"{config.backoffice_url_base}/{lang_iso_code}/{settings_type}/{resource_id}/settings"
         return f"{settings_url_base}?{SETTINGS_TOKEN_VAR}={jwt_token}"
+
+    def fetch_external_tools(self, user_id_hex: str) -> dict[str, Any]:
+        user = self.__authorization_service.authorize_for_user(self.invoker_user, user_id_hex)
+        resolver = AccessTokenResolver(self.__user_dao, self.__sponsorship_dao, user)
+        tools: List[ExternalToolResponse] = []
+        providers: List[ExternalToolProviderResponse] = []
+        for tool in ALL_EXTERNAL_TOOLS:
+            is_configured = resolver.get_access_token_for_tool(tool) is not None
+            tools.append(ExternalToolResponse(tool, is_configured))
+        for provider in ALL_PROVIDERS:
+            is_configured = resolver.get_access_token(provider) is not None
+            providers.append(ExternalToolProviderResponse(provider, is_configured))
+        return asdict(ExternalToolsResponse(tools, providers))
 
     def fetch_chat_settings(self, chat_id: str) -> dict[str, Any]:
         chat_config = self.__authorization_service.authorize_for_chat(self.invoker_user, chat_id)

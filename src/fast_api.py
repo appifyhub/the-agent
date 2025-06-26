@@ -62,7 +62,8 @@ def root() -> RedirectResponse:
 
 
 @app.get("/health")
-def health() -> dict: return {"status": "ok", "version": config.version}
+def health() -> dict:
+    return {"status": "ok", "version": config.version}
 
 
 @app.post("/telegram/chat-update")
@@ -216,6 +217,29 @@ def get_chats(
         return settings_controller.fetch_admin_chats(resource_id)
     except Exception as e:
         sprint("Failed to get chats", e)
+        raise HTTPException(status_code = 500, detail = {"reason": str(e)})
+
+
+@app.get("/settings/user/{resource_id}/tools")
+def get_tools(
+    resource_id: str,
+    db = Depends(get_session),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
+) -> dict:
+    try:
+        sprint(f"Fetching tools for {resource_id}")
+        invoker_id_hex = get_user_id_from_jwt(token)
+        sprint(f"  Invoker ID: {invoker_id_hex}")
+        settings_controller = SettingsController(
+            invoker_user_id_hex = invoker_id_hex,
+            telegram_sdk = TelegramBotSDK(db),
+            user_dao = UserCRUD(db),
+            chat_config_dao = ChatConfigCRUD(db),
+            sponsorship_dao = SponsorshipCRUD(db),
+        )
+        return settings_controller.fetch_external_tools(resource_id)
+    except Exception as e:
+        sprint("Failed to get external tools", e)
         raise HTTPException(status_code = 500, detail = {"reason": str(e)})
 
 

@@ -15,6 +15,7 @@ from features.chat.chat_config_manager import ChatConfigManager
 from features.chat.telegram.model.chat_member import ChatMemberAdministrator
 from features.chat.telegram.model.user import User as TelegramUser
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from features.external_tools.external_tool import ExternalTool, ExternalToolProvider, ToolType
 from util.functions import mask_secret
 
 
@@ -591,3 +592,94 @@ class SettingsControllerTest(unittest.TestCase):
 
             self.assertEqual(len(result), 0)
             mock_auth_service.get_authorized_chats.assert_called_once_with(self.invoker_user)
+
+    @patch("api.settings_controller.AccessTokenResolver")
+    def test_fetch_external_tools_success_mixed_configuration(self, mock_resolver_class):
+        """Test fetch_external_tools with mixed configuration (some configured, some not)"""
+        # Create mock tools and providers
+        mock_tool_1 = ExternalTool(
+            id = "configured-tool",
+            name = "Configured Tool",
+            provider = ExternalToolProvider(
+                id = "configured-provider",
+                name = "Configured Provider",
+                token_management_url = "https://example.com",
+                token_format = "test-format",
+                tools = ["configured-tool"],
+            ),
+            types = [ToolType.llm],
+        )
+        mock_tool_2 = ExternalTool(
+            id = "unconfigured-tool",
+            name = "Unconfigured Tool",
+            provider = ExternalToolProvider(
+                id = "unconfigured-provider",
+                name = "Unconfigured Provider",
+                token_management_url = "https://example.com",
+                token_format = "test-format",
+                tools = ["unconfigured-tool"],
+            ),
+            types = [ToolType.vision],
+        )
+        mock_provider_1 = ExternalToolProvider(
+            id = "configured-provider",
+            name = "Configured Provider",
+            token_management_url = "https://example.com",
+            token_format = "test-format",
+            tools = ["configured-tool"],
+        )
+        mock_provider_2 = ExternalToolProvider(
+            id = "unconfigured-provider",
+            name = "Unconfigured Provider",
+            token_management_url = "https://example.com",
+            token_format = "test-format",
+            tools = ["unconfigured-tool"],
+        )
+
+        # Mock resolver to return token only for the first tool/provider
+        mock_resolver = mock_resolver_class.return_value
+
+        def mock_get_token_for_tool(tool):
+            return "test-token" if tool.id == "configured-tool" else None
+
+        def mock_get_token(provider):
+            return "test-token" if provider.id == "configured-provider" else None
+
+        mock_resolver.get_access_token_for_tool.side_effect = mock_get_token_for_tool
+        mock_resolver.get_access_token.side_effect = mock_get_token
+
+        self.mock_user_dao.get.return_value = self.invoker_user
+
+        with patch("api.settings_controller.AuthorizationService") as MockAuthService:
+            with patch("api.settings_controller.ALL_EXTERNAL_TOOLS", [mock_tool_1, mock_tool_2]):
+                with patch("api.settings_controller.ALL_PROVIDERS", [mock_provider_1, mock_provider_2]):
+                    mock_auth_service = MockAuthService.return_value
+                    mock_auth_service.validate_user.return_value = self.invoker_user
+                    mock_auth_service.authorize_for_user.return_value = self.invoker_user
+
+                    manager = SettingsController(
+                        invoker_user_id_hex = self.invoker_user.id.hex,
+                        telegram_sdk = self.mock_telegram_sdk,
+                        user_dao = self.mock_user_dao,
+                        chat_config_dao = self.mock_chat_config_dao,
+                        sponsorship_dao = self.mock_sponsorship_dao,
+                    )
+
+                    result = manager.fetch_external_tools(self.invoker_user.id.hex)
+
+        # Verify result structure
+        self.assertIn("tools", result)
+        self.assertIn("providers", result)
+        self.assertEqual(len(result["tools"]), 2)
+        self.assertEqual(len(result["providers"]), 2)
+
+        # Verify mixed configuration
+        configured_tools = [tool for tool in result["tools"] if tool["is_configured"]]
+        unconfigured_tools = [tool for tool in result["tools"] if not tool["is_configured"]]
+        self.assertEqual(len(configured_tools), 1)
+        self.assertEqual(len(unconfigured_tools), 1)
+
+        configured_providers = [provider for provider in result["providers"] if provider["is_configured"]]
+        unconfigured_providers = [provider for provider in result["providers"] if not provider["is_configured"]]
+        self.assertEqual(len(configured_providers), 1)
+        self.assertEqual(len(unconfigured_providers), 1)
