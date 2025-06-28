@@ -465,7 +465,7 @@ def configure_settings(
                 target_chat_id = chat_id,
             )
             # let's send the settings link to the user's private chat, for security and privacy reasons
-            destination_chat_id = manager.invoker_user.telegram_chat_id
+            destination_chat_id = manager.get_invoker_private_chat_id()
             if not destination_chat_id:
                 return json.dumps(
                     {
@@ -474,17 +474,21 @@ def configure_settings(
                     },
                 )
             telegram_sdk.send_button_link(destination_chat_id, settings_link)
-            next_step: str
-            if chat_id and chat_id == str(manager.invoker_user.telegram_chat_id or 0):
-                next_step = "Notify the user that the link is just above; click it to configure your settings"
+            if chat_id and chat_id == str(destination_chat_id or 0):
+                return json.dumps(
+                    {
+                        "result": "Success",
+                        "next_step": "Notify the user to click on the settings link above",
+                    },
+                )
             else:
-                next_step = "Notify the user that the link was sent to their private chat"
-            return json.dumps(
-                {
-                    "result": "Success",
-                    "next_step": next_step,
-                },
-            )
+                return json.dumps(
+                    {
+                        "result": "Success",
+                        "next_step": "Notify the user that the link was sent to their private chat",
+                    },
+                )
+
     except Exception as e:
         sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})

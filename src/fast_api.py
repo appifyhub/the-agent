@@ -6,8 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import RedirectResponse
 
 from api.auth import get_user_id_from_jwt, verify_api_key, verify_jwt_credentials, verify_telegram_auth_key
+from api.models.chat_settings_payload import ChatSettingsPayload
 from api.models.release_output_payload import ReleaseOutputPayload
 from api.models.sponsorship_payload import SponsorshipPayload
+from api.models.user_settings_payload import UserSettingsPayload
 from api.settings_controller import SettingsController, SettingsType
 from api.sponsorships_controller import SponsorshipsController
 from db.crud.chat_config import ChatConfigCRUD
@@ -147,16 +149,15 @@ def get_settings(
         raise HTTPException(status_code = 500, detail = {"reason": str(e)})
 
 
-@app.patch("/settings/{settings_type}/{resource_id}")
-def save_settings(
-    settings_type: SettingsType,
-    resource_id: str,
-    request_data: dict[str, Any],
+@app.patch("/settings/user/{user_id_hex}")
+def save_user_settings(
+    user_id_hex: str,
+    payload: UserSettingsPayload,
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
     try:
-        sprint(f"Saving '{settings_type}' settings for resource '{resource_id}'")
+        sprint(f"Saving user settings for user '{user_id_hex}'")
         invoker_id_hex = get_user_id_from_jwt(token)
         sprint(f"  Invoker ID: {invoker_id_hex}")
         settings_controller = SettingsController(
@@ -166,34 +167,35 @@ def save_settings(
             chat_config_dao = ChatConfigCRUD(db),
             sponsorship_dao = SponsorshipCRUD(db),
         )
-        if settings_type == "user":
-            open_ai_key = request_data.get("open_ai_key") or ""
-            settings_controller.save_user_settings(resource_id, open_ai_key)
-        else:
-            language_name = request_data.get("language_name")
-            if not language_name:
-                raise ValueError("No language name provided")
-            language_iso_code = request_data.get("language_iso_code")
-            if not language_iso_code:
-                raise ValueError("No language ISO code provided")
-            reply_chance_percent = request_data.get("reply_chance_percent")
-            if reply_chance_percent is None:
-                raise ValueError("No reply chance percent provided")
-            if not isinstance(reply_chance_percent, int):
-                raise ValueError("Reply chance percent must be an integer")
-            release_notifications = request_data.get("release_notifications")
-            if not release_notifications:
-                raise ValueError("No release notifications selection provided")
-            settings_controller.save_chat_settings(
-                chat_id = resource_id,
-                language_name = language_name,
-                language_iso_code = language_iso_code,
-                reply_chance_percent = reply_chance_percent,
-                release_notifications = str(release_notifications),
-            )
+        settings_controller.save_user_settings(user_id_hex, payload)
         return {"status": "OK"}
     except Exception as e:
-        sprint("Failed to save settings", e)
+        sprint("Failed to save user settings", e)
+        raise HTTPException(status_code = 500, detail = {"reason": str(e)})
+
+
+@app.patch("/settings/chat/{chat_id}")
+def save_chat_settings(
+    chat_id: str,
+    payload: ChatSettingsPayload,
+    db = Depends(get_session),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
+) -> dict:
+    try:
+        sprint(f"Saving chat settings for chat '{chat_id}'")
+        invoker_id_hex = get_user_id_from_jwt(token)
+        sprint(f"  Invoker ID: {invoker_id_hex}")
+        settings_controller = SettingsController(
+            invoker_user_id_hex = invoker_id_hex,
+            telegram_sdk = TelegramBotSDK(db),
+            user_dao = UserCRUD(db),
+            chat_config_dao = ChatConfigCRUD(db),
+            sponsorship_dao = SponsorshipCRUD(db),
+        )
+        settings_controller.save_chat_settings(chat_id, payload)
+        return {"status": "OK"}
+    except Exception as e:
+        sprint("Failed to save chat settings", e)
         raise HTTPException(status_code = 500, detail = {"reason": str(e)})
 
 
