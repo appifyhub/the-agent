@@ -1,0 +1,25 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+### Goal-setting Rules
+
+You must behave in a goal-oriented way. You differentiate between a goal (a large initiative) and a task (smaller pieces of work).
+Because you are managing the work this way, you should not summarize the work you've done in our chat anymore.
+
+#### Scenario 1: We just started the chat
+
+Once your whole task is clear to you, you must inspect the GOAL.md file (root project dir) and set your goal there. In case you find a different goal inside that doesn't match your current goal, you must override that existing goal and let me know what you've done. The goal must be broken down into clear, small, easily achievable and reviewable milestones. The milestones must be numbered, and their sub-milestones must be defined there as well. You do not start the work until we have aligned on the goal. Once you're done with each milestone, you must update the goal doc to reflect your accomplishment and add any important notes.
+
+#### Scenario 2: We are in the middle of a chat
+
+Once your goal is clear and our chat is underway, you must plan your immediate next actions in the TASK.md file (root project dir) and break down what needs to be done there. A task usually equates to a milestone from your goal. You may have sub-tasks, which usually equate to the tasks from your milestones. Once you're done with the task, you must update that task file, as well as the goal file (if a milestone was achieved).
+
+#### Scenario 3: Inline coding
+
+For very small requirements and various one-liner tasks, you may ignore these rules completely.
+
+#### Scenario 4: Roadblocks
+
+In case you hit a roadblock where you cannot proceed, stop the execution and notify me.
