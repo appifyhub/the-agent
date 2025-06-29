@@ -9,6 +9,7 @@ from api.models.release_output_payload import ReleaseOutputPayload
 from db.crud.chat_config import ChatConfigCRUD
 from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig
+from features.announcements.release_summarizer import ReleaseSummarizer
 from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 
@@ -104,7 +105,7 @@ class TelegramSummaryResponderTest(unittest.TestCase):
 
     @patch("features.chat.telegram.telegram_summary_responder.ReleaseSummarizer")
     def test_multiple_languages(self, mock_summarizer_cls):
-        mock_summarizer = Mock()
+        mock_summarizer = Mock(spec = ReleaseSummarizer)
         mock_summarizer.execute.return_value = AIMessage(content = "Summary")
         mock_summarizer_cls.return_value = mock_summarizer
         self.chat_config_dao.get_all.return_value = [
@@ -132,7 +133,7 @@ class TelegramSummaryResponderTest(unittest.TestCase):
 
     @patch("features.chat.telegram.telegram_summary_responder.ReleaseSummarizer")
     def test_all_translations(self, mock_summarizer_cls):
-        mock_sum = Mock()
+        mock_sum = Mock(spec = ReleaseSummarizer)
         mock_sum.execute.return_value = Mock(content = "Gen summary")
         mock_summarizer_cls.return_value = mock_sum
         self.chat_config_dao.get_all.return_value = [
@@ -149,7 +150,7 @@ class TelegramSummaryResponderTest(unittest.TestCase):
 
     @patch("features.chat.telegram.telegram_summary_responder.ReleaseSummarizer")
     def test_summarization_failure(self, mock_summarizer_cls):
-        mock_sum = Mock()
+        mock_sum = Mock(spec = ReleaseSummarizer)
         mock_sum.execute.side_effect = Exception("boom")
         mock_summarizer_cls.return_value = mock_sum
         self.chat_config_dao.get_all.return_value = [self.__make_chat_db()]

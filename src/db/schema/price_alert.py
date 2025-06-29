@@ -1,10 +1,12 @@
 from datetime import datetime
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
 
 class PriceAlertBase(BaseModel):
     chat_id: str
+    owner_id: UUID
     base_currency: str
     desired_currency: str
     threshold_percent: int

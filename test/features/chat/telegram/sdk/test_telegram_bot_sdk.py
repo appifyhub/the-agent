@@ -3,6 +3,8 @@ from unittest.mock import Mock, patch
 
 from sqlalchemy.orm import Session
 
+from db.schema.chat_message import ChatMessage
+from db.schema.chat_message_attachment import ChatMessageAttachment
 from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
@@ -43,9 +45,13 @@ class TelegramBotSDKTest(unittest.TestCase):
     @patch.object(TelegramDataResolver, "resolve")
     def test_send_text_message(self, mock_resolve, mock_map_update):
         text = "test message"
-        expected_message = Mock()
-        mock_map_update.return_value = Mock()
-        mock_resolve.return_value = Mock(message = expected_message, attachments = [Mock()])
+        expected_message = Mock(spec = ChatMessage)
+        mock_map_update.return_value = Mock(spec = TelegramDomainMapper.Result)
+        mock_resolve.return_value = Mock(
+            spec = TelegramDataResolver.Result,
+            message = expected_message,
+            attachments = [Mock(spec = ChatMessageAttachment)],
+        )
 
         result = self.sdk.send_text_message(chat_id = self.chat_id, text = text)
 
@@ -64,9 +70,13 @@ class TelegramBotSDKTest(unittest.TestCase):
     def test_send_photo(self, mock_resolve, mock_map_update):
         photo_url = "http://test.com/photo.jpg"
         caption = "test photo"
-        expected_message = Mock()
-        mock_map_update.return_value = Mock()
-        mock_resolve.return_value = Mock(message = expected_message, attachments = [Mock()])
+        expected_message = Mock(spec = ChatMessage)
+        mock_map_update.return_value = Mock(spec = TelegramDomainMapper.Result)
+        mock_resolve.return_value = Mock(
+            spec = TelegramDataResolver.Result,
+            message = expected_message,
+            attachments = [Mock(spec = ChatMessageAttachment)],
+        )
 
         result = self.sdk.send_photo(
             chat_id = self.chat_id,
@@ -89,11 +99,12 @@ class TelegramBotSDKTest(unittest.TestCase):
     def test_send_document(self, mock_resolve, mock_map_update):
         doc_url = "http://test.com/doc.pdf"
         caption = "test document"
-        expected_message = Mock()
-        mock_map_update.return_value = Mock()
+        expected_message = Mock(spec = ChatMessage)
+        mock_map_update.return_value = Mock(spec = TelegramDomainMapper.Result)
         mock_resolve.return_value = Mock(
+            spec = TelegramDataResolver.Result,
             message = expected_message,
-            attachments = [Mock()],  # Add at least one attachment
+            attachments = [Mock(spec = ChatMessageAttachment)],  # Add at least one attachment
         )
 
         result = self.sdk.send_document(
@@ -137,9 +148,13 @@ class TelegramBotSDKTest(unittest.TestCase):
     @patch.object(TelegramDataResolver, "resolve")
     def test_send_button_link(self, mock_resolve, mock_map_update):
         link_url = "https://test.com"
-        expected_message = Mock()
-        mock_map_update.return_value = Mock()
-        mock_resolve.return_value = Mock(message = expected_message, attachments = [Mock()])
+        expected_message = Mock(spec = ChatMessage)
+        mock_map_update.return_value = Mock(spec = TelegramDomainMapper.Result)
+        mock_resolve.return_value = Mock(
+            spec = TelegramDataResolver.Result,
+            message = expected_message,
+            attachments = [Mock(spec = ChatMessageAttachment)],
+        )
 
         # Test settings button
         result = self.sdk.send_button_link(
@@ -190,8 +205,12 @@ class TelegramBotSDKTest(unittest.TestCase):
     @patch.object(TelegramDomainMapper, "map_update")
     @patch.object(TelegramDataResolver, "resolve")
     def test_store_api_response_resolution_failure(self, mock_resolve, mock_map_update):
-        mock_map_update.return_value = Mock()
-        mock_resolve.return_value = Mock(message = None, attachments = None)
+        mock_map_update.return_value = Mock(spec = TelegramDomainMapper.Result)
+        mock_resolve.return_value = Mock(
+            spec = TelegramDataResolver.Result,
+            message = None,
+            attachments = None,
+        )
 
         with self.assertRaises(ValueError) as context:
             # noinspection PyUnresolvedReferences

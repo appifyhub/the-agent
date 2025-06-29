@@ -3,8 +3,10 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 from uuid import UUID
 
+import requests
 from langchain_core.messages import AIMessage
 
+from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.model.user import UserDB
 from db.schema.user import User
@@ -28,9 +30,9 @@ class UserSupportManagerTest(unittest.TestCase):
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
-        self.mock_user_dao = Mock()
+        self.mock_user_dao = Mock(spec = UserCRUD)
         self.mock_user_dao.get.return_value = UserDB(**self.user.model_dump())
-        self.mock_sponsorship_dao = Mock()
+        self.mock_sponsorship_dao = Mock(spec = SponsorshipCRUD)
         self.manager = UserSupportManager(
             user_input = "Test input",
             invoker_user_id_hex = self.user.id.hex,
@@ -111,7 +113,7 @@ class UserSupportManagerTest(unittest.TestCase):
         mock_generate_description.return_value = "Test description"
         mock_generate_title.return_value = "Test title"
         mock_post.return_value.json.return_value = {"html_url": "https://example.com/issue/1"}
-        mock_post.return_value.raise_for_status = Mock()
+        mock_post.return_value.raise_for_status = Mock(spec = requests.Response)
 
         result = self.manager.execute()
 

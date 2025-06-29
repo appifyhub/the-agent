@@ -1,7 +1,9 @@
 import unittest
 from unittest.mock import Mock, patch
+from uuid import UUID
 
 from db.sql_util import SQLUtil
+from langchain_core.messages import AIMessage
 from pydantic import SecretStr
 
 from api.settings_controller import SettingsController
@@ -10,6 +12,11 @@ from db.crud.chat_message import ChatMessageCRUD
 from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
+from db.model.chat_config import ChatConfigDB
+from db.model.user import UserDB
+from db.schema.chat_config import ChatConfig
+from db.schema.chat_message import ChatMessage
+from db.schema.user import User
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
@@ -143,14 +150,35 @@ class TelegramUpdateResponderTest(unittest.TestCase):
 
     @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.execute")
     def test_successful_response(self, mock_execute):
-        mock_execute.return_value = Mock(content = "Test response")
+        mock_execute.return_value = Mock(spec = AIMessage, content = "Test response")
 
-        self.telegram_domain_mapper.map_update.return_value = Mock()
+        self.telegram_domain_mapper.map_update.return_value = Mock(
+            spec = TelegramDomainMapper.Result,
+            message = Mock(spec = ChatMessage, message_id = "test-message-id", text = "Test message text"),
+        )
         self.telegram_data_resolver.resolve.return_value = Mock(
-            chat = Mock(chat_id = "123"),
-            author = Mock(),
+            spec = TelegramDataResolver.Result,
+            chat = Mock(
+                spec = ChatConfig,
+                chat_id = "123",
+                language_name = "English",
+                language_iso_code = "en",
+                title = "Test Chat",
+                is_private = False,
+                reply_chance_percent = 100,
+                release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            ),
+            author = Mock(
+                spec = User,
+                id = UUID(int = 1),
+                telegram_username = "test_user",
+                full_name = "Test User",
+                telegram_user_id = 1,
+                group = UserDB.Group.standard,
+            ),
         )
         self.chat_messages_dao.get_latest_chat_messages.return_value = []
+        self.user_dao.get.return_value = None
 
         self.domain_langchain_mapper.map_bot_message_to_storage.return_value = [
             Mock(chat_id = "123", text = "Test response"),
@@ -166,10 +194,11 @@ class TelegramUpdateResponderTest(unittest.TestCase):
         self.telegram_bot_sdk.send_text_message.assert_called_once_with("123", "Test response")
 
     def test_empty_response(self):
-        self.telegram_domain_mapper.map_update.return_value = Mock()
+        self.telegram_domain_mapper.map_update.return_value = Mock(spec = TelegramDomainMapper.Result)
         self.telegram_data_resolver.resolve.return_value = Mock(
-            chat = Mock(chat_id = "123"),
-            author = Mock(),
+            spec = TelegramDataResolver.Result,
+            chat = Mock(spec = ChatConfig, chat_id = "123"),
+            author = Mock(spec = User, id = UUID(int = 1)),
         )
         self.chat_messages_dao.get_latest_chat_messages.return_value = []
 
@@ -204,9 +233,10 @@ class TelegramUpdateResponderTest(unittest.TestCase):
         self.chat_messages_dao.save.assert_not_called()
 
     def test_general_exception(self):
-        self.telegram_domain_mapper.map_update.return_value = Mock()
+        self.telegram_domain_mapper.map_update.return_value = Mock(spec = TelegramDomainMapper.Result)
         self.telegram_data_resolver.resolve.return_value = Mock(
-            chat = Mock(chat_id = "123"),
+            spec = TelegramDataResolver.Result,
+            chat = Mock(spec = ChatConfig, chat_id = "123"),
             author = None,
         )
 

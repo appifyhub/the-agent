@@ -184,8 +184,13 @@ def get_exchange_rate(user_id: str, base_currency: str, desired_currency: str, a
     """
     try:
         with get_detached_session() as db:
-            fetcher = ExchangeRateFetcher(user_id, UserCRUD(db), ToolsCacheCRUD(db), SponsorshipCRUD(db))
-            result = fetcher.execute(base_currency, desired_currency, amount or 1.0)
+            fetcher = ExchangeRateFetcher(
+                UserCRUD(db),
+                ToolsCacheCRUD(db),
+                SponsorshipCRUD(db),
+                invoker_user_id_hex = user_id,
+            )
+            result = fetcher.execute(base_currency, desired_currency, float(amount) if amount else 1.0)
             return json.dumps({"result": "Success", "exchange_rate": result})
     except Exception as e:
         sprint("Tool call failed", e)
@@ -208,13 +213,12 @@ def set_up_currency_price_alert(
     """
     try:
         with get_detached_session() as db:
-            user_dao = UserCRUD(db)
-            fetcher = ExchangeRateFetcher(user_id, user_dao, ToolsCacheCRUD(db), SponsorshipCRUD(db))
             alert_manager = PriceAlertManager(
-                chat_id, user_id, user_dao, ChatConfigCRUD(db), PriceAlertCRUD(db), fetcher,
+                chat_id, user_id,
+                UserCRUD(db), ChatConfigCRUD(db), PriceAlertCRUD(db), ToolsCacheCRUD(db), SponsorshipCRUD(db),
             )
             alert = alert_manager.create_alert(base_currency, desired_currency, threshold_percent)
-            return json.dumps({"result": "Success", "created_alert_data": alert.model_dump()})
+            return json.dumps({"result": "Success", "created_alert_data": alert.model_dump(mode = "json")})
     except Exception as e:
         sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})
@@ -233,13 +237,13 @@ def remove_currency_price_alerts(chat_id: str, user_id: str, base_currency: str,
     """
     try:
         with get_detached_session() as db:
-            user_dao = UserCRUD(db)
-            fetcher = ExchangeRateFetcher(user_id, user_dao, ToolsCacheCRUD(db), SponsorshipCRUD(db))
             alert_manager = PriceAlertManager(
-                chat_id, user_id, user_dao, ChatConfigCRUD(db), PriceAlertCRUD(db), fetcher,
+                chat_id, user_id,
+                UserCRUD(db), ChatConfigCRUD(db), PriceAlertCRUD(db), ToolsCacheCRUD(db), SponsorshipCRUD(db),
             )
             alert = alert_manager.delete_alert(base_currency, desired_currency)
-            return json.dumps({"result": "Success", "deleted_alert_data": alert.model_dump()})
+            deleted_alert_data = alert.model_dump(mode = "json") if alert else None
+            return json.dumps({"result": "Success", "deleted_alert_data": deleted_alert_data})
     except Exception as e:
         sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})
@@ -256,13 +260,12 @@ def list_currency_price_alerts(chat_id: str, user_id: str) -> str:
     """
     try:
         with get_detached_session() as db:
-            user_dao = UserCRUD(db)
-            fetcher = ExchangeRateFetcher(user_id, user_dao, ToolsCacheCRUD(db), SponsorshipCRUD(db))
             alert_manager = PriceAlertManager(
-                chat_id, user_id, user_dao, ChatConfigCRUD(db), PriceAlertCRUD(db), fetcher,
+                chat_id, user_id,
+                UserCRUD(db), ChatConfigCRUD(db), PriceAlertCRUD(db), ToolsCacheCRUD(db), SponsorshipCRUD(db),
             )
-            alerts = alert_manager.get_all_alerts()
-            return json.dumps({"result": "Success", "alerts": [alert.model_dump() for alert in alerts]})
+            alerts = alert_manager.get_active_alerts()
+            return json.dumps({"result": "Success", "alerts": [alert.model_dump(mode = "json") for alert in alerts]})
     except Exception as e:
         sprint("Tool call failed", e)
         return json.dumps({"result": "Error", "error": str(e)})

@@ -1,10 +1,12 @@
 import unittest
 from datetime import datetime, timedelta
+from uuid import UUID
 
 from db.sql_util import SQLUtil
 
 from db.schema.chat_config import ChatConfigSave
 from db.schema.price_alert import PriceAlertSave
+from db.schema.user import UserSave
 
 
 class PriceAlertCRUDTest(unittest.TestCase):
@@ -16,10 +18,24 @@ class PriceAlertCRUDTest(unittest.TestCase):
     def tearDown(self):
         self.sql.end_session()
 
+    def _create_test_user(self) -> UUID:
+        """Helper method to create a test user and return their ID"""
+        user_db = self.sql.user_crud().create(
+            UserSave(
+                full_name = "Test User",
+                telegram_username = "test_user",
+                telegram_chat_id = "test_chat",
+                telegram_user_id = 12345,
+            ),
+        )
+        return user_db.id
+
     def test_create_price_alert(self):
         chat = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1"))
+        user_id = self._create_test_user()
         price_alert_data = PriceAlertSave(
             chat_id = chat.chat_id,
+            owner_id = user_id,
             base_currency = "USD",
             desired_currency = "EUR",
             threshold_percent = 5,
@@ -38,8 +54,10 @@ class PriceAlertCRUDTest(unittest.TestCase):
 
     def test_get_price_alert(self):
         chat = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1"))
+        user_id = self._create_test_user()
         price_alert_data = PriceAlertSave(
             chat_id = chat.chat_id,
+            owner_id = user_id,
             base_currency = "USD",
             desired_currency = "EUR",
             threshold_percent = 5,
@@ -61,16 +79,19 @@ class PriceAlertCRUDTest(unittest.TestCase):
     def test_get_all_price_alerts(self):
         chat1 = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1"))
         chat2 = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat2"))
+        user_id = self._create_test_user()
         price_alerts = [
             self.sql.price_alert_crud().create(
                 PriceAlertSave(
-                    chat_id = chat1.chat_id, base_currency = "USD", desired_currency = "EUR",
+                    chat_id = chat1.chat_id, owner_id = user_id,
+                    base_currency = "USD", desired_currency = "EUR",
                     threshold_percent = 5, last_price = 0.85,
                 ),
             ),
             self.sql.price_alert_crud().create(
                 PriceAlertSave(
-                    chat_id = chat2.chat_id, base_currency = "USD", desired_currency = "GBP",
+                    chat_id = chat2.chat_id, owner_id = user_id,
+                    base_currency = "USD", desired_currency = "GBP",
                     threshold_percent = 3, last_price = 0.75,
                 ),
             ),
@@ -88,23 +109,27 @@ class PriceAlertCRUDTest(unittest.TestCase):
         chat1 = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1"))
         chat2 = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat2"))
 
+        user_id = self._create_test_user()
         chat1_alerts = [
             self.sql.price_alert_crud().create(
                 PriceAlertSave(
-                    chat_id = chat1.chat_id, base_currency = "USD", desired_currency = "EUR",
+                    chat_id = chat1.chat_id, owner_id = user_id,
+                    base_currency = "USD", desired_currency = "EUR",
                     threshold_percent = 5, last_price = 0.85,
                 ),
             ),
             self.sql.price_alert_crud().create(
                 PriceAlertSave(
-                    chat_id = chat1.chat_id, base_currency = "USD", desired_currency = "GBP",
+                    chat_id = chat1.chat_id, owner_id = user_id,
+                    base_currency = "USD", desired_currency = "GBP",
                     threshold_percent = 3, last_price = 0.75,
                 ),
             ),
         ]
         self.sql.price_alert_crud().create(
             PriceAlertSave(
-                chat_id = chat2.chat_id, base_currency = "USD", desired_currency = "JPY",
+                chat_id = chat2.chat_id, owner_id = user_id,
+                base_currency = "USD", desired_currency = "JPY",
                 threshold_percent = 2, last_price = 110.0,
             ),
         )
@@ -119,8 +144,10 @@ class PriceAlertCRUDTest(unittest.TestCase):
 
     def test_update_price_alert(self):
         chat = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1"))
+        user_id = self._create_test_user()
         price_alert_data = PriceAlertSave(
             chat_id = chat.chat_id,
+            owner_id = user_id,
             base_currency = "USD",
             desired_currency = "EUR",
             threshold_percent = 5,
@@ -131,6 +158,7 @@ class PriceAlertCRUDTest(unittest.TestCase):
 
         update_data = PriceAlertSave(
             chat_id = created_price_alert.chat_id,
+            owner_id = created_price_alert.owner_id,
             base_currency = created_price_alert.base_currency,
             desired_currency = created_price_alert.desired_currency,
             threshold_percent = 7,
@@ -148,8 +176,10 @@ class PriceAlertCRUDTest(unittest.TestCase):
 
     def test_save_price_alert(self):
         chat = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1"))
+        user_id = self._create_test_user()
         price_alert_data = PriceAlertSave(
             chat_id = chat.chat_id,
+            owner_id = user_id,
             base_currency = "USD",
             desired_currency = "EUR",
             threshold_percent = 5,
@@ -170,6 +200,7 @@ class PriceAlertCRUDTest(unittest.TestCase):
         # Now, save should update the existing record
         update_data = PriceAlertSave(
             chat_id = saved_price_alert.chat_id,
+            owner_id = saved_price_alert.owner_id,
             base_currency = saved_price_alert.base_currency,
             desired_currency = saved_price_alert.desired_currency,
             threshold_percent = 7,
@@ -187,8 +218,10 @@ class PriceAlertCRUDTest(unittest.TestCase):
 
     def test_delete_price_alert(self):
         chat = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1"))
+        user_id = self._create_test_user()
         price_alert_data = PriceAlertSave(
             chat_id = chat.chat_id,
+            owner_id = user_id,
             base_currency = "USD",
             desired_currency = "EUR",
             threshold_percent = 5,

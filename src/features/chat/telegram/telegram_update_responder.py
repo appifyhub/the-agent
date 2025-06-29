@@ -48,7 +48,9 @@ def respond_to_update(update: Update) -> bool:
         def map_to_langchain(message) -> HumanMessage | AIMessage:
             return domain_langchain_mapper.map_to_langchain(user_dao.get(message.author_id), message)
 
-        user_dao.save(TELEGRAM_BOT_USER)  # save is ignored if bot already exists
+        if not user_dao.get(TELEGRAM_BOT_USER.id):
+            user_dao.save(TELEGRAM_BOT_USER)
+
         resolved_domain_data: TelegramDataResolver.Result | None = None
         try:
             # map to storage models for persistence
@@ -70,13 +72,14 @@ def respond_to_update(update: Update) -> bool:
             # but we only have a singular get by 1 message, so we need to fetch all attachments for each message
             past_attachments_db = list(
                 chain.from_iterable(
-                    chat_message_attachment_dao.get_by_message(message.chat_id, message.message_id) for message in
-                    past_messages
+                    chat_message_attachment_dao.get_by_message(message.chat_id, message.message_id)
+                    for message in past_messages
                 ),
             )
-            past_attachment_ids = [ChatMessageAttachment.model_validate(attachment).id for attachment in
-                                   past_attachments_db]
-
+            past_attachment_ids = [
+                ChatMessageAttachment.model_validate(attachment).id
+                for attachment in past_attachments_db
+            ]
             # DB sorting is date descending
             langchain_messages = [map_to_langchain(message) for message in past_messages][::-1]
 
@@ -84,7 +87,6 @@ def respond_to_update(update: Update) -> bool:
             if not resolved_domain_data.author:
                 sprint("Not responding to messages without author")
                 return False
-
             settings_controller = SettingsController(
                 invoker_user_id_hex = resolved_domain_data.author.id.hex,
                 telegram_sdk = telegram_bot_sdk,

@@ -1,9 +1,7 @@
 import json
 from datetime import datetime, timedelta
+from time import sleep
 from typing import Any, Dict
-from uuid import UUID
-
-from tenacity import sleep
 
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
@@ -12,7 +10,6 @@ from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from db.schema.user import User
 from features.currencies.supported_currencies import SUPPORTED_CRYPTO, SUPPORTED_FIAT
 from features.external_tools.access_token_resolver import AccessTokenResolver
-from features.external_tools.external_tool import ExternalTool
 from features.external_tools.external_tool_library import CRYPTO_CURRENCY_EXCHANGE, FIAT_CURRENCY_EXCHANGE
 from features.web_browsing.web_fetcher import WebFetcher
 from util.config import config
@@ -25,43 +22,28 @@ RATE_LIMIT_DELAY_S = 1
 
 
 class ExchangeRateFetcher(SafePrinterMixin):
-    __user_dao: UserCRUD
     __cache_dao: ToolsCacheCRUD
-    __token_resolver: AccessTokenResolver | None
+    __token_resolver: AccessTokenResolver
 
     def __init__(
         self,
-        invoker_user_id_hex: str | None,
         user_dao: UserCRUD,
         cache_dao: ToolsCacheCRUD,
         sponsorship_dao: SponsorshipCRUD,
+        invoker_user: User | None = None,
+        invoker_user_id_hex: str | None = None,
     ):
         super().__init__(config.verbose)
-        self.__user_dao = user_dao
         self.__cache_dao = cache_dao
-        self.__token_resolver = None
 
-        if invoker_user_id_hex:  # system invocations don't have an invoker (for now)
-            self.__validate(invoker_user_id_hex)
-            try:
-                self.__token_resolver = AccessTokenResolver(
-                    user_dao = user_dao,
-                    sponsorship_dao = sponsorship_dao,
-                    invoker_user_id_hex = invoker_user_id_hex,
-                )
-                self.sprint("AccessTokenResolver initialized for currency fetching")
-            except Exception as e:
-                self.sprint(f"Error initializing token resolver: {e}")
-        else:
-            self.sprint("System invocation - will use system tokens")
-
-    def __validate(self, invoker_user_id_hex: str):
-        invoker_user_db = self.__user_dao.get(UUID(hex = invoker_user_id_hex))
-        if not invoker_user_db:
-            message = f"Invoker '{invoker_user_id_hex}' not found"
-            self.sprint(message)
-            raise ValueError(message)
-        User.model_validate(invoker_user_db)
+        self.__token_resolver = AccessTokenResolver(
+            user_dao = user_dao,
+            sponsorship_dao = sponsorship_dao,
+            invoker_user = invoker_user,
+            invoker_user_id_hex = invoker_user_id_hex,
+        )
+        user_info = invoker_user.id.hex if invoker_user else invoker_user_id_hex
+        self.sprint(f"ExchangeRateFetcher initialized with user '{user_info}'")
 
     def execute(
         self,
@@ -168,7 +150,7 @@ class ExchangeRateFetcher(SafePrinterMixin):
 
         rate: float
         api_url = f"https://pro-api.coinmarketcap.com/{CRYPTO_CURRENCY_EXCHANGE.id.replace(".", "/")}"
-        cmc_token = self.__get_token_with_fallback(CRYPTO_CURRENCY_EXCHANGE, config.coinmarketcap_api_token)
+        cmc_token = self.__token_resolver.require_access_token_for_tool(CRYPTO_CURRENCY_EXCHANGE).get_secret_value()
         headers = {"Accept": "application/json", "X-CMC_PRO_API_KEY": cmc_token}
         if base_currency_code != DEFAULT_FIAT and desired_currency_code != DEFAULT_FIAT:
             # due to API limitations, we must traverse both cryptos through USD
@@ -235,7 +217,7 @@ class ExchangeRateFetcher(SafePrinterMixin):
         sleep(RATE_LIMIT_DELAY_S)
         api_url = f"https://{FIAT_CURRENCY_EXCHANGE.id}/currency/convert"
         params = {"format": "json", "from": base_currency_code, "to": desired_currency_code, "amount": "1.0"}
-        rapid_api_token = self.__get_token_with_fallback(FIAT_CURRENCY_EXCHANGE, config.rapid_api_token)
+        rapid_api_token = self.__token_resolver.require_access_token_for_tool(FIAT_CURRENCY_EXCHANGE).get_secret_value()
         headers = {"X-RapidAPI-Key": rapid_api_token, "X-RapidAPI-Host": FIAT_CURRENCY_EXCHANGE.id}
         fetcher = WebFetcher(
             api_url,
@@ -250,20 +232,6 @@ class ExchangeRateFetcher(SafePrinterMixin):
         if rate:
             self.__save_rate_to_cache(base_currency_code, desired_currency_code, rate)
             return rate
-        raise ValueError(f"Invalid rate: {rate}; response data: {json.dumps(response)}")
-
-    def __get_token_with_fallback(self, tool: ExternalTool, system_token: str) -> str:
-        """Get token from AccessTokenResolver with fallback to system token."""
-        if self.__token_resolver:
-            try:
-                resolved_token = self.__token_resolver.get_access_token_for_tool(tool)
-                if resolved_token:
-                    self.sprint(f"Using resolved {tool.name} token from AccessTokenResolver")
-                    return resolved_token.get_secret_value()
-                else:
-                    self.sprint(f"No resolved {tool.name} token found, using system fallback")
-            except Exception as e:
-                self.sprint(f"Error resolving {tool.name} token, using system fallback: {e}")
-        else:
-            self.sprint(f"Using system {tool.name} token")
-        return system_token
+        raise ValueError(
+            f"Invalid rate: {rate}; API: {FIAT_CURRENCY_EXCHANGE.id}; response data: {json.dumps(response)}",
+        )

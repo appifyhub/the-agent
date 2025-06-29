@@ -32,7 +32,7 @@ class TelegramBotSDK(SafePrinterMixin):
         text: str,
         parse_mode: str = "markdown",
         disable_notification: bool = False,
-        link_preview_options: dict = None,
+        link_preview_options: dict | None = None,
     ) -> ChatMessage:
         sent_message = self.api.send_text_message(
             chat_id = chat_id,

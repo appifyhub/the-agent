@@ -32,7 +32,7 @@ class TelegramBotAPI(SafePrinterMixin):
         text: str,
         parse_mode: str = "markdown",
         disable_notification: bool = False,
-        link_preview_options: dict = None,
+        link_preview_options: dict | None = None,
     ) -> dict:
         self.sprint(f"Sending message to chat #{chat_id}")
         url = f"{self.__bot_api_url}/sendMessage"
