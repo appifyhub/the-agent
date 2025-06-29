@@ -4,7 +4,6 @@ from typing import Any, Dict
 from uuid import UUID
 
 import requests
-from pydantic import SecretStr
 
 from api.authorization_service import AuthorizationService
 from db.crud.chat_config import ChatConfigCRUD
@@ -135,14 +134,13 @@ class TwitterStatusFetcher(SafePrinterMixin):
                 if url and type == "photo":
                     extension = url.lower().split(".")[-1]
                     mime_type = (
-                        KNOWN_IMAGE_FORMATS.get(extension)
-                        if extension
-                        else KNOWN_IMAGE_FORMATS.get("png")
+                        KNOWN_IMAGE_FORMATS.get(extension) if extension else KNOWN_IMAGE_FORMATS.get("png")
                     )  # default to PNG
+                    open_ai_token = self.__access_token_resolver.require_access_token_for_tool(ComputerVisionAnalyzer.get_tool())
                     analyzer = ComputerVisionAnalyzer(
                         job_id = f"tweet-{self.tweet_id}",
                         image_mime_type = str(mime_type),
-                        open_ai_api_key = SecretStr(config.open_ai_token),
+                        open_ai_api_key = open_ai_token,
                         image_url = url,
                         additional_context = f"[[ Tweet / X Post ]]\n\n{additional_context}",
                     )

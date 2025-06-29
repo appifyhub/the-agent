@@ -192,7 +192,7 @@ class TwitterStatusFetcherTest(unittest.TestCase):
     @patch("features.web_browsing.twitter_status_fetcher.ComputerVisionAnalyzer")
     def test_resolve_photo_contents(self, m, mock_analyzer, mock_token_resolver, mock_auth_service):
         mock_auth_service.return_value.validate_user.return_value = self.mock_user
-        mock_token_resolver.return_value.require_access_token_for_tool.return_value = "test_token"
+        mock_token_resolver.return_value.require_access_token_for_tool.return_value = SecretStr("test_token")
 
         # Mock the analyzer's execute method to return a fixed description
         mock_analyzer.return_value.execute.return_value = "A beautiful landscape."
