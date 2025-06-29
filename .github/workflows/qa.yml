@@ -29,15 +29,16 @@ jobs:
         with:
           python-version: "3.12.6"
 
+      - name: Install pipenv
+        run: pip install --no-cache-dir pipenv
+
       - name: Lint checks
-        uses: chartboost/ruff-action@v1
+        run: ./tools/run_lint.sh
 
       - name: Test the service
         env:
           BUILD_QUALITY: "PR"
-        run: |
-          pip install --no-cache-dir pipenv
-          ./tools/run_tests.sh
+        run: ./tools/run_tests.sh
 
       - name: Build Docker image
         run: docker build . --file Dockerfile --tag the-agent
