@@ -2,12 +2,16 @@ import json
 from datetime import datetime, timedelta
 from time import sleep
 from typing import Any, Dict
+from uuid import UUID
 
+from api.authorization_service import AuthorizationService
+from db.crud.chat_config import ChatConfigCRUD
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from db.schema.user import User
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.currencies.supported_currencies import SUPPORTED_CRYPTO, SUPPORTED_FIAT
 from features.external_tools.access_token_resolver import AccessTokenResolver
 from features.external_tools.external_tool_library import CRYPTO_CURRENCY_EXCHANGE, FIAT_CURRENCY_EXCHANGE
@@ -27,23 +31,20 @@ class ExchangeRateFetcher(SafePrinterMixin):
 
     def __init__(
         self,
+        invoker_user: str | UUID | User,
         user_dao: UserCRUD,
+        chat_config_dao: ChatConfigCRUD,
         cache_dao: ToolsCacheCRUD,
         sponsorship_dao: SponsorshipCRUD,
-        invoker_user: User | None = None,
-        invoker_user_id_hex: str | None = None,
+        telegram_sdk: TelegramBotSDK,
     ):
         super().__init__(config.verbose)
         self.__cache_dao = cache_dao
+        authorization_service = AuthorizationService(telegram_sdk, user_dao, chat_config_dao)
+        invoker_user = authorization_service.validate_user(invoker_user)
 
-        self.__token_resolver = AccessTokenResolver(
-            user_dao = user_dao,
-            sponsorship_dao = sponsorship_dao,
-            invoker_user = invoker_user,
-            invoker_user_id_hex = invoker_user_id_hex,
-        )
-        user_info = invoker_user.id.hex if invoker_user else invoker_user_id_hex
-        self.sprint(f"ExchangeRateFetcher initialized with user '{user_info}'")
+        self.__token_resolver = AccessTokenResolver(invoker_user, user_dao, sponsorship_dao)
+        self.sprint(f"ExchangeRateFetcher initialized with user '{invoker_user.id.hex}'")
 
     def execute(
         self,

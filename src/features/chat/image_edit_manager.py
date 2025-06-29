@@ -70,9 +70,9 @@ class ImageEditManager(SafePrinterMixin):
 
         self.__validate(invoker_user_id_hex)
         self.__token_resolver = AccessTokenResolver(
+            invoker_user = self.__invoker_user,
             user_dao = user_dao,
             sponsorship_dao = sponsorship_dao,
-            invoker_user = self.__invoker_user,
         )
 
         self.__attachments = TelegramBotSDKUtils.refresh_attachments(

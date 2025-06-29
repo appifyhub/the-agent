@@ -13,6 +13,7 @@ from db.schema.chat_config import ChatConfig
 from db.schema.price_alert import PriceAlert
 from db.schema.user import User
 from features.chat.price_alert_manager import PriceAlertManager
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
 
 
@@ -22,6 +23,7 @@ class PriceAlertManagerTest(unittest.TestCase):
     mock_price_alert_dao: PriceAlertCRUD
     mock_tools_cache_dao: ToolsCacheCRUD
     mock_sponsorship_dao: SponsorshipCRUD
+    mock_telegram_bot_sdk: TelegramBotSDK
     mock_exchange_rate_fetcher: ExchangeRateFetcher
 
     chat_id: str
@@ -35,6 +37,7 @@ class PriceAlertManagerTest(unittest.TestCase):
         self.mock_price_alert_dao = MagicMock(spec = PriceAlertCRUD)
         self.mock_tools_cache_dao = MagicMock(spec = ToolsCacheCRUD)
         self.mock_sponsorship_dao = MagicMock(spec = SponsorshipCRUD)
+        self.mock_telegram_bot_sdk = MagicMock(spec = TelegramBotSDK)
         self.mock_exchange_rate_fetcher = MagicMock(spec = ExchangeRateFetcher)
 
         self.chat_id = "test_chat_id"
@@ -58,37 +61,40 @@ class PriceAlertManagerTest(unittest.TestCase):
         self.mock_chat_config_dao.get.return_value = None
         with self.assertRaises(ValueError):
             PriceAlertManager(
-                self.chat_id,
-                self.user_id,
-                self.mock_user_dao,
-                self.mock_chat_config_dao,
-                self.mock_price_alert_dao,
-                self.mock_tools_cache_dao,
-                self.mock_sponsorship_dao,
+                target_chat_id = self.chat_id,
+                invoker_user_id_hex = self.user_id,
+                user_dao = self.mock_user_dao,
+                chat_config_dao = self.mock_chat_config_dao,
+                price_alert_dao = self.mock_price_alert_dao,
+                tools_cache_dao = self.mock_tools_cache_dao,
+                sponsorship_dao = self.mock_sponsorship_dao,
+                telegram_bot_sdk = self.mock_telegram_bot_sdk,
             )
 
     def test_initialization_invalid_user(self):
         self.mock_user_dao.get.return_value = None
         with self.assertRaises(ValueError):
             PriceAlertManager(
-                self.chat_id,
-                self.user_id,
-                self.mock_user_dao,
-                self.mock_chat_config_dao,
-                self.mock_price_alert_dao,
-                self.mock_tools_cache_dao,
-                self.mock_sponsorship_dao,
+                target_chat_id = self.chat_id,
+                invoker_user_id_hex = self.user_id,
+                user_dao = self.mock_user_dao,
+                chat_config_dao = self.mock_chat_config_dao,
+                price_alert_dao = self.mock_price_alert_dao,
+                tools_cache_dao = self.mock_tools_cache_dao,
+                sponsorship_dao = self.mock_sponsorship_dao,
+                telegram_bot_sdk = self.mock_telegram_bot_sdk,
             )
 
     def test_create_alert(self):
         manager = PriceAlertManager(
-            self.chat_id,
-            self.user_id,
-            self.mock_user_dao,
-            self.mock_chat_config_dao,
-            self.mock_price_alert_dao,
-            self.mock_tools_cache_dao,
-            self.mock_sponsorship_dao,
+            target_chat_id = self.chat_id,
+            invoker_user_id_hex = self.user_id,
+            user_dao = self.mock_user_dao,
+            chat_config_dao = self.mock_chat_config_dao,
+            price_alert_dao = self.mock_price_alert_dao,
+            tools_cache_dao = self.mock_tools_cache_dao,
+            sponsorship_dao = self.mock_sponsorship_dao,
+            telegram_bot_sdk = self.mock_telegram_bot_sdk,
         )
         # Mock the cache to return None for cache miss
         self.mock_tools_cache_dao.get.return_value = None
@@ -120,13 +126,14 @@ class PriceAlertManagerTest(unittest.TestCase):
 
     def test_get_all_alerts(self):
         manager = PriceAlertManager(
-            self.chat_id,
-            self.user_id,
-            self.mock_user_dao,
-            self.mock_chat_config_dao,
-            self.mock_price_alert_dao,
-            self.mock_tools_cache_dao,
-            self.mock_sponsorship_dao,
+            target_chat_id = self.chat_id,
+            invoker_user_id_hex = self.user_id,
+            user_dao = self.mock_user_dao,
+            chat_config_dao = self.mock_chat_config_dao,
+            price_alert_dao = self.mock_price_alert_dao,
+            tools_cache_dao = self.mock_tools_cache_dao,
+            sponsorship_dao = self.mock_sponsorship_dao,
+            telegram_bot_sdk = self.mock_telegram_bot_sdk,
         )
         mock_alerts = [
             PriceAlert(
@@ -157,13 +164,14 @@ class PriceAlertManagerTest(unittest.TestCase):
 
     def test_delete_alert(self):
         manager = PriceAlertManager(
-            self.chat_id,
-            self.user_id,
-            self.mock_user_dao,
-            self.mock_chat_config_dao,
-            self.mock_price_alert_dao,
-            self.mock_tools_cache_dao,
-            self.mock_sponsorship_dao,
+            target_chat_id = self.chat_id,
+            invoker_user_id_hex = self.user_id,
+            user_dao = self.mock_user_dao,
+            chat_config_dao = self.mock_chat_config_dao,
+            price_alert_dao = self.mock_price_alert_dao,
+            tools_cache_dao = self.mock_tools_cache_dao,
+            sponsorship_dao = self.mock_sponsorship_dao,
+            telegram_bot_sdk = self.mock_telegram_bot_sdk,
         )
         mock_deleted_alert = PriceAlert(
             chat_id = self.chat_id,
@@ -192,6 +200,7 @@ class PriceAlertManagerTest(unittest.TestCase):
             self.mock_price_alert_dao,
             self.mock_tools_cache_dao,
             self.mock_sponsorship_dao,
+            self.mock_telegram_bot_sdk,
         )
         mock_alerts = [
             PriceAlert(
@@ -247,6 +256,7 @@ class PriceAlertManagerTest(unittest.TestCase):
             self.mock_price_alert_dao,
             self.mock_tools_cache_dao,
             self.mock_sponsorship_dao,
+            self.mock_telegram_bot_sdk,
         )
         mock_alerts = [
             PriceAlert(

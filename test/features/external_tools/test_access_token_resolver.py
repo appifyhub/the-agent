@@ -94,40 +94,6 @@ class AccessTokenResolverTest(unittest.TestCase):
         self.assertIsNotNone(resolver)
         self.mock_user_dao.get.assert_not_called()
 
-    def test_init_with_user_id_hex_success(self):
-        user_db = UserDB(**self.invoker_user.model_dump())
-        self.mock_user_dao.get.return_value = user_db
-
-        resolver = AccessTokenResolver(
-            user_dao = self.mock_user_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            invoker_user_id_hex = self.invoker_user.id.hex,
-        )
-
-        self.assertIsNotNone(resolver)
-        self.mock_user_dao.get.assert_called_once_with(self.invoker_user.id)
-
-    def test_init_failure_no_parameters(self):
-        with self.assertRaises(ValueError) as context:
-            AccessTokenResolver(
-                user_dao = self.mock_user_dao,
-                sponsorship_dao = self.mock_sponsorship_dao,
-            )
-
-        self.assertIn("Either invoker_user or invoker_user_id_hex must be provided", str(context.exception))
-
-    def test_init_failure_user_not_found(self):
-        self.mock_user_dao.get.return_value = None
-
-        with self.assertRaises(ValueError) as context:
-            AccessTokenResolver(
-                user_dao = self.mock_user_dao,
-                sponsorship_dao = self.mock_sponsorship_dao,
-                invoker_user_id_hex = self.invoker_user.id.hex,
-            )
-
-        self.assertIn(f"Invoker user '{self.invoker_user.id.hex}' not found", str(context.exception))
-
     def test_get_access_token_success_user_has_direct_token(self):
         # Mock to avoid sponsorship lookup since user has direct token
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []

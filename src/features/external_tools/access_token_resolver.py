@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from pydantic import SecretStr
 
 from db.crud.sponsorship import SponsorshipCRUD
@@ -36,34 +34,14 @@ class AccessTokenResolver(SafePrinterMixin):
 
     def __init__(
         self,
+        invoker_user: User,
         user_dao: UserCRUD,
         sponsorship_dao: SponsorshipCRUD,
-        invoker_user: User | None = None,
-        invoker_user_id_hex: str | None = None,
     ):
         super().__init__(config.verbose)
+        self.__invoker = invoker_user
         self.__user_dao = user_dao
         self.__sponsorship_dao = sponsorship_dao
-        self.__validate(invoker_user, invoker_user_id_hex)
-
-    def __validate(self, invoker_user: User | None, invoker_user_id_hex: str | None):
-        # nothing is provided
-        if invoker_user is None and invoker_user_id_hex is None:
-            message = "Either invoker_user or invoker_user_id_hex must be provided"
-            self.sprint(message)
-            raise ValueError(message)
-        # invoker object is provided
-        if invoker_user is not None:
-            self.sprint(f"AccessTokenResolver initialized with user object '{invoker_user.id.hex}'")
-            self.__invoker = invoker_user
-            return
-        # only the ID is provided
-        invoker_user_db = self.__user_dao.get(UUID(hex = invoker_user_id_hex))
-        if not invoker_user_db:
-            message = f"Invoker user '{invoker_user_id_hex}' not found"
-            self.sprint(message)
-            raise ValueError(message)
-        self.__invoker = User.model_validate(invoker_user_db)
 
     def require_access_token_for_tool(self, tool: ExternalTool) -> SecretStr:
         token = self.get_access_token_for_tool(tool)

@@ -106,7 +106,7 @@ class SettingsController(SafePrinterMixin):
 
     def fetch_external_tools(self, user_id_hex: str) -> dict[str, Any]:
         user = self.__authorization_service.authorize_for_user(self.__invoker_user, user_id_hex)
-        resolver = AccessTokenResolver(self.__user_dao, self.__sponsorship_dao, user)
+        resolver = AccessTokenResolver(user, self.__user_dao, self.__sponsorship_dao)
         tools: List[ExternalToolResponse] = []
         providers: List[ExternalToolProviderResponse] = []
         for tool in ALL_EXTERNAL_TOOLS:

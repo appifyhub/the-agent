@@ -30,6 +30,7 @@ def respond_with_price_alerts(
         price_alert_dao = price_alert_dao,
         tools_cache_dao = tools_cache_dao,
         sponsorship_dao = sponsorship_dao,
+        telegram_bot_sdk = telegram_bot_sdk,
     )
 
     chats_notified: int = 0
@@ -69,7 +70,15 @@ def respond_with_price_alerts(
                     f"in chat {triggered_alert.chat_id}",
                 )
                 raw_information = json.dumps(triggered_alert.model_dump(mode = "json"))
-                answer = InformationAnnouncer(raw_information, language_name, language_iso_code).execute()
+                answer = InformationAnnouncer(
+                    raw_information = raw_information,
+                    invoker_user = triggered_alert.owner_id,
+                    target_chat = chat_config,
+                    user_dao = user_dao,
+                    chat_config_dao = chat_config_dao,
+                    sponsorship_dao = sponsorship_dao,
+                    telegram_bot_sdk = telegram_bot_sdk,
+                ).execute()
                 if not answer.content:
                     raise ValueError("LLM Answer not received")
                 announcement_text = translations.save(str(answer.content), language_name, language_iso_code)

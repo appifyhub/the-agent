@@ -49,9 +49,9 @@ class GenerativeImagingManager(SafePrinterMixin):
 
         self.__validate(invoker_user_id_hex)
         self.__token_resolver = AccessTokenResolver(
+            invoker_user = self.__invoker_user,
             user_dao = user_dao,
             sponsorship_dao = sponsorship_dao,
-            invoker_user = self.__invoker_user,
         )
         anthropic_token = self.__token_resolver.require_access_token_for_tool(CLAUDE_3_5_HAIKU)
 

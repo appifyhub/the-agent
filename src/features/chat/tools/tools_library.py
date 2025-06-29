@@ -185,10 +185,12 @@ def get_exchange_rate(user_id: str, base_currency: str, desired_currency: str, a
     try:
         with get_detached_session() as db:
             fetcher = ExchangeRateFetcher(
-                UserCRUD(db),
-                ToolsCacheCRUD(db),
-                SponsorshipCRUD(db),
-                invoker_user_id_hex = user_id,
+                invoker_user = user_id,
+                user_dao = UserCRUD(db),
+                chat_config_dao = ChatConfigCRUD(db),
+                cache_dao = ToolsCacheCRUD(db),
+                sponsorship_dao = SponsorshipCRUD(db),
+                telegram_sdk = TelegramBotSDK(db),
             )
             result = fetcher.execute(base_currency, desired_currency, float(amount) if amount else 1.0)
             return json.dumps({"result": "Success", "exchange_rate": result})
@@ -214,8 +216,14 @@ def set_up_currency_price_alert(
     try:
         with get_detached_session() as db:
             alert_manager = PriceAlertManager(
-                chat_id, user_id,
-                UserCRUD(db), ChatConfigCRUD(db), PriceAlertCRUD(db), ToolsCacheCRUD(db), SponsorshipCRUD(db),
+                target_chat_id = chat_id,
+                invoker_user_id_hex = user_id,
+                user_dao = UserCRUD(db),
+                chat_config_dao = ChatConfigCRUD(db),
+                price_alert_dao = PriceAlertCRUD(db),
+                tools_cache_dao = ToolsCacheCRUD(db),
+                sponsorship_dao = SponsorshipCRUD(db),
+                telegram_bot_sdk = TelegramBotSDK(db),
             )
             alert = alert_manager.create_alert(base_currency, desired_currency, threshold_percent)
             return json.dumps({"result": "Success", "created_alert_data": alert.model_dump(mode = "json")})
@@ -238,8 +246,14 @@ def remove_currency_price_alerts(chat_id: str, user_id: str, base_currency: str,
     try:
         with get_detached_session() as db:
             alert_manager = PriceAlertManager(
-                chat_id, user_id,
-                UserCRUD(db), ChatConfigCRUD(db), PriceAlertCRUD(db), ToolsCacheCRUD(db), SponsorshipCRUD(db),
+                target_chat_id = chat_id,
+                invoker_user_id_hex = user_id,
+                user_dao = UserCRUD(db),
+                chat_config_dao = ChatConfigCRUD(db),
+                price_alert_dao = PriceAlertCRUD(db),
+                tools_cache_dao = ToolsCacheCRUD(db),
+                sponsorship_dao = SponsorshipCRUD(db),
+                telegram_bot_sdk = TelegramBotSDK(db),
             )
             alert = alert_manager.delete_alert(base_currency, desired_currency)
             deleted_alert_data = alert.model_dump(mode = "json") if alert else None
@@ -261,8 +275,14 @@ def list_currency_price_alerts(chat_id: str, user_id: str) -> str:
     try:
         with get_detached_session() as db:
             alert_manager = PriceAlertManager(
-                chat_id, user_id,
-                UserCRUD(db), ChatConfigCRUD(db), PriceAlertCRUD(db), ToolsCacheCRUD(db), SponsorshipCRUD(db),
+                target_chat_id = chat_id,
+                invoker_user_id_hex = user_id,
+                user_dao = UserCRUD(db),
+                chat_config_dao = ChatConfigCRUD(db),
+                price_alert_dao = PriceAlertCRUD(db),
+                tools_cache_dao = ToolsCacheCRUD(db),
+                sponsorship_dao = SponsorshipCRUD(db),
+                telegram_bot_sdk = TelegramBotSDK(db),
             )
             alerts = alert_manager.get_active_alerts()
             return json.dumps({"result": "Success", "alerts": [alert.model_dump(mode = "json") for alert in alerts]})
@@ -421,7 +441,9 @@ def request_feature_bug_or_support(
                 include_full_name = include_full_name,
                 request_type_str = request_type,
                 user_dao = UserCRUD(db),
+                chat_config_dao = ChatConfigCRUD(db),
                 sponsorship_dao = SponsorshipCRUD(db),
+                telegram_bot_sdk = TelegramBotSDK(db),
             )
             issue_url = manager.execute()
             return json.dumps(

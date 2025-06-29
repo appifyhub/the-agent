@@ -4,6 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+from api.authorization_service import AuthorizationService
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.price_alert import PriceAlertCRUD
 from db.crud.sponsorship import SponsorshipCRUD
@@ -13,6 +14,7 @@ from db.model.price_alert import PriceAlertDB
 from db.schema.chat_config import ChatConfig
 from db.schema.price_alert import PriceAlert, PriceAlertSave
 from db.schema.user import User
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config
@@ -50,6 +52,7 @@ class PriceAlertManager(SafePrinterMixin):
     __price_alert_dao: PriceAlertCRUD
     __tools_cache_dao: ToolsCacheCRUD
     __sponsorship_dao: SponsorshipCRUD
+    __telegram_bot_sdk: TelegramBotSDK
 
     def __init__(
         self,
@@ -60,6 +63,7 @@ class PriceAlertManager(SafePrinterMixin):
         price_alert_dao: PriceAlertCRUD,
         tools_cache_dao: ToolsCacheCRUD,
         sponsorship_dao: SponsorshipCRUD,
+        telegram_bot_sdk: TelegramBotSDK,
     ):
         super().__init__(config.verbose)
         self.__user_dao = user_dao
@@ -67,25 +71,10 @@ class PriceAlertManager(SafePrinterMixin):
         self.__price_alert_dao = price_alert_dao
         self.__tools_cache_dao = tools_cache_dao
         self.__sponsorship_dao = sponsorship_dao
-        self.__validate(invoker_user_id_hex, target_chat_id)
-
-    def __validate(self, invoker_user_id_hex: str, target_chat_id: str | None):
-        invoker_user_db = self.__user_dao.get(UUID(hex = invoker_user_id_hex))
-        if not invoker_user_db:
-            message = f"Invoker '{invoker_user_id_hex}' not found"
-            self.sprint(message)
-            raise ValueError(message)
-        self.__invoker_user = User.model_validate(invoker_user_db)
-
-        if target_chat_id:
-            chat_config_db = self.__chat_config_dao.get(target_chat_id)
-            if not chat_config_db:
-                message = f"Chat '{target_chat_id}' not found"
-                self.sprint(message)
-                raise ValueError(message)
-            self.__target_chat_config = ChatConfig.model_validate(chat_config_db)
-        else:
-            self.__target_chat_config = None
+        self.__telegram_bot_sdk = telegram_bot_sdk
+        authorization_service = AuthorizationService(telegram_bot_sdk, user_dao, chat_config_dao)
+        self.__invoker_user = authorization_service.validate_user(invoker_user_id_hex)
+        self.__target_chat_config = authorization_service.validate_chat(target_chat_id) if target_chat_id else None
 
     def create_alert(self, base_currency: str, desired_currency: str, threshold_percent: int) -> ActiveAlert:
         self.sprint(f"Setting price alert for {base_currency}/{desired_currency} at {threshold_percent}%")
@@ -99,10 +88,12 @@ class PriceAlertManager(SafePrinterMixin):
             raise ValueError(message)
 
         exchange_rate_fetcher = ExchangeRateFetcher(
+            self.__invoker_user,
             self.__user_dao,
+            self.__chat_config_dao,
             self.__tools_cache_dao,
             self.__sponsorship_dao,
-            invoker_user = self.__invoker_user,
+            self.__telegram_bot_sdk,
         )
         current_rate: float = exchange_rate_fetcher.execute(base_currency, desired_currency)["rate"]
         price_alert_db = self.__price_alert_dao.save(
@@ -180,10 +171,12 @@ class PriceAlertManager(SafePrinterMixin):
         for alert in active_alerts:
             try:
                 exchange_rate_fetcher = ExchangeRateFetcher(
+                    alert.owner_id,
                     self.__user_dao,
+                    self.__chat_config_dao,
                     self.__tools_cache_dao,
                     self.__sponsorship_dao,
-                    invoker_user_id_hex = alert.owner_id.hex,
+                    self.__telegram_bot_sdk,
                 )
                 current_rate: float = exchange_rate_fetcher.execute(alert.base_currency, alert.desired_currency)["rate"]
                 price_change_percent: int

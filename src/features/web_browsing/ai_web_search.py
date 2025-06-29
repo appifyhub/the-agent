@@ -35,9 +35,9 @@ class AIWebSearch(SafePrinterMixin):
 
         self.__validate(invoker_user_id_hex)
         token_resolver = AccessTokenResolver(
+            invoker_user = self.__invoker,
             user_dao = user_dao,
             sponsorship_dao = sponsorship_dao,
-            invoker_user = self.__invoker,
         )
 
         resolved_token = token_resolver.require_access_token_for_tool(SONAR)

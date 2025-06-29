@@ -25,24 +25,31 @@ class AuthorizationService(SafePrinterMixin):
         self.__user_dao = user_dao
         self.__chat_config_dao = chat_config_dao
 
-    def validate_chat(self, chat_id: str) -> ChatConfig:
+    def validate_chat(self, chat: str | ChatConfig) -> ChatConfig:
+        if isinstance(chat, ChatConfig):
+            return chat
+
         self.sprint("Validating chat data")
-        chat_config_db = self.__chat_config_dao.get(chat_id)
+        chat_config_db = self.__chat_config_dao.get(chat)
         if not chat_config_db:
-            message = f"Chat '{chat_id}' not found"
+            message = f"Chat '{chat}' not found"
             self.sprint(message)
             raise ValueError(message)
         return ChatConfig.model_validate(chat_config_db)
 
-    def validate_user(self, user_id_hex: str) -> User:
-        user_db = self.__user_dao.get(UUID(hex = user_id_hex))
+    def validate_user(self, user: str | UUID | User) -> User:
+        if isinstance(user, User):
+            return user
+
+        user_db = self.__user_dao.get(user if isinstance(user, UUID) else UUID(hex = user))
         if not user_db:
-            message = f"User '{user_id_hex}' not found"
+            message = f"User '{user}' not found"
             self.sprint(message)
             raise ValueError(message)
         return User.model_validate(user_db)
 
-    def get_authorized_chats(self, user: User) -> list[ChatConfig]:
+    def get_authorized_chats(self, user: str | UUID | User) -> list[ChatConfig]:
+        user = self.validate_user(user)
         self.sprint(f"Getting administered chats for user {user.id.hex}")
 
         if not user.telegram_user_id:
@@ -95,9 +102,11 @@ class AuthorizationService(SafePrinterMixin):
         )
         return administered_chats
 
-    def authorize_for_chat(self, invoker_user: User, chat_id: str) -> ChatConfig:
-        self.sprint(f"Validating admin rights for invoker in chat '{chat_id}'")
-        chat_config = self.validate_chat(chat_id)
+    def authorize_for_chat(self, invoker_user: str | UUID | User, target_chat: str | ChatConfig) -> ChatConfig:
+        invoker_user = self.validate_user(invoker_user)
+        chat_display = target_chat if isinstance(target_chat, str) else target_chat.chat_id
+        self.sprint(f"Validating admin rights for invoker in chat '{chat_display}'")
+        chat_config = self.validate_chat(target_chat)
         admin_chat_configs = self.get_authorized_chats(invoker_user)
         for admin_chat_config in admin_chat_configs:
             if admin_chat_config.chat_id == chat_config.chat_id:
@@ -106,10 +115,12 @@ class AuthorizationService(SafePrinterMixin):
         self.sprint(message)
         raise ValueError(message)
 
-    def authorize_for_user(self, invoker_user: User, user_id_hex: str) -> User:
-        user = self.validate_user(user_id_hex)
-        if invoker_user.id != user.id:
-            message = f"Target user '{user_id_hex}' is not the allowed user '{invoker_user.id.hex}'"
+    def authorize_for_user(self, invoker_user: str | UUID | User, target_user: str | UUID | User) -> User:
+        invoker_user = self.validate_user(invoker_user)
+        target_user = self.validate_user(target_user)
+        if invoker_user.id != target_user.id:
+            user_display = target_user if isinstance(target_user, str) else str(target_user)
+            message = f"Target user '{user_display}' is not the allowed user '{invoker_user.id.hex}'"
             self.sprint(message)
             raise ValueError(message)
-        return user
+        return target_user

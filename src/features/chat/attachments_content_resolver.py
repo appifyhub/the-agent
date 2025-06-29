@@ -79,9 +79,9 @@ class AttachmentsContentResolver(SafePrinterMixin):
 
         self.__validate(chat_id, invoker_user_id_hex, attachment_ids)
         self.__token_resolver = AccessTokenResolver(
+            invoker_user = self.__invoker,
             user_dao = user_dao,
             sponsorship_dao = sponsorship_dao,
-            invoker_user = self.__invoker,
         )
 
     def __validate(self, chat_id: str, invoker_user_id_hex: str, attachment_ids: list[str]) -> None:

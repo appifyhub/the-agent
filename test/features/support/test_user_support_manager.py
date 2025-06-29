@@ -1,21 +1,25 @@
 import unittest
 from datetime import datetime
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, mock_open, patch
 from uuid import UUID
 
 import requests
 from langchain_core.messages import AIMessage
 
+from db.crud.chat_config import ChatConfigCRUD
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.model.user import UserDB
 from db.schema.user import User
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.support.user_support_manager import UserSupportManager
 
 
 class UserSupportManagerTest(unittest.TestCase):
     user: User
     mock_user_dao: UserCRUD
+    mock_chat_config_dao: ChatConfigCRUD
+    mock_telegram_bot_sdk: TelegramBotSDK
     manager: UserSupportManager
 
     def setUp(self):
@@ -33,6 +37,8 @@ class UserSupportManagerTest(unittest.TestCase):
         self.mock_user_dao = Mock(spec = UserCRUD)
         self.mock_user_dao.get.return_value = UserDB(**self.user.model_dump())
         self.mock_sponsorship_dao = Mock(spec = SponsorshipCRUD)
+        self.mock_chat_config_dao = Mock(spec = ChatConfigCRUD)
+        self.mock_telegram_bot_sdk = Mock(spec = TelegramBotSDK)
         self.manager = UserSupportManager(
             user_input = "Test input",
             invoker_user_id_hex = self.user.id.hex,
@@ -41,11 +47,14 @@ class UserSupportManagerTest(unittest.TestCase):
             include_full_name = True,
             request_type_str = "bug",
             user_dao = self.mock_user_dao,
+            chat_config_dao = self.mock_chat_config_dao,
             sponsorship_dao = self.mock_sponsorship_dao,
+            telegram_bot_sdk = self.mock_telegram_bot_sdk,
         )
 
     def test_resolve_request_type(self):
-        self.assertEqual(self.manager.request_type, UserSupportManager.RequestType.bug)
+        # noinspection PyUnresolvedReferences
+        self.assertEqual(self.manager._UserSupportManager__request_type, UserSupportManager.RequestType.bug)
 
         manager = UserSupportManager(
             user_input = "Test input",
@@ -55,23 +64,32 @@ class UserSupportManagerTest(unittest.TestCase):
             include_full_name = True,
             request_type_str = "invalid_type",
             user_dao = self.mock_user_dao,
+            chat_config_dao = self.mock_chat_config_dao,
             sponsorship_dao = self.mock_sponsorship_dao,
+            telegram_bot_sdk = self.mock_telegram_bot_sdk,
         )
-        self.assertEqual(manager.request_type, UserSupportManager.RequestType.request)
-
-    def test_validate_invoker_success(self):
-        self.mock_user_dao.get.return_value = self.user
         # noinspection PyUnresolvedReferences
-        self.manager._UserSupportManager__validate_invoker()
-        self.assertEqual(self.manager.invoker, self.user)
+        self.assertEqual(manager._UserSupportManager__request_type, UserSupportManager.RequestType.request)
 
-    def test_validate_invoker_failure(self):
-        self.mock_user_dao.get.return_value = None
+    def test_invoker_user_validation_failure(self):
+        # Test that invalid user ID raises ValueError during initialization
+        mock_user_dao = Mock(spec = UserCRUD)
+        mock_user_dao.get.return_value = None
         with self.assertRaises(ValueError):
-            # noinspection PyUnresolvedReferences
-            self.manager._UserSupportManager__validate_invoker()
+            UserSupportManager(
+                user_input = "Test input",
+                invoker_user_id_hex = "invalid_user_id",
+                invoker_github_username = "test_github",
+                include_telegram_username = True,
+                include_full_name = True,
+                request_type_str = "bug",
+                user_dao = mock_user_dao,
+                chat_config_dao = self.mock_chat_config_dao,
+                sponsorship_dao = self.mock_sponsorship_dao,
+                telegram_bot_sdk = self.mock_telegram_bot_sdk,
+            )
 
-    @patch("builtins.open", new_callable = unittest.mock.mock_open, read_data = "test template")
+    @patch("builtins.open", new_callable = mock_open, read_data = "test template")
     def test_load_template(self, mock_open):
         # noinspection PyUnresolvedReferences
         template = self.manager._UserSupportManager__load_template()
