@@ -152,17 +152,21 @@ def process_attachments(
 
 
 @tool
-def fetch_web_content(url: str) -> str:
+def fetch_web_content(url: str, user_id: str) -> str:
     """
     Fetches the text content from the given web page URL.
 
     Args:
         url: [mandatory] A valid URL of the web page, starting with 'http://' or 'https://' provided in the text
+        user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
     """
     try:
         with get_detached_session() as db:
             tools_cache_dao = ToolsCacheCRUD(db)
-            html = WebFetcher(url, tools_cache_dao, auto_fetch_html = True).html
+            html = WebFetcher(
+                url, user_id,
+                UserCRUD(db), ChatConfigCRUD(db), tools_cache_dao, TelegramBotSDK(db),
+            ).html
             text = HTMLContentCleaner(str(html), tools_cache_dao).clean_up()
             result = text[:TOOL_TRUNCATE_LENGTH] + "..." if len(text) > TOOL_TRUNCATE_LENGTH else text
             return json.dumps({"result": "Success", "content": result})
@@ -353,13 +357,15 @@ def announce_maintenance_or_news(user_id: str, raw_announcement: str) -> str:
     try:
         with get_detached_session() as db:
             manager = AnnouncementManager(
-                invoker_user_id_hex = user_id,
                 raw_message = raw_announcement,
-                translations = TranslationsCache(),
-                telegram_bot_sdk = TelegramBotSDK(db),
+                invoker_user = user_id,
+                target_telegram_username = None,
                 user_dao = UserCRUD(db),
                 chat_config_dao = ChatConfigCRUD(db),
                 chat_message_dao = ChatMessageCRUD(db),
+                sponsorship_dao = SponsorshipCRUD(db),
+                telegram_bot_sdk = TelegramBotSDK(db),
+                translations = TranslationsCache(),
             )
             results = manager.execute()
             return json.dumps(
@@ -387,14 +393,15 @@ def deliver_message(author_user_id: str, message: str, target_telegram_username:
     try:
         with get_detached_session() as db:
             manager = AnnouncementManager(
-                invoker_user_id_hex = author_user_id,
                 raw_message = message,
-                translations = TranslationsCache(),
-                telegram_bot_sdk = TelegramBotSDK(db),
+                invoker_user = author_user_id,
+                target_telegram_username = target_telegram_username,
                 user_dao = UserCRUD(db),
                 chat_config_dao = ChatConfigCRUD(db),
                 chat_message_dao = ChatMessageCRUD(db),
-                target_telegram_username = target_telegram_username,
+                sponsorship_dao = SponsorshipCRUD(db),
+                telegram_bot_sdk = TelegramBotSDK(db),
+                translations = TranslationsCache(),
             )
             results = manager.execute()
             return json.dumps(

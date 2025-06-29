@@ -3,12 +3,19 @@ import platform
 import time
 from datetime import datetime, timedelta
 from typing import Any
+from uuid import UUID
 
 import requests
 from requests.exceptions import RequestException, Timeout
 
+from api.authorization_service import AuthorizationService
+from db.crud.chat_config import ChatConfigCRUD
+from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
+from db.crud.user import UserCRUD
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
+from db.schema.user import User
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.web_browsing.twitter_status_fetcher import TwitterStatusFetcher
 from features.web_browsing.twitter_utils import resolve_tweet_id
 from features.web_browsing.uri_cleanup import simplify_url
@@ -33,12 +40,22 @@ class WebFetcher(SafePrinterMixin):
     __params: dict[str, Any]
     __cache_ttl_html: timedelta
     __cache_ttl_json: timedelta
+    __invoker_user: User
     __cache_dao: ToolsCacheCRUD
+    __user_dao: UserCRUD
+    __chat_config_dao: ChatConfigCRUD
+    __sponsorship_dao: SponsorshipCRUD
+    __telegram_bot_sdk: TelegramBotSDK
 
     def __init__(
         self,
         url: str,
+        invoker_user: str | UUID | User,
+        user_dao: UserCRUD,
+        chat_config_dao: ChatConfigCRUD,
         cache_dao: ToolsCacheCRUD,
+        sponsorship_dao: SponsorshipCRUD,
+        telegram_bot_sdk: TelegramBotSDK,
         headers: dict[str, str] | None = None,
         params: dict[str, Any] | None = None,
         cache_ttl_html: timedelta | None = None,
@@ -47,6 +64,13 @@ class WebFetcher(SafePrinterMixin):
         auto_fetch_json: bool = False,
     ):
         super().__init__(config.verbose)
+        authorization_service = AuthorizationService(telegram_bot_sdk, user_dao, chat_config_dao)
+        self.__invoker_user = authorization_service.validate_user(invoker_user)
+        self.__user_dao = user_dao
+        self.__chat_config_dao = chat_config_dao
+        self.__sponsorship_dao = sponsorship_dao
+        self.__telegram_bot_sdk = telegram_bot_sdk
+
         self.url = url
         self.html = None
         self.json = None
@@ -85,7 +109,15 @@ class WebFetcher(SafePrinterMixin):
         for _ in range(config.web_retries):
             try:
                 if self.tweed_id:
-                    tweet_fetcher = TwitterStatusFetcher(self.tweed_id, self.__cache_dao)
+                    tweet_fetcher = TwitterStatusFetcher(
+                        self.tweed_id,
+                        self.__invoker_user,
+                        self.__cache_dao,
+                        self.__user_dao,
+                        self.__chat_config_dao,
+                        self.__sponsorship_dao,
+                        self.__telegram_bot_sdk,
+                    )
                     response_text = tweet_fetcher.execute()
                     self.html = f"<html><body>\n<p>\n{response_text}\n</p>\n</body></html>"
                 else:
@@ -112,7 +144,7 @@ class WebFetcher(SafePrinterMixin):
                 self.__cache_dao.save(
                     ToolsCacheSave(
                         key = self.__cache_key,
-                        value = self.html,
+                        value = self.html or "",
                         expires_at = datetime.now() + self.__cache_ttl_html,
                     ),
                 )
@@ -141,7 +173,15 @@ class WebFetcher(SafePrinterMixin):
         for _ in range(config.web_retries):
             try:
                 if self.tweed_id:
-                    tweet_fetcher = TwitterStatusFetcher(self.tweed_id, self.__cache_dao)
+                    tweet_fetcher = TwitterStatusFetcher(
+                        self.tweed_id,
+                        self.__invoker_user,
+                        self.__cache_dao,
+                        self.__user_dao,
+                        self.__chat_config_dao,
+                        self.__sponsorship_dao,
+                        self.__telegram_bot_sdk,
+                    )
                     response_text = tweet_fetcher.execute()
                     self.json = {"content": response_text}
                 else:

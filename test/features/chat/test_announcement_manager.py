@@ -7,6 +7,7 @@ from langchain_core.messages import AIMessage
 
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
+from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.model.user import UserDB
 from db.schema.user import User
@@ -24,6 +25,7 @@ class AnnouncementManagerTest(unittest.TestCase):
     mock_user_dao: UserCRUD
     mock_chat_config_dao: ChatConfigCRUD
     mock_chat_message_dao: ChatMessageCRUD
+    mock_sponsorship_dao: SponsorshipCRUD
     mock_telegram_bot_sdk: TelegramBotSDK
     mock_translations: TranslationsCache
 
@@ -37,6 +39,7 @@ class AnnouncementManagerTest(unittest.TestCase):
             telegram_chat_id = "dev_chat_id",
             telegram_user_id = 1,
             open_ai_key = "test_api_key",
+            anthropic_key = "test_anthropic_key",
             group = UserDB.Group.developer,
             created_at = datetime.now().date(),
         )
@@ -44,22 +47,26 @@ class AnnouncementManagerTest(unittest.TestCase):
         self.mock_user_dao = MagicMock(spec = UserCRUD)
         self.mock_chat_config_dao = MagicMock(spec = ChatConfigCRUD)
         self.mock_chat_message_dao = MagicMock(spec = ChatMessageCRUD)
+        self.mock_sponsorship_dao = MagicMock(spec = SponsorshipCRUD)
         self.mock_telegram_bot_sdk = MagicMock(spec = TelegramBotSDK)
         self.mock_telegram_bot_sdk.api = MagicMock(spec = TelegramBotAPI)
         self.mock_translations = MagicMock(spec = TranslationsCache)
 
         self.mock_user_dao.get.return_value = self.user
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
 
     # noinspection PyUnusedLocal
     def test_init_success(self, mock_chat_anthropic):
         manager = AnnouncementManager(
-            str(self.invoker_user_id),
             self.raw_announcement,
-            self.mock_translations,
-            self.mock_telegram_bot_sdk,
+            str(self.invoker_user_id),
+            None,
             self.mock_user_dao,
             self.mock_chat_config_dao,
             self.mock_chat_message_dao,
+            self.mock_sponsorship_dao,
+            self.mock_telegram_bot_sdk,
+            self.mock_translations,
         )
         self.assertIsInstance(manager, AnnouncementManager)
 
@@ -68,13 +75,15 @@ class AnnouncementManagerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = None
         with self.assertRaises(ValueError):
             AnnouncementManager(
-                str(self.invoker_user_id),
                 self.raw_announcement,
-                self.mock_translations,
-                self.mock_telegram_bot_sdk,
+                str(self.invoker_user_id),
+                None,
                 self.mock_user_dao,
                 self.mock_chat_config_dao,
                 self.mock_chat_message_dao,
+                self.mock_sponsorship_dao,
+                self.mock_telegram_bot_sdk,
+                self.mock_translations,
             )
 
     # noinspection PyUnusedLocal
@@ -82,13 +91,15 @@ class AnnouncementManagerTest(unittest.TestCase):
         self.user.group = UserDB.Group.standard
         with self.assertRaises(ValueError):
             AnnouncementManager(
-                str(self.invoker_user_id),
                 self.raw_announcement,
-                self.mock_translations,
-                self.mock_telegram_bot_sdk,
+                str(self.invoker_user_id),
+                None,
                 self.mock_user_dao,
                 self.mock_chat_config_dao,
                 self.mock_chat_message_dao,
+                self.mock_sponsorship_dao,
+                self.mock_telegram_bot_sdk,
+                self.mock_translations,
             )
 
     def test_execute_success(self, mock_chat_anthropic):
@@ -104,13 +115,15 @@ class AnnouncementManagerTest(unittest.TestCase):
         self.mock_translations.save.return_value = "Translated announcement"
 
         manager = AnnouncementManager(
-            str(self.invoker_user_id),
             self.raw_announcement,
-            self.mock_translations,
-            self.mock_telegram_bot_sdk,
+            str(self.invoker_user_id),
+            None,
             self.mock_user_dao,
             self.mock_chat_config_dao,
             self.mock_chat_message_dao,
+            self.mock_sponsorship_dao,
+            self.mock_telegram_bot_sdk,
+            self.mock_translations,
         )
         result = manager.execute()
 
@@ -135,13 +148,15 @@ class AnnouncementManagerTest(unittest.TestCase):
         self.mock_translations.get.return_value = None
 
         manager = AnnouncementManager(
-            str(self.invoker_user_id),
             self.raw_announcement,
-            self.mock_translations,
-            self.mock_telegram_bot_sdk,
+            str(self.invoker_user_id),
+            None,
             self.mock_user_dao,
             self.mock_chat_config_dao,
             self.mock_chat_message_dao,
+            self.mock_sponsorship_dao,
+            self.mock_telegram_bot_sdk,
+            self.mock_translations,
         )
         result = manager.execute()
 
@@ -165,13 +180,15 @@ class AnnouncementManagerTest(unittest.TestCase):
         self.mock_telegram_bot_sdk.send_text_message.side_effect = Exception("Notification failed")
 
         manager = AnnouncementManager(
-            str(self.invoker_user_id),
             self.raw_announcement,
-            self.mock_translations,
-            self.mock_telegram_bot_sdk,
+            str(self.invoker_user_id),
+            None,
             self.mock_user_dao,
             self.mock_chat_config_dao,
             self.mock_chat_message_dao,
+            self.mock_sponsorship_dao,
+            self.mock_telegram_bot_sdk,
+            self.mock_translations,
         )
         result = manager.execute()
 
@@ -190,13 +207,15 @@ class AnnouncementManagerTest(unittest.TestCase):
         self.mock_chat_config_dao.get_all.return_value = []
 
         manager = AnnouncementManager(
-            str(self.invoker_user_id),
             self.raw_announcement,
-            self.mock_translations,
-            self.mock_telegram_bot_sdk,
+            str(self.invoker_user_id),
+            None,
             self.mock_user_dao,
             self.mock_chat_config_dao,
             self.mock_chat_message_dao,
+            self.mock_sponsorship_dao,
+            self.mock_telegram_bot_sdk,
+            self.mock_translations,
         )
         result = manager.execute()
 
@@ -231,14 +250,15 @@ class AnnouncementManagerTest(unittest.TestCase):
         self.mock_translations.get.return_value = "Translated announcement"
 
         manager = AnnouncementManager(
-            str(self.invoker_user_id),
             self.raw_announcement,
-            self.mock_translations,
-            self.mock_telegram_bot_sdk,
+            str(self.invoker_user_id),
+            "target_user",
             self.mock_user_dao,
             self.mock_chat_config_dao,
             self.mock_chat_message_dao,
-            target_telegram_username = "target_user",
+            self.mock_sponsorship_dao,
+            self.mock_telegram_bot_sdk,
+            self.mock_translations,
         )
         result = manager.execute()
 
@@ -259,14 +279,15 @@ class AnnouncementManagerTest(unittest.TestCase):
 
         with self.assertRaises(ValueError) as context:
             AnnouncementManager(
-                str(self.invoker_user_id),
                 self.raw_announcement,
-                self.mock_translations,
-                self.mock_telegram_bot_sdk,
+                str(self.invoker_user_id),
+                "nonexistent_user",
                 self.mock_user_dao,
                 self.mock_chat_config_dao,
                 self.mock_chat_message_dao,
-                target_telegram_username = "nonexistent_user",
+                self.mock_sponsorship_dao,
+                self.mock_telegram_bot_sdk,
+                self.mock_translations,
             )
 
         self.assertIn("Target user 'nonexistent_user' not found", str(context.exception))
@@ -286,14 +307,15 @@ class AnnouncementManagerTest(unittest.TestCase):
 
         with self.assertRaises(ValueError) as context:
             AnnouncementManager(
-                str(self.invoker_user_id),
                 self.raw_announcement,
-                self.mock_translations,
-                self.mock_telegram_bot_sdk,
+                str(self.invoker_user_id),
+                "target_user",
                 self.mock_user_dao,
                 self.mock_chat_config_dao,
                 self.mock_chat_message_dao,
-                target_telegram_username = "target_user",
+                self.mock_sponsorship_dao,
+                self.mock_telegram_bot_sdk,
+                self.mock_translations,
             )
 
         self.assertIn("Target user 'target_user' has no private chat ID yet", str(context.exception))
@@ -314,14 +336,15 @@ class AnnouncementManagerTest(unittest.TestCase):
 
         with self.assertRaises(ValueError) as context:
             AnnouncementManager(
-                str(self.invoker_user_id),
                 self.raw_announcement,
-                self.mock_translations,
-                self.mock_telegram_bot_sdk,
+                str(self.invoker_user_id),
+                "target_user",
                 self.mock_user_dao,
                 self.mock_chat_config_dao,
                 self.mock_chat_message_dao,
-                target_telegram_username = "target_user",
+                self.mock_sponsorship_dao,
+                self.mock_telegram_bot_sdk,
+                self.mock_translations,
             )
 
         self.assertIn("Target chat 'nonexistent_chat_id' not found", str(context.exception))

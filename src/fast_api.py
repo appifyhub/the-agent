@@ -100,10 +100,12 @@ def notify_of_release(
     _ = Depends(verify_api_key),
 ) -> dict:
     return respond_with_summary(
+        payload = payload,
+        user_dao = UserCRUD(db),
         chat_config_dao = ChatConfigCRUD(db),
+        sponsorship_dao = SponsorshipCRUD(db),
         telegram_bot_sdk = TelegramBotSDK(db),
         translations = TranslationsCache(),
-        payload = payload,
     )
 
 

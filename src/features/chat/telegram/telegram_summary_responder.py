@@ -6,12 +6,15 @@ from typing import Any
 
 from api.models.release_output_payload import ReleaseOutputPayload
 from db.crud.chat_config import ChatConfigCRUD
+from db.crud.sponsorship import SponsorshipCRUD
+from db.crud.user import UserCRUD
 from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig
 from features.announcements.release_summarizer import ReleaseSummarizer
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.safe_printer_mixin import sprint
-from util.translations_cache import DEFAULT_ISO_CODE, DEFAULT_LANGUAGE, TranslationsCache
+from util.translations_cache import TranslationsCache
 
 
 class SummaryResult:
@@ -50,10 +53,12 @@ class SummaryResult:
 
 
 def respond_with_summary(
+    payload: ReleaseOutputPayload,
+    user_dao: UserCRUD,
     chat_config_dao: ChatConfigCRUD,
+    sponsorship_dao: SponsorshipCRUD,
     telegram_bot_sdk: TelegramBotSDK,
     translations: TranslationsCache,
-    payload: ReleaseOutputPayload,
 ) -> dict:
     result = SummaryResult()
     # decode the release output
@@ -78,10 +83,18 @@ def respond_with_summary(
 
     # summarize for the default language first
     try:
-        answer = ReleaseSummarizer(release_notes, DEFAULT_LANGUAGE, DEFAULT_ISO_CODE).execute()
+        answer = ReleaseSummarizer(
+            raw_notes = release_notes,
+            invoker_user = TELEGRAM_BOT_USER.id,  # type: ignore
+            target_chat = None,
+            user_dao = user_dao,
+            chat_config_dao = chat_config_dao,
+            sponsorship_dao = sponsorship_dao,
+            telegram_bot_sdk = telegram_bot_sdk,
+        ).execute()
         if not answer.content:
             raise ValueError("LLM Answer not received")
-        stripped_content = _strip_title_formatting(answer.content)
+        stripped_content = _strip_title_formatting(str(answer.content))
         translations.save(stripped_content)
         result.summary = stripped_content
         result.summaries_created += 1
@@ -105,10 +118,18 @@ def respond_with_summary(
         try:
             summary = translations.get(chat.language_name, chat.language_iso_code)
             if not summary:
-                answer = ReleaseSummarizer(release_notes, chat.language_name, chat.language_iso_code).execute()
+                answer = ReleaseSummarizer(
+                    raw_notes = release_notes,
+                    invoker_user = TELEGRAM_BOT_USER.id,  # type: ignore
+                    target_chat = chat,
+                    user_dao = user_dao,
+                    chat_config_dao = chat_config_dao,
+                    sponsorship_dao = sponsorship_dao,
+                    telegram_bot_sdk = telegram_bot_sdk,
+                ).execute()
                 if not answer.content:
                     raise ValueError("LLM Answer not received")
-                stripped_content = _strip_title_formatting(answer.content)
+                stripped_content = _strip_title_formatting(str(answer.content))
                 summary = translations.save(stripped_content, chat.language_name, chat.language_iso_code)
                 result.summaries_created += 1
         except Exception as e:

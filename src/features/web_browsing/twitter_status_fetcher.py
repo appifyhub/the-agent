@@ -1,12 +1,21 @@
 from datetime import datetime, timedelta
 from time import sleep
 from typing import Any, Dict
+from uuid import UUID
 
 import requests
+from pydantic import SecretStr
 
+from api.authorization_service import AuthorizationService
+from db.crud.chat_config import ChatConfigCRUD
+from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
+from db.crud.user import UserCRUD
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
+from db.schema.user import User
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from features.external_tools.access_token_resolver import AccessTokenResolver
 from features.external_tools.external_tool_library import TWITTER_API
 from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
 from util.config import config
@@ -20,12 +29,24 @@ RATE_LIMIT_DELAY_S = 2
 class TwitterStatusFetcher(SafePrinterMixin):
     tweet_id: str
     __cache_dao: ToolsCacheCRUD
-    __photo_analyzer: ComputerVisionAnalyzer
+    __access_token_resolver: AccessTokenResolver
 
-    def __init__(self, tweet_id: str, cache_dao: ToolsCacheCRUD):
+    def __init__(
+        self,
+        tweet_id: str,
+        invoker_user: str | UUID | User,
+        cache_dao: ToolsCacheCRUD,
+        user_dao: UserCRUD,
+        chat_config_dao: ChatConfigCRUD,
+        sponsorship_dao: SponsorshipCRUD,
+        telegram_bot_sdk: TelegramBotSDK,
+    ):
         super().__init__(config.verbose)
         self.tweet_id = tweet_id
         self.__cache_dao = cache_dao
+        authorization_service = AuthorizationService(telegram_bot_sdk, user_dao, chat_config_dao)
+        invoker_user = authorization_service.validate_user(invoker_user)
+        self.__access_token_resolver = AccessTokenResolver(invoker_user, user_dao, sponsorship_dao)
 
     def execute(self) -> str:
         self.sprint(f"Fetching content for tweet ID: {self.tweet_id}")
@@ -37,8 +58,14 @@ class TwitterStatusFetcher(SafePrinterMixin):
 
         sleep(RATE_LIMIT_DELAY_S)
         api_url = f"https://{TWITTER_API.id}/base/apitools/tweetSimple"
-        params = {"resFormat": "json", "id": self.tweet_id, "apiKey": config.rapid_api_twitter_token, "cursor": "-1"}
-        headers = {"X-RapidAPI-Key": config.rapid_api_token, "X-RapidAPI-Host": TWITTER_API.id}
+        rapid_api_token = self.__access_token_resolver.get_access_token_for_tool(TWITTER_API)
+        params = {
+            "resFormat": "json",
+            "id": self.tweet_id,
+            "apiKey": config.rapid_api_twitter_token,  # keep reading from system for now
+            "cursor": "-1",
+        }
+        headers = {"X-RapidAPI-Key": rapid_api_token, "X-RapidAPI-Host": TWITTER_API.id}
         response = requests.get(api_url, headers = headers, params = params, timeout = config.web_timeout_s)
         response.raise_for_status()
         response = response.json() or {}
@@ -81,7 +108,7 @@ class TwitterStatusFetcher(SafePrinterMixin):
             text_contents = "\n".join(
                 [
                     f"@{username} · {name}",
-                    f"[Locale:{language_iso_code}] Bio: \"{bio}\"",
+                    f'[Locale:{language_iso_code}] Bio: "{bio}"',
                     f"```\n{post_text}\n```",
                 ],
             )
@@ -107,12 +134,15 @@ class TwitterStatusFetcher(SafePrinterMixin):
                 type = attachment.get("type") or None
                 if url and type == "photo":
                     extension = url.lower().split(".")[-1]
-                    mime_type = KNOWN_IMAGE_FORMATS.get(extension) if extension \
-                        else KNOWN_IMAGE_FORMATS.get("png")  # default to PNG
+                    mime_type = (
+                        KNOWN_IMAGE_FORMATS.get(extension)
+                        if extension
+                        else KNOWN_IMAGE_FORMATS.get("png")
+                    )  # default to PNG
                     analyzer = ComputerVisionAnalyzer(
                         job_id = f"tweet-{self.tweet_id}",
-                        image_mime_type = mime_type,
-                        open_ai_api_key = config.open_ai_token,
+                        image_mime_type = str(mime_type),
+                        open_ai_api_key = SecretStr(config.open_ai_token),
                         image_url = url,
                         additional_context = f"[[ Tweet / X Post ]]\n\n{additional_context}",
                     )

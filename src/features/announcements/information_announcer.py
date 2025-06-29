@@ -16,7 +16,6 @@ from features.external_tools.external_tool_library import CLAUDE_3_5_SONNET
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
-from util.translations_cache import DEFAULT_ISO_CODE, DEFAULT_LANGUAGE
 
 
 # Not tested as it's just a proxy
@@ -39,8 +38,8 @@ class InformationAnnouncer(SafePrinterMixin):
         target_chat = authorization_service.validate_chat(target_chat)
         prompt = prompt_library.translator_on_response(
             base_prompt = prompt_library.announcer_event_telegram,
-            language_name = target_chat.language_name or DEFAULT_LANGUAGE,
-            language_iso_code = target_chat.language_iso_code or DEFAULT_ISO_CODE,
+            language_name = target_chat.language_name,
+            language_iso_code = target_chat.language_iso_code,
         )
         invoker_user = authorization_service.validate_user(invoker_user)
         access_token_resolver = AccessTokenResolver(invoker_user, user_dao, sponsorship_dao)
