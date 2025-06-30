@@ -100,6 +100,7 @@
       </indentOptions>
     </codeStyleSettings>
     <codeStyleSettings language="Python">
+      <option name="RIGHT_MARGIN" value="130" />
       <option name="ALIGN_MULTILINE_PARAMETERS" value="false" />
       <option name="ALIGN_MULTILINE_PARAMETERS_IN_CALLS" value="false" />
       <option name="CALL_PARAMETERS_WRAP" value="5" />
