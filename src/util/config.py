@@ -28,7 +28,6 @@ class Config(metaclass = Singleton):
     telegram_must_auth: bool
     chat_history_depth: int
     rapid_api_twitter_token: str
-    coinmarketcap_api_token: str
     replicate_api_token: str
     perplexity_api_token: str
     github_issues_token: str
@@ -65,7 +64,6 @@ class Config(metaclass = Singleton):
         def_telegram_must_auth: bool = False,
         def_chat_history_depth: int = 30,
         def_rapid_api_twitter_token: str = "invalid",
-        def_coinmarketcap_api_token: str = "invalid",
         def_replicate_api_token: str = "invalid",
         def_perplexity_api_token: str = "invalid",
         def_github_issues_token: str = "invalid",
@@ -98,7 +96,6 @@ class Config(metaclass = Singleton):
         self.telegram_must_auth = self.__env("TELEGRAM_AUTH_ON", lambda: str(def_telegram_must_auth)).lower() == "true"
         self.chat_history_depth = int(self.__env("CHAT_HISTORY_DEPTH", lambda: str(def_chat_history_depth)))
         self.rapid_api_twitter_token = self.__env("RAPID_API_TWITTER_TOKEN", lambda: def_rapid_api_twitter_token)
-        self.coinmarketcap_api_token = self.__env("COINMARKETCAP_API_TOKEN", lambda: def_coinmarketcap_api_token)
         self.replicate_api_token = self.__env("REPLICATE_API_TOKEN", lambda: def_replicate_api_token)
         self.perplexity_api_token = self.__env("PERPLEXITY_API_TOKEN", lambda: def_perplexity_api_token)
         self.github_issues_token = self.__env("THE_AGENT_ISSUES_TOKEN", lambda: def_github_issues_token)

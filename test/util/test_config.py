@@ -43,7 +43,6 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.telegram_must_auth, False)
         self.assertEqual(config.chat_history_depth, 30)
         self.assertEqual(config.rapid_api_twitter_token, "invalid")
-        self.assertEqual(config.coinmarketcap_api_token, "invalid")
         self.assertEqual(config.replicate_api_token, "invalid")
         self.assertEqual(config.perplexity_api_token, "invalid")
         self.assertEqual(config.github_issues_token, "invalid")
@@ -79,7 +78,6 @@ class ConfigTest(unittest.TestCase):
         os.environ["TELEGRAM_AUTH_ON"] = "true"
         os.environ["CHAT_HISTORY_DEPTH"] = "10"
         os.environ["RAPID_API_TWITTER_TOKEN"] = "sk-rt-valid"
-        os.environ["COINMARKETCAP_API_TOKEN"] = "sk-c-valid"
         os.environ["REPLICATE_API_TOKEN"] = "sk-re-valid"
         os.environ["PERPLEXITY_API_TOKEN"] = "sk-p-valid"
         os.environ["THE_AGENT_ISSUES_TOKEN"] = "sk-gi-valid"
@@ -113,7 +111,6 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.telegram_must_auth, True)
         self.assertEqual(config.chat_history_depth, 10)
         self.assertEqual(config.rapid_api_twitter_token, "sk-rt-valid")
-        self.assertEqual(config.coinmarketcap_api_token, "sk-c-valid")
         self.assertEqual(config.replicate_api_token, "sk-re-valid")
         self.assertEqual(config.perplexity_api_token, "sk-p-valid")
         self.assertEqual(config.github_issues_token, "sk-gi-valid")
