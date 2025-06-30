@@ -43,7 +43,6 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.telegram_must_auth, False)
         self.assertEqual(config.chat_history_depth, 30)
         self.assertEqual(config.rapid_api_twitter_token, "invalid")
-        self.assertEqual(config.perplexity_api_token, "invalid")
         self.assertEqual(config.github_issues_token, "invalid")
         self.assertEqual(config.github_issues_repo, "appifyhub/the-agent")
         self.assertEqual(config.issue_templates_abs_path, ".github/ISSUE_TEMPLATE")
@@ -77,7 +76,6 @@ class ConfigTest(unittest.TestCase):
         os.environ["TELEGRAM_AUTH_ON"] = "true"
         os.environ["CHAT_HISTORY_DEPTH"] = "10"
         os.environ["RAPID_API_TWITTER_TOKEN"] = "sk-rt-valid"
-        os.environ["PERPLEXITY_API_TOKEN"] = "sk-p-valid"
         os.environ["THE_AGENT_ISSUES_TOKEN"] = "sk-gi-valid"
         os.environ["THE_AGENT_ISSUES_REPO"] = "appifyhub/the-new-agent"
         os.environ["THE_AGENT_ISSUE_TEMPLATES_PATH"] = "issue_templates"
@@ -109,7 +107,6 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.telegram_must_auth, True)
         self.assertEqual(config.chat_history_depth, 10)
         self.assertEqual(config.rapid_api_twitter_token, "sk-rt-valid")
-        self.assertEqual(config.perplexity_api_token, "sk-p-valid")
         self.assertEqual(config.github_issues_token, "sk-gi-valid")
         self.assertEqual(config.github_issues_repo, "appifyhub/the-new-agent")
         self.assertEqual(config.issue_templates_abs_path, "issue_templates")
