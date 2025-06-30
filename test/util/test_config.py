@@ -31,25 +31,26 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.max_users, 100)
         self.assertEqual(config.max_chatbot_iterations, 20)
         self.assertEqual(config.website_url, "https://agent.appifyhub.com")
-        self.assertTrue(config.api_key)  # Check if API key is generated
         self.assertEqual(config.parent_organization, "AppifyHub")
-        self.assertEqual(config.db_url, "postgresql://root:root@localhost:5432/agent")
         self.assertEqual(config.telegram_bot_username, "the_agent")
         self.assertEqual(config.telegram_bot_name, "The Agent")
         self.assertEqual(config.telegram_bot_id, 1234567890)
-        self.assertEqual(config.telegram_bot_token, "invalid")
         self.assertEqual(config.telegram_api_base_url, "https://api.telegram.org")
-        self.assertEqual(config.telegram_auth_key, "it_is_really_telegram")
         self.assertEqual(config.telegram_must_auth, False)
         self.assertEqual(config.chat_history_depth, 30)
-        self.assertEqual(config.rapid_api_twitter_token, "invalid")
-        self.assertEqual(config.github_issues_token, "invalid")
         self.assertEqual(config.github_issues_repo, "appifyhub/the-agent")
         self.assertEqual(config.issue_templates_abs_path, ".github/ISSUE_TEMPLATE")
-        self.assertEqual(config.jwt_secret_key, "default")
         self.assertEqual(config.jwt_expires_in_minutes, 5)
         self.assertEqual(config.backoffice_url_base, "http://127.0.0.1.sslip.io:5173")
         self.assertEqual(config.version, "dev")
+
+        self.assertEqual(config.db_url.get_secret_value(), "postgresql://root:root@localhost:5432/agent")
+        self.assertTrue(config.api_key.get_secret_value())  # Check if API key is generated
+        self.assertEqual(config.telegram_auth_key.get_secret_value(), "it_is_really_telegram")
+        self.assertEqual(config.telegram_bot_token.get_secret_value(), "invalid")
+        self.assertEqual(config.jwt_secret_key.get_secret_value(), "default")
+        self.assertEqual(config.github_issues_token.get_secret_value(), "invalid")
+        self.assertEqual(config.rapid_api_twitter_token.get_secret_value(), "invalid")
 
     def test_custom_config(self):
         os.environ["VERBOSE"] = "true"
@@ -61,28 +62,29 @@ class ConfigTest(unittest.TestCase):
         os.environ["MAX_USERS"] = "10"
         os.environ["MAX_CHATBOT_ITERATIONS"] = "15"
         os.environ["WEBSITE_URL"] = "https://new.agent.appifyhub.com"
+        os.environ["PARENT_ORGANIZATION"] = "New"
+        os.environ["TELEGRAM_BOT_USERNAME"] = "the_new_agent"
+        os.environ["TELEGRAM_BOT_NAME"] = "The New Agent"
+        os.environ["TELEGRAM_BOT_ID"] = "1234"
+        os.environ["TELEGRAM_API_BASE_URL"] = "https://new.api.telegram.org"
+        os.environ["TELEGRAM_AUTH_ON"] = "true"
+        os.environ["CHAT_HISTORY_DEPTH"] = "10"
+        os.environ["THE_AGENT_ISSUES_REPO"] = "appifyhub/the-new-agent"
+        os.environ["THE_AGENT_ISSUE_TEMPLATES_PATH"] = "issue_templates"
+        os.environ["JWT_EXPIRES_IN_MINUTES"] = "10"
+        os.environ["BACKOFFICE_URL_BASE"] = "https://example.com"
+        os.environ["VERSION"] = "custom"
+
         os.environ["POSTGRES_USER"] = "admin"
         os.environ["POSTGRES_PASS"] = "admin123"
         os.environ["POSTGRES_HOST"] = "db.example.com"
         os.environ["POSTGRES_DB"] = "test_db"
         os.environ["API_KEY"] = "1111-2222-3333-4444"
-        os.environ["PARENT_ORGANIZATION"] = "New"
-        os.environ["TELEGRAM_BOT_USERNAME"] = "the_new_agent"
-        os.environ["TELEGRAM_BOT_NAME"] = "The New Agent"
-        os.environ["TELEGRAM_BOT_ID"] = "1234"
-        os.environ["TELEGRAM_BOT_TOKEN"] = "id:sha"
-        os.environ["TELEGRAM_API_BASE_URL"] = "https://new.api.telegram.org"
         os.environ["TELEGRAM_API_UPDATE_AUTH_TOKEN"] = "abcd1234"
-        os.environ["TELEGRAM_AUTH_ON"] = "true"
-        os.environ["CHAT_HISTORY_DEPTH"] = "10"
-        os.environ["RAPID_API_TWITTER_TOKEN"] = "sk-rt-valid"
-        os.environ["THE_AGENT_ISSUES_TOKEN"] = "sk-gi-valid"
-        os.environ["THE_AGENT_ISSUES_REPO"] = "appifyhub/the-new-agent"
-        os.environ["THE_AGENT_ISSUE_TEMPLATES_PATH"] = "issue_templates"
+        os.environ["TELEGRAM_BOT_TOKEN"] = "id:sha"
         os.environ["JWT_SECRET_KEY"] = "custom"
-        os.environ["JWT_EXPIRES_IN_MINUTES"] = "10"
-        os.environ["BACKOFFICE_URL_BASE"] = "https://example.com"
-        os.environ["VERSION"] = "custom"
+        os.environ["THE_AGENT_ISSUES_TOKEN"] = "sk-gi-valid"
+        os.environ["RAPID_API_TWITTER_TOKEN"] = "sk-rt-valid"
 
         config = Config()
 
@@ -95,22 +97,23 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.max_users, 10)
         self.assertEqual(config.max_chatbot_iterations, 15)
         self.assertEqual(config.website_url, "https://new.agent.appifyhub.com")
-        self.assertEqual(config.db_url, "postgresql://admin:admin123@db.example.com:5432/test_db")
-        self.assertEqual(config.api_key, "1111-2222-3333-4444")
         self.assertEqual(config.parent_organization, "New")
         self.assertEqual(config.telegram_bot_username, "the_new_agent")
         self.assertEqual(config.telegram_bot_name, "The New Agent")
         self.assertEqual(config.telegram_bot_id, 1234)
-        self.assertEqual(config.telegram_bot_token, "id:sha")
         self.assertEqual(config.telegram_api_base_url, "https://new.api.telegram.org")
-        self.assertEqual(config.telegram_auth_key, "abcd1234")
         self.assertEqual(config.telegram_must_auth, True)
         self.assertEqual(config.chat_history_depth, 10)
-        self.assertEqual(config.rapid_api_twitter_token, "sk-rt-valid")
-        self.assertEqual(config.github_issues_token, "sk-gi-valid")
         self.assertEqual(config.github_issues_repo, "appifyhub/the-new-agent")
         self.assertEqual(config.issue_templates_abs_path, "issue_templates")
-        self.assertEqual(config.jwt_secret_key, "custom")
         self.assertEqual(config.jwt_expires_in_minutes, 10)
         self.assertEqual(config.backoffice_url_base, "https://example.com")
         self.assertEqual(config.version, "custom")
+
+        self.assertEqual(config.db_url.get_secret_value(), "postgresql://admin:admin123@db.example.com:5432/test_db")
+        self.assertEqual(config.api_key.get_secret_value(), "1111-2222-3333-4444")
+        self.assertEqual(config.telegram_auth_key.get_secret_value(), "abcd1234")
+        self.assertEqual(config.telegram_bot_token.get_secret_value(), "id:sha")
+        self.assertEqual(config.jwt_secret_key.get_secret_value(), "custom")
+        self.assertEqual(config.github_issues_token.get_secret_value(), "sk-gi-valid")
+        self.assertEqual(config.rapid_api_twitter_token.get_secret_value(), "sk-rt-valid")

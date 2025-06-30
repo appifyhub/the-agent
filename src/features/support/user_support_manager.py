@@ -130,6 +130,7 @@ class UserSupportManager(SafePrinterMixin):
 
         issue_description = self.__generate_issue_description()
         issue_title = self.__generate_issue_title(issue_description)
+        github_token = config.github_issues_token.get_secret_value()
         response = requests.post(
             f"{GITHUB_BASE_URL}/repos/{config.github_issues_repo}/issues",
             json = {
@@ -138,7 +139,7 @@ class UserSupportManager(SafePrinterMixin):
                 "labels": [self.__request_type.name.capitalize()],
             },
             headers = {
-                "Authorization": f"Bearer {config.github_issues_token}",
+                "Authorization": f"Bearer {github_token}",
                 "Accept": "application/vnd.github.v3+json",
                 "X-GitHub-Api-Version": "2022-11-28",
             },

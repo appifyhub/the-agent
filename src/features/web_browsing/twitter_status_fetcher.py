@@ -61,7 +61,7 @@ class TwitterStatusFetcher(SafePrinterMixin):
         params = {
             "resFormat": "json",
             "id": self.tweet_id,
-            "apiKey": config.rapid_api_twitter_token,  # keep reading from system for now
+            "apiKey": config.rapid_api_twitter_token.get_secret_value(),  # keep reading from system for now
             "cursor": "-1",
         }
         headers = {"X-RapidAPI-Key": rapid_api_token, "X-RapidAPI-Host": TWITTER_API.id}

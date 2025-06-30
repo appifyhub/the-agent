@@ -63,7 +63,8 @@ class TelegramBotSDKUtils:
         clone.size = api_file.file_size or clone.size
         if api_file.file_path:
             file_api_endpoint = f"{config.telegram_api_base_url}/file"
-            clone.last_url = f"{file_api_endpoint}/bot{config.telegram_bot_token}/{api_file.file_path}"
+            bot_token = config.telegram_bot_token.get_secret_value()
+            clone.last_url = f"{file_api_endpoint}/bot{bot_token}/{api_file.file_path}"
             clone.last_url_until = TelegramBotSDKUtils.__nearest_hour_epoch()
         # set additional properties (if not already resolved)
         if not clone.extension:

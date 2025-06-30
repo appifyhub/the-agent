@@ -27,7 +27,7 @@ class TwitterStatusFetcherTest(unittest.TestCase):
 
     def setUp(self):
         config.web_timeout_s = 0
-        config.rapid_api_twitter_token = "test_twitter_api_token"
+        config.rapid_api_twitter_token = SecretStr("test_twitter_api_token")
         self.tweet_id = "123456789"
         self.api_url = "https://twitter-api-v1-1-enterprise.p.rapidapi.com/base/apitools/tweetSimple"
         self.cache_entry = ToolsCache(
@@ -47,6 +47,7 @@ class TwitterStatusFetcherTest(unittest.TestCase):
         self.mock_user = MagicMock()
         self.mock_user.id = UUID("12345678-1234-5678-1234-567812345678")
 
+    # noinspection PyUnusedLocal
     @requests_mock.Mocker()
     @patch("features.web_browsing.twitter_status_fetcher.AuthorizationService")
     @patch("features.web_browsing.twitter_status_fetcher.AccessTokenResolver")
@@ -68,6 +69,7 @@ class TwitterStatusFetcherTest(unittest.TestCase):
         result = fetcher.execute()
         self.assertEqual(result, "This is cached tweet content")
 
+    # noinspection PyUnusedLocal
     @requests_mock.Mocker()
     @patch("features.web_browsing.twitter_status_fetcher.AuthorizationService")
     @patch("features.web_browsing.twitter_status_fetcher.AccessTokenResolver")
@@ -117,6 +119,7 @@ class TwitterStatusFetcherTest(unittest.TestCase):
         self.assertIn("@testuser · Test User", result)
         self.assertIn("Test tweet content", result)
 
+    # noinspection PyUnusedLocal
     @requests_mock.Mocker()
     @patch("features.web_browsing.twitter_status_fetcher.AuthorizationService")
     @patch("features.web_browsing.twitter_status_fetcher.AccessTokenResolver")
@@ -129,7 +132,7 @@ class TwitterStatusFetcherTest(unittest.TestCase):
         params = {
             "resFormat": "json",
             "id": "123456789",
-            "apiKey": config.rapid_api_twitter_token,
+            "apiKey": config.rapid_api_twitter_token.get_secret_value(),
             "cursor": "-1",
         }
         full_url = requests.Request("GET", self.api_url, params = params).prepare().url
@@ -146,6 +149,7 @@ class TwitterStatusFetcherTest(unittest.TestCase):
         with self.assertRaises(Exception):
             fetcher.execute()
 
+    # noinspection PyUnusedLocal
     @requests_mock.Mocker()
     @patch("features.web_browsing.twitter_status_fetcher.AuthorizationService")
     @patch("features.web_browsing.twitter_status_fetcher.AccessTokenResolver")
@@ -186,6 +190,7 @@ class TwitterStatusFetcherTest(unittest.TestCase):
         self.assertIn("id=123456789", request.url)
         self.assertIn("resFormat=json", request.url)
 
+    # noinspection PyUnusedLocal
     @requests_mock.Mocker()
     @patch("features.web_browsing.twitter_status_fetcher.AuthorizationService")
     @patch("features.web_browsing.twitter_status_fetcher.AccessTokenResolver")
