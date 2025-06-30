@@ -136,11 +136,11 @@ class TwitterStatusFetcher(SafePrinterMixin):
                     mime_type = (
                         KNOWN_IMAGE_FORMATS.get(extension) if extension else KNOWN_IMAGE_FORMATS.get("png")
                     )  # default to PNG
-                    open_ai_token = self.__access_token_resolver.require_access_token_for_tool(ComputerVisionAnalyzer.get_tool())
+                    open_ai_key = self.__access_token_resolver.require_access_token_for_tool(ComputerVisionAnalyzer.get_tool())
                     analyzer = ComputerVisionAnalyzer(
                         job_id = f"tweet-{self.tweet_id}",
                         image_mime_type = str(mime_type),
-                        open_ai_api_key = open_ai_token,
+                        open_ai_api_key = open_ai_key,
                         image_url = url,
                         additional_context = f"[[ Tweet / X Post ]]\n\n{additional_context}",
                     )

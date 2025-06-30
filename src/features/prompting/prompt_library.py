@@ -658,7 +658,6 @@ def error_general_problem(reason: str) -> str:
     clean_reason = clean_reason.replace(config.parent_organization, "organization")
     clean_reason = clean_reason.replace(config.telegram_bot_token, "****")
     clean_reason = clean_reason.replace(config.anthropic_token, "****")
-    clean_reason = clean_reason.replace(config.open_ai_token, "****")
     clean_reason = clean_reason.replace(config.rapid_api_token, "****")
     clean_reason = clean_reason.replace(config.rapid_api_twitter_token, "****")
     clean_reason = clean_reason.replace(config.coinmarketcap_api_token, "****")
