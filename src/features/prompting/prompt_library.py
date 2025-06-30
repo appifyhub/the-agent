@@ -655,10 +655,8 @@ def add_metadata(
 
 def error_general_problem(reason: str) -> str:
     clean_reason = reason.replace(config.db_url, "db://****")
-    clean_reason = clean_reason.replace(config.parent_organization, "organization")
     clean_reason = clean_reason.replace(config.telegram_bot_token, "****")
     clean_reason = clean_reason.replace(config.rapid_api_twitter_token, "****")
-    clean_reason = clean_reason.replace(config.replicate_api_token, "****")
     clean_reason = clean_reason.replace(config.perplexity_api_token, "****")
     clean_reason = clean_reason.replace(config.github_issues_token, "****")
     clean_reason = clean_reason.replace(config.jwt_secret_key, "****")
