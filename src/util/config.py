@@ -27,7 +27,6 @@ class Config(metaclass = Singleton):
     telegram_auth_key: str
     telegram_must_auth: bool
     chat_history_depth: int
-    anthropic_token: str
     rapid_api_token: str
     rapid_api_twitter_token: str
     coinmarketcap_api_token: str
@@ -66,7 +65,6 @@ class Config(metaclass = Singleton):
         def_telegram_auth_key: str = "it_is_really_telegram",
         def_telegram_must_auth: bool = False,
         def_chat_history_depth: int = 30,
-        def_anthropic_token: str = "invalid",
         def_rapid_api_token: str = "invalid",
         def_rapid_api_twitter_token: str = "invalid",
         def_coinmarketcap_api_token: str = "invalid",
@@ -101,7 +99,6 @@ class Config(metaclass = Singleton):
         self.telegram_auth_key = self.__env("TELEGRAM_API_UPDATE_AUTH_TOKEN", lambda: def_telegram_auth_key)
         self.telegram_must_auth = self.__env("TELEGRAM_AUTH_ON", lambda: str(def_telegram_must_auth)).lower() == "true"
         self.chat_history_depth = int(self.__env("CHAT_HISTORY_DEPTH", lambda: str(def_chat_history_depth)))
-        self.anthropic_token = self.__env("ANTHROPIC_TOKEN", lambda: def_anthropic_token)
         self.rapid_api_token = self.__env("RAPID_API_TOKEN", lambda: def_rapid_api_token)
         self.rapid_api_twitter_token = self.__env("RAPID_API_TWITTER_TOKEN", lambda: def_rapid_api_twitter_token)
         self.coinmarketcap_api_token = self.__env("COINMARKETCAP_API_TOKEN", lambda: def_coinmarketcap_api_token)
