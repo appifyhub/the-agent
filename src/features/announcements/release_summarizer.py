@@ -46,11 +46,7 @@ class ReleaseSummarizer(SafePrinterMixin):
 
         invoker_user = authorization_service.validate_user(invoker_user)
         access_token_resolver = AccessTokenResolver(invoker_user, user_dao, sponsorship_dao)
-        invoker_token = access_token_resolver.get_access_token_for_tool(CLAUDE_4_SONNET)
-        if not invoker_token:
-            message = f"Couldn't find an access token for {CLAUDE_4_SONNET.name}"
-            self.sprint(message)
-            raise ValueError(message)
+        invoker_token = access_token_resolver.require_access_token_for_tool(CLAUDE_4_SONNET)
         prompt = prompt_library.translator_on_response(
             base_prompt = prompt_library.announcer_release_telegram,
             language_name = language_name,

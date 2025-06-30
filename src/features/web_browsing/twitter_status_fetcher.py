@@ -57,7 +57,7 @@ class TwitterStatusFetcher(SafePrinterMixin):
 
         sleep(RATE_LIMIT_DELAY_S)
         api_url = f"https://{TWITTER_API.id}/base/apitools/tweetSimple"
-        rapid_api_token = self.__access_token_resolver.get_access_token_for_tool(TWITTER_API)
+        rapid_api_token = self.__access_token_resolver.require_access_token_for_tool(TWITTER_API).get_secret_value()
         params = {
             "resFormat": "json",
             "id": self.tweet_id,

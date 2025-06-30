@@ -42,7 +42,6 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.telegram_auth_key, "it_is_really_telegram")
         self.assertEqual(config.telegram_must_auth, False)
         self.assertEqual(config.chat_history_depth, 30)
-        self.assertEqual(config.rapid_api_token, "invalid")
         self.assertEqual(config.rapid_api_twitter_token, "invalid")
         self.assertEqual(config.coinmarketcap_api_token, "invalid")
         self.assertEqual(config.replicate_api_token, "invalid")
@@ -79,7 +78,6 @@ class ConfigTest(unittest.TestCase):
         os.environ["TELEGRAM_API_UPDATE_AUTH_TOKEN"] = "abcd1234"
         os.environ["TELEGRAM_AUTH_ON"] = "true"
         os.environ["CHAT_HISTORY_DEPTH"] = "10"
-        os.environ["RAPID_API_TOKEN"] = "sk-r-valid"
         os.environ["RAPID_API_TWITTER_TOKEN"] = "sk-rt-valid"
         os.environ["COINMARKETCAP_API_TOKEN"] = "sk-c-valid"
         os.environ["REPLICATE_API_TOKEN"] = "sk-re-valid"
@@ -114,7 +112,6 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.telegram_auth_key, "abcd1234")
         self.assertEqual(config.telegram_must_auth, True)
         self.assertEqual(config.chat_history_depth, 10)
-        self.assertEqual(config.rapid_api_token, "sk-r-valid")
         self.assertEqual(config.rapid_api_twitter_token, "sk-rt-valid")
         self.assertEqual(config.coinmarketcap_api_token, "sk-c-valid")
         self.assertEqual(config.replicate_api_token, "sk-re-valid")

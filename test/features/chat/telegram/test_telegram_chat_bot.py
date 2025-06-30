@@ -204,9 +204,10 @@ class TelegramChatBotTest(unittest.TestCase):
     def test_execute_no_api_key(self, mock_should_reply, mock_process_commands):
         mock_should_reply.return_value = True
         mock_process_commands.return_value = (AIMessage(""), CommandProcessor.Result.unknown)
-        self.bot._TelegramChatBot__llm_access_token = None
+        self.access_token_resolver_mock.get_access_token_for_tool.return_value = None
+        self.bot._TelegramChatBot__llm_has_access_token = False
         result = self.bot.execute()
-        self.assertIn("Not configured.", result.content)
+        self.assertIn("Not configured", result.content)
 
     @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.process_commands")
     @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.should_reply")

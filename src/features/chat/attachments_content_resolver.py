@@ -210,12 +210,8 @@ class AttachmentsContentResolver(SafePrinterMixin):
 
         # handle audio
         if attachment.mime_type in KNOWN_AUDIO_FORMATS.values() or attachment.extension in KNOWN_AUDIO_FORMATS.keys():
-            transcriber_token = self.__token_resolver.require_access_token_for_tool(
-                AudioTranscriber.get_transcriber_tool(),
-            )
-            copywriter_token = self.__token_resolver.require_access_token_for_tool(
-                AudioTranscriber.get_copywriter_tool(),
-            )
+            transcriber_token = self.__token_resolver.require_access_token_for_tool(AudioTranscriber.get_transcriber_tool())
+            copywriter_token = self.__token_resolver.require_access_token_for_tool(AudioTranscriber.get_copywriter_tool())
             return AudioTranscriber(
                 job_id = attachment.id,
                 audio_url = attachment.last_url,

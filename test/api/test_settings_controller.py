@@ -3,6 +3,8 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
+from pydantic import SecretStr
+
 from api.models.chat_settings_payload import ChatSettingsPayload
 from api.models.user_settings_payload import UserSettingsPayload
 from api.settings_controller import SettingsController
@@ -621,13 +623,15 @@ class SettingsControllerTest(unittest.TestCase):
         mock_resolver = mock_resolver_class.return_value
 
         def mock_get_token_for_tool(tool):
-            return "test-token" if tool.id == "configured-tool" else None
+            return SecretStr("test-token") if tool.id == "configured-tool" else None
 
         def mock_get_token(provider):
-            return "test-token" if provider.id == "configured-provider" else None
+            return SecretStr("test-token") if provider.id == "configured-provider" else None
 
         mock_resolver.get_access_token_for_tool.side_effect = mock_get_token_for_tool
+        mock_resolver.require_access_token_for_tool.side_effect = mock_get_token_for_tool
         mock_resolver.get_access_token.side_effect = mock_get_token
+        mock_resolver.require_access_token.side_effect = mock_get_token
 
         self.mock_user_dao.get.return_value = self.invoker_user
 

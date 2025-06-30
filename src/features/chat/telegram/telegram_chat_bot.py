@@ -34,7 +34,7 @@ class TelegramChatBot(SafePrinterMixin):
     __command_processor: CommandProcessor
     __progress_notifier: TelegramProgressNotifier
     __access_token_resolver: AccessTokenResolver
-    __llm_access_token: SecretStr | None
+    __llm_has_access_token: bool
     __llm_base: BaseChatModel
     __llm_tools: TooledChatModel
 
@@ -76,14 +76,15 @@ class TelegramChatBot(SafePrinterMixin):
         self.__progress_notifier = progress_notifier
         self.__access_token_resolver = access_token_resolver
 
-        self.__llm_access_token = self.__access_token_resolver.get_access_token_for_tool(GPT_4_1_MINI)
+        access_token = self.__access_token_resolver.get_access_token_for_tool(GPT_4_1_MINI)
+        self.__llm_has_access_token = access_token is not None
         self.__llm_base = ChatOpenAI(
             model = GPT_4_1_MINI.id,
             temperature = 0.5,
             max_tokens = 600,
             timeout = float(config.web_timeout_s),
             max_retries = config.web_retries,
-            api_key = self.__llm_access_token or SecretStr(str(None)),
+            api_key = access_token or SecretStr(str(None)),
         )
         self.__llm_tools = self.__tools_library.bind_tools(self.__llm_base)
 
@@ -112,7 +113,7 @@ class TelegramChatBot(SafePrinterMixin):
             return answer
 
         # not a known command, but also no API key found
-        if not self.__llm_access_token:
+        if not self.__llm_has_access_token:
             self.sprint(f"No API key found for #{self.__invoker.id.hex}, skipping LLM processing")
             answer = AIMessage(prompt_library.error_general_problem("Not configured."))
             return answer
@@ -190,8 +191,6 @@ class TelegramChatBot(SafePrinterMixin):
             self.__progress_notifier.stop()
 
     def process_commands(self) -> Tuple[AIMessage, CommandProcessor.Result]:
-        if not self.__llm_access_token:
-            self.sprint(f"No API key found for #{self.__invoker.id}")
         result = self.__command_processor.execute(self.__raw_last_message)
         self.sprint(f"Command processing result is {result.value}")
         if result == CommandProcessor.Result.unknown or result == CommandProcessor.Result.success:

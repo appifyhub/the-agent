@@ -43,11 +43,7 @@ class InformationAnnouncer(SafePrinterMixin):
         )
         invoker_user = authorization_service.validate_user(invoker_user)
         access_token_resolver = AccessTokenResolver(invoker_user, user_dao, sponsorship_dao)
-        invoker_token = access_token_resolver.get_access_token_for_tool(CLAUDE_3_5_SONNET)
-        if not invoker_token:
-            message = f"Couldn't find an access token for {CLAUDE_3_5_SONNET.name}"
-            self.sprint(message)
-            raise ValueError(message)
+        invoker_token = access_token_resolver.require_access_token_for_tool(CLAUDE_3_5_SONNET)
         # noinspection PyArgumentList
         self.__copywriter = ChatAnthropic(
             model_name = CLAUDE_3_5_SONNET.id,

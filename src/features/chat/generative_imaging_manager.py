@@ -92,9 +92,7 @@ class GenerativeImagingManager(SafePrinterMixin):
         # let's generate the image now using the corrected prompt
         try:
             self.sprint("Starting image generation")
-            replicate_token = self.__token_resolver.require_access_token_for_tool(
-                StableDiffusionImageGenerator.get_tool(),
-            )
+            replicate_token = self.__token_resolver.require_access_token_for_tool(StableDiffusionImageGenerator.get_tool())
             generator = StableDiffusionImageGenerator(prompt, replicate_token)
             image_url = generator.execute()
             if not image_url:

@@ -53,7 +53,7 @@ class TwitterStatusFetcherTest(unittest.TestCase):
     @patch("features.web_browsing.twitter_status_fetcher.sleep", return_value = None)
     def test_execute_cache_hit(self, m: Mocker, mock_sleep, mock_token_resolver, mock_auth_service):
         mock_auth_service.return_value.validate_user.return_value = self.mock_user
-        mock_token_resolver.return_value.require_access_token_for_tool.return_value = "test_token"
+        mock_token_resolver.return_value.require_access_token_for_tool.return_value = SecretStr("test_token")
 
         self.mock_cache_crud.get.return_value = self.cache_entry.model_dump()
         fetcher = TwitterStatusFetcher(
@@ -74,8 +74,8 @@ class TwitterStatusFetcherTest(unittest.TestCase):
     @patch("features.web_browsing.twitter_status_fetcher.sleep", return_value = None)
     def test_execute_cache_miss(self, m, mock_sleep, mock_token_resolver, mock_auth_service):
         mock_auth_service.return_value.validate_user.return_value = self.mock_user
-        mock_token_resolver.return_value.require_access_token_for_tool.return_value = "test_token"
-        mock_token_resolver.return_value.get_access_token_for_tool.return_value = "test_token"
+        mock_token_resolver.return_value.get_access_token_for_tool.return_value = SecretStr("test_token")
+        mock_token_resolver.return_value.require_access_token_for_tool.return_value = SecretStr("test_token")
 
         self.mock_cache_crud.get.return_value = None
         # Mock the API response
@@ -123,7 +123,7 @@ class TwitterStatusFetcherTest(unittest.TestCase):
     @patch("features.web_browsing.twitter_status_fetcher.sleep", return_value = None)
     def test_execute_api_error(self, m, mock_sleep, mock_token_resolver, mock_auth_service):
         mock_auth_service.return_value.validate_user.return_value = self.mock_user
-        mock_token_resolver.return_value.require_access_token_for_tool.return_value = "test_token"
+        mock_token_resolver.return_value.require_access_token_for_tool.return_value = SecretStr("test_token")
 
         self.mock_cache_crud.get.return_value = None
         params = {
@@ -152,8 +152,8 @@ class TwitterStatusFetcherTest(unittest.TestCase):
     @patch("features.web_browsing.twitter_status_fetcher.sleep", return_value = None)
     def test_api_call_parameters(self, m, mock_sleep, mock_token_resolver, mock_auth_service):
         mock_auth_service.return_value.validate_user.return_value = self.mock_user
-        mock_token_resolver.return_value.require_access_token_for_tool.return_value = "test_token"
-        mock_token_resolver.return_value.get_access_token_for_tool.return_value = "test_token"
+        mock_token_resolver.return_value.get_access_token_for_tool.return_value = SecretStr("test_token")
+        mock_token_resolver.return_value.require_access_token_for_tool.return_value = SecretStr("test_token")
 
         self.mock_cache_crud.get.return_value = None
 
@@ -220,6 +220,7 @@ class TwitterStatusFetcherTest(unittest.TestCase):
         }
 
         # Test the private method directly for simplicity
+        # noinspection PyUnresolvedReferences
         result = fetcher._TwitterStatusFetcher__resolve_photo_contents(tweet_data, "Additional context")
 
         # Verify the result contains photo information
@@ -239,7 +240,7 @@ class TwitterStatusFetcherTest(unittest.TestCase):
     @patch("features.web_browsing.twitter_status_fetcher.AccessTokenResolver")
     def test_format_tweet_content_handles_missing_data(self, mock_token_resolver, mock_auth_service):
         mock_auth_service.return_value.validate_user.return_value = self.mock_user
-        mock_token_resolver.return_value.require_access_token_for_tool.return_value = "test_token"
+        mock_token_resolver.return_value.require_access_token_for_tool.return_value = SecretStr("test_token")
 
         fetcher = TwitterStatusFetcher(
             "123456789",
@@ -278,6 +279,7 @@ class TwitterStatusFetcherTest(unittest.TestCase):
             },
         }
 
+        # noinspection PyUnresolvedReferences
         result = fetcher._TwitterStatusFetcher__resolve_content(response)
         self.assertIn("@testuser · <Anonymous>", result)
         self.assertIn("Bio: \"<No bio>\"", result)

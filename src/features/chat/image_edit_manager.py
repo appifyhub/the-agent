@@ -132,9 +132,7 @@ class ImageEditManager(SafePrinterMixin):
                     result = ImageEditManager.Result.partial
                     continue
                 self.__token_resolver.require_access_token_for_tool(ImageContentsRestorer.get_resoration_tool())
-                replicate_token = self.__token_resolver.require_access_token_for_tool(
-                    ImageContentsRestorer.get_inpainting_tool(),
-                )
+                replicate_token = self.__token_resolver.require_access_token_for_tool(ImageContentsRestorer.get_inpainting_tool())
                 remover = ImageContentsRestorer(
                     image_url = attachment.last_url,
                     mime_type = attachment.mime_type,
