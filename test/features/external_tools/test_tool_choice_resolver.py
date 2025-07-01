@@ -99,23 +99,30 @@ class TestToolChoiceResolver(unittest.TestCase):
         self.assertEqual(result, self.gpt_4o)
 
     @patch("features.external_tools.tool_choice_resolver.ALL_EXTERNAL_TOOLS")
-    def test_get_choice_with_preferred_tool(self, mock_tools):
-        """Test that preferred tool is used when compatible."""
+    def test_get_choice_with_fallback_tool(self, mock_tools):
+        """Test that fallback tool is used when user has no choice."""
         mock_tools.__iter__.return_value = [self.gpt_4o, self.claude_sonnet]
         
-        result = self.resolver.get_choice(ToolType.llm, self.claude_sonnet)
+        # Create user with no LLM choice
+        user_no_choice = self.test_user.model_copy(update = {"tool_choice_llm": None})
+        resolver_no_choice = ToolChoiceResolver(user_no_choice, self.mock_user_dao, self.mock_sponsorship_dao)
+        
+        # No sponsorship either
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+        
+        result = resolver_no_choice.get_choice(ToolType.llm, self.claude_sonnet)
         
         self.assertEqual(result, self.claude_sonnet)
 
     @patch("features.external_tools.tool_choice_resolver.ALL_EXTERNAL_TOOLS")
-    def test_get_choice_preferred_tool_incompatible(self, mock_tools):
-        """Test that preferred tool is ignored if incompatible with tool type."""
+    def test_get_choice_fallback_tool_incompatible(self, mock_tools):
+        """Test that user choice takes precedence even when fallback tool is incompatible."""
         mock_tools.__iter__.return_value = [self.gpt_4o, self.claude_sonnet, self.whisper]
         
-        # Try to use whisper (hearing tool) for LLM - should fallback to user choice
+        # Try to use whisper (hearing tool) as fallback for LLM - should use user choice instead
         result = self.resolver.get_choice(ToolType.llm, self.whisper)
         
-        self.assertEqual(result, self.gpt_4o)  # Should use user's LLM choice
+        self.assertEqual(result, self.gpt_4o)  # Should use user's LLM choice, not incompatible fallback
 
     @patch("features.external_tools.tool_choice_resolver.ALL_EXTERNAL_TOOLS")
     def test_get_choice_invalid_user_choice_fallback_to_sponsor(self, mock_tools):

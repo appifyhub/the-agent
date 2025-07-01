@@ -87,9 +87,15 @@ class TelegramChatBot(SafePrinterMixin):
             sponsorship_dao = SponsorshipCRUD(get_detached_session()),
         )
 
-        # Select LLM tool based on user preferences, fallback to GPT_4_1_MINI
+        # Select LLM tool based on user preferences, with proper token validation
         selected_llm_tool = self.__tool_choice_resolver.get_choice(ToolType.llm, GPT_4_1_MINI) or GPT_4_1_MINI
         access_token = self.__access_token_resolver.get_access_token_for_tool(selected_llm_tool)
+        
+        # If user has a tool choice but no access token, we could log this for visibility
+        # (In the future, you might want to throw an error or try a different tool)
+        if not access_token and selected_llm_tool != GPT_4_1_MINI:
+            self.sprint(f"User chose '{selected_llm_tool.id}' but has no access token - this should be handled")
+            # For now, we continue with the null token and let ChatOpenAI handle the error
         self.__llm_has_access_token = access_token is not None
         self.__llm_base = ChatOpenAI(
             model = selected_llm_tool.id,

@@ -55,26 +55,22 @@ class ToolChoiceResolver(SafePrinterMixin):
 
     def get_choice(self, tool_type: ToolType, preferred: ExternalTool | None = None) -> ExternalTool | None:
         """
-        Get a tool choice for the given type, with optional preferred tool.
+        Get a tool choice for the given type, with optional fallback tool.
         
         Args:
             tool_type: The type of tool needed
-            preferred: Optional preferred tool to try first
+            preferred: Optional fallback tool to use if user's choice is not available
             
         Returns:
             The selected ExternalTool or None if no suitable tool is found
+            
+        Note:
+            This method only resolves tool preferences, not access tokens. The caller
+            should use AccessTokenResolver to verify the user can actually use the returned tool.
         """
         self.sprint(f"Resolving tool choice for type '{tool_type.value}'")
         
-        # If a preferred tool is specified, check if it's valid and available
-        if preferred:
-            if tool_type in preferred.types:
-                self.sprint(f"Using preferred tool '{preferred.id}' for type '{tool_type.value}'")
-                return preferred
-            else:
-                self.sprint(f"Preferred tool '{preferred.id}' does not support type '{tool_type.value}'")
-
-        # Check invoker's direct tool choice
+        # Check invoker's direct tool choice first
         user_choice_id = self.__get_user_tool_choice_for_type(self.__invoker, tool_type)
         if user_choice_id:
             tool = self.__find_tool_by_id(user_choice_id)
@@ -86,28 +82,33 @@ class ToolChoiceResolver(SafePrinterMixin):
 
         # Check if invoker has a sponsorship
         sponsorships_db = self.__sponsorship_dao.get_all_by_receiver(self.__invoker.id, limit = 1)
-        if not sponsorships_db:
+        if sponsorships_db:
+            # Get sponsor and check their tool choice
+            self.sprint("Checking sponsorships for tool choices")
+            sponsorship = Sponsorship.model_validate(sponsorships_db[0])
+            sponsor_user_db = self.__user_dao.get(sponsorship.sponsor_id)
+            if sponsor_user_db:
+                sponsor_user = User.model_validate(sponsor_user_db)
+                sponsor_choice_id = self.__get_user_tool_choice_for_type(sponsor_user, tool_type)
+                if sponsor_choice_id:
+                    tool = self.__find_tool_by_id(sponsor_choice_id)
+                    if tool and tool_type in tool.types:
+                        self.sprint(f"Found sponsor choice '{sponsor_choice_id}' for type '{tool_type.value}'")
+                        return tool
+            else:
+                self.sprint(f"Sponsor '{sponsorship.sponsor_id.hex}' not found")
+        else:
             self.sprint(f"User '{self.__invoker.id.hex}' has no sponsorships")
-            return self.__get_default_tool_for_type(tool_type)
 
-        # Get sponsor and check their tool choice
-        self.sprint("Checking sponsorships for tool choices")
-        sponsorship = Sponsorship.model_validate(sponsorships_db[0])
-        sponsor_user_db = self.__user_dao.get(sponsorship.sponsor_id)
-        if not sponsor_user_db:
-            self.sprint(f"Sponsor '{sponsorship.sponsor_id.hex}' not found")
-            return self.__get_default_tool_for_type(tool_type)
-        sponsor_user = User.model_validate(sponsor_user_db)
+        # Try fallback/preferred tool if specified and valid
+        if preferred and tool_type in preferred.types:
+            self.sprint(f"Using fallback tool '{preferred.id}' for type '{tool_type.value}'")
+            return preferred
+        elif preferred:
+            self.sprint(f"Fallback tool '{preferred.id}' does not support type '{tool_type.value}'")
 
-        # Check sponsor's tool choice for this type
-        sponsor_choice_id = self.__get_user_tool_choice_for_type(sponsor_user, tool_type)
-        if sponsor_choice_id:
-            tool = self.__find_tool_by_id(sponsor_choice_id)
-            if tool and tool_type in tool.types:
-                self.sprint(f"Found sponsor choice '{sponsor_choice_id}' for type '{tool_type.value}'")
-                return tool
-
-        self.sprint(f"No tool choice found for type '{tool_type.value}', using default")
+        # Finally, use system default
+        self.sprint(f"No tool choice found for type '{tool_type.value}', using system default")
         return self.__get_default_tool_for_type(tool_type)
 
     def __get_user_tool_choice_for_type(self, user: User, tool_type: ToolType) -> str | None:

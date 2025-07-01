@@ -41,10 +41,12 @@ Users can now configure preferred tools for each type:
 
 ### 2. Resolution Logic
 The ToolChoiceResolver implements intelligent fallback:
-1. **Preferred Tool**: If specified and compatible, use it
-2. **User Choice**: Use user's configured choice for the tool type
-3. **Sponsor Choice**: If user has no choice and is sponsored, use sponsor's choice
-4. **Default**: Use first available tool of the requested type
+1. **User Choice**: Use user's configured choice for the tool type
+2. **Sponsor Choice**: If user has no choice and is sponsored, use sponsor's choice
+3. **Fallback Tool**: Use provided fallback tool if no choices are configured
+4. **System Default**: Use first available tool of the requested type
+
+**Important**: ToolChoiceResolver only handles preference resolution. Token validation should be handled separately using AccessTokenResolver. This separation allows for clean error handling when users have tool preferences but lack access tokens.
 
 ### 3. Settings Integration
 - User settings API now includes tool choice fields
@@ -107,10 +109,20 @@ user_settings = {
 
 ### For Developers
 ```python
-# In code, tools are resolved dynamically:
-resolver = ToolChoiceResolver(user, user_dao, sponsorship_dao)
-selected_tool = resolver.get_choice(ToolType.llm)
-required_tool = resolver.require_choice(ToolType.vision, preferred_tool)
+# In code, tools are resolved dynamically with proper separation of concerns:
+choice_resolver = ToolChoiceResolver(user, user_dao, sponsorship_dao)
+token_resolver = AccessTokenResolver(user, user_dao, sponsorship_dao)
+
+# Get user's preferred tool
+selected_tool = choice_resolver.get_choice(ToolType.llm, fallback_tool)
+
+# Check if user has access to their chosen tool
+access_token = token_resolver.get_access_token_for_tool(selected_tool)
+
+# Handle the case where user has a preference but no access
+if not access_token and selected_tool != fallback_tool:
+    # Could log, throw error, or try a different approach
+    raise TokenResolutionError(selected_tool.provider, selected_tool)
 ```
 
 ## Next Steps for User
