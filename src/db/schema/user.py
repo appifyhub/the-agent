@@ -17,6 +17,13 @@ class UserBase(BaseModel):
     replicate_key: str | None = None
     rapid_api_key: str | None = None
     coinmarketcap_key: str | None = None
+    tool_choice_llm: str | None = None
+    tool_choice_vision: str | None = None
+    tool_choice_hearing: str | None = None
+    tool_choice_images: str | None = None
+    tool_choice_search: str | None = None
+    tool_choice_embedding: str | None = None
+    tool_choice_api: str | None = None
     group: UserDB.Group = UserDB.Group.standard
 
 
@@ -38,5 +45,18 @@ class User(UserBase):
                 self.replicate_key,
                 self.rapid_api_key,
                 self.coinmarketcap_key,
+            ],
+        )
+
+    def has_any_tool_choice(self) -> bool:
+        return any(
+            [
+                self.tool_choice_llm,
+                self.tool_choice_vision,
+                self.tool_choice_hearing,
+                self.tool_choice_images,
+                self.tool_choice_search,
+                self.tool_choice_embedding,
+                self.tool_choice_api,
             ],
         )

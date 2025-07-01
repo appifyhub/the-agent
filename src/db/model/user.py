@@ -45,6 +45,13 @@ class UserDB(BaseModel):
     replicate_key = Column(String, nullable = True)
     rapid_api_key = Column(String, nullable = True)
     coinmarketcap_key = Column(String, nullable = True)
+    tool_choice_llm = Column(String, nullable = True)
+    tool_choice_vision = Column(String, nullable = True)
+    tool_choice_hearing = Column(String, nullable = True)
+    tool_choice_images = Column(String, nullable = True)
+    tool_choice_search = Column(String, nullable = True)
+    tool_choice_embedding = Column(String, nullable = True)
+    tool_choice_api = Column(String, nullable = True)
     group = Column(EnumSQL(Group), nullable = False, default = Group.standard)
     created_at = Column(Date, default = date.today)
 
