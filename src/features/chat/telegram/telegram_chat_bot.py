@@ -8,13 +8,18 @@ from langchain_core.runnables import Runnable
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
+from db.crud.sponsorship import SponsorshipCRUD
+from db.crud.user import UserCRUD
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
+from db.sql import get_detached_session
 from features.chat.command_processor import CommandProcessor
 from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
 from features.chat.tools.tools_library import ToolsLibrary
 from features.external_tools.access_token_resolver import AccessTokenResolver
+from features.external_tools.external_tool import ToolType
 from features.external_tools.external_tool_library import GPT_4_1_MINI
+from features.external_tools.tool_choice_resolver import ToolChoiceResolver
 from features.prompting import prompt_library
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config
@@ -34,6 +39,7 @@ class TelegramChatBot(SafePrinterMixin):
     __command_processor: CommandProcessor
     __progress_notifier: TelegramProgressNotifier
     __access_token_resolver: AccessTokenResolver
+    __tool_choice_resolver: ToolChoiceResolver
     __llm_has_access_token: bool
     __llm_base: BaseChatModel
     __llm_tools: TooledChatModel
@@ -75,11 +81,18 @@ class TelegramChatBot(SafePrinterMixin):
         self.__command_processor = command_processor
         self.__progress_notifier = progress_notifier
         self.__access_token_resolver = access_token_resolver
+        self.__tool_choice_resolver = ToolChoiceResolver(
+            invoker_user = invoker,
+            user_dao = UserCRUD(get_detached_session()),
+            sponsorship_dao = SponsorshipCRUD(get_detached_session()),
+        )
 
-        access_token = self.__access_token_resolver.get_access_token_for_tool(GPT_4_1_MINI)
+        # Select LLM tool based on user preferences, fallback to GPT_4_1_MINI
+        selected_llm_tool = self.__tool_choice_resolver.get_choice(ToolType.llm, GPT_4_1_MINI) or GPT_4_1_MINI
+        access_token = self.__access_token_resolver.get_access_token_for_tool(selected_llm_tool)
         self.__llm_has_access_token = access_token is not None
         self.__llm_base = ChatOpenAI(
-            model = GPT_4_1_MINI.id,
+            model = selected_llm_tool.id,
             temperature = 0.5,
             max_tokens = 600,
             timeout = float(config.web_timeout_s),

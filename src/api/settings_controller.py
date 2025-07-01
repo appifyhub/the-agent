@@ -16,6 +16,7 @@ from db.schema.sponsorship import Sponsorship
 from db.schema.user import User, UserSave
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.external_tools.access_token_resolver import AccessTokenResolver
+from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import ALL_EXTERNAL_TOOLS
 from features.external_tools.external_tool_provider_library import ALL_PROVIDERS
 from util.config import config
@@ -109,9 +110,20 @@ class SettingsController(SafePrinterMixin):
         resolver = AccessTokenResolver(user, self.__user_dao, self.__sponsorship_dao)
         tools: List[ExternalToolResponse] = []
         providers: List[ExternalToolProviderResponse] = []
+        
+        # Helper function to get chosen tool types for a tool
+        def get_chosen_types_for_tool(tool_to_check: ExternalTool) -> List[str]:
+            chosen_types = []
+            for tool_type in tool_to_check.types:
+                user_choice = self.__get_user_tool_choice_for_type(user, tool_type)
+                if user_choice == tool_to_check.id:
+                    chosen_types.append(tool_type.value)
+            return chosen_types
+        
         for tool in ALL_EXTERNAL_TOOLS:
             is_configured = resolver.get_access_token_for_tool(tool) is not None
-            tools.append(ExternalToolResponse(tool, is_configured))
+            is_chosen_for_types = get_chosen_types_for_tool(tool)
+            tools.append(ExternalToolResponse(tool, is_configured, is_chosen_for_types))
         for provider in ALL_PROVIDERS:
             is_configured = resolver.get_access_token(provider) is not None
             providers.append(ExternalToolProviderResponse(provider, is_configured))
@@ -182,6 +194,22 @@ class SettingsController(SafePrinterMixin):
         if payload.coinmarketcap_key is not None:
             user_save.coinmarketcap_key = payload.coinmarketcap_key if payload.coinmarketcap_key.strip() else None
 
+        # Update tool choice fields
+        if payload.tool_choice_llm is not None:
+            user_save.tool_choice_llm = payload.tool_choice_llm if payload.tool_choice_llm.strip() else None
+        if payload.tool_choice_vision is not None:
+            user_save.tool_choice_vision = payload.tool_choice_vision if payload.tool_choice_vision.strip() else None
+        if payload.tool_choice_hearing is not None:
+            user_save.tool_choice_hearing = payload.tool_choice_hearing if payload.tool_choice_hearing.strip() else None
+        if payload.tool_choice_images is not None:
+            user_save.tool_choice_images = payload.tool_choice_images if payload.tool_choice_images.strip() else None
+        if payload.tool_choice_search is not None:
+            user_save.tool_choice_search = payload.tool_choice_search if payload.tool_choice_search.strip() else None
+        if payload.tool_choice_embedding is not None:
+            user_save.tool_choice_embedding = payload.tool_choice_embedding if payload.tool_choice_embedding.strip() else None
+        if payload.tool_choice_api is not None:
+            user_save.tool_choice_api = payload.tool_choice_api if payload.tool_choice_api.strip() else None
+
         User.model_validate(self.__user_dao.save(user_save))
         self.sprint("User settings saved")
 
@@ -211,3 +239,23 @@ class SettingsController(SafePrinterMixin):
             self.sprint(message)
             raise ValueError(message)
         return settings_type
+
+    def __get_user_tool_choice_for_type(self, user: User, tool_type: ToolType) -> str | None:
+        """Get the user's configured tool choice for the given type."""
+        match tool_type:
+            case ToolType.llm:
+                return user.tool_choice_llm
+            case ToolType.vision:
+                return user.tool_choice_vision
+            case ToolType.hearing:
+                return user.tool_choice_hearing
+            case ToolType.images:
+                return user.tool_choice_images
+            case ToolType.search:
+                return user.tool_choice_search
+            case ToolType.embedding:
+                return user.tool_choice_embedding
+            case ToolType.api:
+                return user.tool_choice_api
+        self.sprint(f"Unknown tool type '{tool_type.value}'")
+        return None

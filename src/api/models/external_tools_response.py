@@ -14,6 +14,7 @@ class ExternalToolProviderResponse:
 class ExternalToolResponse:
     definition: ExternalTool
     is_configured: bool
+    is_chosen_for_types: List[str]
 
 
 @dataclass(frozen = True)

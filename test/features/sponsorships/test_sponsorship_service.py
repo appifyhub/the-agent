@@ -561,3 +561,26 @@ class SponsorshipServiceTest(unittest.TestCase):
         # Test user with only anthropic key
         user_with_anthropic = user_without_keys.model_copy(update = {"anthropic_key": "test_anthropic_key"})
         self.assertTrue(user_with_anthropic.has_any_api_key())
+
+    def test_user_has_any_tool_choice(self):
+        # Test user with tool choice
+        user_with_choice = self.user.model_copy(update = {"tool_choice_llm": "gpt-4o"})
+        self.assertTrue(user_with_choice.has_any_tool_choice())
+
+        # Test user without any tool choices
+        user_without_choices = self.user.model_copy(
+            update = {
+                "tool_choice_llm": None,
+                "tool_choice_vision": None,
+                "tool_choice_hearing": None,
+                "tool_choice_images": None,
+                "tool_choice_search": None,
+                "tool_choice_embedding": None,
+                "tool_choice_api": None,
+            },
+        )
+        self.assertFalse(user_without_choices.has_any_tool_choice())
+
+        # Test user with only vision choice
+        user_with_vision = user_without_choices.model_copy(update = {"tool_choice_vision": "claude-3-5-sonnet-latest"})
+        self.assertTrue(user_with_vision.has_any_tool_choice())
