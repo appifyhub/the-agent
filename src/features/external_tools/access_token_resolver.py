@@ -62,7 +62,7 @@ class AccessTokenResolver(SafePrinterMixin):
     def get_access_token(self, provider: ExternalToolProvider) -> SecretStr | None:
         self.sprint(f"Resolving access token for provider '{provider.id}'")
 
-        # check if invoker has direct token
+        # check if invoker has a direct token
         user_token = self.__get_user_token_for_provider(self.__invoker, provider)
         if user_token:
             self.sprint(f"Found direct token for provider '{provider.id}'")

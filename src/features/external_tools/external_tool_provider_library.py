@@ -23,7 +23,7 @@ PERPLEXITY = ExternalToolProvider(
     name = "Perplexity",
     token_management_url = "https://www.perplexity.ai/account/api/keys",
     token_format = "pplx-...abc123",
-    tools = ["Search", "Research"],
+    tools = ["Web Search", "Deep Research"],
 )
 
 REPLICATE = ExternalToolProvider(
@@ -31,7 +31,7 @@ REPLICATE = ExternalToolProvider(
     name = "Replicate",
     token_management_url = "https://replicate.com/account/api-tokens",
     token_format = "r8_...abc123",
-    tools = ["Photo-Gen, Image-Gen, Image-Edit"],
+    tools = ["Image-Gen", "Image-Edit"],
 )
 
 RAPID_API = ExternalToolProvider(
@@ -39,7 +39,7 @@ RAPID_API = ExternalToolProvider(
     name = "RapidAPI",
     token_management_url = "https://docs.rapidapi.com/docs/configuring-api-security",
     token_format = "abc...123",
-    tools = ["Stocks", "X (Twitter)", "Weather"],
+    tools = ["Currency", "X (Twitter)", "Weather"],
 )
 
 COINMARKETCAP = ExternalToolProvider(
@@ -47,7 +47,7 @@ COINMARKETCAP = ExternalToolProvider(
     name = "CoinMarketCap API",
     token_management_url = "https://pro.coinmarketcap.com/account",
     token_format = "abcd...-...-...1234",
-    tools = ["Crypto/Fiat", "Crypto List"],
+    tools = ["Crypto"],
 )
 
 ALL_PROVIDERS = [OPEN_AI, ANTHROPIC, PERPLEXITY, REPLICATE, RAPID_API, COINMARKETCAP]
