@@ -3,9 +3,9 @@ from typing import Annotated, Any, List, Literal, TypeAlias, get_args
 
 from api.auth import create_jwt_token
 from api.authorization_service import AuthorizationService
+from api.mapper.user_mapper import api_to_domain, domain_to_api
 from api.models.chat_settings_payload import ChatSettingsPayload
 from api.models.external_tools_response import ExternalToolProviderResponse, ExternalToolResponse, ExternalToolsResponse
-from api.models.masked_user import MaskedUser
 from api.models.user_settings_payload import UserSettingsPayload
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.sponsorship import SponsorshipCRUD
@@ -13,7 +13,7 @@ from db.crud.user import UserCRUD
 from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig, ChatConfigSave
 from db.schema.sponsorship import Sponsorship
-from db.schema.user import User, UserSave
+from db.schema.user import User
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.external_tools.access_token_resolver import AccessTokenResolver
 from features.external_tools.external_tool_library import ALL_EXTERNAL_TOOLS
@@ -126,7 +126,7 @@ class SettingsController(SafePrinterMixin):
 
     def fetch_user_settings(self, user_id_hex: str) -> dict[str, Any]:
         user = self.__authorization_service.authorize_for_user(self.__invoker_user, user_id_hex)
-        return MaskedUser.from_user(user).model_dump()
+        return domain_to_api(user).model_dump()
 
     def save_chat_settings(self, chat_id: str, payload: ChatSettingsPayload):
         self.sprint(f"Saving chat settings for chat '{chat_id}'")
@@ -166,22 +166,7 @@ class SettingsController(SafePrinterMixin):
     def save_user_settings(self, user_id_hex: str, payload: UserSettingsPayload):
         self.sprint(f"Saving user settings for user '{user_id_hex}'")
         user = self.__authorization_service.authorize_for_user(self.__invoker_user, user_id_hex)
-        user_save = UserSave(**user.model_dump())
-
-        # Update token fields directly - payload validation already handled empty string → None conversion
-        if payload.open_ai_key is not None:
-            user_save.open_ai_key = payload.open_ai_key if payload.open_ai_key.strip() else None
-        if payload.anthropic_key is not None:
-            user_save.anthropic_key = payload.anthropic_key if payload.anthropic_key.strip() else None
-        if payload.perplexity_key is not None:
-            user_save.perplexity_key = payload.perplexity_key if payload.perplexity_key.strip() else None
-        if payload.replicate_key is not None:
-            user_save.replicate_key = payload.replicate_key if payload.replicate_key.strip() else None
-        if payload.rapid_api_key is not None:
-            user_save.rapid_api_key = payload.rapid_api_key if payload.rapid_api_key.strip() else None
-        if payload.coinmarketcap_key is not None:
-            user_save.coinmarketcap_key = payload.coinmarketcap_key if payload.coinmarketcap_key.strip() else None
-
+        user_save = api_to_domain(payload, user)
         User.model_validate(self.__user_dao.save(user_save))
         self.sprint("User settings saved")
 

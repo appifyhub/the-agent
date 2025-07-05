@@ -50,9 +50,7 @@ class TelegramDataResolver(SafePrinterMixin):
             if resolved_author:
                 mapping_result.message.author_id = resolved_author.id
         resolved_chat_message = self.resolve_chat_message(mapping_result.message)
-        resolved_attachments = [
-            self.resolve_chat_message_attachment(attachment) for attachment in mapping_result.attachments
-        ]
+        resolved_attachments = [self.resolve_chat_message_attachment(attachment) for attachment in mapping_result.attachments]
         return TelegramDataResolver.Result(
             chat = resolved_chat_config,
             author = resolved_author,
@@ -95,6 +93,21 @@ class TelegramDataResolver(SafePrinterMixin):
             mapped_data.replicate_key = old_user.replicate_key
             mapped_data.rapid_api_key = old_user.rapid_api_key
             mapped_data.coinmarketcap_key = old_user.coinmarketcap_key
+            mapped_data.tool_choice_chat = old_user.tool_choice_chat
+            mapped_data.tool_choice_reasoning = old_user.tool_choice_reasoning
+            mapped_data.tool_choice_copywriting = old_user.tool_choice_copywriting
+            mapped_data.tool_choice_vision = old_user.tool_choice_vision
+            mapped_data.tool_choice_hearing = old_user.tool_choice_hearing
+            mapped_data.tool_choice_images_gen = old_user.tool_choice_images_gen
+            mapped_data.tool_choice_images_edit = old_user.tool_choice_images_edit
+            mapped_data.tool_choice_images_restoration = old_user.tool_choice_images_restoration
+            mapped_data.tool_choice_images_inpainting = old_user.tool_choice_images_inpainting
+            mapped_data.tool_choice_images_background_removal = old_user.tool_choice_images_background_removal
+            mapped_data.tool_choice_search = old_user.tool_choice_search
+            mapped_data.tool_choice_embedding = old_user.tool_choice_embedding
+            mapped_data.tool_choice_api_fiat_exchange = old_user.tool_choice_api_fiat_exchange
+            mapped_data.tool_choice_api_crypto_exchange = old_user.tool_choice_api_crypto_exchange
+            mapped_data.tool_choice_api_twitter = old_user.tool_choice_api_twitter
             mapped_data.group = old_user.group
         else:
             # new users can only be added until the user limit is reached
@@ -115,6 +128,37 @@ class TelegramDataResolver(SafePrinterMixin):
             mapped_data.rapid_api_key = None
         if not mapped_data.coinmarketcap_key or not mapped_data.coinmarketcap_key.strip():
             mapped_data.coinmarketcap_key = None
+        # reset tool choice values to None if they are empty strings
+        if not mapped_data.tool_choice_chat or not mapped_data.tool_choice_chat.strip():
+            mapped_data.tool_choice_chat = None
+        if not mapped_data.tool_choice_reasoning or not mapped_data.tool_choice_reasoning.strip():
+            mapped_data.tool_choice_reasoning = None
+        if not mapped_data.tool_choice_copywriting or not mapped_data.tool_choice_copywriting.strip():
+            mapped_data.tool_choice_copywriting = None
+        if not mapped_data.tool_choice_vision or not mapped_data.tool_choice_vision.strip():
+            mapped_data.tool_choice_vision = None
+        if not mapped_data.tool_choice_hearing or not mapped_data.tool_choice_hearing.strip():
+            mapped_data.tool_choice_hearing = None
+        if not mapped_data.tool_choice_images_gen or not mapped_data.tool_choice_images_gen.strip():
+            mapped_data.tool_choice_images_gen = None
+        if not mapped_data.tool_choice_images_edit or not mapped_data.tool_choice_images_edit.strip():
+            mapped_data.tool_choice_images_edit = None
+        if not mapped_data.tool_choice_images_restoration or not mapped_data.tool_choice_images_restoration.strip():
+            mapped_data.tool_choice_images_restoration = None
+        if not mapped_data.tool_choice_images_inpainting or not mapped_data.tool_choice_images_inpainting.strip():
+            mapped_data.tool_choice_images_inpainting = None
+        if not mapped_data.tool_choice_images_background_removal or not mapped_data.tool_choice_images_background_removal.strip():
+            mapped_data.tool_choice_images_background_removal = None
+        if not mapped_data.tool_choice_search or not mapped_data.tool_choice_search.strip():
+            mapped_data.tool_choice_search = None
+        if not mapped_data.tool_choice_embedding or not mapped_data.tool_choice_embedding.strip():
+            mapped_data.tool_choice_embedding = None
+        if not mapped_data.tool_choice_api_fiat_exchange or not mapped_data.tool_choice_api_fiat_exchange.strip():
+            mapped_data.tool_choice_api_fiat_exchange = None
+        if not mapped_data.tool_choice_api_crypto_exchange or not mapped_data.tool_choice_api_crypto_exchange.strip():
+            mapped_data.tool_choice_api_crypto_exchange = None
+        if not mapped_data.tool_choice_api_twitter or not mapped_data.tool_choice_api_twitter.strip():
+            mapped_data.tool_choice_api_twitter = None
         return User.model_validate(db.save(mapped_data))
 
     def resolve_chat_message(self, mapped_data: ChatMessageSave) -> ChatMessage:

@@ -159,28 +159,29 @@ class SponsorshipServiceTest(unittest.TestCase):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
         self.mock_user_dao.get_by_telegram_username.return_value = None
 
-        # Create a more specific mock for the new user
-        mock_new_user = Mock(spec = UserDB)
-        mock_new_user.id = UUID(int = 2)
-        mock_new_user.full_name = "New User"
-        mock_new_user.telegram_username = receiver_telegram_username
-        mock_new_user.telegram_chat_id = "new_chat_id"
-        mock_new_user.telegram_user_id = 2
-        mock_new_user.open_ai_key = developer_user.open_ai_key
-        mock_new_user.anthropic_key = None
-        mock_new_user.perplexity_key = None
-        mock_new_user.replicate_key = None
-        mock_new_user.rapid_api_key = None
-        mock_new_user.coinmarketcap_key = None
-        mock_new_user.group = UserDB.Group.standard
-        mock_new_user.created_at = datetime.now().date()
+        # Create a real user for the new user
+        new_user = UserDB(
+            id = UUID(int = 2),
+            full_name = "New User",
+            telegram_username = receiver_telegram_username,
+            telegram_chat_id = "new_chat_id",
+            telegram_user_id = 2,
+            open_ai_key = developer_user.open_ai_key,
+            anthropic_key = None,
+            perplexity_key = None,
+            replicate_key = None,
+            rapid_api_key = None,
+            coinmarketcap_key = None,
+            group = UserDB.Group.standard,
+            created_at = datetime.now().date(),
+        )
 
-        self.mock_user_dao.save.return_value = mock_new_user
+        self.mock_user_dao.save.return_value = new_user
 
         # Create a more specific mock for the new sponsorship
         mock_sponsorship: Sponsorship = Mock(spec = Sponsorship)
         mock_sponsorship.sponsor_id = developer_user.id
-        mock_sponsorship.receiver_id = mock_new_user.id
+        mock_sponsorship.receiver_id = new_user.id
         mock_sponsorship.sponsored_at = datetime.now()
         mock_sponsorship.accepted_at = None
 

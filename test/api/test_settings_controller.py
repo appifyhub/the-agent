@@ -52,6 +52,11 @@ class SettingsControllerTest(unittest.TestCase):
             replicate_key = "test_replicate_key",
             rapid_api_key = "test_rapid_api_key",
             coinmarketcap_key = "test_coinmarketcap_key",
+            tool_choice_chat = "gpt-4o",
+            tool_choice_reasoning = "claude-3-5-sonnet-latest",
+            tool_choice_vision = "gpt-4o",
+            tool_choice_images_gen = "dall-e-3",
+            tool_choice_search = "perplexity-search",
             group = UserDB.Group.developer,
             created_at = datetime.now().date(),
         )
@@ -316,6 +321,11 @@ class SettingsControllerTest(unittest.TestCase):
             replicate_key = "new_replicate_key",
             rapid_api_key = "new_rapid_api_key",
             coinmarketcap_key = "new_coinmarketcap_key",
+            tool_choice_chat = "claude-3-5-sonnet-latest",
+            tool_choice_reasoning = "gpt-4o",
+            tool_choice_vision = "claude-3-5-sonnet-latest",
+            tool_choice_images_gen = "dall-e-2",
+            tool_choice_search = "updated-perplexity-search",
             group = self.invoker_user.group,
             created_at = self.invoker_user.created_at,
         )
@@ -341,6 +351,11 @@ class SettingsControllerTest(unittest.TestCase):
                 replicate_key = "new_replicate_key",
                 rapid_api_key = "new_rapid_api_key",
                 coinmarketcap_key = "new_coinmarketcap_key",
+                tool_choice_chat = "claude-3-5-sonnet-latest",
+                tool_choice_reasoning = "gpt-4o",
+                tool_choice_vision = "claude-3-5-sonnet-latest",
+                tool_choice_images_gen = "dall-e-2",
+                tool_choice_search = "updated-perplexity-search",
             )
             result = manager.save_user_settings(self.invoker_user.id.hex, payload)
 
@@ -356,6 +371,11 @@ class SettingsControllerTest(unittest.TestCase):
             self.assertEqual(saved_user_data.replicate_key, "new_replicate_key")
             self.assertEqual(saved_user_data.rapid_api_key, "new_rapid_api_key")
             self.assertEqual(saved_user_data.coinmarketcap_key, "new_coinmarketcap_key")
+            self.assertEqual(saved_user_data.tool_choice_chat, "claude-3-5-sonnet-latest")
+            self.assertEqual(saved_user_data.tool_choice_reasoning, "gpt-4o")
+            self.assertEqual(saved_user_data.tool_choice_vision, "claude-3-5-sonnet-latest")
+            self.assertEqual(saved_user_data.tool_choice_images_gen, "dall-e-2")
+            self.assertEqual(saved_user_data.tool_choice_search, "updated-perplexity-search")
             self.assertIsNone(result)  # Method returns None
 
     def test_save_chat_settings_failure_language_mismatch(self):
@@ -590,7 +610,7 @@ class SettingsControllerTest(unittest.TestCase):
                 token_format = "test-format",
                 tools = ["configured-tool"],
             ),
-            types = [ToolType.llm],
+            types = [ToolType.chat],
         )
         mock_tool_2 = ExternalTool(
             id = "unconfigured-tool",

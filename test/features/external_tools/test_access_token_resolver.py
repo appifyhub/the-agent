@@ -80,7 +80,7 @@ class AccessTokenResolverTest(unittest.TestCase):
             id = "test-gpt-4",
             name = "Test GPT-4",
             provider = self.openai_provider,
-            types = [ToolType.llm],
+            types = [ToolType.chat],
         )
 
     def test_init_with_user_object_success(self):
