@@ -15,10 +15,6 @@ from util.safe_printer_mixin import SafePrinterMixin
 
 
 class TelegramDomainMapper(SafePrinterMixin):
-    """
-    Maps the Telegram network models to domain models.
-    """
-
     class Result(BaseModel):
         chat: ChatConfigSave
         author: UserSave | None

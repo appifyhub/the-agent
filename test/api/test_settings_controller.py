@@ -5,8 +5,8 @@ from uuid import UUID
 
 from pydantic import SecretStr
 
-from api.models.chat_settings_payload import ChatSettingsPayload
-from api.models.user_settings_payload import UserSettingsPayload
+from api.model.chat_settings_payload import ChatSettingsPayload
+from api.model.user_settings_payload import UserSettingsPayload
 from api.settings_controller import SettingsController
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.sponsorship import SponsorshipCRUD

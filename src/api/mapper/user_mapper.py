@@ -1,5 +1,5 @@
-from api.models.user_settings_payload import UserSettingsPayload
-from api.models.user_settings_response import UserSettingsResponse
+from api.model.user_settings_payload import UserSettingsPayload
+from api.model.user_settings_response import UserSettingsResponse
 from db.schema.user import User, UserSave
 from util.functions import mask_secret
 

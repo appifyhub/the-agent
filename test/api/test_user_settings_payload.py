@@ -1,6 +1,6 @@
 import unittest
 
-from api.models.user_settings_payload import UserSettingsPayload
+from api.model.user_settings_payload import UserSettingsPayload
 
 
 class UserSettingsPayloadTest(unittest.TestCase):

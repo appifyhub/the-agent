@@ -6,10 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import RedirectResponse
 
 from api.auth import get_user_id_from_jwt, verify_api_key, verify_jwt_credentials, verify_telegram_auth_key
-from api.models.chat_settings_payload import ChatSettingsPayload
-from api.models.release_output_payload import ReleaseOutputPayload
-from api.models.sponsorship_payload import SponsorshipPayload
-from api.models.user_settings_payload import UserSettingsPayload
+from api.model.chat_settings_payload import ChatSettingsPayload
+from api.model.release_output_payload import ReleaseOutputPayload
+from api.model.sponsorship_payload import SponsorshipPayload
+from api.model.user_settings_payload import UserSettingsPayload
 from api.settings_controller import SettingsController, SettingsType
 from api.sponsorships_controller import SponsorshipsController
 from db.crud.chat_config import ChatConfigCRUD

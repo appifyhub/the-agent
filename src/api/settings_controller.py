@@ -4,9 +4,9 @@ from typing import Annotated, Any, List, Literal, TypeAlias, get_args
 from api.auth import create_jwt_token
 from api.authorization_service import AuthorizationService
 from api.mapper.user_mapper import api_to_domain, domain_to_api
-from api.models.chat_settings_payload import ChatSettingsPayload
-from api.models.external_tools_response import ExternalToolProviderResponse, ExternalToolResponse, ExternalToolsResponse
-from api.models.user_settings_payload import UserSettingsPayload
+from api.model.chat_settings_payload import ChatSettingsPayload
+from api.model.external_tools_response import ExternalToolProviderResponse, ExternalToolResponse, ExternalToolsResponse
+from api.model.user_settings_payload import UserSettingsPayload
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD

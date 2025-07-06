@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 from langchain_core.messages import AIMessage
 
-from api.models.release_output_payload import ReleaseOutputPayload
+from api.model.release_output_payload import ReleaseOutputPayload
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD

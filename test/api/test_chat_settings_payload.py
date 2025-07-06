@@ -2,7 +2,7 @@ import unittest
 
 from pydantic import ValidationError
 
-from api.models.chat_settings_payload import ChatSettingsPayload
+from api.model.chat_settings_payload import ChatSettingsPayload
 
 
 class ChatSettingsPayloadTest(unittest.TestCase):

@@ -4,7 +4,7 @@ import re
 from enum import Enum
 from typing import Any
 
-from api.models.release_output_payload import ReleaseOutputPayload
+from api.model.release_output_payload import ReleaseOutputPayload
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD

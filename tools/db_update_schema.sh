@@ -8,7 +8,7 @@ if [ ! -f "Pipfile" ]; then
     exit 1
 fi
 
-echoinfo "Have you imported the latest models in 'src/db/alembic/env.py' imports? (Y/n) "
+echoinfo "Have you imported the latest models in 'src/db/alembic/env.py' imports? (y/n) "
 read -r RESPONSE
 if [ ! "$RESPONSE" = "Y" ]; then
     echowarn "Let's import the latest models before continuing."
