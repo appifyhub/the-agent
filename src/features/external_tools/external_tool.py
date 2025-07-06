@@ -10,6 +10,9 @@ class ExternalToolProvider:
     token_format: str
     tools: list[str]
 
+    def __hash__(self) -> int:
+        return hash(self.id)
+
 
 # in sync with db.model.user.UserDB
 class ToolType(str, Enum):
@@ -36,3 +39,6 @@ class ExternalTool:
     name: str
     provider: ExternalToolProvider
     types: list[ToolType]
+
+    def __hash__(self) -> int:
+        return hash(self.id)
