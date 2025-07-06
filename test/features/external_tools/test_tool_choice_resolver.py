@@ -1,233 +1,237 @@
 import unittest
+from datetime import datetime
+from unittest.mock import Mock
+from uuid import UUID
 
+from pydantic import SecretStr
+
+from db.model.user import UserDB
+from db.schema.user import User
+from features.external_tools.access_token_resolver import AccessTokenResolver
 from features.external_tools.external_tool import ToolType
-from features.external_tools.external_tool_library import (
-    ANTHROPIC,
-    OPEN_AI,
-)
-from features.external_tools.external_tool_provider_library import ALL_PROVIDERS
-from features.external_tools.tool_choice_resolver import ToolChoiceResolver
+from features.external_tools.external_tool_library import CLAUDE_3_5_SONNET, GPT_4O_MINI
+from features.external_tools.tool_choice_resolver import ToolChoiceResolver, ToolResolutionError
 
 
 class ToolChoiceResolverTest(unittest.TestCase):
+    invoker_user: User
+    mock_access_token_resolver: Mock
+
+    def setUp(self):
+        self.invoker_user = User(
+            id = UUID(int = 1),
+            full_name = "Test User",
+            telegram_username = "test_user",
+            telegram_chat_id = "test_chat_id",
+            telegram_user_id = 1,
+            open_ai_key = "test_openai_key",
+            anthropic_key = "test_anthropic_key",
+            tool_choice_chat = "claude-3-5-sonnet-latest",
+            tool_choice_vision = "gpt-4o-mini",
+            group = UserDB.Group.standard,
+            created_at = datetime.now().date(),
+        )
+        self.mock_access_token_resolver = Mock(spec = AccessTokenResolver)
 
     def test_find_tool_by_id_success_existing_tool(self):
-        tool = ToolChoiceResolver.find_tool_by_id("gpt-4o-mini")
-
-        self.assertIsNotNone(tool)
-        assert tool is not None  # Type narrowing for linter
-        self.assertEqual(tool.id, "gpt-4o-mini")
-        self.assertEqual(tool.name, "GPT 4o Mini")
-        self.assertEqual(tool.provider, OPEN_AI)
-        self.assertIn(ToolType.chat, tool.types)
+        tool = ToolChoiceResolver.find_tool_by_id(GPT_4O_MINI.id)
+        self.assertEqual(tool, GPT_4O_MINI)
 
     def test_find_tool_by_id_success_anthropic_tool(self):
-        tool = ToolChoiceResolver.find_tool_by_id("claude-3-5-sonnet-latest")
-
-        self.assertIsNotNone(tool)
-        assert tool is not None  # Type narrowing for linter
-        self.assertEqual(tool.id, "claude-3-5-sonnet-latest")
-        self.assertEqual(tool.name, "Claude 3.5 Sonnet")
-        self.assertEqual(tool.provider, ANTHROPIC)
-        self.assertIn(ToolType.chat, tool.types)
+        tool = ToolChoiceResolver.find_tool_by_id(CLAUDE_3_5_SONNET.id)
+        self.assertEqual(tool, CLAUDE_3_5_SONNET)
 
     def test_find_tool_by_id_failure_nonexistent_tool(self):
         tool = ToolChoiceResolver.find_tool_by_id("nonexistent-tool-id")
-
         self.assertIsNone(tool)
 
     def test_find_tool_by_id_failure_empty_string(self):
         tool = ToolChoiceResolver.find_tool_by_id("")
-
         self.assertIsNone(tool)
 
-    def test_get_eligible_tools_by_provider_chat_type_no_preference(self):
-        provider_tools = ToolChoiceResolver.get_eligible_tools_by_provider(ToolType.chat)
-
-        self.assertGreater(len(provider_tools), 0)
-
-        openai_tools = provider_tools.get(OPEN_AI, [])
-        self.assertGreater(len(openai_tools), 0)
-
-        for _, tools in provider_tools.items():
-            for tool in tools:
-                self.assertIn(ToolType.chat, tool.types)
-
-    def test_get_eligible_tools_by_provider_vision_type_no_preference(self):
-        provider_tools = ToolChoiceResolver.get_eligible_tools_by_provider(ToolType.vision)
-
-        self.assertGreater(len(provider_tools), 0)
-
-        for _, tools in provider_tools.items():
-            for tool in tools:
-                self.assertIn(ToolType.vision, tool.types)
-
-    def test_get_eligible_tools_by_provider_hearing_type_no_preference(self):
-        provider_tools = ToolChoiceResolver.get_eligible_tools_by_provider(ToolType.hearing)
-
-        self.assertGreater(len(provider_tools), 0)
-
-        for _, tools in provider_tools.items():
-            for tool in tools:
-                self.assertIn(ToolType.hearing, tool.types)
-
-    def test_get_eligible_tools_by_provider_with_valid_preference(self):
-        provider_tools = ToolChoiceResolver.get_eligible_tools_by_provider(
+    def test_get_prioritized_tools_no_user_choice_no_default(self):
+        tools = ToolChoiceResolver.get_prioritized_tools(
             ToolType.chat,
-            preferred_tool = "claude-3-5-sonnet-latest",
+            user_choice_tool = None,
+            default_tool = None,
         )
 
-        anthropic_tools = provider_tools.get(ANTHROPIC, [])
-        self.assertGreater(len(anthropic_tools), 0)
+        self.assertGreater(len(tools), 1)
+        for tool in tools:
+            self.assertIn(ToolType.chat, tool.types)
 
-        self.assertEqual(anthropic_tools[0].id, "claude-3-5-sonnet-latest")
-
-        claude_count = sum(1 for tool in anthropic_tools if tool.id == "claude-3-5-sonnet-latest")
-        self.assertEqual(claude_count, 1)
-
-    def test_get_eligible_tools_by_provider_with_invalid_preference_wrong_type(self):
-        provider_tools = ToolChoiceResolver.get_eligible_tools_by_provider(
-            ToolType.hearing,
-            preferred_tool = "claude-3-5-sonnet-latest",  # This doesn't support hearing
-        )
-
-        self.assertGreater(len(provider_tools), 0)
-
-        for _, tools in provider_tools.items():
-            for tool in tools:
-                self.assertIn(ToolType.hearing, tool.types)
-
-        for _, tools in provider_tools.items():
-            for tool in tools:
-                self.assertNotEqual(tool.id, "claude-3-5-sonnet-latest")
-
-    def test_get_eligible_tools_by_provider_with_nonexistent_preference(self):
-        provider_tools = ToolChoiceResolver.get_eligible_tools_by_provider(
+    def test_get_prioritized_tools_only_user_choice(self):
+        tools = ToolChoiceResolver.get_prioritized_tools(
             ToolType.chat,
-            preferred_tool = "nonexistent-tool",
+            user_choice_tool = CLAUDE_3_5_SONNET,
+            default_tool = None,
         )
 
-        self.assertGreater(len(provider_tools), 0)
+        self.assertGreater(len(tools), 1)
+        self.assertEqual(tools[0], CLAUDE_3_5_SONNET)
+        for tool in tools:
+            self.assertIn(ToolType.chat, tool.types)
 
-        for _, tools in provider_tools.items():
-            for tool in tools:
-                self.assertIn(ToolType.chat, tool.types)
-
-    def test_get_eligible_tools_by_provider_empty_result_for_unsupported_type(self):
-        provider_tools = ToolChoiceResolver.get_eligible_tools_by_provider(ToolType.api_twitter)
-
-        total_tools = sum(len(tools) for tools in provider_tools.values())
-        self.assertGreaterEqual(total_tools, 0)  # Could be 0 or more depending on available tools
-
-        for _, tools in provider_tools.items():
-            for tool in tools:
-                self.assertIn(ToolType.api_twitter, tool.types)
-
-    def test_get_eligible_tools_by_provider_multiple_types_tool(self):
-        provider_tools = ToolChoiceResolver.get_eligible_tools_by_provider(
-            ToolType.copywriting,
-            preferred_tool = "gpt-4o-mini",  # This supports chat, copywriting, and vision
-        )
-
-        openai_tools = provider_tools.get(OPEN_AI, [])
-        self.assertGreater(len(openai_tools), 0)
-
-        self.assertEqual(openai_tools[0].id, "gpt-4o-mini")
-
-        for _, tools in provider_tools.items():
-            for tool in tools:
-                self.assertIn(ToolType.copywriting, tool.types)
-
-    def test_get_eligible_tools_by_provider_preserves_provider_grouping(self):
-        provider_tools = ToolChoiceResolver.get_eligible_tools_by_provider(ToolType.chat)
-
-        for provider, tools in provider_tools.items():
-            self.assertIsInstance(tools, list)
-            for tool in tools:
-                self.assertEqual(tool.provider, provider)
-
-    def test_get_eligible_tools_by_provider_no_none_values(self):
-        provider_tools = ToolChoiceResolver.get_eligible_tools_by_provider(ToolType.chat)
-
-        for _, tools in provider_tools.items():
-            self.assertIsNotNone(tools)
-            self.assertIsInstance(tools, list)
-
-    def test_get_eligible_tools_by_provider_preference_moves_to_front_only(self):
-        provider_tools = ToolChoiceResolver.get_eligible_tools_by_provider(
+    def test_get_prioritized_tools_only_default(self):
+        tools = ToolChoiceResolver.get_prioritized_tools(
             ToolType.chat,
-            preferred_tool = "gpt-4o-mini",
+            user_choice_tool = None,
+            default_tool = CLAUDE_3_5_SONNET,
         )
 
-        openai_tools = provider_tools.get(OPEN_AI, [])
-        self.assertGreater(len(openai_tools), 0)
+        self.assertGreater(len(tools), 1)
+        self.assertEqual(tools[0], CLAUDE_3_5_SONNET)
+        for tool in tools:
+            self.assertIn(ToolType.chat, tool.types)
 
-        self.assertEqual(openai_tools[0].id, "gpt-4o-mini")
+    def test_get_prioritized_tools_both_user_choice_and_default(self):
+        tools = ToolChoiceResolver.get_prioritized_tools(
+            ToolType.chat,
+            user_choice_tool = CLAUDE_3_5_SONNET.id,
+            default_tool = GPT_4O_MINI.id,
+        )
 
-        gpt_4o_mini_count = sum(1 for tool in openai_tools if tool.id == "gpt-4o-mini")
+        self.assertGreater(len(tools), 2)
+        self.assertEqual(tools[0], CLAUDE_3_5_SONNET)
+        self.assertEqual(tools[1], GPT_4O_MINI)
+        for tool in tools:
+            self.assertIn(ToolType.chat, tool.types)
+
+    def test_get_prioritized_tools_user_choice_same_as_default_no_duplication(self):
+        tools = ToolChoiceResolver.get_prioritized_tools(
+            ToolType.chat,
+            user_choice_tool = GPT_4O_MINI,
+            default_tool = GPT_4O_MINI,
+        )
+
+        self.assertGreater(len(tools), 1)
+        self.assertEqual(tools[0], GPT_4O_MINI)
+
+        gpt_4o_mini_count = sum(1 for tool in tools if tool == GPT_4O_MINI)
         self.assertEqual(gpt_4o_mini_count, 1)
 
-    def test_get_eligible_tools_by_provider_with_external_tool_instance(self):
-        preferred_tool_instance = ToolChoiceResolver.find_tool_by_id("claude-3-5-sonnet-latest")
-        self.assertIsNotNone(preferred_tool_instance)
-
-        provider_tools = ToolChoiceResolver.get_eligible_tools_by_provider(
-            ToolType.chat,
-            preferred_tool = preferred_tool_instance,
-        )
-
-        anthropic_tools = provider_tools.get(ANTHROPIC, [])
-        self.assertGreater(len(anthropic_tools), 0)
-
-        self.assertEqual(anthropic_tools[0].id, "claude-3-5-sonnet-latest")
-
-        claude_count = sum(1 for tool in anthropic_tools if tool.id == "claude-3-5-sonnet-latest")
-        self.assertEqual(claude_count, 1)
-
-    def test_get_eligible_tools_by_provider_with_invalid_external_tool_instance(self):
-        vision_tool = ToolChoiceResolver.find_tool_by_id("gpt-4o-mini")  # Supports vision
-        self.assertIsNotNone(vision_tool)
-
-        provider_tools = ToolChoiceResolver.get_eligible_tools_by_provider(
+    def test_get_prioritized_tools_invalid_user_choice_tool_type(self):
+        tools = ToolChoiceResolver.get_prioritized_tools(
             ToolType.hearing,
-            preferred_tool = vision_tool,
+            user_choice_tool = GPT_4O_MINI,
         )
 
-        self.assertGreater(len(provider_tools), 0)
+        self.assertGreater(len(tools), 0)
+        self.assertNotEqual(tools[0], GPT_4O_MINI)
+        for tool in tools:
+            self.assertIn(ToolType.hearing, tool.types)
 
-        for _, tools in provider_tools.items():
-            for tool in tools:
-                self.assertIn(ToolType.hearing, tool.types)
+    def test_get_prioritized_tools_nonexistent_tools_ignored(self):
+        tools = ToolChoiceResolver.get_prioritized_tools(
+            ToolType.chat,
+            user_choice_tool = "nonexistent-user-tool",
+            default_tool = "nonexistent-default-tool",
+        )
 
-        for _, tools in provider_tools.items():
-            for tool in tools:
-                self.assertNotEqual(tool.id, "gpt-4o-mini")
+        self.assertGreater(len(tools), 1)
+        for tool in tools:
+            self.assertIn(ToolType.chat, tool.types)
 
-    def test_get_eligible_tools_by_provider_includes_all_providers(self):
-        provider_tools = ToolChoiceResolver.get_eligible_tools_by_provider(ToolType.hearing)
+    def test_get_tool_success_user_has_access_to_user_choice(self):
+        self.mock_access_token_resolver.get_access_token_for_tool.return_value = SecretStr("test_token")
 
-        self.assertEqual(len(provider_tools), len(ALL_PROVIDERS))
+        resolver = ToolChoiceResolver(self.invoker_user, self.mock_access_token_resolver)
+        result = resolver.get_tool(ToolType.chat)
 
-        for provider in ALL_PROVIDERS:
-            self.assertIn(provider, provider_tools)
-            self.assertIsInstance(provider_tools[provider], list)
+        self.assertIsNotNone(result)
+        assert result is not None  # Type hint for linter
+        tool, token = result
+        self.assertEqual(tool, CLAUDE_3_5_SONNET)
+        self.assertIsInstance(token, SecretStr)
+        self.assertEqual(token.get_secret_value(), "test_token")
 
-        non_empty_providers = [provider for provider, tools in provider_tools.items() if len(tools) > 0]
+    def test_get_tool_success_user_no_access_to_user_choice_but_has_access_to_others(self):
+        def mock_get_access_token_for_tool(tool):
+            if tool == CLAUDE_3_5_SONNET:
+                return None
+            return SecretStr("test_token")
 
-        self.assertGreater(len(non_empty_providers), 0)
+        self.mock_access_token_resolver.get_access_token_for_tool.side_effect = mock_get_access_token_for_tool
 
-        for provider in non_empty_providers:
-            for tool in provider_tools[provider]:
-                self.assertIn(ToolType.hearing, tool.types)
+        resolver = ToolChoiceResolver(self.invoker_user, self.mock_access_token_resolver)
+        result = resolver.get_tool(ToolType.chat)
 
-    def test_get_eligible_tools_by_provider_empty_providers_have_empty_lists(self):
-        provider_tools = ToolChoiceResolver.get_eligible_tools_by_provider(ToolType.api_crypto_exchange)
+        self.assertIsNotNone(result)
+        assert result is not None  # Type hint for linter
+        tool, token = result
+        self.assertNotEqual(tool, CLAUDE_3_5_SONNET)
+        self.assertIn(ToolType.chat, tool.types)
+        self.assertIsInstance(token, SecretStr)
+        self.assertEqual(token.get_secret_value(), "test_token")
 
-        self.assertEqual(len(provider_tools), len(ALL_PROVIDERS))
+    def test_get_tool_success_with_default_tool_prioritized(self):
+        def mock_get_access_token_for_tool(tool):
+            if tool == CLAUDE_3_5_SONNET:
+                return None
+            if tool == GPT_4O_MINI:
+                return SecretStr("test_token")
+            return None
 
-        for provider in ALL_PROVIDERS:
-            self.assertIn(provider, provider_tools)
-            self.assertIsInstance(provider_tools[provider], list)
+        self.mock_access_token_resolver.get_access_token_for_tool.side_effect = mock_get_access_token_for_tool
 
-            for tool in provider_tools[provider]:
-                self.assertIn(ToolType.api_crypto_exchange, tool.types)
+        resolver = ToolChoiceResolver(self.invoker_user, self.mock_access_token_resolver)
+        result = resolver.get_tool(ToolType.chat, default_tool = GPT_4O_MINI.id)
+
+        self.assertIsNotNone(result)
+        assert result is not None  # Type hint for linter
+        tool, token = result
+        self.assertEqual(tool, GPT_4O_MINI)
+        self.assertIsInstance(token, SecretStr)
+        self.assertEqual(token.get_secret_value(), "test_token")
+
+    def test_get_tool_failure_no_access_to_any_tool(self):
+        self.mock_access_token_resolver.get_access_token_for_tool.return_value = None
+
+        resolver = ToolChoiceResolver(self.invoker_user, self.mock_access_token_resolver)
+        result = resolver.get_tool(ToolType.chat)
+
+        self.assertIsNone(result)
+
+    def test_require_tool_success(self):
+        self.mock_access_token_resolver.get_access_token_for_tool.return_value = SecretStr("test_token")
+
+        resolver = ToolChoiceResolver(self.invoker_user, self.mock_access_token_resolver)
+        result = resolver.require_tool(ToolType.chat)
+
+        self.assertIsNotNone(result)
+        assert result is not None  # Type hint for linter
+        tool, token = result
+        self.assertEqual(tool, CLAUDE_3_5_SONNET)
+        self.assertIsInstance(token, SecretStr)
+        self.assertEqual(token.get_secret_value(), "test_token")
+
+    def test_require_tool_failure_raises_exception(self):
+        self.mock_access_token_resolver.get_access_token_for_tool.return_value = None
+
+        resolver = ToolChoiceResolver(self.invoker_user, self.mock_access_token_resolver)
+
+        with self.assertRaises(ToolResolutionError) as context:
+            resolver.require_tool(ToolType.chat)
+
+        error_message = str(context.exception)
+        self.assertIn("Unable to resolve a tool for 'chat'", error_message)
+        self.assertIn(str(self.invoker_user.id.hex), error_message)
+
+    def test_user_tool_choice_mapping_through_public_interface(self):
+        self.mock_access_token_resolver.get_access_token_for_tool.return_value = SecretStr("test_token")
+
+        resolver = ToolChoiceResolver(self.invoker_user, self.mock_access_token_resolver)
+
+        chat_result = resolver.get_tool(ToolType.chat)
+        self.assertIsNotNone(chat_result)
+        assert chat_result is not None  # Type hint for linter
+        chat_tool, chat_token = chat_result
+        self.assertEqual(chat_tool, CLAUDE_3_5_SONNET)
+        self.assertIsInstance(chat_token, SecretStr)
+
+        vision_result = resolver.get_tool(ToolType.vision)
+        self.assertIsNotNone(vision_result)
+        assert vision_result is not None  # Type hint for linter
+        vision_tool, vision_token = vision_result
+        self.assertEqual(vision_tool, GPT_4O_MINI)
+        self.assertIsInstance(vision_token, SecretStr)
