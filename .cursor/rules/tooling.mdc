@@ -21,13 +21,13 @@ alwaysApply: true
 
 - Use `./tools/run_dev.sh` for development server (includes hot reload, verbose logging, dev API key)
 - Use `./tools/run_tests.sh` for running `pytest` (handles `.env` setup automatically)
-- Use `./tools/run_lint.sh` for code quality checks with `ruff`
+- Use `./tools/run_lint.sh --fix` for code quality checks with `ruff` (this flag will auto-fix issues it can)
 - Use `./tools/run_prod.sh` for production runs
 
 #### Code Quality
 
 - Always run linting before commits: `./tools/run_lint.sh`
-- If user wants, use `pipenv run ruff check --fix` to auto-fix linting issues
+- If user wants, use `./tools/run_lint.sh --fix` to auto-fix linting issues
 - All scripts handle environment setup automatically (PYTHONPATH, .env files)
 
 #### Project Structure
