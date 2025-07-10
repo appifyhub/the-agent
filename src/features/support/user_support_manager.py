@@ -32,9 +32,7 @@ class UserSupportManager(SafePrinterMixin):
     __include_telegram_username: bool
     __include_full_name: bool
     __request_type: RequestType
-    __invoker_user: User
-    __user_dao: UserCRUD
-    __telegram_bot_sdk: TelegramBotSDK
+    __invoker: User
     __copywriter: BaseChatModel
     __token_resolver: AccessTokenResolver
 
@@ -57,13 +55,11 @@ class UserSupportManager(SafePrinterMixin):
         self.__include_telegram_username = include_telegram_username
         self.__include_full_name = include_full_name
         self.__request_type = self.__resolve_request_type(request_type_str)
-        self.__user_dao = user_dao
-        self.__telegram_bot_sdk = telegram_bot_sdk
 
         authorization_service = AuthorizationService(telegram_bot_sdk, user_dao, chat_config_dao)
-        self.__invoker_user = authorization_service.validate_user(invoker_user_id_hex)
+        self.__invoker = authorization_service.validate_user(invoker_user_id_hex)
         self.__token_resolver = AccessTokenResolver(
-            invoker_user = self.__invoker_user,
+            invoker = self.__invoker,
             user_dao = user_dao,
             sponsorship_dao = sponsorship_dao,
         )
@@ -100,15 +96,15 @@ class UserSupportManager(SafePrinterMixin):
         template_contents = self.__load_template()
         prompt = prompt_library.support_request_generator(self.__request_type.name, template_contents)
         user_info_parts = []
-        if self.__include_telegram_username and self.__invoker_user.telegram_username:
-            user_link = f"[{self.__invoker_user.telegram_username}](https://t.me/{self.__invoker_user.telegram_username})"
+        if self.__include_telegram_username and self.__invoker.telegram_username:
+            user_link = f"[{self.__invoker.telegram_username}](https://t.me/{self.__invoker.telegram_username})"
             user_info_parts.append(f"Telegram user: {user_link}")
         if self.__invoker_github_username:
             user_info_parts.append(f"GitHub username: @{self.__invoker_github_username}")
-        if self.__include_full_name and self.__invoker_user.full_name:
-            user_info_parts.append(f"Full name: {self.__invoker_user.full_name}")
+        if self.__include_full_name and self.__invoker.full_name:
+            user_info_parts.append(f"Full name: {self.__invoker.full_name}")
         if not user_info_parts:
-            user_info_parts.append(f"User ID: T-{self.__invoker_user.id.hex}")
+            user_info_parts.append(f"User ID: T-{self.__invoker.id.hex}")
         user_info = "\n".join(user_info_parts)
         message = f"Reporter:\n{user_info}\n\nRaw reporter input:\n```\n{self.__user_input}\n```\n"
         response = self.__copywriter.invoke([SystemMessage(prompt), HumanMessage(message)])

@@ -26,7 +26,7 @@ class ReleaseSummarizer(SafePrinterMixin):
     def __init__(
         self,
         raw_notes: str,
-        invoker_user: str | UUID | User,
+        invoker: str | UUID | User,
         target_chat: str | ChatConfig | None,  # default language if None
         user_dao: UserCRUD,
         chat_config_dao: ChatConfigCRUD,
@@ -44,8 +44,8 @@ class ReleaseSummarizer(SafePrinterMixin):
             language_name = target_chat.language_name
             language_iso_code = target_chat.language_iso_code
 
-        invoker_user = authorization_service.validate_user(invoker_user)
-        access_token_resolver = AccessTokenResolver(invoker_user, user_dao, sponsorship_dao)
+        invoker = authorization_service.validate_user(invoker)
+        access_token_resolver = AccessTokenResolver(invoker, user_dao, sponsorship_dao)
         invoker_token = access_token_resolver.require_access_token_for_tool(CLAUDE_4_SONNET)
         prompt = prompt_library.translator_on_response(
             base_prompt = prompt_library.announcer_release_telegram,

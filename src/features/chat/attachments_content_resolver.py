@@ -6,7 +6,6 @@ from uuid import UUID
 import requests
 
 from db.crud.chat_config import ChatConfigCRUD
-from db.crud.chat_message import ChatMessageCRUD
 from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
@@ -47,7 +46,6 @@ class AttachmentsContentResolver(SafePrinterMixin):
     __bot_sdk: TelegramBotSDK
     __user_dao: UserCRUD
     __chat_config_dao: ChatConfigCRUD
-    __chat_message_dao: ChatMessageCRUD
     __chat_message_attachment_dao: ChatMessageAttachmentCRUD
     __cache_dao: ToolsCacheCRUD
     __token_resolver: AccessTokenResolver
@@ -61,7 +59,6 @@ class AttachmentsContentResolver(SafePrinterMixin):
         bot_sdk: TelegramBotSDK,
         user_dao: UserCRUD,
         chat_config_dao: ChatConfigCRUD,
-        chat_message_dao: ChatMessageCRUD,
         chat_message_attachment_dao: ChatMessageAttachmentCRUD,
         cache_dao: ToolsCacheCRUD,
         sponsorship_dao: SponsorshipCRUD,
@@ -73,13 +70,12 @@ class AttachmentsContentResolver(SafePrinterMixin):
         self.__bot_sdk = bot_sdk
         self.__user_dao = user_dao
         self.__chat_config_dao = chat_config_dao
-        self.__chat_message_dao = chat_message_dao
         self.__chat_message_attachment_dao = chat_message_attachment_dao
         self.__cache_dao = cache_dao
 
         self.__validate(chat_id, invoker_user_id_hex, attachment_ids)
         self.__token_resolver = AccessTokenResolver(
-            invoker_user = self.__invoker,
+            invoker = self.__invoker,
             user_dao = user_dao,
             sponsorship_dao = sponsorship_dao,
         )

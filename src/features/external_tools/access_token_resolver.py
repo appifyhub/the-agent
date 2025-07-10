@@ -34,12 +34,12 @@ class AccessTokenResolver(SafePrinterMixin):
 
     def __init__(
         self,
-        invoker_user: User,
+        invoker: User,
         user_dao: UserCRUD,
         sponsorship_dao: SponsorshipCRUD,
     ):
         super().__init__(config.verbose)
-        self.__invoker = invoker_user
+        self.__invoker = invoker
         self.__user_dao = user_dao
         self.__sponsorship_dao = sponsorship_dao
 

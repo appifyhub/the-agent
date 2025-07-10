@@ -87,7 +87,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         resolver = AccessTokenResolver(
             user_dao = self.mock_user_dao,
             sponsorship_dao = self.mock_sponsorship_dao,
-            invoker_user = self.invoker_user,
+            invoker = self.invoker_user,
         )
 
         # Should not raise an exception
@@ -101,7 +101,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         resolver = AccessTokenResolver(
             user_dao = self.mock_user_dao,
             sponsorship_dao = self.mock_sponsorship_dao,
-            invoker_user = self.invoker_user,
+            invoker = self.invoker_user,
         )
 
         token = resolver.get_access_token(self.openai_provider)
@@ -122,7 +122,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         resolver = AccessTokenResolver(
             user_dao = self.mock_user_dao,
             sponsorship_dao = self.mock_sponsorship_dao,
-            invoker_user = user_without_token,
+            invoker = user_without_token,
         )
 
         token = resolver.get_access_token(self.openai_provider)
@@ -140,7 +140,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         resolver = AccessTokenResolver(
             user_dao = self.mock_user_dao,
             sponsorship_dao = self.mock_sponsorship_dao,
-            invoker_user = user_without_token,
+            invoker = user_without_token,
         )
 
         token = resolver.get_access_token(self.openai_provider)
@@ -158,7 +158,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         resolver = AccessTokenResolver(
             user_dao = self.mock_user_dao,
             sponsorship_dao = self.mock_sponsorship_dao,
-            invoker_user = user_without_token,
+            invoker = user_without_token,
         )
 
         token = resolver.get_access_token(self.openai_provider)
@@ -179,7 +179,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         resolver = AccessTokenResolver(
             user_dao = self.mock_user_dao,
             sponsorship_dao = self.mock_sponsorship_dao,
-            invoker_user = user_without_token,
+            invoker = user_without_token,
         )
 
         token = resolver.get_access_token(self.openai_provider)
@@ -202,7 +202,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         resolver = AccessTokenResolver(
             user_dao = self.mock_user_dao,
             sponsorship_dao = self.mock_sponsorship_dao,
-            invoker_user = self.invoker_user,
+            invoker = self.invoker_user,
         )
 
         token = resolver.get_access_token(unsupported_provider)
@@ -216,7 +216,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         resolver = AccessTokenResolver(
             user_dao = self.mock_user_dao,
             sponsorship_dao = self.mock_sponsorship_dao,
-            invoker_user = self.invoker_user,
+            invoker = self.invoker_user,
         )
 
         token = resolver.get_access_token_for_tool(self.openai_tool)
@@ -232,7 +232,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         resolver = AccessTokenResolver(
             user_dao = self.mock_user_dao,
             sponsorship_dao = self.mock_sponsorship_dao,
-            invoker_user = self.invoker_user,
+            invoker = self.invoker_user,
         )
 
         token = resolver.require_access_token(self.openai_provider)
@@ -248,7 +248,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         resolver = AccessTokenResolver(
             user_dao = self.mock_user_dao,
             sponsorship_dao = self.mock_sponsorship_dao,
-            invoker_user = user_without_token,
+            invoker = user_without_token,
         )
 
         with self.assertRaises(TokenResolutionError) as context:
@@ -263,7 +263,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         resolver = AccessTokenResolver(
             user_dao = self.mock_user_dao,
             sponsorship_dao = self.mock_sponsorship_dao,
-            invoker_user = self.invoker_user,
+            invoker = self.invoker_user,
         )
 
         token = resolver.require_access_token_for_tool(self.openai_tool)
@@ -279,7 +279,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         resolver = AccessTokenResolver(
             user_dao = self.mock_user_dao,
             sponsorship_dao = self.mock_sponsorship_dao,
-            invoker_user = user_without_token,
+            invoker = user_without_token,
         )
 
         with self.assertRaises(TokenResolutionError):
@@ -291,7 +291,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         resolver = AccessTokenResolver(
             user_dao = self.mock_user_dao,
             sponsorship_dao = self.mock_sponsorship_dao,
-            invoker_user = self.invoker_user,
+            invoker = self.invoker_user,
         )
 
         token = resolver.get_access_token(ANTHROPIC)
@@ -306,7 +306,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         resolver = AccessTokenResolver(
             user_dao = self.mock_user_dao,
             sponsorship_dao = self.mock_sponsorship_dao,
-            invoker_user = self.invoker_user,
+            invoker = self.invoker_user,
         )
 
         token = resolver.get_access_token(PERPLEXITY)
@@ -321,7 +321,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         resolver = AccessTokenResolver(
             user_dao = self.mock_user_dao,
             sponsorship_dao = self.mock_sponsorship_dao,
-            invoker_user = self.invoker_user,
+            invoker = self.invoker_user,
         )
 
         token = resolver.get_access_token(REPLICATE)
@@ -336,7 +336,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         resolver = AccessTokenResolver(
             user_dao = self.mock_user_dao,
             sponsorship_dao = self.mock_sponsorship_dao,
-            invoker_user = self.invoker_user,
+            invoker = self.invoker_user,
         )
 
         token = resolver.get_access_token(RAPID_API)
@@ -351,7 +351,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         resolver = AccessTokenResolver(
             user_dao = self.mock_user_dao,
             sponsorship_dao = self.mock_sponsorship_dao,
-            invoker_user = self.invoker_user,
+            invoker = self.invoker_user,
         )
 
         token = resolver.get_access_token(COINMARKETCAP)

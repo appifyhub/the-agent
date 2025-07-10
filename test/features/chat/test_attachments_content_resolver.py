@@ -26,7 +26,6 @@ class AttachmentsContentResolverTest(unittest.TestCase):
         self.mock_cache_crud = MagicMock()
         self.mock_user_crud = MagicMock()
         self.mock_chat_config_crud = MagicMock()
-        self.mock_chat_message_crud = MagicMock()
         self.mock_chat_message_attachment_crud = MagicMock()
         self.mock_sponsorship_dao = MagicMock()
         self.mock_bot_sdk = MagicMock(spec = TelegramBotSDK)
@@ -93,7 +92,6 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 bot_sdk = self.mock_bot_sdk,
                 user_dao = self.mock_user_crud,
                 chat_config_dao = self.mock_chat_config_crud,
-                chat_message_dao = self.mock_chat_message_crud,
                 chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
                 cache_dao = self.mock_cache_crud,
                 sponsorship_dao = self.mock_sponsorship_dao,
@@ -129,7 +127,6 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                     bot_sdk = self.mock_bot_sdk,
                     user_dao = self.mock_user_crud,
                     chat_config_dao = self.mock_chat_config_crud,
-                    chat_message_dao = self.mock_chat_message_crud,
                     chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
                     cache_dao = self.mock_cache_crud,
                     sponsorship_dao = self.mock_sponsorship_dao,
@@ -153,7 +150,6 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 bot_sdk = self.mock_bot_sdk,
                 user_dao = self.mock_user_crud,
                 chat_config_dao = self.mock_chat_config_crud,
-                chat_message_dao = self.mock_chat_message_crud,
                 chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
                 cache_dao = self.mock_cache_crud,
                 sponsorship_dao = self.mock_sponsorship_dao,
@@ -171,7 +167,6 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 bot_sdk = self.mock_bot_sdk,
                 user_dao = self.mock_user_crud,
                 chat_config_dao = self.mock_chat_config_crud,
-                chat_message_dao = self.mock_chat_message_crud,
                 chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
                 cache_dao = self.mock_cache_crud,
                 sponsorship_dao = self.mock_sponsorship_dao,
@@ -187,7 +182,6 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 bot_sdk = self.mock_bot_sdk,
                 user_dao = self.mock_user_crud,
                 chat_config_dao = self.mock_chat_config_crud,
-                chat_message_dao = self.mock_chat_message_crud,
                 chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
                 cache_dao = self.mock_cache_crud,
                 sponsorship_dao = self.mock_sponsorship_dao,
@@ -204,7 +198,6 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 bot_sdk = self.mock_bot_sdk,
                 user_dao = self.mock_user_crud,
                 chat_config_dao = self.mock_chat_config_crud,
-                chat_message_dao = self.mock_chat_message_crud,
                 chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
                 cache_dao = self.mock_cache_crud,
                 sponsorship_dao = self.mock_sponsorship_dao,
@@ -223,7 +216,6 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                 bot_sdk = self.mock_bot_sdk,
                 user_dao = self.mock_user_crud,
                 chat_config_dao = self.mock_chat_config_crud,
-                chat_message_dao = self.mock_chat_message_crud,
                 chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
                 cache_dao = self.mock_cache_crud,
                 sponsorship_dao = self.mock_sponsorship_dao,
@@ -262,7 +254,6 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                     bot_sdk = self.mock_bot_sdk,
                     user_dao = self.mock_user_crud,
                     chat_config_dao = self.mock_chat_config_crud,
-                    chat_message_dao = self.mock_chat_message_crud,
                     chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
                     cache_dao = self.mock_cache_crud,
                     sponsorship_dao = self.mock_sponsorship_dao,
@@ -304,7 +295,6 @@ class AttachmentsContentResolverTest(unittest.TestCase):
                     bot_sdk = self.mock_bot_sdk,
                     user_dao = self.mock_user_crud,
                     chat_config_dao = self.mock_chat_config_crud,
-                    chat_message_dao = self.mock_chat_message_crud,
                     chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
                     cache_dao = self.mock_cache_crud,
                     sponsorship_dao = self.mock_sponsorship_dao,
@@ -335,7 +325,6 @@ class AttachmentsContentResolverTest(unittest.TestCase):
             bot_sdk = self.mock_bot_sdk,
             user_dao = self.mock_user_crud,
             chat_config_dao = self.mock_chat_config_crud,
-            chat_message_dao = self.mock_chat_message_crud,
             chat_message_attachment_dao = self.mock_chat_message_attachment_crud,
             cache_dao = self.mock_cache_crud,
             sponsorship_dao = self.mock_sponsorship_dao,

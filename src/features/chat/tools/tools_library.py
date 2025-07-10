@@ -4,6 +4,7 @@ import json
 
 from langchain_core.tools import tool
 
+from api.authorization_service import AuthorizationService
 from api.settings_controller import SettingsController
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
@@ -21,6 +22,9 @@ from features.chat.price_alert_manager import PriceAlertManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.tools.base_tool_binder import BaseToolBinder
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
+from features.external_tools.access_token_resolver import AccessTokenResolver
+from features.external_tools.external_tool import ToolType
+from features.external_tools.tool_choice_resolver import ToolChoiceResolver
 from features.sponsorships.sponsorship_service import SponsorshipService
 from features.support.user_support_manager import UserSupportManager
 from features.web_browsing.ai_web_search import AIWebSearch
@@ -112,7 +116,6 @@ def process_attachments(
                     bot_sdk = TelegramBotSDK(db),
                     user_dao = UserCRUD(db),
                     chat_config_dao = ChatConfigCRUD(db),
-                    chat_message_dao = ChatMessageCRUD(db),
                     chat_message_attachment_dao = ChatMessageAttachmentCRUD(db),
                     cache_dao = ToolsCacheCRUD(db),
                     sponsorship_dao = SponsorshipCRUD(db),
@@ -165,7 +168,7 @@ def fetch_web_content(url: str, user_id: str) -> str:
             tools_cache_dao = ToolsCacheCRUD(db)
             html = WebFetcher(
                 url, user_id,
-                UserCRUD(db), ChatConfigCRUD(db), tools_cache_dao, TelegramBotSDK(db),
+                UserCRUD(db), ChatConfigCRUD(db), tools_cache_dao, SponsorshipCRUD(db), TelegramBotSDK(db),
             ).html
             text = HTMLContentCleaner(str(html), tools_cache_dao).clean_up()
             result = text[:TOOL_TRUNCATE_LENGTH] + "..." if len(text) > TOOL_TRUNCATE_LENGTH else text
@@ -335,7 +338,23 @@ def ai_web_search(user_id: str, search_query: str) -> str:
     """
     try:
         with get_detached_session() as db:
-            search = AIWebSearch(user_id, search_query, UserCRUD(db), SponsorshipCRUD(db))
+            authorization_service = AuthorizationService(
+                telegram_sdk = TelegramBotSDK(db),
+                user_dao = UserCRUD(db),
+                chat_config_dao = ChatConfigCRUD(db),
+            )
+            invoker = authorization_service.validate_user(user_id)
+            access_token_resolver = AccessTokenResolver(
+                invoker = invoker,
+                user_dao = UserCRUD(db),
+                sponsorship_dao = SponsorshipCRUD(db),
+            )
+            tool_choice_resolver = ToolChoiceResolver(
+                invoker = invoker,
+                access_token_resolver = access_token_resolver,
+            )
+            configured_tool = tool_choice_resolver.require_tool(ToolType.search)
+            search = AIWebSearch(search_query, configured_tool)
             result = search.execute()
             if not result.content:
                 raise ValueError("Answer not received")

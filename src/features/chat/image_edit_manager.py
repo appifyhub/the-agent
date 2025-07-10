@@ -45,7 +45,6 @@ class ImageEditManager(SafePrinterMixin):
     __bot_sdk: TelegramBotSDK
     __invoker_user: User
     __user_dao: UserCRUD
-    __chat_message_attachment_dao: ChatMessageAttachmentCRUD
     __token_resolver: AccessTokenResolver
 
     def __init__(
@@ -66,11 +65,10 @@ class ImageEditManager(SafePrinterMixin):
         self.__operation_guidance = operation_guidance
         self.__bot_sdk = bot_sdk
         self.__user_dao = user_dao
-        self.__chat_message_attachment_dao = chat_message_attachment_dao
 
         self.__validate(invoker_user_id_hex)
         self.__token_resolver = AccessTokenResolver(
-            invoker_user = self.__invoker_user,
+            invoker = self.__invoker_user,
             user_dao = user_dao,
             sponsorship_dao = sponsorship_dao,
         )

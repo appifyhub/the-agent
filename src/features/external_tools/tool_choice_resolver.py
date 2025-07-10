@@ -8,6 +8,7 @@ from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
 ToolsByProvider = dict[ExternalToolProvider, list[ExternalTool]]
+ConfiguredTool = tuple[ExternalTool, SecretStr]
 
 
 class ToolResolutionError(Exception):
@@ -26,19 +27,19 @@ class ToolChoiceResolver(SafePrinterMixin):
         self.__invoker = invoker
         self.__access_token_resolver = access_token_resolver
 
-    def get_tool(
-        self, tool_type: ToolType, default_tool: str | ExternalTool | None = None,
-    ) -> tuple[ExternalTool, SecretStr] | None:
+    def get_tool(self, tool_type: ToolType, default_tool: str | ExternalTool | None = None) -> ConfiguredTool | None:
         self.sprint(f"Resolving tool for type '{tool_type.value}' for user '{self.__invoker.id.hex}'")
 
         # 1. find the user's choice for this tool type
         user_choice_tool_id: str | None = self.__get_user_tool_choice(tool_type)
         user_choice_tool: ExternalTool | None = None
         if user_choice_tool_id:
+            self.sprint(f"  User's tool choice: '{user_choice_tool_id}'")
             user_choice_tool = ToolChoiceResolver.find_tool_by_id(user_choice_tool_id)
 
         # 2. get prioritized tools (user choice > default tool > others)
         prioritized_tools = ToolChoiceResolver.get_prioritized_tools(tool_type, user_choice_tool, default_tool)
+        self.sprint(f"Finished prioritizing {len(prioritized_tools)} tools")
 
         # 3. try tools in order of priority until one with access is found
         for tool in prioritized_tools:
@@ -53,7 +54,7 @@ class ToolChoiceResolver(SafePrinterMixin):
         self.sprint(f"No available tools found for type '{tool_type.value}'")
         return None
 
-    def require_tool(self, tool_type: ToolType, default_tool: str | ExternalTool | None = None) -> tuple[ExternalTool, SecretStr]:
+    def require_tool(self, tool_type: ToolType, default_tool: str | ExternalTool | None = None) -> ConfiguredTool:
         result = self.get_tool(tool_type, default_tool)
         if result is None:
             raise ToolResolutionError(tool_type, self.__invoker.id.hex)

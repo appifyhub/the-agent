@@ -85,7 +85,7 @@ def respond_with_summary(
     try:
         answer = ReleaseSummarizer(
             raw_notes = release_notes,
-            invoker_user = TELEGRAM_BOT_USER.id,  # type: ignore
+            invoker = TELEGRAM_BOT_USER.id,  # type: ignore
             target_chat = None,
             user_dao = user_dao,
             chat_config_dao = chat_config_dao,
@@ -120,7 +120,7 @@ def respond_with_summary(
             if not summary:
                 answer = ReleaseSummarizer(
                     raw_notes = release_notes,
-                    invoker_user = TELEGRAM_BOT_USER.id,  # type: ignore
+                    invoker = TELEGRAM_BOT_USER.id,  # type: ignore
                     target_chat = chat,
                     user_dao = user_dao,
                     chat_config_dao = chat_config_dao,

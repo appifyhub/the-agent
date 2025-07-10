@@ -72,7 +72,7 @@ def respond_with_price_alerts(
                 raw_information = json.dumps(triggered_alert.model_dump(mode = "json"))
                 answer = InformationAnnouncer(
                     raw_information = raw_information,
-                    invoker_user = triggered_alert.owner_id,
+                    invoker = triggered_alert.owner_id,
                     target_chat = chat_config,
                     user_dao = user_dao,
                     chat_config_dao = chat_config_dao,

@@ -218,7 +218,7 @@ class ToolChoiceResolverTest(unittest.TestCase):
         self.assertIn(str(self.invoker_user.id.hex), error_message)
 
     def test_user_tool_choice_mapping_through_public_interface(self):
-        self.mock_access_token_resolver.get_access_token_for_tool.return_value = SecretStr("test_token")
+        self.mock_access_token_resolver.get_access_token_for_tool.return_value = SecretStr("test_token_1")
 
         resolver = ToolChoiceResolver(self.invoker_user, self.mock_access_token_resolver)
 
@@ -228,6 +228,9 @@ class ToolChoiceResolverTest(unittest.TestCase):
         chat_tool, chat_token = chat_result
         self.assertEqual(chat_tool, CLAUDE_3_5_SONNET)
         self.assertIsInstance(chat_token, SecretStr)
+        self.assertEqual(chat_token.get_secret_value(), "test_token_1")
+
+        self.mock_access_token_resolver.get_access_token_for_tool.return_value = SecretStr("test_token_2")
 
         vision_result = resolver.get_tool(ToolType.vision)
         self.assertIsNotNone(vision_result)
@@ -235,3 +238,4 @@ class ToolChoiceResolverTest(unittest.TestCase):
         vision_tool, vision_token = vision_result
         self.assertEqual(vision_tool, GPT_4O_MINI)
         self.assertIsInstance(vision_token, SecretStr)
+        self.assertEqual(vision_token.get_secret_value(), "test_token_2")

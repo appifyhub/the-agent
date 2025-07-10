@@ -108,7 +108,7 @@ def respond_to_update(update: Update) -> bool:
                 auto_start = False,
             )
             access_token_resolver = AccessTokenResolver(
-                invoker_user = resolved_domain_data.author,
+                invoker = resolved_domain_data.author,
                 user_dao = user_dao,
                 sponsorship_dao = sponsorship_dao,
             )

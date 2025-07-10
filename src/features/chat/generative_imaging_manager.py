@@ -49,7 +49,7 @@ class GenerativeImagingManager(SafePrinterMixin):
 
         self.__validate(invoker_user_id_hex)
         self.__token_resolver = AccessTokenResolver(
-            invoker_user = self.__invoker_user,
+            invoker = self.__invoker_user,
             user_dao = user_dao,
             sponsorship_dao = sponsorship_dao,
         )

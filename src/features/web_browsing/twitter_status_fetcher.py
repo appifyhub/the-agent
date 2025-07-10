@@ -33,7 +33,7 @@ class TwitterStatusFetcher(SafePrinterMixin):
     def __init__(
         self,
         tweet_id: str,
-        invoker_user: str | UUID | User,
+        invoker: str | UUID | User,
         cache_dao: ToolsCacheCRUD,
         user_dao: UserCRUD,
         chat_config_dao: ChatConfigCRUD,
@@ -44,8 +44,8 @@ class TwitterStatusFetcher(SafePrinterMixin):
         self.tweet_id = tweet_id
         self.__cache_dao = cache_dao
         authorization_service = AuthorizationService(telegram_bot_sdk, user_dao, chat_config_dao)
-        invoker_user = authorization_service.validate_user(invoker_user)
-        self.__access_token_resolver = AccessTokenResolver(invoker_user, user_dao, sponsorship_dao)
+        invoker = authorization_service.validate_user(invoker)
+        self.__access_token_resolver = AccessTokenResolver(invoker, user_dao, sponsorship_dao)
 
     def execute(self) -> str:
         self.sprint(f"Fetching content for tweet ID: {self.tweet_id}")
