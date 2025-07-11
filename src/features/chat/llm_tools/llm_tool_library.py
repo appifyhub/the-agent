@@ -19,9 +19,9 @@ from features.chat.announcement_manager import AnnouncementManager
 from features.chat.attachments_content_resolver import AttachmentsContentResolver
 from features.chat.generative_imaging_manager import GenerativeImagingManager
 from features.chat.image_edit_manager import ImageEditManager
+from features.chat.llm_tools.base_llm_tool_binder import BaseLLMToolBinder
 from features.chat.price_alert_manager import PriceAlertManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
-from features.chat.tools.base_tool_binder import BaseToolBinder
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
 from features.support.user_support_manager import UserSupportManager
 from features.web_browsing.ai_web_search import AIWebSearch
@@ -514,7 +514,7 @@ def __error(message: str | Exception) -> str:
 # === Tool Bindings ===
 
 
-class ToolsLibrary(BaseToolBinder):
+class LLMToolLibrary(BaseLLMToolBinder):
     def __init__(self):
         super().__init__(
             {

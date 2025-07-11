@@ -11,8 +11,8 @@ from pydantic import SecretStr
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
 from features.chat.command_processor import CommandProcessor
+from features.chat.llm_tools.llm_tool_library import LLMToolLibrary
 from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
-from features.chat.tools.tools_library import ToolsLibrary
 from features.external_tools.access_token_resolver import AccessTokenResolver
 from features.external_tools.external_tool_library import GPT_4_1_MINI
 from features.prompting import prompt_library
@@ -27,7 +27,7 @@ TooledChatModel = Runnable[LanguageModelInput, BaseMessage]
 class TelegramChatBot(SafePrinterMixin):
     __chat: ChatConfig
     __invoker: User
-    __tools_library: ToolsLibrary
+    __llm_tool_library: LLMToolLibrary
     __messages: list[BaseMessage]
     __attachment_ids: list[str]
     __raw_last_message: str  # excludes the resolver formatting
@@ -52,7 +52,7 @@ class TelegramChatBot(SafePrinterMixin):
         super().__init__(config.verbose)
         self.__chat = chat
         self.__invoker = invoker
-        self.__tools_library = ToolsLibrary()
+        self.__llm_tool_library = LLMToolLibrary()
         self.__messages = []
         self.__messages.append(
             SystemMessage(
@@ -65,7 +65,7 @@ class TelegramChatBot(SafePrinterMixin):
                     author = invoker,
                     chat_id = chat.chat_id,
                     chat_title = chat.title,
-                    available_tools = self.__tools_library.tool_names,
+                    available_tools = self.__llm_tool_library.tool_names,
                 ),
             ),
         )
@@ -86,7 +86,7 @@ class TelegramChatBot(SafePrinterMixin):
             max_retries = config.web_retries,
             api_key = access_token or SecretStr(str(None)),
         )
-        self.__llm_tools = self.__tools_library.bind_tools(self.__llm_base)
+        self.__llm_tools = self.__llm_tool_library.bind_tools(self.__llm_base)
 
     def __add_message(self, message: TMessage) -> TMessage:
         self.__messages.append(message)
@@ -175,7 +175,7 @@ class TelegramChatBot(SafePrinterMixin):
                     tool_args: Any = tool_call["args"]
 
                     self.sprint(f"  Processing {tool_id} / '{tool_name}' tool call")
-                    tool_result: str | None = self.__tools_library.invoke(tool_name, tool_args)
+                    tool_result: str | None = self.__llm_tool_library.invoke(tool_name, tool_args)
                     if not tool_result:
                         self.sprint(f"Tool {tool_name} not invoked!")
                         continue
@@ -211,13 +211,9 @@ class TelegramChatBot(SafePrinterMixin):
             should_reply_at_random = False
         else:
             should_reply_at_random = random.randint(0, 100) <= self.__chat.reply_chance_percent
-        should_reply = (
-            has_content and
-            is_not_recursive and
-            (self.__chat.is_private or is_bot_mentioned or should_reply_at_random)
-        )
+        should_reply = has_content and is_not_recursive and (self.__chat.is_private or is_bot_mentioned or should_reply_at_random)
         self.sprint(
-            f"Reply decision: {"REPLYING" if should_reply else "NOT REPLYING"}. Conditions:\n"
+            f"Reply decision: {'REPLYING' if should_reply else 'NOT REPLYING'}. Conditions:\n"
             f"  · has_content      = {has_content}\n"
             f"  · is_not_recursive = {is_not_recursive}\n"
             f"  · is_private_chat  = {self.__chat.is_private}\n"
