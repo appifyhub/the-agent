@@ -2,7 +2,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langchain_perplexity import ChatPerplexity
 
-from features.external_tools.external_tool import ExternalTool
+from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import SONAR
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.prompting import prompt_library
@@ -14,6 +14,7 @@ from util.safe_printer_mixin import SafePrinterMixin
 class AIWebSearch(SafePrinterMixin):
 
     DEFAULT_TOOL: ExternalTool = SONAR
+    TOOL_TYPE: ToolType = ToolType.search
 
     __llm_input: list[BaseMessage]
     __llm: BaseChatModel

@@ -1,10 +1,10 @@
 # ruff: noqa: E501
 
 import json
+from typing import Any
 
 from langchain_core.tools import tool
 
-from api.authorization_service import AuthorizationService
 from api.settings_controller import SettingsController
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
@@ -14,6 +14,7 @@ from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.sql import get_detached_session
+from di.di import DI
 from features.chat.announcement_manager import AnnouncementManager
 from features.chat.attachments_content_resolver import AttachmentsContentResolver
 from features.chat.generative_imaging_manager import GenerativeImagingManager
@@ -22,10 +23,6 @@ from features.chat.price_alert_manager import PriceAlertManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.tools.base_tool_binder import BaseToolBinder
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
-from features.external_tools.access_token_resolver import AccessTokenResolver
-from features.external_tools.external_tool import ToolType
-from features.external_tools.tool_choice_resolver import ToolChoiceResolver
-from features.sponsorships.sponsorship_service import SponsorshipService
 from features.support.user_support_manager import UserSupportManager
 from features.web_browsing.ai_web_search import AIWebSearch
 from features.web_browsing.html_content_cleaner import HTMLContentCleaner
@@ -35,48 +32,6 @@ from util.safe_printer_mixin import sprint
 from util.translations_cache import TranslationsCache
 
 TOOL_TRUNCATE_LENGTH = 8192  # to save some tokens
-
-
-@tool
-def sponsor_friend(user_id: str, friend_telegram_username: str) -> str:
-    """
-    Sponsors a friend to use the chatbot.
-
-    Args:
-        user_id: A unique identifier of the user/author/sponsor, usually found in the metadata
-        friend_telegram_username: [mandatory] The Telegram username of the friend to sponsor, without '@'
-    """
-    try:
-        with get_detached_session() as db:
-            sponsorship_service = SponsorshipService(UserCRUD(db), SponsorshipCRUD(db))
-            result, message = sponsorship_service.sponsor_user(user_id, friend_telegram_username)
-            if result == SponsorshipService.Result.failure:
-                return json.dumps({"result": "Failure", "reason": message})
-            return json.dumps({"result": "Success", "next_step": message})
-    except Exception as e:
-        sprint("Tool call failed", e)
-        return json.dumps({"result": "Error", "error": str(e)})
-
-
-@tool
-def unsponsor_friend(user_id: str, friend_telegram_username: str) -> str:
-    """
-    Revokes sponsorship for a friend from using the chatbot.
-
-    Args:
-        user_id: A unique identifier of the user/author/sponsor, usually found in the metadata
-        friend_telegram_username: [mandatory] The Telegram username of the friend to un-sponsor, without '@'
-    """
-    try:
-        with get_detached_session() as db:
-            sponsorship_service = SponsorshipService(UserCRUD(db), SponsorshipCRUD(db))
-            result, message = sponsorship_service.unsponsor_user(user_id, friend_telegram_username)
-            if result == SponsorshipService.Result.failure:
-                return json.dumps({"result": "Failure", "reason": message})
-            return json.dumps({"result": "Success", "next_step": message})
-    except Exception as e:
-        sprint("Tool call failed", e)
-        return json.dumps({"result": "Error", "error": str(e)})
 
 
 @tool
@@ -139,19 +94,17 @@ def process_attachments(
                 result, stats = manager.execute()
                 if result == ImageEditManager.Result.failed:
                     raise ValueError("Failed to edit the images")
-                return json.dumps(
+                return __success(
                     {
-                        "result": result.value,
                         "stats": stats,
-                        "next_step": "Relay this status update to the partner",
+                        "next_step": "Deliver these stats to the partner",
                     },
                 )
             else:
                 # Unknown operation, must report back
                 raise ValueError(f"Unknown operation '{operation}'; try one of: [{', '.join(allowed_operations)}]")
     except Exception as e:
-        sprint("Tool call failed", e)
-        return json.dumps({"result": "Error", "error": str(e)})
+        return __error(e)
 
 
 @tool
@@ -167,15 +120,19 @@ def fetch_web_content(url: str, user_id: str) -> str:
         with get_detached_session() as db:
             tools_cache_dao = ToolsCacheCRUD(db)
             html = WebFetcher(
-                url, user_id,
-                UserCRUD(db), ChatConfigCRUD(db), tools_cache_dao, SponsorshipCRUD(db), TelegramBotSDK(db),
+                url,
+                user_id,
+                UserCRUD(db),
+                ChatConfigCRUD(db),
+                tools_cache_dao,
+                SponsorshipCRUD(db),
+                TelegramBotSDK(db),
             ).html
             text = HTMLContentCleaner(str(html), tools_cache_dao).clean_up()
             result = text[:TOOL_TRUNCATE_LENGTH] + "..." if len(text) > TOOL_TRUNCATE_LENGTH else text
-            return json.dumps({"result": "Success", "content": result})
+            return __success({"content": result})
     except Exception as e:
-        sprint("Tool call failed", e)
-        return json.dumps({"result": "Error", "error": str(e)})
+        return __error(e)
 
 
 @tool
@@ -200,15 +157,18 @@ def get_exchange_rate(user_id: str, base_currency: str, desired_currency: str, a
                 telegram_sdk = TelegramBotSDK(db),
             )
             result = fetcher.execute(base_currency, desired_currency, float(amount) if amount else 1.0)
-            return json.dumps({"result": "Success", "exchange_rate": result})
+            return __success({"exchange_rate": result})
     except Exception as e:
-        sprint("Tool call failed", e)
-        return json.dumps({"result": "Error", "error": str(e)})
+        return __error(e)
 
 
 @tool
 def set_up_currency_price_alert(
-    chat_id: str, user_id: str, base_currency: str, desired_currency: str, threshold_percent: int,
+    chat_id: str,
+    user_id: str,
+    base_currency: str,
+    desired_currency: str,
+    threshold_percent: int,
 ) -> str:
     """
     Sets up a price alert at the given threshold for the given currency pair.
@@ -233,10 +193,9 @@ def set_up_currency_price_alert(
                 telegram_bot_sdk = TelegramBotSDK(db),
             )
             alert = alert_manager.create_alert(base_currency, desired_currency, threshold_percent)
-            return json.dumps({"result": "Success", "created_alert_data": alert.model_dump(mode = "json")})
+            return __success({"created_alert_data": alert.model_dump(mode = "json")})
     except Exception as e:
-        sprint("Tool call failed", e)
-        return json.dumps({"result": "Error", "error": str(e)})
+        return __error(e)
 
 
 @tool
@@ -264,10 +223,9 @@ def remove_currency_price_alerts(chat_id: str, user_id: str, base_currency: str,
             )
             alert = alert_manager.delete_alert(base_currency, desired_currency)
             deleted_alert_data = alert.model_dump(mode = "json") if alert else None
-            return json.dumps({"result": "Success", "deleted_alert_data": deleted_alert_data})
+            return __success({"deleted_alert_data": deleted_alert_data})
     except Exception as e:
-        sprint("Tool call failed", e)
-        return json.dumps({"result": "Error", "error": str(e)})
+        return __error(e)
 
 
 @tool
@@ -292,16 +250,15 @@ def list_currency_price_alerts(chat_id: str, user_id: str) -> str:
                 telegram_bot_sdk = TelegramBotSDK(db),
             )
             alerts = alert_manager.get_active_alerts()
-            return json.dumps({"result": "Success", "alerts": [alert.model_dump(mode = "json") for alert in alerts]})
+            return __success({"alerts": [alert.model_dump(mode = "json") for alert in alerts]})
     except Exception as e:
-        sprint("Tool call failed", e)
-        return json.dumps({"result": "Error", "error": str(e)})
+        return __error(e)
 
 
 @tool
 def generate_image(chat_id: str, user_id: str, prompt: str) -> str:
     """
-    Generates an image based on the given prompt using Generative AI.
+    Generates (draws) an image based on the given prompt using Generative AI.
 
     Args:
         chat_id: [mandatory] A unique identifier of the chat, usually found in the metadata
@@ -321,10 +278,9 @@ def generate_image(chat_id: str, user_id: str, prompt: str) -> str:
             result = imaging.execute()
             if result == GenerativeImagingManager.Result.failed:
                 raise ValueError("Failed to generate the image")
-        return json.dumps({"result": "Success", "next_step": "Confirm to partner that the image has been sent"})
+            return __success({"next_step": "Confirm to partner that the image has been sent"})
     except Exception as e:
-        sprint("Tool call failed", e)
-        return json.dumps({"result": "Error", "error": str(e)})
+        return __error(e)
 
 
 @tool
@@ -338,30 +294,15 @@ def ai_web_search(user_id: str, search_query: str) -> str:
     """
     try:
         with get_detached_session() as db:
-            authorization_service = AuthorizationService(
-                telegram_sdk = TelegramBotSDK(db),
-                user_dao = UserCRUD(db),
-                chat_config_dao = ChatConfigCRUD(db),
-            )
-            invoker = authorization_service.validate_user(user_id)
-            access_token_resolver = AccessTokenResolver(
-                invoker = invoker,
-                user_dao = UserCRUD(db),
-                sponsorship_dao = SponsorshipCRUD(db),
-            )
-            tool_choice_resolver = ToolChoiceResolver(
-                invoker = invoker,
-                access_token_resolver = access_token_resolver,
-            )
-            configured_tool = tool_choice_resolver.require_tool(ToolType.search)
-            search = AIWebSearch(search_query, configured_tool)
+            di = DI(db, user_id)
+            configured_tool = di.tool_choice_resolver.require_tool(AIWebSearch.TOOL_TYPE)
+            search = di.ai_web_search(search_query, configured_tool)
             result = search.execute()
             if not result.content:
                 raise ValueError("Answer not received")
-            return json.dumps({"result": "Success", "content": result.content})
+            return __success({"content": result.content})
     except Exception as e:
-        sprint("Tool call failed", e)
-        return json.dumps({"result": "Error", "error": str(e)})
+        return __error(e)
 
 
 @tool
@@ -387,16 +328,14 @@ def announce_maintenance_or_news(user_id: str, raw_announcement: str) -> str:
                 translations = TranslationsCache(),
             )
             results = manager.execute()
-            return json.dumps(
+            return __success(
                 {
-                    "result": "Success",
                     "summary": results,
                     "next_step": "Report these summary numbers back to the developer-user",
                 },
             )
     except Exception as e:
-        sprint("Tool call failed", e)
-        return json.dumps({"result": "Error", "error": str(e)})
+        return __error(e)
 
 
 @tool
@@ -423,16 +362,14 @@ def deliver_message(author_user_id: str, message: str, target_telegram_username:
                 translations = TranslationsCache(),
             )
             results = manager.execute()
-            return json.dumps(
+            return __success(
                 {
-                    "result": "Success",
                     "summary": results,
                     "next_step": "Report these summary numbers back to the developer-user",
                 },
             )
     except Exception as e:
-        sprint("Tool call failed", e)
-        return json.dumps({"result": "Error", "error": str(e)})
+        return __error(e)
 
 
 @tool
@@ -472,16 +409,14 @@ def request_feature_bug_or_support(
                 telegram_bot_sdk = TelegramBotSDK(db),
             )
             issue_url = manager.execute()
-            return json.dumps(
+            return __success(
                 {
-                    "result": "Success",
                     "github_issue_url": issue_url,
                     "next_step": "Report this resolution back to the partner",
                 },
             )
     except Exception as e:
-        sprint("Tool call failed", e)
-        return json.dumps({"result": "Error", "error": str(e)})
+        return __error(e)
 
 
 @tool
@@ -518,31 +453,23 @@ def configure_settings(
             # let's send the settings link to the user's private chat, for security and privacy reasons
             destination_chat_id = manager.get_invoker_private_chat_id()
             if not destination_chat_id:
-                return json.dumps(
-                    {
-                        "result": "Error",
-                        "error": "Author has no private chat with the bot; cannot send settings link",
-                    },
-                )
+                return __error("Author has no private chat with the bot; cannot send settings link")
             telegram_sdk.send_button_link(destination_chat_id, settings_link)
             if chat_id and chat_id == str(destination_chat_id or 0):
-                return json.dumps(
+                return __success(
                     {
-                        "result": "Success",
                         "next_step": "Notify the user to click on the settings link above",
                     },
                 )
             else:
-                return json.dumps(
+                return __success(
                     {
-                        "result": "Success",
                         "next_step": "Notify the user that the link was sent to their private chat",
                     },
                 )
 
     except Exception as e:
-        sprint("Tool call failed", e)
-        return json.dumps({"result": "Error", "error": str(e)})
+        return __error(e)
 
 
 @tool
@@ -551,25 +478,46 @@ def get_version() -> str:
     Checks the current version of the bot (the latest version available to the users).
     """
     try:
-        return json.dumps(
+        return __success(
             {
-                "result": "Success",
                 "version": f"v{config.version}",
                 "next_step": "Notify the user of the current (latest) version",
             },
         )
     except Exception as e:
-        sprint("Tool call failed", e)
-        return json.dumps({"result": "Error", "error": str(e)})
+        return __error(e)
+
+
+# === Helper functions ===
+
+
+def __success(content: dict[str, Any] | str) -> str:
+    if isinstance(content, str):
+        sprint(f"Tool call succeeded: {content}")
+        return json.dumps({"result": "Success", "information": content})
+    else:
+        sprint(f"Tool call succeeded: {str(content)}")
+        return json.dumps({"result": "Success", **content})
+
+
+def __error(message: str | Exception) -> str:
+    error_str: str
+    if isinstance(message, str):
+        sprint(f"Tool call failed: {message}")
+        error_str = message
+    else:
+        sprint("Tool call failed", message)
+        error_str = str(message)
+    return json.dumps({"result": "Error", "information": error_str})
+
+
+# === Tool Bindings ===
 
 
 class ToolsLibrary(BaseToolBinder):
-
     def __init__(self):
         super().__init__(
             {
-                "sponsor_friend": sponsor_friend,
-                "unsponsor_friend": unsponsor_friend,
                 "fetch_web_content": fetch_web_content,
                 "process_attachments": process_attachments,
                 "get_exchange_rate": get_exchange_rate,
