@@ -12,9 +12,9 @@ from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
 from features.chat.command_processor import CommandProcessor
+from features.chat.llm_tools.llm_tool_library import LLMToolLibrary
 from features.chat.telegram.telegram_chat_bot import TelegramChatBot
 from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
-from features.chat.tools.tools_library import ToolsLibrary
 from features.external_tools.access_token_resolver import AccessTokenResolver
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 
@@ -25,7 +25,7 @@ class TelegramChatBotTest(unittest.TestCase):
     access_token_resolver_mock: AccessTokenResolver
     command_processor_mock: CommandProcessor
     progress_notifier_mock: TelegramProgressNotifier
-    tools_library_mock: ToolsLibrary
+    llm_tool_library_mock: LLMToolLibrary
     llm_base_mock: BaseChatModel
     llm_tools_mock: Runnable
     bot: TelegramChatBot
@@ -57,7 +57,7 @@ class TelegramChatBotTest(unittest.TestCase):
         self.access_token_resolver_mock = Mock(spec = AccessTokenResolver)
         self.command_processor_mock = Mock(spec = CommandProcessor)
         self.progress_notifier_mock = Mock(spec = TelegramProgressNotifier)
-        self.tools_library_mock = Mock(spec = ToolsLibrary)
+        self.llm_tool_library_mock = Mock(spec = LLMToolLibrary)
         self.llm_base_mock = Mock(spec = BaseChatModel)
         self.llm_tools_mock = Mock(spec = Runnable)
 
@@ -72,7 +72,7 @@ class TelegramChatBotTest(unittest.TestCase):
             self.progress_notifier_mock,
             self.access_token_resolver_mock,
         )
-        self.bot._TelegramChatBot__tools_library = self.tools_library_mock
+        self.bot._TelegramChatBot__llm_tool_library = self.llm_tool_library_mock
         self.bot._TelegramChatBot__llm_base = self.llm_base_mock
         self.bot._TelegramChatBot__llm_tools = self.llm_tools_mock
 
@@ -230,7 +230,7 @@ class TelegramChatBotTest(unittest.TestCase):
         ai_final = AIMessage("Final response")
 
         self.llm_tools_mock.invoke.side_effect = [ai_with_tools, ai_final]
-        self.tools_library_mock.invoke.return_value = "Tool result"
+        self.llm_tool_library_mock.invoke.return_value = "Tool result"
         result = self.bot.execute()
         self.assertEqual(result.content, "Final response")
 
@@ -259,7 +259,7 @@ class TelegramChatBotTest(unittest.TestCase):
 
         # Make the LLM always return messages with tool calls to continue iterations
         self.llm_tools_mock.invoke.return_value = ai_with_tools
-        self.tools_library_mock.invoke.return_value = "Tool result"
+        self.llm_tool_library_mock.invoke.return_value = "Tool result"
 
         result = self.bot.execute()
 
