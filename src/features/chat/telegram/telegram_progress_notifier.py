@@ -38,7 +38,7 @@ class TelegramProgressNotifier(SafePrinterMixin):
         chat_config: ChatConfig,
         message_id: str,
         bot_sdk: TelegramBotSDK,
-        auto_start: bool = True,
+        auto_start: bool = False,
         reaction_interval_s: int = DEFAULT_REACTION_INTERVAL_S,
         text_update_interval_s: int = DEFAULT_TEXT_UPDATE_INTERVAL_S,
     ):
