@@ -16,7 +16,7 @@ from db.crud.user import UserCRUD
 from db.sql import get_detached_session
 from di.di import DI
 from features.chat.announcement_manager import AnnouncementManager
-from features.chat.attachments_content_resolver import AttachmentsContentResolver
+from features.chat.attachments_describer import AttachmentsDescriber
 from features.chat.generative_imaging_manager import GenerativeImagingManager
 from features.chat.image_edit_manager import ImageEditManager
 from features.chat.llm_tools.base_llm_tool_binder import BaseLLMToolBinder
@@ -52,7 +52,7 @@ def process_attachments(
     Args:
         chat_id: [mandatory] A unique identifier of the chat, usually found in the metadata
         user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
-        attachment_ids: [mandatory] A comma-separated list of verbatim, unique 📎 attachment IDs that need to be resolved (located in each message); include any dashes, underscores or other symbols; these IDs are not to be cleaned or truncated
+        attachment_ids: [mandatory] A comma-separated list of verbatim, unique 📎 attachment IDs that need to be processed (located in each message); include any dashes, underscores or other symbols; these IDs are not to be cleaned or truncated
         operation: [mandatory] The action to perform on the attachments
         context: [optional] Additional task context or guidance, e.g. the user's message/question/caption, if available
     """
@@ -61,25 +61,16 @@ def process_attachments(
         editing_operations = ImageEditManager.Operation.values()
         allowed_operations = ["describe"] + editing_operations
         with get_detached_session() as db:
+            di = DI(db, user_id, chat_id)
             if operation == "describe":
                 # Resolve the attachments into text
-                content_resolver = AttachmentsContentResolver(
-                    chat_id = chat_id,
-                    invoker_user_id_hex = user_id,
-                    additional_context = context,
-                    attachment_ids = attachment_ids.split(","),
-                    bot_sdk = TelegramBotSDK(db),
-                    user_dao = UserCRUD(db),
-                    chat_config_dao = ChatConfigCRUD(db),
-                    chat_message_attachment_dao = ChatMessageAttachmentCRUD(db),
-                    cache_dao = ToolsCacheCRUD(db),
-                    sponsorship_dao = SponsorshipCRUD(db),
-                )
-                result = content_resolver.execute()
-                if result == AttachmentsContentResolver.Result.failed:
+                describer = di.attachments_describer(context, attachment_ids.split(","))
+                result = describer.execute()
+                if result == AttachmentsDescriber.Result.failed:
                     raise ValueError("Failed to resolve attachments")
-                return json.dumps({"result": result.value, "attachments": content_resolver.resolution_result})
+                return json.dumps({"result": result.value, "attachments": describer.result})
             elif operation in editing_operations:
+                # Generate images based on the provided context
                 manager = ImageEditManager(
                     chat_id = chat_id,
                     attachment_ids = attachment_ids.split(","),
@@ -94,12 +85,7 @@ def process_attachments(
                 result, stats = manager.execute()
                 if result == ImageEditManager.Result.failed:
                     raise ValueError("Failed to edit the images")
-                return __success(
-                    {
-                        "stats": stats,
-                        "next_step": "Deliver these stats to the partner",
-                    },
-                )
+                return __success({"stats": stats, "next_step": "Deliver these stats to the partner"})
             else:
                 # Unknown operation, must report back
                 raise ValueError(f"Unknown operation '{operation}'; try one of: [{', '.join(allowed_operations)}]")
@@ -515,6 +501,7 @@ def __error(message: str | Exception) -> str:
 
 
 class LLMToolLibrary(BaseLLMToolBinder):
+
     def __init__(self):
         super().__init__(
             {

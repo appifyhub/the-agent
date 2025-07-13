@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from features.announcements.release_summarizer import ReleaseSummarizer
     from features.audio.audio_transcriber import AudioTranscriber
     from features.chat.announcement_manager import AnnouncementManager
-    from features.chat.attachments_content_resolver import AttachmentsContentResolver
+    from features.chat.attachments_describer import AttachmentsDescriber
     from features.chat.command_processor import CommandProcessor
     from features.chat.generative_imaging_manager import GenerativeImagingManager
     from features.chat.image_edit_manager import ImageEditManager
@@ -620,24 +620,13 @@ class DI:
             language_iso_code,
         )
 
-    def attachments_content_resolver(
+    def attachments_describer(
         self,
-        attachment_ids: list[str],
         additional_context: str | None,
-    ) -> "AttachmentsContentResolver":
-        from features.chat.attachments_content_resolver import AttachmentsContentResolver
-        return AttachmentsContentResolver(
-            self.invoker_chat_id,
-            self.invoker_id,
-            additional_context,
-            attachment_ids,
-            self.telegram_bot_sdk,
-            self.user_crud,
-            self.chat_config_crud,
-            self.chat_message_attachment_crud,
-            self.tools_cache_crud,
-            self.sponsorship_crud,
-        )
+        attachment_ids: list[str],
+    ) -> "AttachmentsDescriber":
+        from features.chat.attachments_describer import AttachmentsDescriber
+        return AttachmentsDescriber(additional_context, attachment_ids, self)
 
     def announcement_manager(
         self,
