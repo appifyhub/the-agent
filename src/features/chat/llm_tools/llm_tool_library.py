@@ -8,7 +8,6 @@ from langchain_core.tools import tool
 from api.settings_controller import SettingsController
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
-from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
 from db.crud.price_alert import PriceAlertCRUD
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
@@ -18,7 +17,7 @@ from di.di import DI
 from features.chat.announcement_manager import AnnouncementManager
 from features.chat.attachments_describer import AttachmentsDescriber
 from features.chat.generative_imaging_manager import GenerativeImagingManager
-from features.chat.image_edit_manager import ImageEditManager
+from features.chat.image_generator import ImageGenerator
 from features.chat.llm_tools.base_llm_tool_binder import BaseLLMToolBinder
 from features.chat.price_alert_manager import PriceAlertManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
@@ -58,32 +57,23 @@ def process_attachments(
     """
     try:
         operation = operation.lower().strip()
-        editing_operations = ImageEditManager.Operation.values()
+        editing_operations = ImageGenerator.Operation.values()
         allowed_operations = ["describe"] + editing_operations
         with get_detached_session() as db:
             di = DI(db, user_id, chat_id)
+            attachment_ids_list = attachment_ids.split(",")
             if operation == "describe":
                 # Resolve the attachments into text
-                describer = di.attachments_describer(context, attachment_ids.split(","))
+                describer = di.attachments_describer(context, attachment_ids_list)
                 result = describer.execute()
                 if result == AttachmentsDescriber.Result.failed:
                     raise ValueError("Failed to resolve attachments")
                 return json.dumps({"result": result.value, "attachments": describer.result})
             elif operation in editing_operations:
                 # Generate images based on the provided context
-                manager = ImageEditManager(
-                    chat_id = chat_id,
-                    attachment_ids = attachment_ids.split(","),
-                    invoker_user_id_hex = user_id,
-                    operation_name = operation,
-                    operation_guidance = context,
-                    bot_sdk = TelegramBotSDK(db),
-                    user_dao = UserCRUD(db),
-                    chat_message_attachment_dao = ChatMessageAttachmentCRUD(db),
-                    sponsorship_dao = SponsorshipCRUD(db),
-                )
-                result, stats = manager.execute()
-                if result == ImageEditManager.Result.failed:
+                generator = di.image_generator(attachment_ids_list, operation, context)
+                result, stats = generator.execute()
+                if result == ImageGenerator.Result.failed:
                     raise ValueError("Failed to edit the images")
                 return __success({"stats": stats, "next_step": "Deliver these stats to the partner"})
             else:

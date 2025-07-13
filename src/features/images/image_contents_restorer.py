@@ -52,7 +52,7 @@ class ImageContentsRestorer(SafePrinterMixin):
         )
 
     @staticmethod
-    def get_resoration_tool() -> ExternalTool:
+    def get_restoration_tool() -> ExternalTool:
         return IMAGE_RESTORATION
 
     @staticmethod
@@ -79,7 +79,7 @@ class ImageContentsRestorer(SafePrinterMixin):
                         "codeformer_fidelity": 0.1,
                     }
                     restored_url = self.__replicate.run(
-                        ImageContentsRestorer.get_resoration_tool().id,
+                        ImageContentsRestorer.get_restoration_tool().id,
                         input = input_data,
                     )
             if not restored_url:

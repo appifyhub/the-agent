@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from features.chat.attachments_describer import AttachmentsDescriber
     from features.chat.command_processor import CommandProcessor
     from features.chat.generative_imaging_manager import GenerativeImagingManager
-    from features.chat.image_edit_manager import ImageEditManager
+    from features.chat.image_generator import ImageGenerator
     from features.chat.price_alert_manager import PriceAlertManager
     from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
     from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
@@ -506,24 +506,14 @@ class DI:
             self.sponsorship_crud,
         )
 
-    def image_edit_manager(
+    def image_generator(
         self,
         attachment_ids: list[str],
         operation_name: str,
-        operation_guidance: str | None = None,
-    ) -> "ImageEditManager":
-        from features.chat.image_edit_manager import ImageEditManager
-        return ImageEditManager(
-            self.invoker_chat_id,
-            attachment_ids,
-            self.invoker_id,
-            operation_name,
-            self.telegram_bot_sdk,
-            self.user_crud,
-            self.chat_message_attachment_crud,
-            self.sponsorship_crud,
-            operation_guidance,
-        )
+        operation_guidance: str | None,
+    ) -> "ImageGenerator":
+        from features.chat.image_generator import ImageGenerator
+        return ImageGenerator(attachment_ids, operation_name, operation_guidance, self)
 
     # noinspection PyMethodMayBeStatic
     def image_editor(
