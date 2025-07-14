@@ -13,16 +13,18 @@ from features.external_tools.tool_choice_resolver import ConfiguredTool
 from util.config import config
 
 
-def create(configured_tool: ConfiguredTool, for_type: ToolType) -> BaseChatModel:
-    tool, api_key = configured_tool
-    temperature_percent = __get_temperature_percent(for_type)
+def create(configured_tool: ConfiguredTool) -> BaseChatModel:
+    tool, api_key, purpose = configured_tool
+
+    model_name = tool.id
+    temperature_percent = __get_temperature_percent(purpose)
     temperature = __normalize_temperature(temperature_percent, tool.provider)
-    max_tokens = __get_max_tokens(for_type)
-    timeout = __get_timeout(for_type)
+    max_tokens = __get_max_tokens(purpose)
+    timeout = __get_timeout(purpose)
     max_retries = config.web_retries
 
     model_args = {
-        "model": tool.id,
+        "model": model_name,
         "temperature": temperature,
         "max_tokens": max_tokens,
         "timeout": timeout,
@@ -30,15 +32,14 @@ def create(configured_tool: ConfiguredTool, for_type: ToolType) -> BaseChatModel
         "api_key": api_key,
     }
 
-    provider_id = tool.provider.id
-    if provider_id == OPEN_AI.id:
-        return ChatOpenAI(**model_args)
-    elif provider_id == ANTHROPIC.id:
-        return ChatAnthropic(**model_args)
-    elif provider_id == PERPLEXITY.id:
-        return ChatPerplexity(**model_args)
-    else:
-        raise ValueError(f"{tool.provider.name}/{tool.name} does not support LLMs")
+    match tool.provider.id:
+        case OPEN_AI.id:
+            return ChatOpenAI(**model_args)
+        case ANTHROPIC.id:
+            return ChatAnthropic(**model_args)
+        case PERPLEXITY.id:
+            return ChatPerplexity(**model_args)
+    raise ValueError(f"{tool.provider.name}/{tool.name} does not support LLMs")
 
 
 def __get_temperature_percent(tool_type: ToolType) -> float:

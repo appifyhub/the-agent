@@ -140,14 +140,15 @@ class ToolChoiceResolverTest(unittest.TestCase):
 
         self.assertIsNotNone(result)
         assert result is not None  # Type hint for linter
-        tool, token = result
+        tool, token, purpose = result
         self.assertEqual(tool, CLAUDE_3_5_SONNET)
         self.assertIsInstance(token, SecretStr)
         self.assertEqual(token.get_secret_value(), "test_token")
+        self.assertEqual(purpose, ToolType.chat)
 
     def test_get_tool_success_user_no_access_to_user_choice_but_has_access_to_others(self):
-        def mock_get_access_token_for_tool(tool):
-            if tool == CLAUDE_3_5_SONNET:
+        def mock_get_access_token_for_tool(test_tool):
+            if test_tool == CLAUDE_3_5_SONNET:
                 return None
             return SecretStr("test_token")
 
@@ -158,17 +159,18 @@ class ToolChoiceResolverTest(unittest.TestCase):
 
         self.assertIsNotNone(result)
         assert result is not None  # Type hint for linter
-        tool, token = result
+        tool, token, purpose = result
         self.assertNotEqual(tool, CLAUDE_3_5_SONNET)
         self.assertIn(ToolType.chat, tool.types)
         self.assertIsInstance(token, SecretStr)
         self.assertEqual(token.get_secret_value(), "test_token")
+        self.assertEqual(purpose, ToolType.chat)
 
     def test_get_tool_success_with_default_tool_prioritized(self):
-        def mock_get_access_token_for_tool(tool):
-            if tool == CLAUDE_3_5_SONNET:
+        def mock_get_access_token_for_tool(test_tool):
+            if test_tool == CLAUDE_3_5_SONNET:
                 return None
-            if tool == GPT_4O_MINI:
+            if test_tool == GPT_4O_MINI:
                 return SecretStr("test_token")
             return None
 
@@ -179,10 +181,11 @@ class ToolChoiceResolverTest(unittest.TestCase):
 
         self.assertIsNotNone(result)
         assert result is not None  # Type hint for linter
-        tool, token = result
+        tool, token, purpose = result
         self.assertEqual(tool, GPT_4O_MINI)
         self.assertIsInstance(token, SecretStr)
         self.assertEqual(token.get_secret_value(), "test_token")
+        self.assertEqual(purpose, ToolType.chat)
 
     def test_get_tool_failure_no_access_to_any_tool(self):
         self.mock_access_token_resolver.get_access_token_for_tool.return_value = None
@@ -200,10 +203,11 @@ class ToolChoiceResolverTest(unittest.TestCase):
 
         self.assertIsNotNone(result)
         assert result is not None  # Type hint for linter
-        tool, token = result
+        tool, token, purpose = result
         self.assertEqual(tool, CLAUDE_3_5_SONNET)
         self.assertIsInstance(token, SecretStr)
         self.assertEqual(token.get_secret_value(), "test_token")
+        self.assertEqual(purpose, ToolType.chat)
 
     def test_require_tool_failure_raises_exception(self):
         self.mock_access_token_resolver.get_access_token_for_tool.return_value = None
@@ -225,17 +229,19 @@ class ToolChoiceResolverTest(unittest.TestCase):
         chat_result = resolver.get_tool(ToolType.chat)
         self.assertIsNotNone(chat_result)
         assert chat_result is not None  # Type hint for linter
-        chat_tool, chat_token = chat_result
+        chat_tool, chat_token, chat_purpose = chat_result
         self.assertEqual(chat_tool, CLAUDE_3_5_SONNET)
         self.assertIsInstance(chat_token, SecretStr)
         self.assertEqual(chat_token.get_secret_value(), "test_token_1")
+        self.assertEqual(chat_purpose, ToolType.chat)
 
         self.mock_access_token_resolver.get_access_token_for_tool.return_value = SecretStr("test_token_2")
 
         vision_result = resolver.get_tool(ToolType.vision)
         self.assertIsNotNone(vision_result)
         assert vision_result is not None  # Type hint for linter
-        vision_tool, vision_token = vision_result
+        vision_tool, vision_token, vision_purpose = vision_result
         self.assertEqual(vision_tool, GPT_4O_MINI)
         self.assertIsInstance(vision_token, SecretStr)
         self.assertEqual(vision_token.get_secret_value(), "test_token_2")
+        self.assertEqual(vision_purpose, ToolType.vision)
