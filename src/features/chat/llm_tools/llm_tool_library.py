@@ -14,7 +14,7 @@ from db.sql import get_detached_session
 from di.di import DI
 from features.chat.announcement_manager import AnnouncementManager
 from features.chat.attachments_describer import AttachmentsDescriber
-from features.chat.generative_imaging_manager import GenerativeImagingManager
+from features.chat.chat_image_gen_service import ChatImageGenService
 from features.chat.image_generator import ImageGenerator
 from features.chat.llm_tools.base_llm_tool_binder import BaseLLMToolBinder
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
@@ -74,6 +74,36 @@ def process_attachments(
             else:
                 # Unknown operation, must report back
                 raise ValueError(f"Unknown operation '{operation}'; try one of: [{', '.join(allowed_operations)}]")
+    except Exception as e:
+        return __error(e)
+
+
+@tool
+def generate_image(chat_id: str, user_id: str, prompt: str) -> str:
+    """
+    Generates (draws) an image based on the given prompt using Generative AI.
+
+    Args:
+        chat_id: [mandatory] A unique identifier of the chat, usually found in the metadata
+        user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
+        prompt: [mandatory] The user's description or prompt for the generated image
+    """
+    try:
+        with get_detached_session() as db:
+            di = DI(db, user_id, chat_id)
+            copywriter_tool = di.tool_choice_resolver.require_tool(
+                ChatImageGenService.COPYWRITER_TOOL_TYPE,
+                ChatImageGenService.DEFAULT_COPYWRITER_TOOL,
+            )
+            image_gen_tool = di.tool_choice_resolver.require_tool(
+                ChatImageGenService.IMAGE_GEN_TOOL_TYPE,
+                ChatImageGenService.DEFAULT_IMAGE_GEN_TOOL,
+            )
+            image_gen_service = di.chat_image_gen_service(prompt, copywriter_tool, image_gen_tool)
+            result = image_gen_service.execute()
+            if result == ChatImageGenService.Result.failed:
+                raise ValueError("Failed to generate the image")
+            return __success({"next_step": "Confirm to partner that the image has been sent"})
     except Exception as e:
         return __error(e)
 
@@ -184,34 +214,6 @@ def list_currency_price_alerts(chat_id: str, user_id: str) -> str:
             alert_manager = di.price_alert_manager(chat_id)
             alerts = alert_manager.get_active_alerts()
             return __success({"alerts": [alert.model_dump(mode = "json") for alert in alerts]})
-    except Exception as e:
-        return __error(e)
-
-
-@tool
-def generate_image(chat_id: str, user_id: str, prompt: str) -> str:
-    """
-    Generates (draws) an image based on the given prompt using Generative AI.
-
-    Args:
-        chat_id: [mandatory] A unique identifier of the chat, usually found in the metadata
-        user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
-        prompt: [mandatory] The user's description or prompt for the generated image
-    """
-    try:
-        with get_detached_session() as db:
-            imaging = GenerativeImagingManager(
-                chat_id,
-                prompt,
-                user_id,
-                TelegramBotSDK(db),
-                UserCRUD(db),
-                SponsorshipCRUD(db),
-            )
-            result = imaging.execute()
-            if result == GenerativeImagingManager.Result.failed:
-                raise ValueError("Failed to generate the image")
-            return __success({"next_step": "Confirm to partner that the image has been sent"})
     except Exception as e:
         return __error(e)
 
@@ -448,7 +450,6 @@ def __error(message: str | Exception) -> str:
 
 
 class LLMToolLibrary(BaseLLMToolBinder):
-
     def __init__(self):
         super().__init__(
             {

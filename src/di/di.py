@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, Any
 
 from langchain_core.messages import BaseMessage
 
+from features.images.text_stable_diffusion_generator import TextStableDiffusionGenerator
+
 if TYPE_CHECKING:
     from api.authorization_service import AuthorizationService
     from api.settings_controller import SettingsController
@@ -21,8 +23,8 @@ if TYPE_CHECKING:
     from features.audio.audio_transcriber import AudioTranscriber
     from features.chat.announcement_manager import AnnouncementManager
     from features.chat.attachments_describer import AttachmentsDescriber
+    from features.chat.chat_image_gen_service import ChatImageGenService
     from features.chat.command_processor import CommandProcessor
-    from features.chat.generative_imaging_manager import GenerativeImagingManager
     from features.chat.image_generator import ImageGenerator
     from features.chat.price_alert_manager import PriceAlertManager
     from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
@@ -484,16 +486,23 @@ class DI:
         from features.chat.price_alert_manager import PriceAlertManager
         return PriceAlertManager(target_chat_id, self)
 
-    def generative_imaging_manager(self, raw_prompt: str) -> "GenerativeImagingManager":
-        from features.chat.generative_imaging_manager import GenerativeImagingManager
-        return GenerativeImagingManager(
-            self.invoker_chat_id,
-            raw_prompt,
-            self.invoker_id,
-            self.telegram_bot_sdk,
-            self.user_crud,
-            self.sponsorship_crud,
-        )
+    def chat_image_gen_service(
+        self,
+        raw_prompt: str,
+        configured_copywriter_tool: ConfiguredTool,
+        configured_image_gen_tool: ConfiguredTool,
+    ) -> "ChatImageGenService":
+        from features.chat.chat_image_gen_service import ChatImageGenService
+        return ChatImageGenService(raw_prompt, configured_copywriter_tool, configured_image_gen_tool, self)
+
+    # noinspection PyMethodMayBeStatic
+    def text_stable_diffusion_generator(
+        self,
+        prompt: str,
+        configured_tool: ConfiguredTool,
+    ) -> "TextStableDiffusionGenerator":
+        from features.images.text_stable_diffusion_generator import TextStableDiffusionGenerator
+        return TextStableDiffusionGenerator(prompt, configured_tool)
 
     def image_generator(
         self,
