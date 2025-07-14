@@ -3,19 +3,12 @@ import platform
 import time
 from datetime import datetime, timedelta
 from typing import Any
-from uuid import UUID
 
 import requests
 from requests.exceptions import RequestException, Timeout
 
-from api.authorization_service import AuthorizationService
-from db.crud.chat_config import ChatConfigCRUD
-from db.crud.sponsorship import SponsorshipCRUD
-from db.crud.tools_cache import ToolsCacheCRUD
-from db.crud.user import UserCRUD
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
-from db.schema.user import User
-from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from di.di import DI
 from features.web_browsing.twitter_status_fetcher import TwitterStatusFetcher
 from features.web_browsing.twitter_utils import resolve_tweet_id
 from features.web_browsing.uri_cleanup import simplify_url
@@ -40,22 +33,12 @@ class WebFetcher(SafePrinterMixin):
     __params: dict[str, Any]
     __cache_ttl_html: timedelta
     __cache_ttl_json: timedelta
-    __invoker_user: User
-    __cache_dao: ToolsCacheCRUD
-    __user_dao: UserCRUD
-    __chat_config_dao: ChatConfigCRUD
-    __sponsorship_dao: SponsorshipCRUD
-    __telegram_bot_sdk: TelegramBotSDK
+    __di: DI
 
     def __init__(
         self,
         url: str,
-        invoker_user: str | UUID | User,
-        user_dao: UserCRUD,
-        chat_config_dao: ChatConfigCRUD,
-        cache_dao: ToolsCacheCRUD,
-        sponsorship_dao: SponsorshipCRUD,
-        telegram_bot_sdk: TelegramBotSDK,
+        di: DI,
         headers: dict[str, str] | None = None,
         params: dict[str, Any] | None = None,
         cache_ttl_html: timedelta | None = None,
@@ -64,17 +47,10 @@ class WebFetcher(SafePrinterMixin):
         auto_fetch_json: bool = False,
     ):
         super().__init__(config.verbose)
-        authorization_service = AuthorizationService(telegram_bot_sdk, user_dao, chat_config_dao)
-        self.__invoker_user = authorization_service.validate_user(invoker_user)
-        self.__user_dao = user_dao
-        self.__chat_config_dao = chat_config_dao
-        self.__sponsorship_dao = sponsorship_dao
-        self.__telegram_bot_sdk = telegram_bot_sdk
-
         self.url = url
+        self.__di = di
         self.html = None
         self.json = None
-        self.__cache_dao = cache_dao
         self.__headers = {**DEFAULT_HEADERS, **(headers or {})}
         self.__params = params or {}
         self.__cache_key = self.__generate_cache_key()
@@ -90,12 +66,12 @@ class WebFetcher(SafePrinterMixin):
         headers_str = json.dumps(self.__headers, sort_keys = True)
         params_str = json.dumps(self.__params, sort_keys = True)
         key_components = f"{simplify_url(self.url)}|{headers_str}|{params_str}"
-        return self.__cache_dao.create_key(CACHE_PREFIX, key_components)
+        return self.__di.tools_cache_crud.create_key(CACHE_PREFIX, key_components)
 
     def fetch_html(self) -> str | None:
         self.html = None  # reset value
 
-        cache_entry_db = self.__cache_dao.get(self.__cache_key)
+        cache_entry_db = self.__di.tools_cache_crud.get(self.__cache_key)
         if cache_entry_db:
             cache_entry = ToolsCache.model_validate(cache_entry_db)
             if not cache_entry.is_expired():
@@ -111,12 +87,12 @@ class WebFetcher(SafePrinterMixin):
                 if self.tweed_id:
                     tweet_fetcher = TwitterStatusFetcher(
                         self.tweed_id,
-                        self.__invoker_user,
-                        self.__cache_dao,
-                        self.__user_dao,
-                        self.__chat_config_dao,
-                        self.__sponsorship_dao,
-                        self.__telegram_bot_sdk,
+                        self.__di.invoker,
+                        self.__di.tools_cache_crud,
+                        self.__di.user_crud,
+                        self.__di.chat_config_crud,
+                        self.__di.sponsorship_crud,
+                        self.__di.telegram_bot_sdk,
                     )
                     response_text = tweet_fetcher.execute()
                     self.html = f"<html><body>\n<p>\n{response_text}\n</p>\n</body></html>"
@@ -141,7 +117,7 @@ class WebFetcher(SafePrinterMixin):
                         self.html = None
                         break
                     self.html = content_text
-                self.__cache_dao.save(
+                self.__di.tools_cache_crud.save(
                     ToolsCacheSave(
                         key = self.__cache_key,
                         value = self.html or "",
@@ -159,7 +135,7 @@ class WebFetcher(SafePrinterMixin):
     def fetch_json(self) -> dict | None:
         self.json = None  # reset value
 
-        cache_entry_db = self.__cache_dao.get(self.__cache_key)
+        cache_entry_db = self.__di.tools_cache_crud.get(self.__cache_key)
         if cache_entry_db:
             cache_entry = ToolsCache.model_validate(cache_entry_db)
             if not cache_entry.is_expired():
@@ -175,12 +151,12 @@ class WebFetcher(SafePrinterMixin):
                 if self.tweed_id:
                     tweet_fetcher = TwitterStatusFetcher(
                         self.tweed_id,
-                        self.__invoker_user,
-                        self.__cache_dao,
-                        self.__user_dao,
-                        self.__chat_config_dao,
-                        self.__sponsorship_dao,
-                        self.__telegram_bot_sdk,
+                        self.__di.invoker,
+                        self.__di.tools_cache_crud,
+                        self.__di.user_crud,
+                        self.__di.chat_config_crud,
+                        self.__di.sponsorship_crud,
+                        self.__di.telegram_bot_sdk,
                     )
                     response_text = tweet_fetcher.execute()
                     self.json = {"content": response_text}
@@ -193,7 +169,7 @@ class WebFetcher(SafePrinterMixin):
                     )
                     response.raise_for_status()
                     self.json = response.json()
-                self.__cache_dao.save(
+                self.__di.tools_cache_crud.save(
                     ToolsCacheSave(
                         key = self.__cache_key,
                         value = json.dumps(self.json),

@@ -2,20 +2,11 @@ import json
 from datetime import datetime, timedelta
 from time import sleep
 from typing import Any, Dict
-from uuid import UUID
 
-from api.authorization_service import AuthorizationService
-from db.crud.chat_config import ChatConfigCRUD
-from db.crud.sponsorship import SponsorshipCRUD
-from db.crud.tools_cache import ToolsCacheCRUD
-from db.crud.user import UserCRUD
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
-from db.schema.user import User
-from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from di.di import DI
 from features.currencies.supported_currencies import SUPPORTED_CRYPTO, SUPPORTED_FIAT
-from features.external_tools.access_token_resolver import AccessTokenResolver
 from features.external_tools.external_tool_library import CRYPTO_CURRENCY_EXCHANGE, FIAT_CURRENCY_EXCHANGE
-from features.web_browsing.web_fetcher import WebFetcher
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
@@ -26,33 +17,11 @@ RATE_LIMIT_DELAY_S = 1
 
 
 class ExchangeRateFetcher(SafePrinterMixin):
-    __invoker_user: User
-    __user_dao: UserCRUD
-    __chat_config_dao: ChatConfigCRUD
-    __cache_dao: ToolsCacheCRUD
-    __sponsorship_dao: SponsorshipCRUD
-    __telegram_sdk: TelegramBotSDK
-    __token_resolver: AccessTokenResolver
+    __di: DI
 
-    def __init__(
-        self,
-        invoker_user: str | UUID | User,
-        user_dao: UserCRUD,
-        chat_config_dao: ChatConfigCRUD,
-        cache_dao: ToolsCacheCRUD,
-        sponsorship_dao: SponsorshipCRUD,
-        telegram_sdk: TelegramBotSDK,
-    ):
+    def __init__(self, di: DI):
         super().__init__(config.verbose)
-        authorization_service = AuthorizationService(telegram_sdk, user_dao, chat_config_dao)
-        self.__invoker_user = authorization_service.validate_user(invoker_user)
-        self.__user_dao = user_dao
-        self.__chat_config_dao = chat_config_dao
-        self.__cache_dao = cache_dao
-        self.__sponsorship_dao = sponsorship_dao
-        self.__telegram_sdk = telegram_sdk
-        self.__token_resolver = AccessTokenResolver(self.__invoker_user, user_dao, sponsorship_dao)
-        self.sprint(f"ExchangeRateFetcher initialized for user '{self.__invoker_user.id.hex}'")
+        self.__di = di
 
     def execute(
         self,
@@ -107,7 +76,7 @@ class ExchangeRateFetcher(SafePrinterMixin):
             raise ValueError(message)
 
     def __cache_key_of(self, a: str, b: str) -> str:
-        return self.__cache_dao.create_key(CACHE_PREFIX, f"{a}-{b}")
+        return self.__di.tools_cache_crud.create_key(CACHE_PREFIX, f"{a}-{b}")
 
     # when converting exchange rates, the inverse rule applies:  A / B = 1 / (B / A)
     def __get_cached_rate_of_one(self, base_currency_code: str, desired_currency_code: str) -> float | None:
@@ -115,7 +84,7 @@ class ExchangeRateFetcher(SafePrinterMixin):
         self.sprint(f"Fetching cached rate for {base_currency_code}/{desired_currency_code}")
         cache_key = self.__cache_key_of(base_currency_code, desired_currency_code)
         self.sprint(f"    Cache key: '{cache_key}'")
-        cache_entry_db = self.__cache_dao.get(cache_key)
+        cache_entry_db = self.__di.tools_cache_crud.get(cache_key)
         if cache_entry_db:
             cache_entry = ToolsCache.model_validate(cache_entry_db)
             if not cache_entry.is_expired():
@@ -128,7 +97,7 @@ class ExchangeRateFetcher(SafePrinterMixin):
         self.sprint(f"Fetching cached inverse rate for {base_currency_code}/{desired_currency_code}")
         cache_key = self.__cache_key_of(desired_currency_code, base_currency_code)
         self.sprint(f"    Cache key: '{cache_key}'")
-        cache_entry_db = self.__cache_dao.get(cache_key)
+        cache_entry_db = self.__di.tools_cache_crud.get(cache_key)
         if cache_entry_db:
             cache_entry = ToolsCache.model_validate(cache_entry_db)
             if not cache_entry.is_expired():
@@ -140,7 +109,7 @@ class ExchangeRateFetcher(SafePrinterMixin):
 
     def __save_rate_to_cache(self, a: str, b: str, rate: float) -> None:
         key = self.__cache_key_of(a, b)
-        self.__cache_dao.save(ToolsCacheSave(key = key, value = str(rate), expires_at = datetime.now() + CACHE_TTL))
+        self.__di.tools_cache_crud.save(ToolsCacheSave(key = key, value = str(rate), expires_at = datetime.now() + CACHE_TTL))
         self.sprint(f"Cache updated for {a}/{b} and key '{key}'")
 
     def get_crypto_conversion_rate(self, base_currency_code: str, desired_currency_code: str) -> float:
@@ -159,26 +128,18 @@ class ExchangeRateFetcher(SafePrinterMixin):
 
         rate: float
         api_url = f"https://pro-api.coinmarketcap.com/{CRYPTO_CURRENCY_EXCHANGE.id.replace(".", "/")}"
-        cmc_token = self.__token_resolver.require_access_token_for_tool(CRYPTO_CURRENCY_EXCHANGE).get_secret_value()
+        cmc_token = self.__di.access_token_resolver.require_access_token_for_tool(CRYPTO_CURRENCY_EXCHANGE).get_secret_value()
         headers = {"Accept": "application/json", "X-CMC_PRO_API_KEY": cmc_token}
         if base_currency_code != DEFAULT_FIAT and desired_currency_code != DEFAULT_FIAT:
             # due to API limitations, we must traverse both cryptos through USD
             params_base = {"symbol": base_currency_code, "convert": DEFAULT_FIAT}
             sleep(RATE_LIMIT_DELAY_S)
-            fetcher_base = WebFetcher(
-                api_url, self.__invoker_user,
-                self.__user_dao, self.__chat_config_dao, self.__cache_dao, self.__sponsorship_dao, self.__telegram_sdk,
-                headers = headers, params = params_base, cache_ttl_json = CACHE_TTL,
-            )
+            fetcher_base = self.__di.web_fetcher(api_url, headers, params_base, cache_ttl_json = CACHE_TTL)
             response_base = fetcher_base.fetch_json() or {}
 
             params_desired = {"symbol": desired_currency_code, "convert": DEFAULT_FIAT}
             sleep(RATE_LIMIT_DELAY_S)
-            fetcher_desired = WebFetcher(
-                api_url, self.__invoker_user,
-                self.__user_dao, self.__chat_config_dao, self.__cache_dao, self.__sponsorship_dao, self.__telegram_sdk,
-                headers = headers, params = params_desired, cache_ttl_json = CACHE_TTL,
-            )
+            fetcher_desired = self.__di.web_fetcher(api_url, headers, params_desired, cache_ttl_json = CACHE_TTL)
             response_desired = fetcher_desired.fetch_json() or {}
 
             base_rate = float(response_base["data"][base_currency_code]["quote"][DEFAULT_FIAT]["price"])
@@ -189,11 +150,7 @@ class ExchangeRateFetcher(SafePrinterMixin):
             symbol = desired_currency_code if base_currency_code == DEFAULT_FIAT else base_currency_code
             params = {"symbol": symbol, "convert": DEFAULT_FIAT}
             sleep(RATE_LIMIT_DELAY_S)
-            fetcher = WebFetcher(
-                api_url, self.__invoker_user,
-                self.__user_dao, self.__chat_config_dao, self.__cache_dao, self.__sponsorship_dao, self.__telegram_sdk,
-                headers = headers, params = params, cache_ttl_json = CACHE_TTL,
-            )
+            fetcher = self.__di.web_fetcher(api_url, headers, params, cache_ttl_json = CACHE_TTL)
             response = fetcher.fetch_json() or {}
 
             rate = float(response["data"][symbol]["quote"][DEFAULT_FIAT]["price"])
@@ -220,13 +177,9 @@ class ExchangeRateFetcher(SafePrinterMixin):
         sleep(RATE_LIMIT_DELAY_S)
         api_url = f"https://{FIAT_CURRENCY_EXCHANGE.id}/currency/convert"
         params = {"format": "json", "from": base_currency_code, "to": desired_currency_code, "amount": "1.0"}
-        rapid_api_token = self.__token_resolver.require_access_token_for_tool(FIAT_CURRENCY_EXCHANGE).get_secret_value()
+        rapid_api_token = self.__di.access_token_resolver.require_access_token_for_tool(FIAT_CURRENCY_EXCHANGE).get_secret_value()
         headers = {"X-RapidAPI-Key": rapid_api_token, "X-RapidAPI-Host": FIAT_CURRENCY_EXCHANGE.id}
-        fetcher = WebFetcher(
-            api_url, self.__invoker_user,
-            self.__user_dao, self.__chat_config_dao, self.__cache_dao, self.__sponsorship_dao, self.__telegram_sdk,
-            headers = headers, params = params, cache_ttl_json = CACHE_TTL,
-        )
+        fetcher = self.__di.web_fetcher(api_url, headers, params, cache_ttl_json = CACHE_TTL)
         response = fetcher.fetch_json() or {}
 
         rate = float(response["rates"][desired_currency_code]["rate_for_amount"])

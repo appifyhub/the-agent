@@ -12,6 +12,7 @@ from db.crud.user import UserCRUD
 from db.model.user import UserDB
 from db.schema.tools_cache import ToolsCache
 from db.schema.user import User
+from di.di import DI
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.currencies.exchange_rate_fetcher import CACHE_TTL, ExchangeRateFetcher
 from features.web_browsing.web_fetcher import WebFetcher
@@ -47,10 +48,22 @@ class ExchangeRateFetcherTest(unittest.TestCase):
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
-        self.mock_user_crud = MagicMock()
-        self.mock_user_crud.get.return_value = self.user
-        self.mock_cache_crud = MagicMock()
-        self.mock_cache_crud.create_key.return_value = "test_cache_key"
+        # Create a DI mock and set required properties
+        self.mock_di = MagicMock(spec = DI)
+        self.mock_di.invoker = self.user
+        self.mock_di.tools_cache_crud = MagicMock(spec = ToolsCacheCRUD)
+        self.mock_di.access_token_resolver = MagicMock()
+
+        # Mock web_fetcher to return a mock WebFetcher instance
+        self.mock_web_fetcher = MagicMock(spec = WebFetcher)
+        self.mock_di.web_fetcher.return_value = self.mock_web_fetcher
+
+        # Mock access token resolver
+        self.mock_di.access_token_resolver.require_access_token_for_tool.return_value.get_secret_value.return_value = "test_token"
+
+        # Set up the cache CRUD mock
+        self.mock_di.tools_cache_crud.create_key.return_value = "test_cache_key"
+        self.mock_di.tools_cache_crud.get.return_value = None
         self.mock_sponsorship_dao = MagicMock()
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
         self.mock_chat_config_dao = MagicMock()
@@ -60,14 +73,7 @@ class ExchangeRateFetcherTest(unittest.TestCase):
     @patch("features.currencies.exchange_rate_fetcher.sleep", return_value = None)
     @requests_mock.Mocker()
     def test_execute_same_currency(self, m: Mocker, mock_sleep):
-        fetcher = ExchangeRateFetcher(
-            invoker_user = self.user,
-            user_dao = self.mock_user_crud,
-            chat_config_dao = self.mock_chat_config_dao,
-            cache_dao = self.mock_cache_crud,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            telegram_sdk = self.mock_telegram_sdk,
-        )
+        fetcher = ExchangeRateFetcher(self.mock_di)
         result = fetcher.execute("USD", "USD", 100)
         self.assertEqual(result, {"from": "USD", "to": "USD", "rate": 1.0, "amount": 100, "value": 100})
 
@@ -76,14 +82,7 @@ class ExchangeRateFetcherTest(unittest.TestCase):
     @patch("features.currencies.exchange_rate_fetcher.ExchangeRateFetcher.get_fiat_conversion_rate")
     def test_execute_fiat_to_fiat(self, mock_get_fiat, mock_sleep):
         mock_get_fiat.return_value = 0.85
-        fetcher = ExchangeRateFetcher(
-            invoker_user = self.user,
-            user_dao = self.mock_user_crud,
-            chat_config_dao = self.mock_chat_config_dao,
-            cache_dao = self.mock_cache_crud,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            telegram_sdk = self.mock_telegram_sdk,
-        )
+        fetcher = ExchangeRateFetcher(self.mock_di)
         result = fetcher.execute("USD", "EUR", 100)
         self.assertEqual(result, {"from": "USD", "to": "EUR", "rate": 0.85, "amount": 100, "value": 85})
 
@@ -92,14 +91,7 @@ class ExchangeRateFetcherTest(unittest.TestCase):
     @patch("features.currencies.exchange_rate_fetcher.ExchangeRateFetcher.get_crypto_conversion_rate")
     def test_execute_crypto_to_crypto(self, mock_get_crypto, mock_sleep):
         mock_get_crypto.return_value = 15.5
-        fetcher = ExchangeRateFetcher(
-            self.user,
-            self.mock_user_crud,
-            self.mock_chat_config_dao,
-            self.mock_cache_crud,
-            self.mock_sponsorship_dao,
-            self.mock_telegram_sdk,
-        )
+        fetcher = ExchangeRateFetcher(self.mock_di)
         result = fetcher.execute("BTC", "ETH", 1)
         self.assertEqual(result, {"from": "BTC", "to": "ETH", "rate": 15.5, "amount": 1, "value": 15.5})
 
@@ -110,14 +102,7 @@ class ExchangeRateFetcherTest(unittest.TestCase):
     def test_execute_fiat_to_crypto(self, mock_get_crypto, mock_get_fiat, mock_sleep):
         mock_get_fiat.return_value = 1.2  # EUR to USD
         mock_get_crypto.return_value = 0.000025  # USD to BTC (1 BTC = 40,000 USD)
-        fetcher = ExchangeRateFetcher(
-            self.user,
-            self.mock_user_crud,
-            self.mock_chat_config_dao,
-            self.mock_cache_crud,
-            self.mock_sponsorship_dao,
-            self.mock_telegram_sdk,
-        )
+        fetcher = ExchangeRateFetcher(self.mock_di)
         result = fetcher.execute("EUR", "BTC", 1000000)  # 1 million EUR
         expected_rate = 1.2 * 0.000025
         expected_result = {"from": "EUR", "to": "BTC", "rate": expected_rate, "amount": 1000000, "value": 30}
@@ -126,14 +111,8 @@ class ExchangeRateFetcherTest(unittest.TestCase):
     # noinspection PyUnusedLocal
     @patch("features.currencies.exchange_rate_fetcher.sleep", return_value = None)
     def test_execute_unsupported_currency(self, mock_sleep):
-        fetcher = ExchangeRateFetcher(
-            self.user,
-            self.mock_user_crud,
-            self.mock_chat_config_dao,
-            self.mock_cache_crud,
-            self.mock_sponsorship_dao,
-            self.mock_telegram_sdk,
-        )
+        self.mock_web_fetcher.fetch_json.side_effect = ValueError("API request failed")
+        fetcher = ExchangeRateFetcher(self.mock_di)
         with self.assertRaises(ValueError):
             fetcher.execute("USD", "XYZ", 100)
 
@@ -141,15 +120,8 @@ class ExchangeRateFetcherTest(unittest.TestCase):
     @patch("features.currencies.exchange_rate_fetcher.sleep", return_value = None)
     @requests_mock.Mocker()
     def test_get_crypto_conversion_rate_cache_hit(self, m: Mocker, mock_sleep):
-        self.mock_cache_crud.get.return_value = self.cache_entry
-        fetcher = ExchangeRateFetcher(
-            self.user,
-            self.mock_user_crud,
-            self.mock_chat_config_dao,
-            self.mock_cache_crud,
-            self.mock_sponsorship_dao,
-            self.mock_telegram_sdk,
-        )
+        self.mock_di.tools_cache_crud.get.return_value = self.cache_entry
+        fetcher = ExchangeRateFetcher(self.mock_di)
         rate = fetcher.get_crypto_conversion_rate("BTC", "ETH")
         self.assertEqual(rate, 1.5)
         # noinspection PyUnresolvedReferences
@@ -157,58 +129,35 @@ class ExchangeRateFetcherTest(unittest.TestCase):
 
     # noinspection PyUnusedLocal
     @patch("features.currencies.exchange_rate_fetcher.sleep", return_value = None)
-    @patch.object(WebFetcher, "fetch_json")
-    def test_get_crypto_conversion_rate_cache_miss_crypto_to_crypto(self, mock_fetch_json, mock_sleep):
-        self.mock_cache_crud.get.return_value = None
-        mock_fetch_json.side_effect = [
+    def test_get_crypto_conversion_rate_cache_miss_crypto_to_crypto(self, mock_sleep):
+        self.mock_di.tools_cache_crud.get.return_value = None
+        self.mock_web_fetcher.fetch_json.side_effect = [
             {"data": {"BTC": {"quote": {"USD": {"price": 40000}}}}},
             {"data": {"ETH": {"quote": {"USD": {"price": 2000}}}}},
         ]
-        fetcher = ExchangeRateFetcher(
-            self.user,
-            self.mock_user_crud,
-            self.mock_chat_config_dao,
-            self.mock_cache_crud,
-            self.mock_sponsorship_dao,
-            self.mock_telegram_sdk,
-        )
+        fetcher = ExchangeRateFetcher(self.mock_di)
         rate = fetcher.get_crypto_conversion_rate("BTC", "ETH")
         self.assertEqual(rate, 20)  # 40000 / 2000 = 20
         # noinspection PyUnresolvedReferences
-        self.mock_cache_crud.save.assert_called_once()
+        self.mock_di.tools_cache_crud.save.assert_called_once()
 
     # noinspection PyUnusedLocal
     @patch("features.currencies.exchange_rate_fetcher.sleep", return_value = None)
-    @patch.object(WebFetcher, "fetch_json")
-    def test_get_crypto_conversion_rate_cache_miss_crypto_to_usd(self, mock_fetch_json, mock_sleep):
-        self.mock_cache_crud.get.return_value = None
-        mock_fetch_json.return_value = {"data": {"BTC": {"quote": {"USD": {"price": 40000}}}}}
-        fetcher = ExchangeRateFetcher(
-            self.user,
-            self.mock_user_crud,
-            self.mock_chat_config_dao,
-            self.mock_cache_crud,
-            self.mock_sponsorship_dao,
-            self.mock_telegram_sdk,
-        )
+    def test_get_crypto_conversion_rate_cache_miss_crypto_to_usd(self, mock_sleep):
+        self.mock_di.tools_cache_crud.get.return_value = None
+        self.mock_web_fetcher.fetch_json.return_value = {"data": {"BTC": {"quote": {"USD": {"price": 40000}}}}}
+        fetcher = ExchangeRateFetcher(self.mock_di)
         rate = fetcher.get_crypto_conversion_rate("BTC", "USD")
         self.assertEqual(rate, 40000)
         # noinspection PyUnresolvedReferences
-        self.mock_cache_crud.save.assert_called_once()
+        self.mock_di.tools_cache_crud.save.assert_called_once()
 
     # noinspection PyUnusedLocal
     @patch("features.currencies.exchange_rate_fetcher.sleep", return_value = None)
     @requests_mock.Mocker()
     def test_get_fiat_conversion_rate_cache_hit(self, m: Mocker, mock_sleep):
-        self.mock_cache_crud.get.return_value = self.cache_entry
-        fetcher = ExchangeRateFetcher(
-            self.user,
-            self.mock_user_crud,
-            self.mock_chat_config_dao,
-            self.mock_cache_crud,
-            self.mock_sponsorship_dao,
-            self.mock_telegram_sdk,
-        )
+        self.mock_di.tools_cache_crud.get.return_value = self.cache_entry
+        fetcher = ExchangeRateFetcher(self.mock_di)
         rate = fetcher.get_fiat_conversion_rate("USD", "EUR")
         self.assertEqual(rate, 1.5)
         # noinspection PyUnresolvedReferences
@@ -216,19 +165,11 @@ class ExchangeRateFetcherTest(unittest.TestCase):
 
     # noinspection PyUnusedLocal
     @patch("features.currencies.exchange_rate_fetcher.sleep", return_value = None)
-    @patch.object(WebFetcher, "fetch_json")
-    def test_get_fiat_conversion_rate_cache_miss(self, mock_fetch_json, mock_sleep):
-        self.mock_cache_crud.get.return_value = None
-        mock_fetch_json.return_value = {"rates": {"EUR": {"rate_for_amount": "0.85"}}}
-        fetcher = ExchangeRateFetcher(
-            self.user,
-            self.mock_user_crud,
-            self.mock_chat_config_dao,
-            self.mock_cache_crud,
-            self.mock_sponsorship_dao,
-            self.mock_telegram_sdk,
-        )
+    def test_get_fiat_conversion_rate_cache_miss(self, mock_sleep):
+        self.mock_di.tools_cache_crud.get.return_value = None
+        self.mock_web_fetcher.fetch_json.return_value = {"rates": {"EUR": {"rate_for_amount": "0.85"}}}
+        fetcher = ExchangeRateFetcher(self.mock_di)
         rate = fetcher.get_fiat_conversion_rate("USD", "EUR")
         self.assertEqual(rate, 0.85)
         # noinspection PyUnresolvedReferences
-        self.mock_cache_crud.save.assert_called_once()
+        self.mock_di.tools_cache_crud.save.assert_called_once()

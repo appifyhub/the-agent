@@ -4,18 +4,10 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from api.authorization_service import AuthorizationService
-from db.crud.chat_config import ChatConfigCRUD
-from db.crud.price_alert import PriceAlertCRUD
-from db.crud.sponsorship import SponsorshipCRUD
-from db.crud.tools_cache import ToolsCacheCRUD
-from db.crud.user import UserCRUD
 from db.model.price_alert import PriceAlertDB
 from db.schema.chat_config import ChatConfig
 from db.schema.price_alert import PriceAlert, PriceAlertSave
-from db.schema.user import User
-from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
-from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
+from di.di import DI
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin, sprint
@@ -46,35 +38,16 @@ class PriceAlertManager(SafePrinterMixin):
         last_price_time: str
 
     __target_chat_config: ChatConfig | None
-    __invoker_user: User
-    __user_dao: UserCRUD
-    __chat_config_dao: ChatConfigCRUD
-    __price_alert_dao: PriceAlertCRUD
-    __tools_cache_dao: ToolsCacheCRUD
-    __sponsorship_dao: SponsorshipCRUD
-    __telegram_bot_sdk: TelegramBotSDK
+    __di: DI
 
     def __init__(
         self,
-        target_chat_id: str | None,  # can be all chats or a specific chat
-        invoker_user_id_hex: str,
-        user_dao: UserCRUD,
-        chat_config_dao: ChatConfigCRUD,
-        price_alert_dao: PriceAlertCRUD,
-        tools_cache_dao: ToolsCacheCRUD,
-        sponsorship_dao: SponsorshipCRUD,
-        telegram_bot_sdk: TelegramBotSDK,
+        target_chat_id: str | None,  # can be for a specific chat, or all chats
+        di: DI,
     ):
         super().__init__(config.verbose)
-        self.__user_dao = user_dao
-        self.__chat_config_dao = chat_config_dao
-        self.__price_alert_dao = price_alert_dao
-        self.__tools_cache_dao = tools_cache_dao
-        self.__sponsorship_dao = sponsorship_dao
-        self.__telegram_bot_sdk = telegram_bot_sdk
-        authorization_service = AuthorizationService(telegram_bot_sdk, user_dao, chat_config_dao)
-        self.__invoker_user = authorization_service.validate_user(invoker_user_id_hex)
-        self.__target_chat_config = authorization_service.validate_chat(target_chat_id) if target_chat_id else None
+        self.__di = di
+        self.__target_chat_config = self.__di.authorization_service.validate_chat(target_chat_id) if target_chat_id else None
 
     def create_alert(self, base_currency: str, desired_currency: str, threshold_percent: int) -> ActiveAlert:
         self.sprint(f"Setting price alert for {base_currency}/{desired_currency} at {threshold_percent}%")
@@ -82,24 +55,16 @@ class PriceAlertManager(SafePrinterMixin):
             message = "Target chat is not set"
             self.sprint(message)
             raise ValueError(message)
-        if self.__invoker_user.id == TELEGRAM_BOT_USER.id:
+        if self.__di.invoker.id == TELEGRAM_BOT_USER.id:
             message = "Bot cannot set price alerts"
             self.sprint(message)
             raise ValueError(message)
 
-        exchange_rate_fetcher = ExchangeRateFetcher(
-            self.__invoker_user,
-            self.__user_dao,
-            self.__chat_config_dao,
-            self.__tools_cache_dao,
-            self.__sponsorship_dao,
-            self.__telegram_bot_sdk,
-        )
-        current_rate: float = exchange_rate_fetcher.execute(base_currency, desired_currency)["rate"]
-        price_alert_db = self.__price_alert_dao.save(
+        current_rate: float = self.__di.exchange_rate_fetcher.execute(base_currency, desired_currency)["rate"]
+        price_alert_db = self.__di.price_alert_crud.save(
             PriceAlertSave(
                 chat_id = self.__target_chat_config.chat_id,
-                owner_id = self.__invoker_user.id,
+                owner_id = self.__di.invoker.id,
                 base_currency = base_currency,
                 desired_currency = desired_currency,
                 threshold_percent = threshold_percent,
@@ -125,7 +90,7 @@ class PriceAlertManager(SafePrinterMixin):
             self.sprint(message)
             raise ValueError(message)
 
-        deleted_alert_db = self.__price_alert_dao.delete(
+        deleted_alert_db = self.__di.price_alert_crud.delete(
             self.__target_chat_config.chat_id, base_currency, desired_currency,
         )
         if deleted_alert_db:
@@ -145,10 +110,10 @@ class PriceAlertManager(SafePrinterMixin):
         price_alerts_db: list[PriceAlertDB]
         if self.__target_chat_config:
             sprint(f"Listing price alerts for chat '{self.__target_chat_config.chat_id}'")
-            price_alerts_db = self.__price_alert_dao.get_alerts_by_chat(self.__target_chat_config.chat_id)
+            price_alerts_db = self.__di.price_alert_crud.get_alerts_by_chat(self.__target_chat_config.chat_id)
         else:
             sprint("Listing all price alerts")
-            price_alerts_db = self.__price_alert_dao.get_all()
+            price_alerts_db = self.__di.price_alert_crud.get_all()
         price_alerts = [PriceAlert.model_validate(price_alert_db) for price_alert_db in price_alerts_db]
         return [
             PriceAlertManager.ActiveAlert(
@@ -170,15 +135,8 @@ class PriceAlertManager(SafePrinterMixin):
         triggered_alerts: list[PriceAlertManager.TriggeredAlert] = []
         for alert in active_alerts:
             try:
-                exchange_rate_fetcher = ExchangeRateFetcher(
-                    alert.owner_id,
-                    self.__user_dao,
-                    self.__chat_config_dao,
-                    self.__tools_cache_dao,
-                    self.__sponsorship_dao,
-                    self.__telegram_bot_sdk,
-                )
-                current_rate: float = exchange_rate_fetcher.execute(alert.base_currency, alert.desired_currency)["rate"]
+                scoped_di = self.__di.clone(invoker_id = alert.owner_id.hex, invoker_chat_id = alert.chat_id)
+                current_rate: float = scoped_di.exchange_rate_fetcher.execute(alert.base_currency, alert.desired_currency)["rate"]
                 price_change_percent: int
                 if alert.last_price == 0:
                     price_change_percent = int(math.ceil(current_rate * 100))
@@ -201,7 +159,7 @@ class PriceAlertManager(SafePrinterMixin):
                             price_change_percent = price_change_percent,
                         ),
                     )
-                    self.__price_alert_dao.update(
+                    self.__di.price_alert_crud.update(
                         PriceAlertSave(
                             chat_id = alert.chat_id,
                             owner_id = alert.owner_id,

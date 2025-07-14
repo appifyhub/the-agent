@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 from db.crud.chat_config import ChatConfigCRUD
@@ -12,6 +12,7 @@ from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.price_alert import PriceAlert
 from db.schema.user import User
+from di.di import DI
 from features.chat.price_alert_manager import PriceAlertManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
@@ -32,17 +33,19 @@ class PriceAlertManagerTest(unittest.TestCase):
     chat_config: ChatConfig
 
     def setUp(self):
-        self.mock_user_dao = MagicMock(spec = UserCRUD)
-        self.mock_chat_config_dao = MagicMock(spec = ChatConfigCRUD)
-        self.mock_price_alert_dao = MagicMock(spec = PriceAlertCRUD)
-        self.mock_tools_cache_dao = MagicMock(spec = ToolsCacheCRUD)
-        self.mock_sponsorship_dao = MagicMock(spec = SponsorshipCRUD)
-        self.mock_telegram_bot_sdk = MagicMock(spec = TelegramBotSDK)
-        self.mock_exchange_rate_fetcher = MagicMock(spec = ExchangeRateFetcher)
-
         self.chat_id = "test_chat_id"
         self.user_id = UUID(int = 1).hex
-        self.user = User(
+        # Create a DI mock and set required properties
+        self.mock_di = MagicMock(spec = DI)
+        self.mock_di.authorization_service = MagicMock()
+        self.mock_di.price_alert_crud = self.mock_price_alert_dao = MagicMock(spec = PriceAlertCRUD)
+        self.mock_di.user_crud = self.mock_user_dao = MagicMock(spec = UserCRUD)
+        self.mock_di.chat_config_crud = self.mock_chat_config_dao = MagicMock(spec = ChatConfigCRUD)
+        self.mock_di.tools_cache_crud = self.mock_tools_cache_dao = MagicMock(spec = ToolsCacheCRUD)
+        self.mock_di.sponsorship_crud = self.mock_sponsorship_dao = MagicMock(spec = SponsorshipCRUD)
+        self.mock_di.telegram_bot_sdk = self.mock_telegram_bot_sdk = MagicMock(spec = TelegramBotSDK)
+        self.mock_di.exchange_rate_fetcher = self.mock_exchange_rate_fetcher = MagicMock(spec = ExchangeRateFetcher)
+        self.mock_di.invoker = self.user = User(
             id = UUID(hex = self.user_id),
             full_name = "Test User",
             telegram_username = "test_username",
@@ -52,54 +55,12 @@ class PriceAlertManagerTest(unittest.TestCase):
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
-        self.chat_config = ChatConfig(chat_id = self.chat_id)
-
-        self.mock_user_dao.get.return_value = self.user
-        self.mock_chat_config_dao.get.return_value = self.chat_config
-
-    def test_initialization_invalid_chat(self):
-        self.mock_chat_config_dao.get.return_value = None
-        with self.assertRaises(ValueError):
-            PriceAlertManager(
-                target_chat_id = self.chat_id,
-                invoker_user_id_hex = self.user_id,
-                user_dao = self.mock_user_dao,
-                chat_config_dao = self.mock_chat_config_dao,
-                price_alert_dao = self.mock_price_alert_dao,
-                tools_cache_dao = self.mock_tools_cache_dao,
-                sponsorship_dao = self.mock_sponsorship_dao,
-                telegram_bot_sdk = self.mock_telegram_bot_sdk,
-            )
-
-    def test_initialization_invalid_user(self):
-        self.mock_user_dao.get.return_value = None
-        with self.assertRaises(ValueError):
-            PriceAlertManager(
-                target_chat_id = self.chat_id,
-                invoker_user_id_hex = self.user_id,
-                user_dao = self.mock_user_dao,
-                chat_config_dao = self.mock_chat_config_dao,
-                price_alert_dao = self.mock_price_alert_dao,
-                tools_cache_dao = self.mock_tools_cache_dao,
-                sponsorship_dao = self.mock_sponsorship_dao,
-                telegram_bot_sdk = self.mock_telegram_bot_sdk,
-            )
+        self.mock_di.authorization_service.validate_user.return_value = self.user
+        self.mock_di.authorization_service.validate_chat.return_value = self.chat_config = ChatConfig(chat_id = self.chat_id)
 
     def test_create_alert(self):
-        manager = PriceAlertManager(
-            target_chat_id = self.chat_id,
-            invoker_user_id_hex = self.user_id,
-            user_dao = self.mock_user_dao,
-            chat_config_dao = self.mock_chat_config_dao,
-            price_alert_dao = self.mock_price_alert_dao,
-            tools_cache_dao = self.mock_tools_cache_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            telegram_bot_sdk = self.mock_telegram_bot_sdk,
-        )
-        # Mock the cache to return None for cache miss
-        self.mock_tools_cache_dao.get.return_value = None
-        # Mock the price alert DAO save method
-        self.mock_price_alert_dao.save.return_value = PriceAlert(
+        manager = PriceAlertManager(self.chat_id, self.mock_di)
+        self.mock_di.price_alert_crud.save.return_value = PriceAlert(
             chat_id = self.chat_id,
             owner_id = UUID(hex = self.user_id),
             base_currency = "BTC",
@@ -108,33 +69,17 @@ class PriceAlertManagerTest(unittest.TestCase):
             last_price = 1.5,
             last_price_time = datetime.now(),
         )
-
-        # Mock the ExchangeRateFetcher by patching it
-        with patch("features.chat.price_alert_manager.ExchangeRateFetcher") as mock_fetcher_class:
-            mock_fetcher = Mock(spec = ExchangeRateFetcher)
-            mock_fetcher.execute.return_value = {"rate": 1.5}
-            mock_fetcher_class.return_value = mock_fetcher
-            alert = manager.create_alert("BTC", "USD", 5)
-
+        self.mock_di.exchange_rate_fetcher.execute.return_value = {"rate": 1.5}
+        alert = manager.create_alert("BTC", "USD", 5)
         self.assertEqual(alert.chat_id, self.chat_id)
         self.assertEqual(alert.base_currency, "BTC")
         self.assertEqual(alert.desired_currency, "USD")
         self.assertEqual(alert.threshold_percent, 5)
         self.assertEqual(alert.last_price, 1.5)
-        # noinspection PyUnresolvedReferences
-        self.mock_price_alert_dao.save.assert_called_once()
+        self.mock_di.price_alert_crud.save.assert_called_once()
 
     def test_get_all_alerts(self):
-        manager = PriceAlertManager(
-            target_chat_id = self.chat_id,
-            invoker_user_id_hex = self.user_id,
-            user_dao = self.mock_user_dao,
-            chat_config_dao = self.mock_chat_config_dao,
-            price_alert_dao = self.mock_price_alert_dao,
-            tools_cache_dao = self.mock_tools_cache_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            telegram_bot_sdk = self.mock_telegram_bot_sdk,
-        )
+        manager = PriceAlertManager(self.chat_id, self.mock_di)
         mock_alerts = [
             PriceAlert(
                 chat_id = self.chat_id,
@@ -155,24 +100,14 @@ class PriceAlertManagerTest(unittest.TestCase):
                 last_price_time = datetime.now(),
             ),
         ]
-        self.mock_price_alert_dao.get_alerts_by_chat.return_value = mock_alerts
-
+        self.mock_di.price_alert_crud.get_alerts_by_chat.return_value = mock_alerts
         alerts = manager.get_active_alerts()
         self.assertEqual(len(alerts), 2)
         self.assertEqual(alerts[0].base_currency, "BTC")
         self.assertEqual(alerts[1].base_currency, "ETH")
 
     def test_delete_alert(self):
-        manager = PriceAlertManager(
-            target_chat_id = self.chat_id,
-            invoker_user_id_hex = self.user_id,
-            user_dao = self.mock_user_dao,
-            chat_config_dao = self.mock_chat_config_dao,
-            price_alert_dao = self.mock_price_alert_dao,
-            tools_cache_dao = self.mock_tools_cache_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            telegram_bot_sdk = self.mock_telegram_bot_sdk,
-        )
+        manager = PriceAlertManager(self.chat_id, self.mock_di)
         mock_deleted_alert = PriceAlert(
             chat_id = self.chat_id,
             owner_id = UUID(hex = self.user_id),
@@ -182,26 +117,15 @@ class PriceAlertManagerTest(unittest.TestCase):
             last_price = 1000,
             last_price_time = datetime.now(),
         )
-        self.mock_price_alert_dao.delete.return_value = mock_deleted_alert
-
+        self.mock_di.price_alert_crud.delete.return_value = mock_deleted_alert
         deleted_alert = manager.delete_alert("BTC", "USD")
         self.assertIsNotNone(deleted_alert)
         self.assertEqual(deleted_alert.base_currency, "BTC")
         self.assertEqual(deleted_alert.desired_currency, "USD")
-        # noinspection PyUnresolvedReferences
-        self.mock_price_alert_dao.delete.assert_called_once()
+        self.mock_di.price_alert_crud.delete.assert_called_once()
 
     def test_check_alerts(self):
-        manager = PriceAlertManager(
-            self.chat_id,
-            self.user_id,
-            self.mock_user_dao,
-            self.mock_chat_config_dao,
-            self.mock_price_alert_dao,
-            self.mock_tools_cache_dao,
-            self.mock_sponsorship_dao,
-            self.mock_telegram_bot_sdk,
-        )
+        manager = PriceAlertManager(self.chat_id, self.mock_di)
         mock_alerts = [
             PriceAlert(
                 chat_id = self.chat_id,
@@ -222,9 +146,8 @@ class PriceAlertManagerTest(unittest.TestCase):
                 last_price_time = datetime.now(),
             ),
         ]
-        self.mock_price_alert_dao.get_alerts_by_chat.return_value = mock_alerts
-        self.mock_tools_cache_dao.get.return_value = None
-
+        self.mock_di.price_alert_crud.get_alerts_by_chat.return_value = mock_alerts
+        self.mock_di.tools_cache_crud.get.return_value = None
         with patch.object(PriceAlertManager, "get_triggered_alerts") as mock_get:
             mock_get.return_value = [
                 PriceAlertManager.TriggeredAlert(
@@ -241,23 +164,13 @@ class PriceAlertManagerTest(unittest.TestCase):
                 ),
             ]
             triggered_alerts = manager.get_triggered_alerts()
-
         self.assertEqual(len(triggered_alerts), 1)
         self.assertEqual(triggered_alerts[0].base_currency, "BTC")
         self.assertEqual(triggered_alerts[0].desired_currency, "USD")
         self.assertEqual(triggered_alerts[0].price_change_percent, 10)
 
     def test_check_alerts_with_zero_last_price(self):
-        manager = PriceAlertManager(
-            self.chat_id,
-            self.user_id,
-            self.mock_user_dao,
-            self.mock_chat_config_dao,
-            self.mock_price_alert_dao,
-            self.mock_tools_cache_dao,
-            self.mock_sponsorship_dao,
-            self.mock_telegram_bot_sdk,
-        )
+        manager = PriceAlertManager(self.chat_id, self.mock_di)
         mock_alerts = [
             PriceAlert(
                 chat_id = self.chat_id,
@@ -269,8 +182,8 @@ class PriceAlertManagerTest(unittest.TestCase):
                 last_price_time = datetime.now(),
             ),
         ]
-        self.mock_price_alert_dao.get_alerts_by_chat.return_value = mock_alerts
-        self.mock_tools_cache_dao.get.return_value = None
+        self.mock_di.price_alert_crud.get_alerts_by_chat.return_value = mock_alerts
+        self.mock_di.tools_cache_crud.get.return_value = None
 
         with patch.object(PriceAlertManager, "get_triggered_alerts") as mock_get:
             mock_get.return_value = [

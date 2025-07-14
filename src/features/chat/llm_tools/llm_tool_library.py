@@ -8,9 +8,7 @@ from langchain_core.tools import tool
 from api.settings_controller import SettingsController
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.chat_message import ChatMessageCRUD
-from db.crud.price_alert import PriceAlertCRUD
 from db.crud.sponsorship import SponsorshipCRUD
-from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.sql import get_detached_session
 from di.di import DI
@@ -19,13 +17,10 @@ from features.chat.attachments_describer import AttachmentsDescriber
 from features.chat.generative_imaging_manager import GenerativeImagingManager
 from features.chat.image_generator import ImageGenerator
 from features.chat.llm_tools.base_llm_tool_binder import BaseLLMToolBinder
-from features.chat.price_alert_manager import PriceAlertManager
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
-from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
 from features.support.user_support_manager import UserSupportManager
 from features.web_browsing.ai_web_search import AIWebSearch
 from features.web_browsing.html_content_cleaner import HTMLContentCleaner
-from features.web_browsing.web_fetcher import WebFetcher
 from util.config import config
 from util.safe_printer_mixin import sprint
 from util.translations_cache import TranslationsCache
@@ -94,17 +89,10 @@ def fetch_web_content(url: str, user_id: str) -> str:
     """
     try:
         with get_detached_session() as db:
-            tools_cache_dao = ToolsCacheCRUD(db)
-            html = WebFetcher(
-                url,
-                user_id,
-                UserCRUD(db),
-                ChatConfigCRUD(db),
-                tools_cache_dao,
-                SponsorshipCRUD(db),
-                TelegramBotSDK(db),
-            ).html
-            text = HTMLContentCleaner(str(html), tools_cache_dao).clean_up()
+            di = DI(db, user_id)
+            fetcher = di.web_fetcher(url, auto_fetch_html = True)
+            html = str(fetcher.html)
+            text = HTMLContentCleaner(html, di.tools_cache_crud).clean_up()
             result = text[:TOOL_TRUNCATE_LENGTH] + "..." if len(text) > TOOL_TRUNCATE_LENGTH else text
             return __success({"content": result})
     except Exception as e:
@@ -124,15 +112,8 @@ def get_exchange_rate(user_id: str, base_currency: str, desired_currency: str, a
     """
     try:
         with get_detached_session() as db:
-            fetcher = ExchangeRateFetcher(
-                invoker_user = user_id,
-                user_dao = UserCRUD(db),
-                chat_config_dao = ChatConfigCRUD(db),
-                cache_dao = ToolsCacheCRUD(db),
-                sponsorship_dao = SponsorshipCRUD(db),
-                telegram_sdk = TelegramBotSDK(db),
-            )
-            result = fetcher.execute(base_currency, desired_currency, float(amount) if amount else 1.0)
+            di = DI(db, user_id)
+            result = di.exchange_rate_fetcher.execute(base_currency, desired_currency, float(amount) if amount else 1.0)
             return __success({"exchange_rate": result})
     except Exception as e:
         return __error(e)
@@ -158,16 +139,8 @@ def set_up_currency_price_alert(
     """
     try:
         with get_detached_session() as db:
-            alert_manager = PriceAlertManager(
-                target_chat_id = chat_id,
-                invoker_user_id_hex = user_id,
-                user_dao = UserCRUD(db),
-                chat_config_dao = ChatConfigCRUD(db),
-                price_alert_dao = PriceAlertCRUD(db),
-                tools_cache_dao = ToolsCacheCRUD(db),
-                sponsorship_dao = SponsorshipCRUD(db),
-                telegram_bot_sdk = TelegramBotSDK(db),
-            )
+            di = DI(db, user_id, chat_id)
+            alert_manager = di.price_alert_manager(chat_id)
             alert = alert_manager.create_alert(base_currency, desired_currency, threshold_percent)
             return __success({"created_alert_data": alert.model_dump(mode = "json")})
     except Exception as e:
@@ -187,16 +160,8 @@ def remove_currency_price_alerts(chat_id: str, user_id: str, base_currency: str,
     """
     try:
         with get_detached_session() as db:
-            alert_manager = PriceAlertManager(
-                target_chat_id = chat_id,
-                invoker_user_id_hex = user_id,
-                user_dao = UserCRUD(db),
-                chat_config_dao = ChatConfigCRUD(db),
-                price_alert_dao = PriceAlertCRUD(db),
-                tools_cache_dao = ToolsCacheCRUD(db),
-                sponsorship_dao = SponsorshipCRUD(db),
-                telegram_bot_sdk = TelegramBotSDK(db),
-            )
+            di = DI(db, user_id, chat_id)
+            alert_manager = di.price_alert_manager(chat_id)
             alert = alert_manager.delete_alert(base_currency, desired_currency)
             deleted_alert_data = alert.model_dump(mode = "json") if alert else None
             return __success({"deleted_alert_data": deleted_alert_data})
@@ -215,16 +180,8 @@ def list_currency_price_alerts(chat_id: str, user_id: str) -> str:
     """
     try:
         with get_detached_session() as db:
-            alert_manager = PriceAlertManager(
-                target_chat_id = chat_id,
-                invoker_user_id_hex = user_id,
-                user_dao = UserCRUD(db),
-                chat_config_dao = ChatConfigCRUD(db),
-                price_alert_dao = PriceAlertCRUD(db),
-                tools_cache_dao = ToolsCacheCRUD(db),
-                sponsorship_dao = SponsorshipCRUD(db),
-                telegram_bot_sdk = TelegramBotSDK(db),
-            )
+            di = DI(db, user_id, chat_id)
+            alert_manager = di.price_alert_manager(chat_id)
             alerts = alert_manager.get_active_alerts()
             return __success({"alerts": [alert.model_dump(mode = "json") for alert in alerts]})
     except Exception as e:

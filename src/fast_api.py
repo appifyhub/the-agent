@@ -13,16 +13,17 @@ from api.model.user_settings_payload import UserSettingsPayload
 from api.settings_controller import SettingsController, SettingsType
 from api.sponsorships_controller import SponsorshipsController
 from db.crud.chat_config import ChatConfigCRUD
-from db.crud.price_alert import PriceAlertCRUD
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.sql import get_session, initialize_db
+from di.di import DI
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.telegram_price_alert_responder import respond_with_price_alerts
 from features.chat.telegram.telegram_summary_responder import respond_with_summary
 from features.chat.telegram.telegram_update_responder import respond_to_update
+from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config
 from util.safe_printer_mixin import sprint
 from util.translations_cache import TranslationsCache
@@ -83,14 +84,7 @@ def notify_of_price_alerts(
     db = Depends(get_session),
     _ = Depends(verify_api_key),
 ) -> dict:
-    return respond_with_price_alerts(
-        user_dao = UserCRUD(db),
-        chat_config_dao = ChatConfigCRUD(db),
-        price_alert_dao = PriceAlertCRUD(db),
-        tools_cache_dao = ToolsCacheCRUD(db),
-        sponsorship_dao = SponsorshipCRUD(db),
-        telegram_bot_sdk = TelegramBotSDK(db),
-    )
+    return respond_with_price_alerts(DI(db, TELEGRAM_BOT_USER.id.hex))
 
 
 @app.post("/notify/release")

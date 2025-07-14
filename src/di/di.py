@@ -98,7 +98,6 @@ class DI:
     # Features
     _command_processor: "CommandProcessor | None"
     _exchange_rate_fetcher: "ExchangeRateFetcher | None"
-    _price_alert_manager: "PriceAlertManager | None"
 
     def __init__(
         self,
@@ -139,7 +138,20 @@ class DI:
         # Features
         self._command_processor = None
         self._exchange_rate_fetcher = None
-        self._price_alert_manager = None
+
+    # === Cloning ===
+
+    def clone(
+        self,
+        db: Session | None = None,
+        invoker_id: str | None = None,
+        invoker_chat_id: str | None = None,
+    ) -> "DI":
+        return DI(
+            db or self._db,
+            invoker_id or self._invoker_id,
+            invoker_chat_id or self._invoker_chat_id,
+        )
 
     # === Dynamic dependencies ===
 
@@ -431,12 +443,7 @@ class DI:
         from features.web_browsing.web_fetcher import WebFetcher
         return WebFetcher(
             url,
-            self.invoker,
-            self.user_crud,
-            self.chat_config_crud,
-            self.tools_cache_crud,
-            self.sponsorship_crud,
-            self.telegram_bot_sdk,
+            self,
             headers,
             params,
             cache_ttl_html,
@@ -465,14 +472,7 @@ class DI:
     def exchange_rate_fetcher(self) -> "ExchangeRateFetcher":
         if self._exchange_rate_fetcher is None:
             from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
-            self._exchange_rate_fetcher = ExchangeRateFetcher(
-                self.invoker,
-                self.user_crud,
-                self.chat_config_crud,
-                self.tools_cache_crud,
-                self.sponsorship_crud,
-                self.telegram_bot_sdk,
-            )
+            self._exchange_rate_fetcher = ExchangeRateFetcher(self)
         return self._exchange_rate_fetcher
 
     # noinspection PyMethodMayBeStatic
@@ -480,20 +480,9 @@ class DI:
         from features.web_browsing.ai_web_search import AIWebSearch
         return AIWebSearch(search_query, configured_tool)
 
-    def price_alert_manager(self) -> "PriceAlertManager":
-        if self._price_alert_manager is None:
-            from features.chat.price_alert_manager import PriceAlertManager
-            self._price_alert_manager = PriceAlertManager(
-                self._invoker_chat_id,  # warning: intentionally _private nullable
-                self.invoker_id,
-                self.user_crud,
-                self.chat_config_crud,
-                self.price_alert_crud,
-                self.tools_cache_crud,
-                self.sponsorship_crud,
-                self.telegram_bot_sdk,
-            )
-        return self._price_alert_manager
+    def price_alert_manager(self, target_chat_id: str | None) -> "PriceAlertManager":
+        from features.chat.price_alert_manager import PriceAlertManager
+        return PriceAlertManager(target_chat_id, self)
 
     def generative_imaging_manager(self, raw_prompt: str) -> "GenerativeImagingManager":
         from features.chat.generative_imaging_manager import GenerativeImagingManager

@@ -1,46 +1,22 @@
 import json
 
-from db.crud.chat_config import ChatConfigCRUD
-from db.crud.price_alert import PriceAlertCRUD
-from db.crud.sponsorship import SponsorshipCRUD
-from db.crud.tools_cache import ToolsCacheCRUD
-from db.crud.user import UserCRUD
 from db.schema.chat_config import ChatConfig
+from di.di import DI
 from features.announcements.information_announcer import InformationAnnouncer
-from features.chat.price_alert_manager import PriceAlertManager
-from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
-from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.safe_printer_mixin import sprint
 from util.translations_cache import DEFAULT_ISO_CODE, DEFAULT_LANGUAGE, TranslationsCache
 
 
-def respond_with_price_alerts(
-    user_dao: UserCRUD,
-    chat_config_dao: ChatConfigCRUD,
-    price_alert_dao: PriceAlertCRUD,
-    tools_cache_dao: ToolsCacheCRUD,
-    sponsorship_dao: SponsorshipCRUD,
-    telegram_bot_sdk: TelegramBotSDK,
-) -> dict:
-    alert_manager = PriceAlertManager(
-        target_chat_id = None,  # all chats
-        invoker_user_id_hex = TELEGRAM_BOT_USER.id.hex,  # type: ignore
-        user_dao = user_dao,
-        chat_config_dao = chat_config_dao,
-        price_alert_dao = price_alert_dao,
-        tools_cache_dao = tools_cache_dao,
-        sponsorship_dao = sponsorship_dao,
-        telegram_bot_sdk = telegram_bot_sdk,
-    )
-
+def respond_with_price_alerts(di: DI) -> dict:
     chats_notified: int = 0
     announcements_created: int = 0
+    alert_manager = di.price_alert_manager(target_chat_id = None)
     triggered_alerts = alert_manager.get_triggered_alerts()
     translation_caches_all: dict[str, TranslationsCache] = {}
     for triggered_alert in triggered_alerts:
         # try to summarize the announcement first
         try:
-            chat_config_db = chat_config_dao.get(triggered_alert.chat_id)
+            chat_config_db = di.chat_config_crud.get(triggered_alert.chat_id)
             if not chat_config_db:
                 raise ValueError(f"Chat config not found for chat {triggered_alert.chat_id}")
             chat_config = ChatConfig.model_validate(chat_config_db)
@@ -74,10 +50,10 @@ def respond_with_price_alerts(
                     raw_information = raw_information,
                     invoker = triggered_alert.owner_id,
                     target_chat = chat_config,
-                    user_dao = user_dao,
-                    chat_config_dao = chat_config_dao,
-                    sponsorship_dao = sponsorship_dao,
-                    telegram_bot_sdk = telegram_bot_sdk,
+                    user_dao = di.user_crud,
+                    chat_config_dao = di.chat_config_crud,
+                    sponsorship_dao = di.sponsorship_crud,
+                    telegram_bot_sdk = di.telegram_bot_sdk,
                 ).execute()
                 if not answer.content:
                     raise ValueError("LLM Answer not received")
@@ -89,7 +65,7 @@ def respond_with_price_alerts(
 
         # now let's send the announcement to each chat
         try:
-            telegram_bot_sdk.send_text_message(triggered_alert.chat_id, announcement_text)
+            di.telegram_bot_sdk.send_text_message(triggered_alert.chat_id, announcement_text)
             chats_notified += 1
         except Exception as e:
             sprint(f"Chat notification failed for chat #{triggered_alert.chat_id}", e)
