@@ -17,7 +17,7 @@ from features.chat.dev_announcements_service import DevAnnouncementsService
 from features.chat.image_generator import ImageGenerator
 from features.chat.llm_tools.base_llm_tool_binder import BaseLLMToolBinder
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
-from features.support.user_support_manager import UserSupportManager
+from features.support.user_support_service import UserSupportService
 from features.web_browsing.ai_web_search import AIWebSearch
 from features.web_browsing.html_content_cleaner import HTMLContentCleaner
 from util.config import config
@@ -311,17 +311,12 @@ def request_feature_bug_or_support(
     """
     try:
         with get_detached_session() as db:
-            manager = UserSupportManager(
-                invoker_user_id_hex = author_user_id,
-                user_input = user_request_details,
-                invoker_github_username = author_github_username,
-                include_telegram_username = include_telegram_username,
-                include_full_name = include_full_name,
-                request_type_str = request_type,
-                user_dao = UserCRUD(db),
-                chat_config_dao = ChatConfigCRUD(db),
-                sponsorship_dao = SponsorshipCRUD(db),
-                telegram_bot_sdk = TelegramBotSDK(db),
+            di = DI(db, author_user_id)
+            configured_tool = di.tool_choice_resolver.require_tool(UserSupportService.TOOL_TYPE)
+            manager = di.user_support_service(
+                user_request_details, author_github_username,
+                include_telegram_username, include_full_name,
+                request_type, configured_tool,
             )
             issue_url = manager.execute()
             return __success(

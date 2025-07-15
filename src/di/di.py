@@ -53,7 +53,7 @@ if TYPE_CHECKING:
     from features.images.image_editor import ImageEditor
     from features.images.text_stable_diffusion_generator import TextStableDiffusionGenerator
     from features.sponsorships.sponsorship_service import SponsorshipService
-    from features.support.user_support_manager import UserSupportManager
+    from features.support.user_support_service import UserSupportService
     from features.web_browsing.ai_web_search import AIWebSearch
     from features.web_browsing.html_content_cleaner import HTMLContentCleaner
     from features.web_browsing.twitter_status_fetcher import TwitterStatusFetcher
@@ -656,24 +656,22 @@ class DI:
             self.telegram_bot_sdk,
         )
 
-    def user_support_manager(
+    def user_support_service(
         self,
         user_input: str,
-        invoker_github_username: str | None,
+        github_author: str | None,
         include_telegram_username: bool,
         include_full_name: bool,
         request_type_str: str | None,
-    ) -> "UserSupportManager":
-        from features.support.user_support_manager import UserSupportManager
-        return UserSupportManager(
+        configured_tool: ConfiguredTool,
+    ) -> "UserSupportService":
+        from features.support.user_support_service import UserSupportService
+        return UserSupportService(
             user_input,
-            self.invoker_id,
-            invoker_github_username,
+            github_author,
             include_telegram_username,
             include_full_name,
             request_type_str,
-            self.user_crud,
-            self.chat_config_crud,
-            self.sponsorship_crud,
-            self.telegram_bot_sdk,
+            configured_tool,
+            self,
         )

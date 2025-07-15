@@ -2,18 +2,13 @@ import os
 from enum import Enum
 
 import requests
-from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-from api.authorization_service import AuthorizationService
-from db.crud.chat_config import ChatConfigCRUD
-from db.crud.sponsorship import SponsorshipCRUD
-from db.crud.user import UserCRUD
-from db.schema.user import User
-from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
-from features.external_tools.access_token_resolver import AccessTokenResolver
+from di.di import DI
+from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_4_SONNET
+from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
@@ -21,59 +16,41 @@ from util.safe_printer_mixin import SafePrinterMixin
 GITHUB_BASE_URL = "https://api.github.com"
 
 
-class UserSupportManager(SafePrinterMixin):
+class UserSupportService(SafePrinterMixin):
+    DEFAULT_TOOL: ExternalTool = CLAUDE_4_SONNET
+    TOOL_TYPE: ToolType = ToolType.copywriting
+
     class RequestType(Enum):
         bug = "bug_report"
         request = "request_support"
         feature = "feature_request"
 
     __user_input: str
-    __invoker_github_username: str | None
+    __github_author: str | None
     __include_telegram_username: bool
     __include_full_name: bool
     __request_type: RequestType
-    __invoker: User
     __copywriter: BaseChatModel
-    __token_resolver: AccessTokenResolver
+    __di: DI
 
     def __init__(
         self,
         user_input: str,
-        invoker_user_id_hex: str,
-        invoker_github_username: str | None,
+        github_author: str | None,
         include_telegram_username: bool,
         include_full_name: bool,
         request_type_str: str | None,
-        user_dao: UserCRUD,
-        chat_config_dao: ChatConfigCRUD,
-        sponsorship_dao: SponsorshipCRUD,
-        telegram_bot_sdk: TelegramBotSDK,
+        configured_tool: ConfiguredTool,
+        di: DI,
     ):
         super().__init__(config.verbose)
         self.__user_input = user_input
-        self.__invoker_github_username = invoker_github_username
+        self.__github_author = github_author
         self.__include_telegram_username = include_telegram_username
         self.__include_full_name = include_full_name
         self.__request_type = self.__resolve_request_type(request_type_str)
-
-        authorization_service = AuthorizationService(telegram_bot_sdk, user_dao, chat_config_dao)
-        self.__invoker = authorization_service.validate_user(invoker_user_id_hex)
-        self.__token_resolver = AccessTokenResolver(
-            invoker = self.__invoker,
-            user_dao = user_dao,
-            sponsorship_dao = sponsorship_dao,
-        )
-        anthropic_token = self.__token_resolver.require_access_token_for_tool(CLAUDE_4_SONNET)
-
-        # noinspection PyArgumentList
-        self.__copywriter = ChatAnthropic(
-            model_name = CLAUDE_4_SONNET.id,
-            temperature = 0.5,
-            max_tokens = 700,
-            timeout = float(config.web_timeout_s),
-            max_retries = config.web_retries,
-            api_key = anthropic_token,
-        )
+        self.__copywriter = di.chat_langchain_model(configured_tool)
+        self.__di = di
 
     def __resolve_request_type(self, request_type_str: str | None) -> RequestType:
         request_type_str = request_type_str.lower() if request_type_str else None
@@ -81,7 +58,7 @@ class UserSupportManager(SafePrinterMixin):
         for request_type in self.RequestType:
             if request_type.name == request_type_str:
                 return request_type
-        default = UserSupportManager.RequestType.request
+        default = UserSupportService.RequestType.request
         self.sprint(f"Request type not found, defaulting to {default}")
         return default
 
@@ -96,15 +73,15 @@ class UserSupportManager(SafePrinterMixin):
         template_contents = self.__load_template()
         prompt = prompt_library.support_request_generator(self.__request_type.name, template_contents)
         user_info_parts = []
-        if self.__include_telegram_username and self.__invoker.telegram_username:
-            user_link = f"[{self.__invoker.telegram_username}](https://t.me/{self.__invoker.telegram_username})"
+        if self.__include_telegram_username and self.__di.invoker.telegram_username:
+            user_link = f"[{self.__di.invoker.telegram_username}](https://t.me/{self.__di.invoker.telegram_username})"
             user_info_parts.append(f"Telegram user: {user_link}")
-        if self.__invoker_github_username:
-            user_info_parts.append(f"GitHub username: @{self.__invoker_github_username}")
-        if self.__include_full_name and self.__invoker.full_name:
-            user_info_parts.append(f"Full name: {self.__invoker.full_name}")
+        if self.__github_author:
+            user_info_parts.append(f"GitHub author: @{self.__github_author}")
+        if self.__include_full_name and self.__di.invoker.full_name:
+            user_info_parts.append(f"Full name: {self.__di.invoker.full_name}")
         if not user_info_parts:
-            user_info_parts.append(f"User ID: T-{self.__invoker.id.hex}")
+            user_info_parts.append(f"User ID: T-{self.__di.invoker.id.hex}")
         user_info = "\n".join(user_info_parts)
         message = f"Reporter:\n{user_info}\n\nRaw reporter input:\n```\n{self.__user_input}\n```\n"
         response = self.__copywriter.invoke([SystemMessage(prompt), HumanMessage(message)])

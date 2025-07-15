@@ -15,7 +15,7 @@ class ToolResolutionError(Exception):
 
     def __init__(self, purpose: ToolType, user_id: str):
         message = f"Unable to resolve a tool for '{purpose.value}' for user '{user_id}'. "
-        message += "Check your profile settings page to configure your tool choices and tokens."
+        message += "Open your profile settings page to configure your tool choices and tokens."
         super().__init__(message)
 
 
