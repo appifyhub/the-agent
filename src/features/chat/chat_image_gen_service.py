@@ -8,7 +8,6 @@ from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_3_5_HAIKU
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.images.text_stable_diffusion_generator import TextStableDiffusionGenerator
-from features.llm import langchain_creator
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
@@ -39,7 +38,7 @@ class ChatImageGenService(SafePrinterMixin):
     ):
         super().__init__(config.verbose)
         self.__di = di
-        self.__copywriter = langchain_creator.create(configured_copywriter_tool)
+        self.__copywriter = di.chat_langchain_model(configured_copywriter_tool)
         self.__llm_input = []
         self.__llm_input.append(SystemMessage(prompt_library.generator_stable_diffusion))
         self.__llm_input.append(HumanMessage(raw_prompt))

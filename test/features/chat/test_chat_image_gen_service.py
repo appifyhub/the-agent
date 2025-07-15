@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from langchain_core.messages import AIMessage
 
@@ -26,13 +26,12 @@ class ChatImageGenServiceTest(unittest.TestCase):
         self.mock_di.text_stable_diffusion_generator.return_value = self.mock_text_stable_diffusion_generator
 
         # Mock configured tools
+        # noinspection PyTypeChecker
         self.mock_configured_copywriter_tool = MagicMock(spec = ConfiguredTool)
+        # noinspection PyTypeChecker
         self.mock_configured_image_gen_tool = MagicMock(spec = ConfiguredTool)
 
-    @patch("features.chat.chat_image_gen_service.langchain_creator.create")
-    def test_init_success(self, mock_langchain_create):
-        mock_langchain_create.return_value = MagicMock()
-
+    def test_init_success(self):
         service = ChatImageGenService(
             self.raw_prompt,
             self.mock_configured_copywriter_tool,
@@ -41,11 +40,10 @@ class ChatImageGenServiceTest(unittest.TestCase):
         )
         self.assertIsInstance(service, ChatImageGenService)
 
-    @patch("features.chat.chat_image_gen_service.langchain_creator.create")
-    def test_execute_success(self, mock_langchain_create):
+    def test_execute_success(self):
         mock_llm = MagicMock()
         mock_llm.invoke.return_value = AIMessage(content = "Refined prompt")
-        mock_langchain_create.return_value = mock_llm
+        self.mock_di.chat_langchain_model.return_value = mock_llm
 
         self.mock_text_stable_diffusion_generator.execute.return_value = "http://example.com/image.png"
 
@@ -62,11 +60,10 @@ class ChatImageGenServiceTest(unittest.TestCase):
         self.mock_text_stable_diffusion_generator.execute.assert_called_once()
         self.mock_di.telegram_bot_sdk.send_photo.assert_called_once_with("test_chat_id", "http://example.com/image.png")
 
-    @patch("features.chat.chat_image_gen_service.langchain_creator.create")
-    def test_execute_llm_failure(self, mock_langchain_create):
+    def test_execute_llm_failure(self):
         mock_llm = MagicMock()
         mock_llm.invoke.side_effect = Exception("LLM error")
-        mock_langchain_create.return_value = mock_llm
+        self.mock_di.chat_langchain_model.return_value = mock_llm
 
         service = ChatImageGenService(
             self.raw_prompt,
@@ -80,11 +77,10 @@ class ChatImageGenServiceTest(unittest.TestCase):
         mock_llm.invoke.assert_called_once()
         self.mock_di.telegram_bot_sdk.send_photo.assert_not_called()
 
-    @patch("features.chat.chat_image_gen_service.langchain_creator.create")
-    def test_execute_image_generation_failure(self, mock_langchain_create):
+    def test_execute_image_generation_failure(self):
         mock_llm = MagicMock()
         mock_llm.invoke.return_value = AIMessage(content = "Refined prompt")
-        mock_langchain_create.return_value = mock_llm
+        self.mock_di.chat_langchain_model.return_value = mock_llm
 
         self.mock_text_stable_diffusion_generator.execute.return_value = None
 
@@ -101,11 +97,10 @@ class ChatImageGenServiceTest(unittest.TestCase):
         self.mock_text_stable_diffusion_generator.execute.assert_called_once()
         self.mock_di.telegram_bot_sdk.send_photo.assert_not_called()
 
-    @patch("features.chat.chat_image_gen_service.langchain_creator.create")
-    def test_execute_send_photo_failure(self, mock_langchain_create):
+    def test_execute_send_photo_failure(self):
         mock_llm = MagicMock()
         mock_llm.invoke.return_value = AIMessage(content = "Refined prompt")
-        mock_langchain_create.return_value = mock_llm
+        self.mock_di.chat_langchain_model.return_value = mock_llm
 
         self.mock_text_stable_diffusion_generator.execute.return_value = "http://example.com/image.png"
         self.mock_di.telegram_bot_sdk.send_photo.side_effect = Exception("Send photo error")
@@ -123,11 +118,10 @@ class ChatImageGenServiceTest(unittest.TestCase):
         self.mock_text_stable_diffusion_generator.execute.assert_called_once()
         self.mock_di.telegram_bot_sdk.send_photo.assert_called_once()
 
-    @patch("features.chat.chat_image_gen_service.langchain_creator.create")
-    def test_execute_non_ai_message(self, mock_langchain_create):
+    def test_execute_non_ai_message(self):
         mock_llm = MagicMock()
         mock_llm.invoke.return_value = "Not an AIMessage"
-        mock_langchain_create.return_value = mock_llm
+        self.mock_di.chat_langchain_model.return_value = mock_llm
 
         service = ChatImageGenService(
             self.raw_prompt,

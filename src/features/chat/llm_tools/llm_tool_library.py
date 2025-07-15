@@ -7,14 +7,13 @@ from langchain_core.tools import tool
 
 from api.settings_controller import SettingsController
 from db.crud.chat_config import ChatConfigCRUD
-from db.crud.chat_message import ChatMessageCRUD
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.sql import get_detached_session
 from di.di import DI
-from features.chat.announcement_manager import AnnouncementManager
 from features.chat.attachments_describer import AttachmentsDescriber
 from features.chat.chat_image_gen_service import ChatImageGenService
+from features.chat.dev_announcements_service import DevAnnouncementsService
 from features.chat.image_generator import ImageGenerator
 from features.chat.llm_tools.base_llm_tool_binder import BaseLLMToolBinder
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
@@ -23,7 +22,6 @@ from features.web_browsing.ai_web_search import AIWebSearch
 from features.web_browsing.html_content_cleaner import HTMLContentCleaner
 from util.config import config
 from util.safe_printer_mixin import sprint
-from util.translations_cache import TranslationsCache
 
 TOOL_TRUNCATE_LENGTH = 8192  # to save some tokens
 
@@ -251,18 +249,9 @@ def announce_maintenance_or_news(user_id: str, raw_announcement: str) -> str:
     """
     try:
         with get_detached_session() as db:
-            manager = AnnouncementManager(
-                raw_message = raw_announcement,
-                invoker_user = user_id,
-                target_telegram_username = None,
-                user_dao = UserCRUD(db),
-                chat_config_dao = ChatConfigCRUD(db),
-                chat_message_dao = ChatMessageCRUD(db),
-                sponsorship_dao = SponsorshipCRUD(db),
-                telegram_bot_sdk = TelegramBotSDK(db),
-                translations = TranslationsCache(),
-            )
-            results = manager.execute()
+            di = DI(db, user_id)
+            configured_tool = di.tool_choice_resolver.require_tool(DevAnnouncementsService.TOOL_TYPE)
+            results = di.dev_announcements_service(raw_announcement, None, configured_tool).execute()
             return __success(
                 {
                     "summary": results,
@@ -285,18 +274,9 @@ def deliver_message(author_user_id: str, message: str, target_telegram_username:
     """
     try:
         with get_detached_session() as db:
-            manager = AnnouncementManager(
-                raw_message = message,
-                invoker_user = author_user_id,
-                target_telegram_username = target_telegram_username,
-                user_dao = UserCRUD(db),
-                chat_config_dao = ChatConfigCRUD(db),
-                chat_message_dao = ChatMessageCRUD(db),
-                sponsorship_dao = SponsorshipCRUD(db),
-                telegram_bot_sdk = TelegramBotSDK(db),
-                translations = TranslationsCache(),
-            )
-            results = manager.execute()
+            di = DI(db, author_user_id)
+            configured_tool = di.tool_choice_resolver.require_tool(DevAnnouncementsService.TOOL_TYPE)
+            results = di.dev_announcements_service(message, target_telegram_username, configured_tool).execute()
             return __success(
                 {
                     "summary": results,
@@ -450,6 +430,7 @@ def __error(message: str | Exception) -> str:
 
 
 class LLMToolLibrary(BaseLLMToolBinder):
+
     def __init__(self):
         super().__init__(
             {

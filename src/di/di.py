@@ -3,9 +3,18 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage
+from pydantic import SecretStr
+from sqlalchemy.orm import Session
 
-from features.images.text_stable_diffusion_generator import TextStableDiffusionGenerator
+from db.schema.chat_config import ChatConfig
+from db.schema.user import User
+from features.chat.telegram.telegram_progress_notifier import (
+    DEFAULT_REACTION_INTERVAL_S,
+    DEFAULT_TEXT_UPDATE_INTERVAL_S,
+)
+from features.llm import langchain_creator
 
 if TYPE_CHECKING:
     from api.authorization_service import AuthorizationService
@@ -21,10 +30,10 @@ if TYPE_CHECKING:
     from features.announcements.information_announcer import InformationAnnouncer
     from features.announcements.release_summarizer import ReleaseSummarizer
     from features.audio.audio_transcriber import AudioTranscriber
-    from features.chat.announcement_manager import AnnouncementManager
     from features.chat.attachments_describer import AttachmentsDescriber
     from features.chat.chat_image_gen_service import ChatImageGenService
     from features.chat.command_processor import CommandProcessor
+    from features.chat.dev_announcements_service import DevAnnouncementsService
     from features.chat.image_generator import ImageGenerator
     from features.chat.price_alert_manager import PriceAlertManager
     from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
@@ -37,11 +46,12 @@ if TYPE_CHECKING:
     from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
     from features.documents.document_search import DocumentSearch
     from features.external_tools.access_token_resolver import AccessTokenResolver
-    from features.external_tools.tool_choice_resolver import ToolChoiceResolver
+    from features.external_tools.tool_choice_resolver import ConfiguredTool, ToolChoiceResolver
     from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
     from features.images.image_background_remover import ImageBackgroundRemover
     from features.images.image_contents_restorer import ImageContentsRestorer
     from features.images.image_editor import ImageEditor
+    from features.images.text_stable_diffusion_generator import TextStableDiffusionGenerator
     from features.sponsorships.sponsorship_service import SponsorshipService
     from features.support.user_support_manager import UserSupportManager
     from features.web_browsing.ai_web_search import AIWebSearch
@@ -49,17 +59,6 @@ if TYPE_CHECKING:
     from features.web_browsing.twitter_status_fetcher import TwitterStatusFetcher
     from features.web_browsing.web_fetcher import WebFetcher
     from util.translations_cache import TranslationsCache
-
-from pydantic import SecretStr
-from sqlalchemy.orm import Session
-
-from db.schema.chat_config import ChatConfig
-from db.schema.user import User
-from features.chat.telegram.telegram_progress_notifier import (
-    DEFAULT_REACTION_INTERVAL_S,
-    DEFAULT_TEXT_UPDATE_INTERVAL_S,
-)
-from features.external_tools.tool_choice_resolver import ConfiguredTool
 
 
 class ConstructorDependencyNotMetError(Exception):
@@ -93,7 +92,6 @@ class DI:
     # Internal tools
     _access_token_resolver: "AccessTokenResolver | None"
     _tool_choice_resolver: "ToolChoiceResolver | None"
-    _translations_cache: "TranslationsCache | None"
     _telegram_domain_mapper: "TelegramDomainMapper | None"
     _domain_langchain_mapper: "DomainLangchainMapper | None"
     _telegram_data_resolver: "TelegramDataResolver | None"
@@ -133,7 +131,6 @@ class DI:
         # Internal tools
         self._access_token_resolver = None
         self._tool_choice_resolver = None
-        self._translations_cache = None
         self._telegram_domain_mapper = None
         self._domain_langchain_mapper = None
         self._telegram_data_resolver = None
@@ -352,10 +349,8 @@ class DI:
 
     @property
     def translations_cache(self) -> "TranslationsCache":
-        if self._translations_cache is None:
-            from util.translations_cache import TranslationsCache
-            self._translations_cache = TranslationsCache()
-        return self._translations_cache
+        from util.translations_cache import TranslationsCache
+        return TranslationsCache()
 
     @property
     def telegram_domain_mapper(self) -> "TelegramDomainMapper":
@@ -379,6 +374,10 @@ class DI:
         return self._telegram_data_resolver
 
     # === Features ===
+
+    # noinspection PyMethodMayBeStatic
+    def chat_langchain_model(self, configured_tool: ConfiguredTool) -> "BaseChatModel":
+        return langchain_creator.create(configured_tool)
 
     def telegram_progress_notifier(
         self,
@@ -480,7 +479,7 @@ class DI:
     # noinspection PyMethodMayBeStatic
     def ai_web_search(self, search_query: str, configured_tool: ConfiguredTool) -> "AIWebSearch":
         from features.web_browsing.ai_web_search import AIWebSearch
-        return AIWebSearch(search_query, configured_tool)
+        return AIWebSearch(search_query, configured_tool, self)
 
     def price_alert_manager(self, target_chat_id: str | None) -> "PriceAlertManager":
         from features.chat.price_alert_manager import PriceAlertManager
@@ -616,23 +615,14 @@ class DI:
         from features.chat.attachments_describer import AttachmentsDescriber
         return AttachmentsDescriber(additional_context, attachment_ids, self)
 
-    def announcement_manager(
+    def dev_announcements_service(
         self,
         raw_message: str,
         target_telegram_username: str | None,
-    ) -> "AnnouncementManager":
-        from features.chat.announcement_manager import AnnouncementManager
-        return AnnouncementManager(
-            raw_message,
-            self.invoker,
-            target_telegram_username,
-            self.user_crud,
-            self.chat_config_crud,
-            self.chat_message_crud,
-            self.sponsorship_crud,
-            self.telegram_bot_sdk,
-            self.translations_cache,
-        )
+        configured_tool: ConfiguredTool,
+    ) -> "DevAnnouncementsService":
+        from features.chat.dev_announcements_service import DevAnnouncementsService
+        return DevAnnouncementsService(raw_message, target_telegram_username, configured_tool, self)
 
     def information_announcer(
         self,
