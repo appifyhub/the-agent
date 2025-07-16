@@ -309,13 +309,7 @@ class DI:
     def settings_controller(self) -> "SettingsController":
         if self._settings_controller is None:
             from api.settings_controller import SettingsController
-            self._settings_controller = SettingsController(
-                self.invoker_id,
-                self.telegram_bot_sdk,
-                self.user_crud,
-                self.chat_config_crud,
-                self.sponsorship_crud,
-            )
+            self._settings_controller = SettingsController(self)
         return self._settings_controller
 
     @property

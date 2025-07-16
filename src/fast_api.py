@@ -10,7 +10,7 @@ from api.model.chat_settings_payload import ChatSettingsPayload
 from api.model.release_output_payload import ReleaseOutputPayload
 from api.model.sponsorship_payload import SponsorshipPayload
 from api.model.user_settings_payload import UserSettingsPayload
-from api.settings_controller import SettingsController, SettingsType
+from api.settings_controller import SettingsType
 from api.sponsorships_controller import SponsorshipsController
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.sponsorship import SponsorshipCRUD
@@ -128,17 +128,11 @@ def get_settings(
         sprint(f"Fetching '{settings_type}' settings for resource '{resource_id}'")
         invoker_id_hex = get_user_id_from_jwt(token)
         sprint(f"  Invoker ID: {invoker_id_hex}")
-        settings_controller = SettingsController(
-            invoker_user_id_hex = invoker_id_hex,
-            telegram_sdk = TelegramBotSDK(db),
-            user_dao = UserCRUD(db),
-            chat_config_dao = ChatConfigCRUD(db),
-            sponsorship_dao = SponsorshipCRUD(db),
-        )
+        di = DI(db, invoker_id_hex)
         if settings_type == "user":
-            return settings_controller.fetch_user_settings(resource_id)
+            return di.settings_controller.fetch_user_settings(resource_id)
         else:
-            return settings_controller.fetch_chat_settings(resource_id)
+            return di.settings_controller.fetch_chat_settings(resource_id)
     except Exception as e:
         sprint("Failed to get settings", e)
         raise HTTPException(status_code = 500, detail = {"reason": str(e)})
@@ -155,14 +149,8 @@ def save_user_settings(
         sprint(f"Saving user settings for user '{user_id_hex}'")
         invoker_id_hex = get_user_id_from_jwt(token)
         sprint(f"  Invoker ID: {invoker_id_hex}")
-        settings_controller = SettingsController(
-            invoker_user_id_hex = invoker_id_hex,
-            telegram_sdk = TelegramBotSDK(db),
-            user_dao = UserCRUD(db),
-            chat_config_dao = ChatConfigCRUD(db),
-            sponsorship_dao = SponsorshipCRUD(db),
-        )
-        settings_controller.save_user_settings(user_id_hex, payload)
+        di = DI(db, invoker_id_hex)
+        di.settings_controller.save_user_settings(user_id_hex, payload)
         return {"status": "OK"}
     except Exception as e:
         sprint("Failed to save user settings", e)
@@ -180,14 +168,8 @@ def save_chat_settings(
         sprint(f"Saving chat settings for chat '{chat_id}'")
         invoker_id_hex = get_user_id_from_jwt(token)
         sprint(f"  Invoker ID: {invoker_id_hex}")
-        settings_controller = SettingsController(
-            invoker_user_id_hex = invoker_id_hex,
-            telegram_sdk = TelegramBotSDK(db),
-            user_dao = UserCRUD(db),
-            chat_config_dao = ChatConfigCRUD(db),
-            sponsorship_dao = SponsorshipCRUD(db),
-        )
-        settings_controller.save_chat_settings(chat_id, payload)
+        di = DI(db, invoker_id_hex)
+        di.settings_controller.save_chat_settings(chat_id, payload)
         return {"status": "OK"}
     except Exception as e:
         sprint("Failed to save chat settings", e)
@@ -204,14 +186,8 @@ def get_chats(
         sprint(f"Fetching all chats for {resource_id}")
         invoker_id_hex = get_user_id_from_jwt(token)
         sprint(f"  Invoker ID: {invoker_id_hex}")
-        settings_controller = SettingsController(
-            invoker_user_id_hex = invoker_id_hex,
-            telegram_sdk = TelegramBotSDK(db),
-            user_dao = UserCRUD(db),
-            chat_config_dao = ChatConfigCRUD(db),
-            sponsorship_dao = SponsorshipCRUD(db),
-        )
-        return settings_controller.fetch_admin_chats(resource_id)
+        di = DI(db, invoker_id_hex)
+        return di.settings_controller.fetch_admin_chats(resource_id)
     except Exception as e:
         sprint("Failed to get chats", e)
         raise HTTPException(status_code = 500, detail = {"reason": str(e)})
@@ -227,14 +203,8 @@ def get_tools(
         sprint(f"Fetching tools for {resource_id}")
         invoker_id_hex = get_user_id_from_jwt(token)
         sprint(f"  Invoker ID: {invoker_id_hex}")
-        settings_controller = SettingsController(
-            invoker_user_id_hex = invoker_id_hex,
-            telegram_sdk = TelegramBotSDK(db),
-            user_dao = UserCRUD(db),
-            chat_config_dao = ChatConfigCRUD(db),
-            sponsorship_dao = SponsorshipCRUD(db),
-        )
-        return settings_controller.fetch_external_tools(resource_id)
+        di = DI(db, invoker_id_hex)
+        return di.settings_controller.fetch_external_tools(resource_id)
     except Exception as e:
         sprint("Failed to get external tools", e)
         raise HTTPException(status_code = 500, detail = {"reason": str(e)})
@@ -250,13 +220,8 @@ def get_sponsorships(
         sprint(f"Fetching sponsorships for {resource_id}")
         invoker_id_hex = get_user_id_from_jwt(token)
         sprint(f"  Invoker ID: {invoker_id_hex}")
-        sponsorships_controller = SponsorshipsController(
-            invoker_user_id_hex = invoker_id_hex,
-            user_dao = UserCRUD(db),
-            sponsorship_dao = SponsorshipCRUD(db),
-            telegram_sdk = TelegramBotSDK(db),
-            chat_config_dao = ChatConfigCRUD(db),
-        )
+        di = DI(db, invoker_id_hex)
+        sponsorships_controller = di.sponsorships_controller
         return sponsorships_controller.fetch_sponsorships(resource_id)
     except Exception as e:
         sprint("Failed to get sponsorships", e)
@@ -323,17 +288,11 @@ def unsponsor_self(
         sprint(f"User {resource_id} is unsponsoring themselves")
         invoker_id_hex = get_user_id_from_jwt(token)
         sprint(f"  Invoker ID: {invoker_id_hex}")
+        di = DI(db, resource_id)
         user_dao = UserCRUD(db)
         sponsorship_dao = SponsorshipCRUD(db)
         telegram_bot_sdk = TelegramBotSDK(db)
         chat_config_dao = ChatConfigCRUD(db)
-        settings_controller = SettingsController(
-            invoker_user_id_hex = resource_id,
-            telegram_sdk = telegram_bot_sdk,
-            user_dao = user_dao,
-            chat_config_dao = chat_config_dao,
-            sponsorship_dao = sponsorship_dao,
-        )
         sponsorships_controller = SponsorshipsController(
             invoker_user_id_hex = invoker_id_hex,
             user_dao = user_dao,
@@ -342,7 +301,7 @@ def unsponsor_self(
             chat_config_dao = chat_config_dao,
         )
         sponsorships_controller.unsponsor_self(resource_id)
-        settings_link = settings_controller.create_settings_link()
+        settings_link = di.settings_controller.create_settings_link()
         return {"settings_link": settings_link}
     except Exception as e:
         sprint("Failed to unsponsor self", e)

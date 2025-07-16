@@ -5,10 +5,6 @@ from typing import Any
 
 from langchain_core.tools import tool
 
-from api.settings_controller import SettingsController
-from db.crud.chat_config import ChatConfigCRUD
-from db.crud.sponsorship import SponsorshipCRUD
-from db.crud.user import UserCRUD
 from db.sql import get_detached_session
 from di.di import DI
 from features.chat.attachments_describer import AttachmentsDescriber
@@ -16,7 +12,6 @@ from features.chat.chat_image_gen_service import ChatImageGenService
 from features.chat.dev_announcements_service import DevAnnouncementsService
 from features.chat.image_generator import ImageGenerator
 from features.chat.llm_tools.base_llm_tool_binder import BaseLLMToolBinder
-from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.support.user_support_service import UserSupportService
 from features.web_browsing.ai_web_search import AIWebSearch
 from features.web_browsing.html_content_cleaner import HTMLContentCleaner
@@ -348,24 +343,16 @@ def configure_settings(
     """
     try:
         with get_detached_session() as db:
-            telegram_sdk = TelegramBotSDK(db)
-            manager = SettingsController(
-                invoker_user_id_hex = author_user_id,
-                telegram_sdk = telegram_sdk,
-                user_dao = UserCRUD(db),
-                chat_config_dao = ChatConfigCRUD(db),
-                sponsorship_dao = SponsorshipCRUD(db),
-            )
-            settings_link = manager.create_settings_link(
+            di = DI(db, author_user_id, chat_id)
+            settings_link = di.settings_controller.create_settings_link(
                 raw_settings_type = raw_settings_type,
                 target_chat_id = chat_id,
             )
             # let's send the settings link to the user's private chat, for security and privacy reasons
-            destination_chat_id = manager.get_invoker_private_chat_id()
-            if not destination_chat_id:
+            if not di.invoker.telegram_chat_id:
                 return __error("Author has no private chat with the bot; cannot send settings link")
-            telegram_sdk.send_button_link(destination_chat_id, settings_link)
-            if chat_id and chat_id == str(destination_chat_id or 0):
+            di.telegram_bot_sdk.send_button_link(di.invoker.telegram_chat_id, settings_link)
+            if chat_id and chat_id == str(di.invoker.telegram_chat_id or 0):
                 return __success(
                     {
                         "next_step": "Notify the user to click on the settings link above",
