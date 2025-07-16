@@ -18,9 +18,9 @@ from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.sql import get_session, initialize_db
 from di.di import DI
+from features.chat.telegram.currency_alert_responder import respond_with_currency_alerts
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
-from features.chat.telegram.telegram_price_alert_responder import respond_with_price_alerts
 from features.chat.telegram.telegram_summary_responder import respond_with_summary
 from features.chat.telegram.telegram_update_responder import respond_to_update
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
@@ -80,11 +80,12 @@ async def telegram_chat_update(
 
 
 @app.post("/notify/price-alerts")
-def notify_of_price_alerts(
+def notify_of_currency_alerts(
     db = Depends(get_session),
     _ = Depends(verify_api_key),
 ) -> dict:
-    return respond_with_price_alerts(DI(db, TELEGRAM_BOT_USER.id.hex))
+    di = DI(db, TELEGRAM_BOT_USER.id.hex)
+    return respond_with_currency_alerts(di)
 
 
 @app.post("/notify/release")

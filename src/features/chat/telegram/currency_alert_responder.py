@@ -2,12 +2,12 @@ import json
 
 from db.schema.chat_config import ChatConfig
 from di.di import DI
-from features.announcements.information_announcer import InformationAnnouncer
+from features.announcements.sys_announcements_service import SysAnnouncementsService
 from util.safe_printer_mixin import sprint
 from util.translations_cache import DEFAULT_ISO_CODE, DEFAULT_LANGUAGE, TranslationsCache
 
 
-def respond_with_price_alerts(di: DI) -> dict:
+def respond_with_currency_alerts(di: DI) -> dict:
     chats_notified: int = 0
     announcements_created: int = 0
     service = di.currency_alert_service(target_chat_id = None)
@@ -16,7 +16,8 @@ def respond_with_price_alerts(di: DI) -> dict:
     for triggered_alert in triggered_alerts:
         # try to summarize the announcement first
         try:
-            chat_config_db = di.chat_config_crud.get(triggered_alert.chat_id)
+            scoped_di = di.clone(invoker_id = triggered_alert.owner_id.hex)
+            chat_config_db = scoped_di.chat_config_crud.get(triggered_alert.chat_id)
             if not chat_config_db:
                 raise ValueError(f"Chat config not found for chat {triggered_alert.chat_id}")
             chat_config = ChatConfig.model_validate(chat_config_db)
@@ -27,9 +28,9 @@ def respond_with_price_alerts(di: DI) -> dict:
             alert_threshold = triggered_alert.threshold_percent
             translations_cache_key = f"{base_currency}-{desired_currency}-{alert_threshold}"
 
-            # Get or create cache instance for this alert type
+            # get or create cache instance for this alert type
             if translations_cache_key not in translation_caches_all:
-                translation_caches_all[translations_cache_key] = TranslationsCache()
+                translation_caches_all[translations_cache_key] = scoped_di.translations_cache
             translations = translation_caches_all[translations_cache_key]
 
             language_name = chat_config.language_name or DEFAULT_LANGUAGE
@@ -46,15 +47,11 @@ def respond_with_price_alerts(di: DI) -> dict:
                     f"in chat {triggered_alert.chat_id}",
                 )
                 raw_information = json.dumps(triggered_alert.model_dump(mode = "json"))
-                answer = InformationAnnouncer(
-                    raw_information = raw_information,
-                    invoker = triggered_alert.owner_id,
-                    target_chat = chat_config,
-                    user_dao = di.user_crud,
-                    chat_config_dao = di.chat_config_crud,
-                    sponsorship_dao = di.sponsorship_crud,
-                    telegram_bot_sdk = di.telegram_bot_sdk,
-                ).execute()
+                configured_tool = scoped_di.tool_choice_resolver.require_tool(
+                    SysAnnouncementsService.TOOL_TYPE,
+                    SysAnnouncementsService.DEFAULT_TOOL,
+                )
+                answer = scoped_di.sys_announcements_service(raw_information, chat_config, configured_tool).execute()
                 if not answer.content:
                     raise ValueError("LLM Answer not received")
                 announcement_text = translations.save(str(answer.content), language_name, language_iso_code)

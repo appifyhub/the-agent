@@ -27,8 +27,8 @@ if TYPE_CHECKING:
     from db.crud.sponsorship import SponsorshipCRUD
     from db.crud.tools_cache import ToolsCacheCRUD
     from db.crud.user import UserCRUD
-    from features.announcements.information_announcer import InformationAnnouncer
     from features.announcements.release_summarizer import ReleaseSummarizer
+    from features.announcements.sys_announcements_service import SysAnnouncementsService
     from features.audio.audio_transcriber import AudioTranscriber
     from features.chat.attachments_describer import AttachmentsDescriber
     from features.chat.chat_imaging_service import ChatImagingService
@@ -618,21 +618,14 @@ class DI:
         from features.chat.dev_announcements_service import DevAnnouncementsService
         return DevAnnouncementsService(raw_message, target_telegram_username, configured_tool, self)
 
-    def information_announcer(
+    def sys_announcements_service(
         self,
         raw_information: str,
         target_chat: str | ChatConfig,
-    ) -> "InformationAnnouncer":
-        from features.announcements.information_announcer import InformationAnnouncer
-        return InformationAnnouncer(
-            raw_information,
-            self.invoker_id,
-            target_chat,
-            self.user_crud,
-            self.chat_config_crud,
-            self.sponsorship_crud,
-            self.telegram_bot_sdk,
-        )
+        configured_tool: ConfiguredTool,
+    ) -> "SysAnnouncementsService":
+        from features.announcements.sys_announcements_service import SysAnnouncementsService
+        return SysAnnouncementsService(raw_information, target_chat, configured_tool, self)
 
     def release_summarizer(
         self,
