@@ -3,13 +3,14 @@ from unittest.mock import MagicMock
 
 from langchain_core.messages import AIMessage
 
-from features.chat.chat_image_gen_service import ChatImageGenService
+from di.di import DI
+from features.chat.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 
 
-class ChatImageGenServiceTest(unittest.TestCase):
+class SmartStableDiffusionGeneratorTest(unittest.TestCase):
     raw_prompt: str
-    mock_di: MagicMock
+    mock_di: DI
     mock_configured_copywriter_tool: ConfiguredTool
     mock_configured_image_gen_tool: ConfiguredTool
 
@@ -22,8 +23,8 @@ class ChatImageGenServiceTest(unittest.TestCase):
         self.mock_di.telegram_bot_sdk.send_photo.return_value = {"result": {"message_id": 123}}
 
         # Mock text_stable_diffusion_generator method
-        self.mock_text_stable_diffusion_generator = MagicMock()
-        self.mock_di.text_stable_diffusion_generator.return_value = self.mock_text_stable_diffusion_generator
+        self.simple_stable_diffusion_generator = MagicMock()
+        self.mock_di.simple_stable_diffusion_generator.return_value = self.simple_stable_diffusion_generator
 
         # Mock configured tools
         # noinspection PyTypeChecker
@@ -32,32 +33,33 @@ class ChatImageGenServiceTest(unittest.TestCase):
         self.mock_configured_image_gen_tool = MagicMock(spec = ConfiguredTool)
 
     def test_init_success(self):
-        service = ChatImageGenService(
+        generator = SmartStableDiffusionGenerator(
             self.raw_prompt,
             self.mock_configured_copywriter_tool,
             self.mock_configured_image_gen_tool,
             self.mock_di,
         )
-        self.assertIsInstance(service, ChatImageGenService)
+        self.assertIsInstance(generator, SmartStableDiffusionGenerator)
 
     def test_execute_success(self):
         mock_llm = MagicMock()
         mock_llm.invoke.return_value = AIMessage(content = "Refined prompt")
         self.mock_di.chat_langchain_model.return_value = mock_llm
 
-        self.mock_text_stable_diffusion_generator.execute.return_value = "http://example.com/image.png"
+        self.simple_stable_diffusion_generator.execute.return_value = "http://example.com/image.png"
 
-        service = ChatImageGenService(
+        generator = SmartStableDiffusionGenerator(
             self.raw_prompt,
             self.mock_configured_copywriter_tool,
             self.mock_configured_image_gen_tool,
             self.mock_di,
         )
-        result = service.execute()
+        result = generator.execute()
 
-        self.assertEqual(result, ChatImageGenService.Result.success)
+        self.assertEqual(result, SmartStableDiffusionGenerator.Result.success)
         mock_llm.invoke.assert_called_once()
-        self.mock_text_stable_diffusion_generator.execute.assert_called_once()
+        self.simple_stable_diffusion_generator.execute.assert_called_once()
+        # noinspection PyUnresolvedReferences
         self.mock_di.telegram_bot_sdk.send_photo.assert_called_once_with("test_chat_id", "http://example.com/image.png")
 
     def test_execute_llm_failure(self):
@@ -65,16 +67,17 @@ class ChatImageGenServiceTest(unittest.TestCase):
         mock_llm.invoke.side_effect = Exception("LLM error")
         self.mock_di.chat_langchain_model.return_value = mock_llm
 
-        service = ChatImageGenService(
+        generator = SmartStableDiffusionGenerator(
             self.raw_prompt,
             self.mock_configured_copywriter_tool,
             self.mock_configured_image_gen_tool,
             self.mock_di,
         )
-        result = service.execute()
+        result = generator.execute()
 
-        self.assertEqual(result, ChatImageGenService.Result.failed)
+        self.assertEqual(result, SmartStableDiffusionGenerator.Result.failed)
         mock_llm.invoke.assert_called_once()
+        # noinspection PyUnresolvedReferences
         self.mock_di.telegram_bot_sdk.send_photo.assert_not_called()
 
     def test_execute_image_generation_failure(self):
@@ -82,19 +85,20 @@ class ChatImageGenServiceTest(unittest.TestCase):
         mock_llm.invoke.return_value = AIMessage(content = "Refined prompt")
         self.mock_di.chat_langchain_model.return_value = mock_llm
 
-        self.mock_text_stable_diffusion_generator.execute.return_value = None
+        self.simple_stable_diffusion_generator.execute.return_value = None
 
-        service = ChatImageGenService(
+        generator = SmartStableDiffusionGenerator(
             self.raw_prompt,
             self.mock_configured_copywriter_tool,
             self.mock_configured_image_gen_tool,
             self.mock_di,
         )
-        result = service.execute()
+        result = generator.execute()
 
-        self.assertEqual(result, ChatImageGenService.Result.failed)
+        self.assertEqual(result, SmartStableDiffusionGenerator.Result.failed)
         mock_llm.invoke.assert_called_once()
-        self.mock_text_stable_diffusion_generator.execute.assert_called_once()
+        self.simple_stable_diffusion_generator.execute.assert_called_once()
+        # noinspection PyUnresolvedReferences
         self.mock_di.telegram_bot_sdk.send_photo.assert_not_called()
 
     def test_execute_send_photo_failure(self):
@@ -102,20 +106,21 @@ class ChatImageGenServiceTest(unittest.TestCase):
         mock_llm.invoke.return_value = AIMessage(content = "Refined prompt")
         self.mock_di.chat_langchain_model.return_value = mock_llm
 
-        self.mock_text_stable_diffusion_generator.execute.return_value = "http://example.com/image.png"
+        self.simple_stable_diffusion_generator.execute.return_value = "http://example.com/image.png"
         self.mock_di.telegram_bot_sdk.send_photo.side_effect = Exception("Send photo error")
 
-        service = ChatImageGenService(
+        generator = SmartStableDiffusionGenerator(
             self.raw_prompt,
             self.mock_configured_copywriter_tool,
             self.mock_configured_image_gen_tool,
             self.mock_di,
         )
-        result = service.execute()
+        result = generator.execute()
 
-        self.assertEqual(result, ChatImageGenService.Result.failed)
+        self.assertEqual(result, SmartStableDiffusionGenerator.Result.failed)
         mock_llm.invoke.assert_called_once()
-        self.mock_text_stable_diffusion_generator.execute.assert_called_once()
+        self.simple_stable_diffusion_generator.execute.assert_called_once()
+        # noinspection PyUnresolvedReferences
         self.mock_di.telegram_bot_sdk.send_photo.assert_called_once()
 
     def test_execute_non_ai_message(self):
@@ -123,14 +128,15 @@ class ChatImageGenServiceTest(unittest.TestCase):
         mock_llm.invoke.return_value = "Not an AIMessage"
         self.mock_di.chat_langchain_model.return_value = mock_llm
 
-        service = ChatImageGenService(
+        generator = SmartStableDiffusionGenerator(
             self.raw_prompt,
             self.mock_configured_copywriter_tool,
             self.mock_configured_image_gen_tool,
             self.mock_di,
         )
-        result = service.execute()
+        result = generator.execute()
 
-        self.assertEqual(result, ChatImageGenService.Result.failed)
+        self.assertEqual(result, SmartStableDiffusionGenerator.Result.failed)
         mock_llm.invoke.assert_called_once()
+        # noinspection PyUnresolvedReferences
         self.mock_di.telegram_bot_sdk.send_photo.assert_not_called()

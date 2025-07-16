@@ -15,7 +15,7 @@ from util.safe_printer_mixin import SafePrinterMixin, sprint
 DATETIME_PRINT_FORMAT = "%Y-%m-%d %H:%M %Z"
 
 
-class PriceAlertManager(SafePrinterMixin):
+class CurrencyAlertService(SafePrinterMixin):
     class TriggeredAlert(BaseModel):
         chat_id: str
         owner_id: UUID
@@ -73,7 +73,7 @@ class PriceAlertManager(SafePrinterMixin):
             ),
         )
         price_alert = PriceAlert.model_validate(price_alert_db)
-        return PriceAlertManager.ActiveAlert(
+        return CurrencyAlertService.ActiveAlert(
             chat_id = price_alert.chat_id,
             owner_id = price_alert.owner_id,
             base_currency = price_alert.base_currency,
@@ -95,7 +95,7 @@ class PriceAlertManager(SafePrinterMixin):
         )
         if deleted_alert_db:
             deleted_alert = PriceAlert.model_validate(deleted_alert_db)
-            return PriceAlertManager.ActiveAlert(
+            return CurrencyAlertService.ActiveAlert(
                 chat_id = deleted_alert.chat_id,
                 owner_id = deleted_alert.owner_id,
                 base_currency = deleted_alert.base_currency,
@@ -116,7 +116,7 @@ class PriceAlertManager(SafePrinterMixin):
             price_alerts_db = self.__di.price_alert_crud.get_all()
         price_alerts = [PriceAlert.model_validate(price_alert_db) for price_alert_db in price_alerts_db]
         return [
-            PriceAlertManager.ActiveAlert(
+            CurrencyAlertService.ActiveAlert(
                 chat_id = price_alert.chat_id,
                 owner_id = price_alert.owner_id,
                 base_currency = price_alert.base_currency,
@@ -132,7 +132,7 @@ class PriceAlertManager(SafePrinterMixin):
         sprint("Checking triggered price alerts")
 
         active_alerts = self.get_active_alerts()
-        triggered_alerts: list[PriceAlertManager.TriggeredAlert] = []
+        triggered_alerts: list[CurrencyAlertService.TriggeredAlert] = []
         for alert in active_alerts:
             try:
                 scoped_di = self.__di.clone(invoker_id = alert.owner_id.hex, invoker_chat_id = alert.chat_id)
@@ -146,7 +146,7 @@ class PriceAlertManager(SafePrinterMixin):
 
                 if abs(price_change_percent) >= alert.threshold_percent:
                     triggered_alerts.append(
-                        PriceAlertManager.TriggeredAlert(
+                        CurrencyAlertService.TriggeredAlert(
                             chat_id = alert.chat_id,
                             owner_id = alert.owner_id,
                             base_currency = alert.base_currency,

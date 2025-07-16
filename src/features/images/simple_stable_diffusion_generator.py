@@ -9,7 +9,7 @@ from util.safe_printer_mixin import SafePrinterMixin
 
 
 # Not tested as it's just a proxy
-class TextStableDiffusionGenerator(SafePrinterMixin):
+class SimpleStableDiffusionGenerator(SafePrinterMixin):
     DEFAULT_TOOL: ExternalTool = IMAGE_GENERATION_FLUX
     TOOL_TYPE: ToolType = ToolType.images_gen
 

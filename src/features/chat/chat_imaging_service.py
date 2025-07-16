@@ -10,7 +10,7 @@ from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
 
-class ImageGenerator(SafePrinterMixin):
+class ChatImagingService(SafePrinterMixin):
     class Result(Enum):
         success = "success"
         failed = "failed"
@@ -23,11 +23,11 @@ class ImageGenerator(SafePrinterMixin):
 
         @staticmethod
         def values():
-            return [op.value for op in ImageGenerator.Operation]
+            return [op.value for op in ChatImagingService.Operation]
 
         @staticmethod
-        def resolve(operation: str) -> "ImageGenerator.Operation":
-            for op in ImageGenerator.Operation:
+        def resolve(operation: str) -> "ChatImagingService.Operation":
+            for op in ChatImagingService.Operation:
                 if operation == op.value:
                     return op
             raise ValueError(f"Unknown operation '{operation}'")
@@ -51,18 +51,18 @@ class ImageGenerator(SafePrinterMixin):
             bot_api = self.__di.telegram_bot_api,
             chat_message_attachment_dao = self.__di.chat_message_attachment_crud,
         )
-        self.__operation = ImageGenerator.Operation.resolve(operation_name)
+        self.__operation = ChatImagingService.Operation.resolve(operation_name)
         self.__operation_guidance = operation_guidance
 
     def __remove_background(self) -> tuple[Result, list[str]]:
         self.sprint(f"Removing background from {len(self.__attachments)} images")
-        result = ImageGenerator.Result.success
+        result = ChatImagingService.Result.success
         urls: list[str] = []
         for attachment in self.__attachments:
             try:
                 if not attachment.last_url:
                     self.sprint(f"Attachment '{attachment.id}' has no URL, skipping")
-                    result = ImageGenerator.Result.partial
+                    result = ChatImagingService.Result.partial
                     continue
                 replicate_token = self.__di.access_token_resolver.require_access_token_for_tool(ImageBackgroundRemover.get_tool())
                 remover = ImageBackgroundRemover(
@@ -73,27 +73,27 @@ class ImageGenerator(SafePrinterMixin):
                 image_url = remover.execute()
                 if not image_url:
                     self.sprint(f"Failed to remove background from attachment '{attachment.id}'")
-                    result = ImageGenerator.Result.partial
+                    result = ChatImagingService.Result.partial
                     continue
                 self.sprint(f"Background removed from attachment '{attachment.id}'")
                 urls.append(image_url)
             except Exception as e:
                 self.sprint(f"Failed to remove background from attachment '{attachment.id}'", e)
-                result = ImageGenerator.Result.partial
+                result = ChatImagingService.Result.partial
         if not urls:
             self.sprint("Failed to remove background from all images")
-            result = ImageGenerator.Result.failed
+            result = ChatImagingService.Result.failed
         return result, urls
 
     def __restore_image(self) -> tuple[Result, list[str]]:
         self.sprint(f"Restoring {len(self.__attachments)} images")
-        result = ImageGenerator.Result.success
+        result = ChatImagingService.Result.success
         urls: list[str] = []
         for attachment in self.__attachments:
             try:
                 if not attachment.last_url:
                     self.sprint(f"Attachment '{attachment.id}' has no URL, skipping")
-                    result = ImageGenerator.Result.partial
+                    result = ChatImagingService.Result.partial
                     continue
                 # TODO clean up, send 2 tools into the restorer
                 self.__di.access_token_resolver.require_access_token_for_tool(ImageContentsRestorer.get_restoration_tool())
@@ -109,7 +109,7 @@ class ImageGenerator(SafePrinterMixin):
                 restoration_result = remover.execute()
                 if not restoration_result.restored_url and not restoration_result.inpainted_url:
                     self.sprint(f"Failed to restore image from attachment '{attachment.id}'")
-                    result = ImageGenerator.Result.partial
+                    result = ChatImagingService.Result.partial
                     continue
                 self.sprint(f"Image from attachment '{attachment.id}' restored")
                 if restoration_result.restored_url:
@@ -118,21 +118,21 @@ class ImageGenerator(SafePrinterMixin):
                     urls.append(restoration_result.inpainted_url)
             except Exception as e:
                 self.sprint(f"Failed to restore image from attachment '{attachment.id}'", e)
-                result = ImageGenerator.Result.partial
+                result = ChatImagingService.Result.partial
         if not urls:
             self.sprint("Failed to restore all images")
-            result = ImageGenerator.Result.failed
+            result = ChatImagingService.Result.failed
         return result, urls
 
     def __edit_image(self) -> tuple[Result, list[str]]:
         self.sprint(f"Editing {len(self.__attachments)} images")
-        result = ImageGenerator.Result.success
+        result = ChatImagingService.Result.success
         urls: list[str] = []
         for attachment in self.__attachments:
             try:
                 if not attachment.last_url:
                     self.sprint(f"Attachment '{attachment.id}' has no URL, skipping")
-                    result = ImageGenerator.Result.partial
+                    result = ChatImagingService.Result.partial
                     continue
                 replicate_token = self.__di.access_token_resolver.require_access_token_for_tool(ImageEditor.get_tool())
                 editor = ImageEditor(
@@ -144,22 +144,22 @@ class ImageGenerator(SafePrinterMixin):
                 editing_result = editor.execute()
                 if not editing_result:
                     self.sprint(f"Failed to edit image from attachment '{attachment.id}'")
-                    result = ImageGenerator.Result.partial
+                    result = ChatImagingService.Result.partial
                     continue
                 self.sprint(f"Image from attachment '{attachment.id}' was edited")
                 urls.append(editing_result)
             except Exception as e:
                 self.sprint(f"Failed to edit image from attachment '{attachment.id}'", e)
-                result = ImageGenerator.Result.partial
+                result = ChatImagingService.Result.partial
         if not urls:
             self.sprint("Failed to restore all images")
-            result = ImageGenerator.Result.failed
+            result = ChatImagingService.Result.failed
         return result, urls
 
     def execute(self) -> tuple[Result, dict[str, int]]:
         self.sprint(f"Editing images for chat '{self.__di.invoker_chat.chat_id}', operation '{self.__operation.value}'")
 
-        if self.__operation == ImageGenerator.Operation.remove_background:
+        if self.__operation == ChatImagingService.Operation.remove_background:
             result, urls = self.__remove_background()
             urls = self.__clean_urls(urls)
             for image_url in urls:
@@ -168,7 +168,7 @@ class ImageGenerator(SafePrinterMixin):
                 self.sprint("Image edited and sent successfully")
             return result, {"image_backgrounds_removed": len(urls)}
 
-        elif self.__operation == ImageGenerator.Operation.restore_image:
+        elif self.__operation == ChatImagingService.Operation.restore_image:
             result, urls = self.__restore_image()
             urls = self.__clean_urls(urls)
             for image_url in urls:
@@ -177,7 +177,7 @@ class ImageGenerator(SafePrinterMixin):
                 self.sprint("Image restored and sent successfully")
             return result, {"images_restored": len(urls)}
 
-        elif self.__operation == ImageGenerator.Operation.edit_image:
+        elif self.__operation == ChatImagingService.Operation.edit_image:
             result, urls = self.__edit_image()
             urls = self.__clean_urls(urls)
             for image_url in urls:

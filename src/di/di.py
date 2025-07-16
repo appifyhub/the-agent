@@ -31,11 +31,11 @@ if TYPE_CHECKING:
     from features.announcements.release_summarizer import ReleaseSummarizer
     from features.audio.audio_transcriber import AudioTranscriber
     from features.chat.attachments_describer import AttachmentsDescriber
-    from features.chat.chat_image_gen_service import ChatImageGenService
+    from features.chat.chat_imaging_service import ChatImagingService
     from features.chat.command_processor import CommandProcessor
+    from features.chat.currency_alert_service import CurrencyAlertService
     from features.chat.dev_announcements_service import DevAnnouncementsService
-    from features.chat.image_generator import ImageGenerator
-    from features.chat.price_alert_manager import PriceAlertManager
+    from features.chat.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
     from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
     from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
     from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
@@ -51,7 +51,7 @@ if TYPE_CHECKING:
     from features.images.image_background_remover import ImageBackgroundRemover
     from features.images.image_contents_restorer import ImageContentsRestorer
     from features.images.image_editor import ImageEditor
-    from features.images.text_stable_diffusion_generator import TextStableDiffusionGenerator
+    from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
     from features.sponsorships.sponsorship_service import SponsorshipService
     from features.support.user_support_service import UserSupportService
     from features.web_browsing.ai_web_search import AIWebSearch
@@ -475,36 +475,36 @@ class DI:
         from features.web_browsing.ai_web_search import AIWebSearch
         return AIWebSearch(search_query, configured_tool, self)
 
-    def price_alert_manager(self, target_chat_id: str | None) -> "PriceAlertManager":
-        from features.chat.price_alert_manager import PriceAlertManager
-        return PriceAlertManager(target_chat_id, self)
+    def currency_alert_service(self, target_chat_id: str | None) -> "CurrencyAlertService":
+        from features.chat.currency_alert_service import CurrencyAlertService
+        return CurrencyAlertService(target_chat_id, self)
 
-    def chat_image_gen_service(
+    def smart_stable_diffusion_generator(
         self,
         raw_prompt: str,
         configured_copywriter_tool: ConfiguredTool,
         configured_image_gen_tool: ConfiguredTool,
-    ) -> "ChatImageGenService":
-        from features.chat.chat_image_gen_service import ChatImageGenService
-        return ChatImageGenService(raw_prompt, configured_copywriter_tool, configured_image_gen_tool, self)
+    ) -> "SmartStableDiffusionGenerator":
+        from features.chat.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
+        return SmartStableDiffusionGenerator(raw_prompt, configured_copywriter_tool, configured_image_gen_tool, self)
 
     # noinspection PyMethodMayBeStatic
-    def text_stable_diffusion_generator(
+    def simple_stable_diffusion_generator(
         self,
         prompt: str,
         configured_tool: ConfiguredTool,
-    ) -> "TextStableDiffusionGenerator":
-        from features.images.text_stable_diffusion_generator import TextStableDiffusionGenerator
-        return TextStableDiffusionGenerator(prompt, configured_tool)
+    ) -> "SimpleStableDiffusionGenerator":
+        from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
+        return SimpleStableDiffusionGenerator(prompt, configured_tool)
 
-    def image_generator(
+    def chat_imaging_service(
         self,
         attachment_ids: list[str],
         operation_name: str,
         operation_guidance: str | None,
-    ) -> "ImageGenerator":
-        from features.chat.image_generator import ImageGenerator
-        return ImageGenerator(attachment_ids, operation_name, operation_guidance, self)
+    ) -> "ChatImagingService":
+        from features.chat.chat_imaging_service import ChatImagingService
+        return ChatImagingService(attachment_ids, operation_name, operation_guidance, self)
 
     # noinspection PyMethodMayBeStatic
     def image_editor(

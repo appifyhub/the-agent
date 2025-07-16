@@ -7,13 +7,13 @@ from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_3_5_HAIKU
 from features.external_tools.tool_choice_resolver import ConfiguredTool
-from features.images.text_stable_diffusion_generator import TextStableDiffusionGenerator
+from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
 
-class ChatImageGenService(SafePrinterMixin):
+class SmartStableDiffusionGenerator(SafePrinterMixin):
     class Result(Enum):
         success = "Success"
         failed = "Failed"
@@ -21,8 +21,8 @@ class ChatImageGenService(SafePrinterMixin):
     DEFAULT_COPYWRITER_TOOL: ExternalTool = CLAUDE_3_5_HAIKU
     COPYWRITER_TOOL_TYPE: ToolType = ToolType.copywriting
 
-    DEFAULT_IMAGE_GEN_TOOL: ExternalTool = TextStableDiffusionGenerator.DEFAULT_TOOL
-    IMAGE_GEN_TOOL_TYPE: ToolType = TextStableDiffusionGenerator.TOOL_TYPE
+    DEFAULT_IMAGE_GEN_TOOL: ExternalTool = SimpleStableDiffusionGenerator.DEFAULT_TOOL
+    IMAGE_GEN_TOOL_TYPE: ToolType = SimpleStableDiffusionGenerator.TOOL_TYPE
 
     __llm_input: list[BaseMessage]
     __image_gen_tool: ConfiguredTool
@@ -57,18 +57,18 @@ class ChatImageGenService(SafePrinterMixin):
             self.sprint(f"Finished prompt correction, new size is {len(prompt)} characters")
         except Exception as e:
             self.sprint("Error correcting raw prompt", e)
-            return ChatImageGenService.Result.failed
+            return SmartStableDiffusionGenerator.Result.failed
 
         # let's generate the image now using the corrected prompt
         try:
             self.sprint("Starting image generation")
-            image_url = self.__di.text_stable_diffusion_generator(prompt, self.__image_gen_tool).execute()
+            image_url = self.__di.simple_stable_diffusion_generator(prompt, self.__image_gen_tool).execute()
             if not image_url:
                 self.sprint("Failed to generate image (no image URL found)")
-                return ChatImageGenService.Result.failed
+                return SmartStableDiffusionGenerator.Result.failed
         except Exception as e:
             self.sprint("Error generating image", e)
-            return ChatImageGenService.Result.failed
+            return SmartStableDiffusionGenerator.Result.failed
 
         # let's send the image to the chat
         try:
@@ -76,7 +76,7 @@ class ChatImageGenService(SafePrinterMixin):
             self.__di.telegram_bot_sdk.send_photo(self.__di.invoker_chat.chat_id, image_url)
         except Exception as e:
             self.sprint("Error sending image", e)
-            return ChatImageGenService.Result.failed
+            return SmartStableDiffusionGenerator.Result.failed
 
         self.sprint("Image generated and sent successfully")
-        return ChatImageGenService.Result.success
+        return SmartStableDiffusionGenerator.Result.success

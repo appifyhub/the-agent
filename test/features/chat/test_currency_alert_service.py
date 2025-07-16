@@ -13,12 +13,12 @@ from db.schema.chat_config import ChatConfig
 from db.schema.price_alert import PriceAlert
 from db.schema.user import User
 from di.di import DI
-from features.chat.price_alert_manager import PriceAlertManager
+from features.chat.currency_alert_service import CurrencyAlertService
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
 
 
-class PriceAlertManagerTest(unittest.TestCase):
+class CurrencyAlertServiceTest(unittest.TestCase):
     mock_user_dao: UserCRUD
     mock_chat_config_dao: ChatConfigCRUD
     mock_price_alert_dao: PriceAlertCRUD
@@ -59,7 +59,7 @@ class PriceAlertManagerTest(unittest.TestCase):
         self.mock_di.authorization_service.validate_chat.return_value = self.chat_config = ChatConfig(chat_id = self.chat_id)
 
     def test_create_alert(self):
-        manager = PriceAlertManager(self.chat_id, self.mock_di)
+        service = CurrencyAlertService(self.chat_id, self.mock_di)
         self.mock_di.price_alert_crud.save.return_value = PriceAlert(
             chat_id = self.chat_id,
             owner_id = UUID(hex = self.user_id),
@@ -70,7 +70,7 @@ class PriceAlertManagerTest(unittest.TestCase):
             last_price_time = datetime.now(),
         )
         self.mock_di.exchange_rate_fetcher.execute.return_value = {"rate": 1.5}
-        alert = manager.create_alert("BTC", "USD", 5)
+        alert = service.create_alert("BTC", "USD", 5)
         self.assertEqual(alert.chat_id, self.chat_id)
         self.assertEqual(alert.base_currency, "BTC")
         self.assertEqual(alert.desired_currency, "USD")
@@ -79,7 +79,7 @@ class PriceAlertManagerTest(unittest.TestCase):
         self.mock_di.price_alert_crud.save.assert_called_once()
 
     def test_get_all_alerts(self):
-        manager = PriceAlertManager(self.chat_id, self.mock_di)
+        service = CurrencyAlertService(self.chat_id, self.mock_di)
         mock_alerts = [
             PriceAlert(
                 chat_id = self.chat_id,
@@ -101,13 +101,13 @@ class PriceAlertManagerTest(unittest.TestCase):
             ),
         ]
         self.mock_di.price_alert_crud.get_alerts_by_chat.return_value = mock_alerts
-        alerts = manager.get_active_alerts()
+        alerts = service.get_active_alerts()
         self.assertEqual(len(alerts), 2)
         self.assertEqual(alerts[0].base_currency, "BTC")
         self.assertEqual(alerts[1].base_currency, "ETH")
 
     def test_delete_alert(self):
-        manager = PriceAlertManager(self.chat_id, self.mock_di)
+        service = CurrencyAlertService(self.chat_id, self.mock_di)
         mock_deleted_alert = PriceAlert(
             chat_id = self.chat_id,
             owner_id = UUID(hex = self.user_id),
@@ -118,14 +118,14 @@ class PriceAlertManagerTest(unittest.TestCase):
             last_price_time = datetime.now(),
         )
         self.mock_di.price_alert_crud.delete.return_value = mock_deleted_alert
-        deleted_alert = manager.delete_alert("BTC", "USD")
+        deleted_alert = service.delete_alert("BTC", "USD")
         self.assertIsNotNone(deleted_alert)
         self.assertEqual(deleted_alert.base_currency, "BTC")
         self.assertEqual(deleted_alert.desired_currency, "USD")
         self.mock_di.price_alert_crud.delete.assert_called_once()
 
     def test_check_alerts(self):
-        manager = PriceAlertManager(self.chat_id, self.mock_di)
+        service = CurrencyAlertService(self.chat_id, self.mock_di)
         mock_alerts = [
             PriceAlert(
                 chat_id = self.chat_id,
@@ -148,9 +148,9 @@ class PriceAlertManagerTest(unittest.TestCase):
         ]
         self.mock_di.price_alert_crud.get_alerts_by_chat.return_value = mock_alerts
         self.mock_di.tools_cache_crud.get.return_value = None
-        with patch.object(PriceAlertManager, "get_triggered_alerts") as mock_get:
+        with patch.object(CurrencyAlertService, "get_triggered_alerts") as mock_get:
             mock_get.return_value = [
-                PriceAlertManager.TriggeredAlert(
+                CurrencyAlertService.TriggeredAlert(
                     chat_id = self.chat_id,
                     owner_id = UUID(hex = self.user_id),
                     base_currency = "BTC",
@@ -163,14 +163,14 @@ class PriceAlertManagerTest(unittest.TestCase):
                     price_change_percent = 10,
                 ),
             ]
-            triggered_alerts = manager.get_triggered_alerts()
+            triggered_alerts = service.get_triggered_alerts()
         self.assertEqual(len(triggered_alerts), 1)
         self.assertEqual(triggered_alerts[0].base_currency, "BTC")
         self.assertEqual(triggered_alerts[0].desired_currency, "USD")
         self.assertEqual(triggered_alerts[0].price_change_percent, 10)
 
     def test_check_alerts_with_zero_last_price(self):
-        manager = PriceAlertManager(self.chat_id, self.mock_di)
+        service = CurrencyAlertService(self.chat_id, self.mock_di)
         mock_alerts = [
             PriceAlert(
                 chat_id = self.chat_id,
@@ -185,9 +185,9 @@ class PriceAlertManagerTest(unittest.TestCase):
         self.mock_di.price_alert_crud.get_alerts_by_chat.return_value = mock_alerts
         self.mock_di.tools_cache_crud.get.return_value = None
 
-        with patch.object(PriceAlertManager, "get_triggered_alerts") as mock_get:
+        with patch.object(CurrencyAlertService, "get_triggered_alerts") as mock_get:
             mock_get.return_value = [
-                PriceAlertManager.TriggeredAlert(
+                CurrencyAlertService.TriggeredAlert(
                     chat_id = self.chat_id,
                     owner_id = UUID(hex = self.user_id),
                     base_currency = "BTC",
@@ -200,7 +200,7 @@ class PriceAlertManagerTest(unittest.TestCase):
                     price_change_percent = 100000,
                 ),
             ]
-            triggered_alerts = manager.get_triggered_alerts()
+            triggered_alerts = service.get_triggered_alerts()
 
         self.assertEqual(len(triggered_alerts), 1)
         self.assertEqual(triggered_alerts[0].base_currency, "BTC")

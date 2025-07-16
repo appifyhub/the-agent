@@ -135,34 +135,34 @@ class SettingsControllerTest(unittest.TestCase):
         )
 
     def test_create_settings_link_success_user_settings(self):
-        manager = SettingsController(self.mock_di)
-        link = manager.create_settings_link()
+        controller = SettingsController(self.mock_di)
+        link = controller.create_settings_link()
 
         self.assertIn("user", link)
         self.assertIn(self.invoker_user.id.hex, link)
         self.assertIn("token=", link)
 
     def test_create_settings_link_success_chat_settings(self):
-        manager = SettingsController(self.mock_di)
-        link = manager.create_settings_link("chat", "test_chat_123")
+        controller = SettingsController(self.mock_di)
+        link = controller.create_settings_link("chat", "test_chat_123")
 
         self.assertIn("chat", link)
         self.assertIn("test_chat_123", link)
         self.assertIn("token=", link)
 
     def test_create_settings_link_failure_invalid_settings_type(self):
-        manager = SettingsController(self.mock_di)
+        controller = SettingsController(self.mock_di)
 
         with self.assertRaises(ValueError) as context:
-            manager.create_settings_link("invalid_type")
+            controller.create_settings_link("invalid_type")
 
         self.assertIn("Invalid settings type", str(context.exception))
 
     def test_create_settings_link_failure_chat_settings_no_chat_id(self):
-        manager = SettingsController(self.mock_di)
+        controller = SettingsController(self.mock_di)
 
         with self.assertRaises(ValueError) as context:
-            manager.create_settings_link("chat")
+            controller.create_settings_link("chat")
 
         self.assertIn("Chat ID must be provided", str(context.exception))
 
@@ -174,8 +174,8 @@ class SettingsControllerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
 
-        manager = SettingsController(self.mock_di)
-        result = manager.fetch_chat_settings("test_chat_123")
+        controller = SettingsController(self.mock_di)
+        result = controller.fetch_chat_settings("test_chat_123")
 
         self.assertEqual(result["chat_id"], self.chat_config.chat_id)
         self.assertEqual(result["title"], self.chat_config.title)
@@ -188,8 +188,8 @@ class SettingsControllerTest(unittest.TestCase):
     def test_fetch_user_settings_success(self):
         self.mock_user_dao.get.return_value = self.invoker_user
 
-        manager = SettingsController(self.mock_di)
-        result = manager.fetch_user_settings(self.invoker_user.id.hex)
+        controller = SettingsController(self.mock_di)
+        result = controller.fetch_user_settings(self.invoker_user.id.hex)
 
         self.assertEqual(result["id"], self.invoker_user.id.hex)
         self.assertEqual(result["full_name"], self.invoker_user.full_name)
@@ -201,8 +201,8 @@ class SettingsControllerTest(unittest.TestCase):
     def test_fetch_user_settings_masks_all_token_fields(self):
         self.mock_user_dao.get.return_value = self.invoker_user
 
-        manager = SettingsController(self.mock_di)
-        result = manager.fetch_user_settings(self.invoker_user.id.hex)
+        controller = SettingsController(self.mock_di)
+        result = controller.fetch_user_settings(self.invoker_user.id.hex)
 
         self.assertEqual(result["open_ai_key"], mask_secret(self.invoker_user.open_ai_key))
         self.assertEqual(result["anthropic_key"], mask_secret(self.invoker_user.anthropic_key))
@@ -227,7 +227,7 @@ class SettingsControllerTest(unittest.TestCase):
         )
         self.mock_chat_config_dao.save.return_value = saved_chat_config_db
 
-        manager = SettingsController(self.mock_di)
+        controller = SettingsController(self.mock_di)
         payload = ChatSettingsPayload(
             language_name = "Spanish",
             language_iso_code = "es",
@@ -236,7 +236,7 @@ class SettingsControllerTest(unittest.TestCase):
         )
 
         # Should not raise any exception
-        manager.save_chat_settings("test_chat_123", payload)
+        controller.save_chat_settings("test_chat_123", payload)
 
         # Verify the save method was called
         # noinspection PyUnresolvedReferences
@@ -266,7 +266,7 @@ class SettingsControllerTest(unittest.TestCase):
         )
         self.mock_user_dao.save.return_value = saved_user_db
 
-        manager = SettingsController(self.mock_di)
+        controller = SettingsController(self.mock_di)
         payload = UserSettingsPayload(
             open_ai_key = "new_openai_key",
             anthropic_key = "new_anthropic_key",
@@ -282,7 +282,7 @@ class SettingsControllerTest(unittest.TestCase):
         )
 
         # Should not raise any exception
-        manager.save_user_settings(self.invoker_user.id.hex, payload)
+        controller.save_user_settings(self.invoker_user.id.hex, payload)
 
         # Verify the save method was called
         # noinspection PyUnresolvedReferences
@@ -293,7 +293,7 @@ class SettingsControllerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
 
-        manager = SettingsController(self.mock_di)
+        controller = SettingsController(self.mock_di)
         payload = ChatSettingsPayload(
             language_name = "",  # Empty name should fail
             language_iso_code = "es",
@@ -302,7 +302,7 @@ class SettingsControllerTest(unittest.TestCase):
         )
 
         with self.assertRaises(ValueError) as context:
-            manager.save_chat_settings("test_chat_123", payload)
+            controller.save_chat_settings("test_chat_123", payload)
 
         self.assertIn("Both language_name and language_iso_code must be non-empty", str(context.exception))
 
@@ -320,7 +320,7 @@ class SettingsControllerTest(unittest.TestCase):
         self.mock_chat_config_dao.get.return_value = private_chat_config
         self.mock_authorization_service.authorize_for_chat.return_value = private_chat_config
 
-        manager = SettingsController(self.mock_di)
+        controller = SettingsController(self.mock_di)
         payload = ChatSettingsPayload(
             language_name = "English",
             language_iso_code = "en",
@@ -329,7 +329,7 @@ class SettingsControllerTest(unittest.TestCase):
         )
 
         with self.assertRaises(ValueError) as context:
-            manager.save_chat_settings("private_chat_123", payload)
+            controller.save_chat_settings("private_chat_123", payload)
 
         self.assertIn("Chat is private, reply chance cannot be changed", str(context.exception))
 
@@ -338,7 +338,7 @@ class SettingsControllerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
 
-        manager = SettingsController(self.mock_di)
+        controller = SettingsController(self.mock_di)
         payload = ChatSettingsPayload(
             language_name = "English",
             language_iso_code = "en",
@@ -347,7 +347,7 @@ class SettingsControllerTest(unittest.TestCase):
         )
 
         with self.assertRaises(ValueError) as context:
-            manager.save_chat_settings("test_chat_123", payload)
+            controller.save_chat_settings("test_chat_123", payload)
 
         self.assertIn("Invalid release notifications setting value", str(context.exception))
 
@@ -368,7 +368,7 @@ class SettingsControllerTest(unittest.TestCase):
         )
         self.mock_chat_config_dao.save.return_value = saved_chat_config_db
 
-        manager = SettingsController(self.mock_di)
+        controller = SettingsController(self.mock_di)
         payload = ChatSettingsPayload(
             language_name = "Spanish",
             language_iso_code = "es",
@@ -377,7 +377,7 @@ class SettingsControllerTest(unittest.TestCase):
         )
 
         # Should not raise any exception
-        manager.save_chat_settings("test_chat_123", payload)
+        controller.save_chat_settings("test_chat_123", payload)
 
         # Verify the save method was called
         # noinspection PyUnresolvedReferences
@@ -416,8 +416,8 @@ class SettingsControllerTest(unittest.TestCase):
             no_title_chat_config,
         ]
 
-        manager = SettingsController(self.mock_di)
-        result = manager.fetch_admin_chats(self.invoker_user.id.hex)
+        controller = SettingsController(self.mock_di)
+        result = controller.fetch_admin_chats(self.invoker_user.id.hex)
 
         self.assertEqual(len(result), 3)
 
@@ -439,8 +439,8 @@ class SettingsControllerTest(unittest.TestCase):
     def test_fetch_admin_chats_no_chats_found(self):
         self.mock_authorization_service.get_authorized_chats.return_value = []
 
-        manager = SettingsController(self.mock_di)
-        result = manager.fetch_admin_chats(self.invoker_user.id.hex)
+        controller = SettingsController(self.mock_di)
+        result = controller.fetch_admin_chats(self.invoker_user.id.hex)
 
         self.assertEqual(len(result), 0)
 
@@ -463,8 +463,8 @@ class SettingsControllerTest(unittest.TestCase):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = [mock_sponsorship_db]
         self.mock_user_dao.get.return_value = sponsor_user_db
 
-        manager = SettingsController(self.mock_di)
-        link = manager.create_settings_link()
+        controller = SettingsController(self.mock_di)
+        link = controller.create_settings_link()
 
         self.assertIn("sponsorships", link)
         self.assertIn("user", link)
@@ -496,11 +496,10 @@ class SettingsControllerTest(unittest.TestCase):
 
         # noinspection PyPropertyAccess
         self.mock_di.invoker = user_without_chat
-
-        manager = SettingsController(self.mock_di)
+        controller = SettingsController(self.mock_di)
 
         with self.assertRaises(ValueError) as context:
-            manager.create_settings_link()
+            controller.create_settings_link()
 
         self.assertIn("User never sent a private message", str(context.exception))
 
@@ -564,8 +563,8 @@ class SettingsControllerTest(unittest.TestCase):
 
         with patch("api.settings_controller.ALL_EXTERNAL_TOOLS", [mock_tool_1, mock_tool_2]):
             with patch("api.settings_controller.ALL_PROVIDERS", [mock_provider_1, mock_provider_2]):
-                manager = SettingsController(self.mock_di)
-                result = manager.fetch_external_tools(self.invoker_user.id.hex)
+                controller = SettingsController(self.mock_di)
+                result = controller.fetch_external_tools(self.invoker_user.id.hex)
 
         # Verify result structure
         self.assertIn("tools", result)

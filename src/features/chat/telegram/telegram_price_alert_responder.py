@@ -10,8 +10,8 @@ from util.translations_cache import DEFAULT_ISO_CODE, DEFAULT_LANGUAGE, Translat
 def respond_with_price_alerts(di: DI) -> dict:
     chats_notified: int = 0
     announcements_created: int = 0
-    alert_manager = di.price_alert_manager(target_chat_id = None)
-    triggered_alerts = alert_manager.get_triggered_alerts()
+    service = di.currency_alert_service(target_chat_id = None)
+    triggered_alerts = service.get_triggered_alerts()
     translation_caches_all: dict[str, TranslationsCache] = {}
     for triggered_alert in triggered_alerts:
         # try to summarize the announcement first

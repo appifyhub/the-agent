@@ -11,7 +11,7 @@ from db.crud.user import UserCRUD
 from db.model.chat_config import ChatConfigDB
 from di.di import DI
 from features.announcements.information_announcer import InformationAnnouncer
-from features.chat.price_alert_manager import DATETIME_PRINT_FORMAT, PriceAlertManager
+from features.chat.currency_alert_service import DATETIME_PRINT_FORMAT, CurrencyAlertService
 from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.telegram_price_alert_responder import respond_with_price_alerts
@@ -20,7 +20,7 @@ from util.translations_cache import TranslationsCache
 
 class TelegramPriceAlertResponderTest(unittest.TestCase):
     mock_di: DI
-    mock_price_alert_manager: PriceAlertManager
+    mock_currency_alert_service: CurrencyAlertService
 
     def setUp(self):
         # Create a DI mock and set required properties
@@ -39,9 +39,9 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         self.mock_di.telegram_bot_sdk = Mock(spec = TelegramBotSDK)
         self.mock_di.telegram_bot_sdk.api = Mock(spec = TelegramBotAPI)
 
-        # Mock the price_alert_manager method to return a mock PriceAlertManager
-        self.mock_price_alert_manager = Mock(spec = PriceAlertManager)
-        self.mock_di.price_alert_manager.return_value = self.mock_price_alert_manager
+        # Mock the currency_alert_service method to return a mock service
+        self.mock_currency_alert_service = Mock(spec = CurrencyAlertService)
+        self.mock_di.currency_alert_service.return_value = self.mock_currency_alert_service
 
     # noinspection PyUnusedLocal
     @patch("features.chat.telegram.telegram_price_alert_responder.InformationAnnouncer")
@@ -49,14 +49,14 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         # Create actual TriggeredAlert objects
         test_owner_id = UUID(int = 1)
         triggered_alerts = [
-            PriceAlertManager.TriggeredAlert(
+            CurrencyAlertService.TriggeredAlert(
                 chat_id = "123", owner_id = test_owner_id,
                 base_currency = "BTC", desired_currency = "USD", threshold_percent = 5,
                 old_rate = 10000, old_rate_time = datetime(2023, 1, 1).strftime(DATETIME_PRINT_FORMAT),
                 new_rate = 11000, new_rate_time = datetime(2023, 1, 2).strftime(DATETIME_PRINT_FORMAT),
                 price_change_percent = 10,
             ),
-            PriceAlertManager.TriggeredAlert(
+            CurrencyAlertService.TriggeredAlert(
                 chat_id = "456", owner_id = test_owner_id,
                 base_currency = "ETH", desired_currency = "EUR", threshold_percent = 3,
                 old_rate = 2000, old_rate_time = datetime(2023, 1, 1).strftime(DATETIME_PRINT_FORMAT),
@@ -65,8 +65,8 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
             ),
         ]
 
-        # Mock the PriceAlertManager instance methods
-        self.mock_price_alert_manager.get_triggered_alerts.return_value = triggered_alerts
+        # Mock the service's instance methods
+        self.mock_currency_alert_service.get_triggered_alerts.return_value = triggered_alerts
 
         # Mock the chat config responses
         mock_chat_config_db = ChatConfigDB(
@@ -95,15 +95,15 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
 
         # Verify the mock methods were called
         # noinspection PyUnresolvedReferences
-        self.mock_price_alert_manager.get_triggered_alerts.assert_called_once()
+        self.mock_currency_alert_service.get_triggered_alerts.assert_called_once()
         # Verify announcements were sent
         # noinspection PyUnresolvedReferences
         self.assertEqual(self.mock_di.telegram_bot_sdk.send_text_message.call_count, 2)
 
     # noinspection PyUnusedLocal
     def test_no_triggered_alerts(self):
-        # Mock the PriceAlertManager instance to return no alerts
-        self.mock_price_alert_manager.get_triggered_alerts.return_value = []
+        # Mock the service's instance to return no alerts
+        self.mock_currency_alert_service.get_triggered_alerts.return_value = []
 
         result = respond_with_price_alerts(self.mock_di)
 
@@ -120,7 +120,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
     def test_announcement_creation_failure(self, mock_announcer):
         test_owner_id = UUID(int = 1)
         triggered_alerts = [
-            PriceAlertManager.TriggeredAlert(
+            CurrencyAlertService.TriggeredAlert(
                 chat_id = "123", owner_id = test_owner_id,
                 base_currency = "BTC", desired_currency = "USD", threshold_percent = 5,
                 old_rate = 10000, old_rate_time = datetime(2023, 1, 1).strftime(DATETIME_PRINT_FORMAT),
@@ -129,8 +129,8 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
             ),
         ]
 
-        # Mock the PriceAlertManager instance
-        self.mock_price_alert_manager.get_triggered_alerts.return_value = triggered_alerts
+        # Mock the service's instance
+        self.mock_currency_alert_service.get_triggered_alerts.return_value = triggered_alerts
 
         # Mock the chat config response
         mock_chat_config_db = ChatConfigDB(
@@ -165,7 +165,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         # Create actual TriggeredAlert objects
         test_owner_id = UUID(int = 1)
         triggered_alerts = [
-            PriceAlertManager.TriggeredAlert(
+            CurrencyAlertService.TriggeredAlert(
                 chat_id = "123", owner_id = test_owner_id,
                 base_currency = "BTC", desired_currency = "USD", threshold_percent = 5,
                 old_rate = 10000, old_rate_time = datetime(2023, 1, 1).strftime(DATETIME_PRINT_FORMAT),
@@ -174,8 +174,8 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
             ),
         ]
 
-        # Mock the PriceAlertManager instance
-        self.mock_price_alert_manager.get_triggered_alerts.return_value = triggered_alerts
+        # Mock the service's instance
+        self.mock_currency_alert_service.get_triggered_alerts.return_value = triggered_alerts
 
         # Mock the chat config response
         mock_chat_config_db = ChatConfigDB(
@@ -211,7 +211,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         # Create actual TriggeredAlert objects
         test_owner_id = UUID(int = 1)
         triggered_alerts = [
-            PriceAlertManager.TriggeredAlert(
+            CurrencyAlertService.TriggeredAlert(
                 chat_id = "123", owner_id = test_owner_id,
                 base_currency = "BTC", desired_currency = "USD", threshold_percent = 5,
                 old_rate = 10000, old_rate_time = datetime(2023, 1, 1).strftime(DATETIME_PRINT_FORMAT),
@@ -220,8 +220,8 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
             ),
         ]
 
-        # Mock the PriceAlertManager instance
-        self.mock_price_alert_manager.get_triggered_alerts.return_value = triggered_alerts
+        # Mock the service's instance
+        self.mock_currency_alert_service.get_triggered_alerts.return_value = triggered_alerts
 
         # Mock the chat config response
         mock_chat_config_db = ChatConfigDB(

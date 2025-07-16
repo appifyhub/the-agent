@@ -8,10 +8,10 @@ from langchain_core.tools import tool
 from db.sql import get_detached_session
 from di.di import DI
 from features.chat.attachments_describer import AttachmentsDescriber
-from features.chat.chat_image_gen_service import ChatImageGenService
+from features.chat.chat_imaging_service import ChatImagingService
 from features.chat.dev_announcements_service import DevAnnouncementsService
-from features.chat.image_generator import ImageGenerator
 from features.chat.llm_tools.base_llm_tool_binder import BaseLLMToolBinder
+from features.chat.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
 from features.support.user_support_service import UserSupportService
 from features.web_browsing.ai_web_search import AIWebSearch
 from features.web_browsing.html_content_cleaner import HTMLContentCleaner
@@ -45,7 +45,7 @@ def process_attachments(
     """
     try:
         operation = operation.lower().strip()
-        editing_operations = ImageGenerator.Operation.values()
+        editing_operations = ChatImagingService.Operation.values()
         allowed_operations = ["describe"] + editing_operations
         with get_detached_session() as db:
             di = DI(db, user_id, chat_id)
@@ -59,9 +59,8 @@ def process_attachments(
                 return json.dumps({"result": result.value, "attachments": describer.result})
             elif operation in editing_operations:
                 # Generate images based on the provided context
-                generator = di.image_generator(attachment_ids_list, operation, context)
-                result, stats = generator.execute()
-                if result == ImageGenerator.Result.failed:
+                result, stats = di.chat_imaging_service(attachment_ids_list, operation, context).execute()
+                if result == ChatImagingService.Result.failed:
                     raise ValueError("Failed to edit the images")
                 return __success({"stats": stats, "next_step": "Deliver these stats to the partner"})
             else:
@@ -85,16 +84,16 @@ def generate_image(chat_id: str, user_id: str, prompt: str) -> str:
         with get_detached_session() as db:
             di = DI(db, user_id, chat_id)
             copywriter_tool = di.tool_choice_resolver.require_tool(
-                ChatImageGenService.COPYWRITER_TOOL_TYPE,
-                ChatImageGenService.DEFAULT_COPYWRITER_TOOL,
+                SmartStableDiffusionGenerator.COPYWRITER_TOOL_TYPE,
+                SmartStableDiffusionGenerator.DEFAULT_COPYWRITER_TOOL,
             )
             image_gen_tool = di.tool_choice_resolver.require_tool(
-                ChatImageGenService.IMAGE_GEN_TOOL_TYPE,
-                ChatImageGenService.DEFAULT_IMAGE_GEN_TOOL,
+                SmartStableDiffusionGenerator.IMAGE_GEN_TOOL_TYPE,
+                SmartStableDiffusionGenerator.DEFAULT_IMAGE_GEN_TOOL,
             )
-            image_gen_service = di.chat_image_gen_service(prompt, copywriter_tool, image_gen_tool)
-            result = image_gen_service.execute()
-            if result == ChatImageGenService.Result.failed:
+            generator = di.smart_stable_diffusion_generator(prompt, copywriter_tool, image_gen_tool)
+            result = generator.execute()
+            if result == SmartStableDiffusionGenerator.Result.failed:
                 raise ValueError("Failed to generate the image")
             return __success({"next_step": "Confirm to partner that the image has been sent"})
     except Exception as e:
@@ -163,8 +162,8 @@ def set_up_currency_price_alert(
     try:
         with get_detached_session() as db:
             di = DI(db, user_id, chat_id)
-            alert_manager = di.price_alert_manager(chat_id)
-            alert = alert_manager.create_alert(base_currency, desired_currency, threshold_percent)
+            service = di.currency_alert_service(chat_id)
+            alert = service.create_alert(base_currency, desired_currency, threshold_percent)
             return __success({"created_alert_data": alert.model_dump(mode = "json")})
     except Exception as e:
         return __error(e)
@@ -184,8 +183,8 @@ def remove_currency_price_alerts(chat_id: str, user_id: str, base_currency: str,
     try:
         with get_detached_session() as db:
             di = DI(db, user_id, chat_id)
-            alert_manager = di.price_alert_manager(chat_id)
-            alert = alert_manager.delete_alert(base_currency, desired_currency)
+            service = di.currency_alert_service(chat_id)
+            alert = service.delete_alert(base_currency, desired_currency)
             deleted_alert_data = alert.model_dump(mode = "json") if alert else None
             return __success({"deleted_alert_data": deleted_alert_data})
     except Exception as e:
@@ -204,8 +203,8 @@ def list_currency_price_alerts(chat_id: str, user_id: str) -> str:
     try:
         with get_detached_session() as db:
             di = DI(db, user_id, chat_id)
-            alert_manager = di.price_alert_manager(chat_id)
-            alerts = alert_manager.get_active_alerts()
+            service = di.currency_alert_service(chat_id)
+            alerts = service.get_active_alerts()
             return __success({"alerts": [alert.model_dump(mode = "json") for alert in alerts]})
     except Exception as e:
         return __error(e)
@@ -308,12 +307,12 @@ def request_feature_bug_or_support(
         with get_detached_session() as db:
             di = DI(db, author_user_id)
             configured_tool = di.tool_choice_resolver.require_tool(UserSupportService.TOOL_TYPE)
-            manager = di.user_support_service(
+            service = di.user_support_service(
                 user_request_details, author_github_username,
                 include_telegram_username, include_full_name,
                 request_type, configured_tool,
             )
-            issue_url = manager.execute()
+            issue_url = service.execute()
             return __success(
                 {
                     "github_issue_url": issue_url,
