@@ -1,6 +1,7 @@
 import base64
 import json
 import unittest
+from datetime import datetime
 from unittest.mock import Mock, patch
 
 from langchain_core.messages import AIMessage
@@ -12,37 +13,46 @@ from db.crud.user import UserCRUD
 from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
-from features.announcements.release_summarizer import ReleaseSummarizer
-from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
-from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from di.di import DI
+from features.announcements.release_summary_service import ReleaseSummaryService
 
 # noinspection PyProtectedMember
-from features.chat.telegram.telegram_summary_responder import (
+from features.chat.telegram.release_summary_responder import (
     VersionChangeType,
     _strip_title_formatting,
     get_version_change_type,
     is_chat_subscribed,
     respond_with_summary,
 )
+from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from features.external_tools.tool_choice_resolver import ToolChoiceResolver
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.translations_cache import TranslationsCache
 
 
-class TelegramSummaryResponderTest(unittest.TestCase):
-    chat_config_dao: ChatConfigCRUD
-    user_dao: UserCRUD
-    sponsorship_dao: SponsorshipCRUD
-    telegram_bot_sdk: TelegramBotSDK
-    translations: TranslationsCache
+class ReleaseSummaryResponderTest(unittest.TestCase):
+    mock_di: DI
     payload: ReleaseOutputPayload
 
     def setUp(self):
-        self.chat_config_dao = Mock(spec = ChatConfigCRUD)
-        self.user_dao = Mock(spec = UserCRUD)
-        self.sponsorship_dao = Mock(spec = SponsorshipCRUD)
-        self.telegram_bot_sdk = Mock(spec = TelegramBotSDK)
-        self.telegram_bot_sdk.api = Mock(spec = TelegramBotAPI)
-        self.translations = TranslationsCache()
+        # Create a DI mock and set required properties
+        self.mock_di = Mock(spec = DI)
+        # noinspection PyPropertyAccess
+        self.mock_di.user_crud = Mock(spec = UserCRUD)
+        # noinspection PyPropertyAccess
+        self.mock_di.chat_config_crud = Mock(spec = ChatConfigCRUD)
+        # noinspection PyPropertyAccess
+        self.mock_di.sponsorship_crud = Mock(spec = SponsorshipCRUD)
+        # noinspection PyPropertyAccess
+        self.mock_di.telegram_bot_sdk = Mock(spec = TelegramBotSDK)
+        self.mock_di.telegram_bot_sdk.api = Mock(spec = TelegramBotAPI)
+        # noinspection PyPropertyAccess
+        self.mock_di.translations_cache = TranslationsCache()
+        # noinspection PyPropertyAccess
+        self.mock_di.tool_choice_resolver = Mock(spec = ToolChoiceResolver)
+        # noinspection PyPropertyAccess
+        self.mock_di.release_summary_service = Mock(spec = ReleaseSummaryService)
         release_output_json = {
             "latest_version": "1.0.0",
             "new_target_version": "1.0.1",
@@ -67,9 +77,9 @@ class TelegramSummaryResponderTest(unittest.TestCase):
             rapid_api_key = TELEGRAM_BOT_USER.rapid_api_key,
             coinmarketcap_key = TELEGRAM_BOT_USER.coinmarketcap_key,
             group = TELEGRAM_BOT_USER.group,
-            created_at = None,
+            created_at = datetime.now().date(),
         )
-        self.user_dao.get.return_value = mock_user_db
+        self.mock_di.user_crud.get.return_value = mock_user_db
 
     def test_version_change_type_major(self):
         self.assertEqual(get_version_change_type("1.0.0", "2.0.0"), VersionChangeType.major)
@@ -111,92 +121,109 @@ class TelegramSummaryResponderTest(unittest.TestCase):
         self.assertTrue(is_chat_subscribed(chat, VersionChangeType.minor))
         self.assertFalse(is_chat_subscribed(chat, VersionChangeType.patch))
 
-    @patch("features.chat.telegram.telegram_summary_responder.base64.b64decode")
+    @patch("features.chat.telegram.release_summary_responder.base64.b64decode")
     def test_decoding_failure(self, mock_b64decode):
         mock_b64decode.side_effect = Exception("decode error")
         payload = ReleaseOutputPayload(release_output_b64 = "invalid")
-        result = respond_with_summary(
-            payload, self.user_dao, self.chat_config_dao, self.sponsorship_dao, self.telegram_bot_sdk, self.translations,
-        )
+        result = respond_with_summary(payload, self.mock_di)
         self.assertIn("Failed to decode release notes", result["summary"])
         self.assertEqual(result["summaries_created"], 0)
 
-    @patch("features.chat.telegram.telegram_summary_responder.ReleaseSummarizer")
-    def test_successful_summary(self, mock_summarizer_cls):
-        mock_summarizer = Mock(spec = ReleaseSummarizer)
-        mock_summarizer.execute.return_value = Mock(content = "Test summary")
-        mock_summarizer_cls.return_value = mock_summarizer
-        self.translations.save("Test summary")
-        self.chat_config_dao.get_all.return_value = [self.__make_chat_db()]
-        result = respond_with_summary(
-            self.payload, self.user_dao, self.chat_config_dao, self.sponsorship_dao, self.telegram_bot_sdk, self.translations,
-        )
+    def test_successful_summary(self):
+        # Mock tool choice resolver and release summary service
+        mock_configured_tool = Mock()
+        self.mock_di.tool_choice_resolver.require_tool.return_value = mock_configured_tool
+
+        mock_summary_service = Mock(spec = ReleaseSummaryService)
+        mock_summary_service.execute.return_value = Mock(content = "Test summary")
+        self.mock_di.release_summary_service.return_value = mock_summary_service
+
+        # Use the real translations cache - it will cache summaries as needed
+
+        # Mock chat config
+        self.mock_di.chat_config_crud.get_all.return_value = [self.__make_chat_db()]
+
+        result = respond_with_summary(self.payload, self.mock_di)
         self.assertEqual(result["chats_notified"], 1)
         # noinspection PyUnresolvedReferences
-        self.telegram_bot_sdk.send_text_message.assert_called_once_with("1234", "Test summary")
+        self.mock_di.telegram_bot_sdk.send_text_message.assert_called_once_with("1234", "Test summary")
 
-    @patch("features.chat.telegram.telegram_summary_responder.ReleaseSummarizer")
-    def test_multiple_languages(self, mock_summarizer_cls):
-        mock_summarizer = Mock(spec = ReleaseSummarizer)
+    def test_multiple_languages(self):
+        mock_summarizer = Mock(spec = ReleaseSummaryService)
         mock_summarizer.execute.return_value = AIMessage(content = "Summary")
-        mock_summarizer_cls.return_value = mock_summarizer
-        self.chat_config_dao.get_all.return_value = [
+        self.mock_di.release_summary_service.return_value = mock_summarizer
+        self.mock_di.chat_config_crud.get_all.return_value = [
             self.__make_chat_db(chat_id = "123", lang_name = "English", lang_iso = "en"),
             self.__make_chat_db(chat_id = "456", lang_name = "Spanish", lang_iso = "es"),
         ]
-        result = respond_with_summary(
-            self.payload, self.user_dao, self.chat_config_dao, self.sponsorship_dao, self.telegram_bot_sdk, self.translations,
-        )
+        result = respond_with_summary(self.payload, self.mock_di)
         self.assertEqual(result["chats_notified"], 2)
         self.assertEqual(result["summaries_created"], 2)
 
-    @patch("features.chat.telegram.telegram_summary_responder.ReleaseSummarizer.execute")
-    def test_telegram_send_failure(self, mock_execute):
-        mock_execute.return_value = Mock(content = "Summary")
-        self.chat_config_dao.get_all.return_value = [self.__make_chat_db()]
-        self.telegram_bot_sdk.send_text_message.side_effect = Exception("fail")
-        result = respond_with_summary(
-            self.payload, self.user_dao, self.chat_config_dao, self.sponsorship_dao, self.telegram_bot_sdk, self.translations,
-        )
+    def test_telegram_send_failure(self):
+        # Mock tool choice resolver and release summary service
+        mock_configured_tool = Mock()
+        self.mock_di.tool_choice_resolver.require_tool.return_value = mock_configured_tool
+
+        mock_summary_service = Mock(spec = ReleaseSummaryService)
+        mock_summary_service.execute.return_value = Mock(content = "Summary")
+        self.mock_di.release_summary_service.return_value = mock_summary_service
+
+        # Use the real translations cache
+
+        # Mock chat config and telegram send failure
+        self.mock_di.chat_config_crud.get_all.return_value = [self.__make_chat_db()]
+        self.mock_di.telegram_bot_sdk.send_text_message.side_effect = Exception("fail")
+
+        result = respond_with_summary(self.payload, self.mock_di)
         self.assertEqual(result["chats_notified"], 0)
 
-    @patch("features.chat.telegram.telegram_summary_responder.ReleaseSummarizer.execute")
-    def test_no_eligible_chats(self, mock_execute):
-        mock_execute.return_value = Mock(content = "Summary")
-        self.chat_config_dao.get_all.return_value = []
-        result = respond_with_summary(
-            self.payload, self.user_dao, self.chat_config_dao, self.sponsorship_dao, self.telegram_bot_sdk, self.translations,
-        )
+    def test_no_eligible_chats(self):
+        # Mock tool choice resolver and release summary service
+        mock_configured_tool = Mock()
+        self.mock_di.tool_choice_resolver.require_tool.return_value = mock_configured_tool
+
+        mock_summary_service = Mock(spec = ReleaseSummaryService)
+        mock_summary_service.execute.return_value = Mock(content = "Summary")
+        self.mock_di.release_summary_service.return_value = mock_summary_service
+
+        # Use the real translations cache
+
+        # Mock empty chat config list
+        self.mock_di.chat_config_crud.get_all.return_value = []
+
+        result = respond_with_summary(self.payload, self.mock_di)
         self.assertEqual(result["chats_eligible"], 0)
 
-    @patch("features.chat.telegram.telegram_summary_responder.ReleaseSummarizer")
-    def test_all_translations(self, mock_summarizer_cls):
-        mock_sum = Mock(spec = ReleaseSummarizer)
+    def test_all_translations(self):
+        mock_sum = Mock(spec = ReleaseSummaryService)
         mock_sum.execute.return_value = Mock(content = "Gen summary")
-        mock_summarizer_cls.return_value = mock_sum
-        self.chat_config_dao.get_all.return_value = [
+        self.mock_di.release_summary_service.return_value = mock_sum
+        self.mock_di.chat_config_crud.get_all.return_value = [
             self.__make_chat_db(chat_id = "123", lang_name = "English", lang_iso = "en"),
             self.__make_chat_db(chat_id = "456", lang_name = "Spanish", lang_iso = "es"),
             self.__make_chat_db(chat_id = "789", lang_name = "Greek", lang_iso = "gr"),
             self.__make_chat_db(chat_id = "sss", lang_name = "Spanish", lang_iso = "es"),
             self.__make_chat_db(chat_id = "eee", lang_name = "English", lang_iso = "en"),
         ]
-        result = respond_with_summary(
-            self.payload, self.user_dao, self.chat_config_dao, self.sponsorship_dao, self.telegram_bot_sdk, TranslationsCache(),
-        )
+        result = respond_with_summary(self.payload, self.mock_di)
         self.assertEqual(result["chats_eligible"], 5)
         self.assertEqual(result["chats_notified"], 5)
         self.assertEqual(result["summaries_created"], 3)
 
-    @patch("features.chat.telegram.telegram_summary_responder.ReleaseSummarizer")
-    def test_summarization_failure(self, mock_summarizer_cls):
-        mock_sum = Mock(spec = ReleaseSummarizer)
-        mock_sum.execute.side_effect = Exception("boom")
-        mock_summarizer_cls.return_value = mock_sum
-        self.chat_config_dao.get_all.return_value = [self.__make_chat_db()]
-        result = respond_with_summary(
-            self.payload, self.user_dao, self.chat_config_dao, self.sponsorship_dao, self.telegram_bot_sdk, self.translations,
-        )
+    def test_summarization_failure(self):
+        # Mock tool choice resolver and failing release summary service
+        mock_configured_tool = Mock()
+        self.mock_di.tool_choice_resolver.require_tool.return_value = mock_configured_tool
+
+        mock_summary_service = Mock(spec = ReleaseSummaryService)
+        mock_summary_service.execute.side_effect = Exception("boom")
+        self.mock_di.release_summary_service.return_value = mock_summary_service
+
+        # Mock chat config
+        self.mock_di.chat_config_crud.get_all.return_value = [self.__make_chat_db()]
+
+        result = respond_with_summary(self.payload, self.mock_di)
         self.assertEqual(result["chats_notified"], 0)
         self.assertIsNotNone(result["summary"])
 

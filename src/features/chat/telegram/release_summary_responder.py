@@ -5,16 +5,11 @@ from enum import Enum
 from typing import Any
 
 from api.model.release_output_payload import ReleaseOutputPayload
-from db.crud.chat_config import ChatConfigCRUD
-from db.crud.sponsorship import SponsorshipCRUD
-from db.crud.user import UserCRUD
 from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig
-from features.announcements.release_summarizer import ReleaseSummarizer
-from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
-from features.prompting.prompt_library import TELEGRAM_BOT_USER
+from di.di import DI
+from features.announcements.release_summary_service import ReleaseSummaryService
 from util.safe_printer_mixin import sprint
-from util.translations_cache import TranslationsCache
 
 
 class SummaryResult:
@@ -52,14 +47,7 @@ class SummaryResult:
         }
 
 
-def respond_with_summary(
-    payload: ReleaseOutputPayload,
-    user_dao: UserCRUD,
-    chat_config_dao: ChatConfigCRUD,
-    sponsorship_dao: SponsorshipCRUD,
-    telegram_bot_sdk: TelegramBotSDK,
-    translations: TranslationsCache,
-) -> dict:
+def respond_with_summary(payload: ReleaseOutputPayload, di: DI) -> dict:
     result = SummaryResult()
     # decode the release output
     try:
@@ -82,16 +70,13 @@ def respond_with_summary(
         return result.to_dict()
 
     # summarize for the default language first
+    translations = di.translations_cache
     try:
-        answer = ReleaseSummarizer(
-            raw_notes = release_notes,
-            invoker = TELEGRAM_BOT_USER.id,  # type: ignore
-            target_chat = None,
-            user_dao = user_dao,
-            chat_config_dao = chat_config_dao,
-            sponsorship_dao = sponsorship_dao,
-            telegram_bot_sdk = telegram_bot_sdk,
-        ).execute()
+        tool = di.tool_choice_resolver.require_tool(
+            ReleaseSummaryService.TOOL_TYPE,
+            ReleaseSummaryService.DEFAULT_TOOL,
+        )
+        answer = di.release_summary_service(release_notes, None, tool).execute()
         if not answer.content:
             raise ValueError("LLM Answer not received")
         stripped_content = _strip_title_formatting(str(answer.content))
@@ -106,7 +91,7 @@ def respond_with_summary(
 
     # prepare and filter the eligible chats
     change_type = get_version_change_type(latest_version, new_target_version)
-    latest_chats_db = chat_config_dao.get_all(limit = 2048)
+    latest_chats_db = di.chat_config_crud.get_all(limit = 2048)
     latest_chats = [ChatConfig.model_validate(chat_db) for chat_db in latest_chats_db]
     subscribed_chats = [chat for chat in latest_chats if is_chat_subscribed(chat, change_type)]
     result.chats_eligible = len(latest_chats)
@@ -118,15 +103,11 @@ def respond_with_summary(
         try:
             summary = translations.get(chat.language_name, chat.language_iso_code)
             if not summary:
-                answer = ReleaseSummarizer(
-                    raw_notes = release_notes,
-                    invoker = TELEGRAM_BOT_USER.id,  # type: ignore
-                    target_chat = chat,
-                    user_dao = user_dao,
-                    chat_config_dao = chat_config_dao,
-                    sponsorship_dao = sponsorship_dao,
-                    telegram_bot_sdk = telegram_bot_sdk,
-                ).execute()
+                tool = di.tool_choice_resolver.require_tool(
+                    ReleaseSummaryService.TOOL_TYPE,
+                    ReleaseSummaryService.DEFAULT_TOOL,
+                )
+                answer = di.release_summary_service(release_notes, chat, tool).execute()
                 if not answer.content:
                     raise ValueError("LLM Answer not received")
                 stripped_content = _strip_title_formatting(str(answer.content))
@@ -138,7 +119,7 @@ def respond_with_summary(
 
         # we need to notify each chat of the summary
         try:
-            telegram_bot_sdk.send_text_message(chat.chat_id, summary)
+            di.telegram_bot_sdk.send_text_message(chat.chat_id, summary)
             result.chats_notified += 1
         except Exception as e:
             sprint(f"Chat notification failed for chat #{chat.chat_id}", e)

@@ -11,22 +11,15 @@ from api.model.release_output_payload import ReleaseOutputPayload
 from api.model.sponsorship_payload import SponsorshipPayload
 from api.model.user_settings_payload import UserSettingsPayload
 from api.settings_controller import SettingsType
-from api.sponsorships_controller import SponsorshipsController
-from db.crud.chat_config import ChatConfigCRUD
-from db.crud.sponsorship import SponsorshipCRUD
-from db.crud.tools_cache import ToolsCacheCRUD
-from db.crud.user import UserCRUD
 from db.sql import get_session, initialize_db
 from di.di import DI
 from features.chat.telegram.currency_alert_responder import respond_with_currency_alerts
 from features.chat.telegram.model.update import Update
-from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
-from features.chat.telegram.telegram_summary_responder import respond_with_summary
+from features.chat.telegram.release_summary_responder import respond_with_summary
 from features.chat.telegram.telegram_update_responder import respond_to_update
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config
 from util.safe_printer_mixin import sprint
-from util.translations_cache import TranslationsCache
 
 
 # noinspection PyUnusedLocal
@@ -94,14 +87,8 @@ def notify_of_release(
     db = Depends(get_session),
     _ = Depends(verify_api_key),
 ) -> dict:
-    return respond_with_summary(
-        payload = payload,
-        user_dao = UserCRUD(db),
-        chat_config_dao = ChatConfigCRUD(db),
-        sponsorship_dao = SponsorshipCRUD(db),
-        telegram_bot_sdk = TelegramBotSDK(db),
-        translations = TranslationsCache(),
-    )
+    di = DI(db, TELEGRAM_BOT_USER.id.hex)
+    return respond_with_summary(payload, di)
 
 
 @app.post("/task/clear-expired-cache")
@@ -110,7 +97,8 @@ def clear_expired_cache(
     _ = Depends(verify_api_key),
 ) -> dict:
     try:
-        cleared_count = ToolsCacheCRUD(db).delete_expired()
+        di = DI(db)
+        cleared_count = di.tools_cache_crud.delete_expired()
         sprint(f"Cleared expired cache entries: {cleared_count}")
         return {"cleared_entries_count": cleared_count}
     except Exception as e:
@@ -240,14 +228,8 @@ def sponsor_user(
         sprint(f"Sponsoring user from {resource_id}")
         invoker_id_hex = get_user_id_from_jwt(token)
         sprint(f"  Invoker ID: {invoker_id_hex}")
-        sponsorships_controller = SponsorshipsController(
-            invoker_user_id_hex = invoker_id_hex,
-            user_dao = UserCRUD(db),
-            sponsorship_dao = SponsorshipCRUD(db),
-            telegram_sdk = TelegramBotSDK(db),
-            chat_config_dao = ChatConfigCRUD(db),
-        )
-        sponsorships_controller.sponsor_user(resource_id, payload.receiver_telegram_username)
+        di = DI(db, invoker_id_hex)
+        di.sponsorships_controller.sponsor_user(resource_id, payload.receiver_telegram_username)
         return {"status": "OK"}
     except Exception as e:
         sprint("Failed to sponsor user", e)
@@ -265,14 +247,8 @@ def unsponsor_user(
         sprint(f"Unsponsoring user from {resource_id}")
         invoker_id_hex = get_user_id_from_jwt(token)
         sprint(f"  Invoker ID: {invoker_id_hex}")
-        sponsorships_controller = SponsorshipsController(
-            invoker_user_id_hex = invoker_id_hex,
-            user_dao = UserCRUD(db),
-            sponsorship_dao = SponsorshipCRUD(db),
-            telegram_sdk = TelegramBotSDK(db),
-            chat_config_dao = ChatConfigCRUD(db),
-        )
-        sponsorships_controller.unsponsor_user(resource_id, receiver_telegram_username)
+        di = DI(db, invoker_id_hex)
+        di.sponsorships_controller.unsponsor_user(resource_id, receiver_telegram_username)
         return {"status": "OK"}
     except Exception as e:
         sprint("Failed to unsponsor user", e)
@@ -289,19 +265,8 @@ def unsponsor_self(
         sprint(f"User {resource_id} is unsponsoring themselves")
         invoker_id_hex = get_user_id_from_jwt(token)
         sprint(f"  Invoker ID: {invoker_id_hex}")
-        di = DI(db, resource_id)
-        user_dao = UserCRUD(db)
-        sponsorship_dao = SponsorshipCRUD(db)
-        telegram_bot_sdk = TelegramBotSDK(db)
-        chat_config_dao = ChatConfigCRUD(db)
-        sponsorships_controller = SponsorshipsController(
-            invoker_user_id_hex = invoker_id_hex,
-            user_dao = user_dao,
-            sponsorship_dao = sponsorship_dao,
-            telegram_sdk = telegram_bot_sdk,
-            chat_config_dao = chat_config_dao,
-        )
-        sponsorships_controller.unsponsor_self(resource_id)
+        di = DI(db, invoker_id_hex)
+        di.sponsorships_controller.unsponsor_self(resource_id)
         settings_link = di.settings_controller.create_settings_link()
         return {"settings_link": settings_link}
     except Exception as e:

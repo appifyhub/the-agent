@@ -119,8 +119,7 @@ class AuthorizationService(SafePrinterMixin):
         invoker_user = self.validate_user(invoker_user)
         target_user = self.validate_user(target_user)
         if invoker_user.id != target_user.id:
-            user_display = target_user if isinstance(target_user, str) else str(target_user)
-            message = f"Target user '{user_display}' is not the allowed user '{invoker_user.id.hex}'"
+            message = f"Target user '{target_user.id.hex}' is not the allowed user '{invoker_user.id.hex}'"
             self.sprint(message)
             raise ValueError(message)
         return target_user

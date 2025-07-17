@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from db.crud.sponsorship import SponsorshipCRUD
     from db.crud.tools_cache import ToolsCacheCRUD
     from db.crud.user import UserCRUD
-    from features.announcements.release_summarizer import ReleaseSummarizer
+    from features.announcements.release_summary_service import ReleaseSummaryService
     from features.announcements.sys_announcements_service import SysAnnouncementsService
     from features.audio.audio_transcriber import AudioTranscriber
     from features.chat.attachments_describer import AttachmentsDescriber
@@ -627,21 +627,14 @@ class DI:
         from features.announcements.sys_announcements_service import SysAnnouncementsService
         return SysAnnouncementsService(raw_information, target_chat, configured_tool, self)
 
-    def release_summarizer(
+    def release_summary_service(
         self,
         raw_notes: str,
-        target_chat: str | ChatConfig | None = None,
-    ) -> "ReleaseSummarizer":
-        from features.announcements.release_summarizer import ReleaseSummarizer
-        return ReleaseSummarizer(
-            raw_notes,
-            self.invoker_id,
-            target_chat,
-            self.user_crud,
-            self.chat_config_crud,
-            self.sponsorship_crud,
-            self.telegram_bot_sdk,
-        )
+        target_chat: str | ChatConfig | None,
+        configured_tool: ConfiguredTool,
+    ) -> "ReleaseSummaryService":
+        from features.announcements.release_summary_service import ReleaseSummaryService
+        return ReleaseSummaryService(raw_notes, target_chat, configured_tool, self)
 
     def user_support_service(
         self,
