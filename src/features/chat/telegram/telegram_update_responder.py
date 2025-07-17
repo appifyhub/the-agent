@@ -8,6 +8,7 @@ from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.sql import get_detached_session
 from di.di import DI
 from features.chat.telegram.model.update import Update
+from features.chat.telegram.telegram_chat_bot import TelegramChatBot
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.prompting import prompt_library
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
@@ -62,12 +63,14 @@ def respond_to_update(update: Update) -> bool:
             # DB sorting is date descending
             langchain_messages = [map_to_langchain(message) for message in past_messages][::-1]
 
-            # process the update using LLM
+            # process the update using LLM; get instead of require to allow the first message to be sent
+            tool = di.tool_choice_resolver.get_tool(TelegramChatBot.TOOL_TYPE, TelegramChatBot.DEFAULT_TOOL)
             telegram_chat_bot = di.telegram_chat_bot(
                 list(langchain_messages),
-                past_attachment_ids,
                 domain_update.message.text,  # excludes the resolver formatting
                 domain_update.message.message_id,
+                past_attachment_ids,
+                tool,
             )
             answer = telegram_chat_bot.execute()
             if not answer or not answer.content:

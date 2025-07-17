@@ -6,28 +6,24 @@ from uuid import UUID
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import Runnable
-from pydantic import SecretStr
 
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
+from di.di import DI
 from features.chat.command_processor import CommandProcessor
 from features.chat.llm_tools.llm_tool_library import LLMToolLibrary
 from features.chat.telegram.telegram_chat_bot import TelegramChatBot
 from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
-from features.external_tools.access_token_resolver import AccessTokenResolver
+from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 
 
 class TelegramChatBotTest(unittest.TestCase):
     user: User
     chat_config: ChatConfig
-    access_token_resolver_mock: AccessTokenResolver
-    command_processor_mock: CommandProcessor
-    progress_notifier_mock: TelegramProgressNotifier
-    llm_tool_library_mock: LLMToolLibrary
-    llm_base_mock: BaseChatModel
-    llm_tools_mock: Runnable
+    mock_di: DI
+    configured_tool: ConfiguredTool
     bot: TelegramChatBot
 
     def setUp(self):
@@ -54,40 +50,60 @@ class TelegramChatBotTest(unittest.TestCase):
             is_private = False,
             reply_chance_percent = 50,
         )
-        self.access_token_resolver_mock = Mock(spec = AccessTokenResolver)
-        self.command_processor_mock = Mock(spec = CommandProcessor)
-        self.progress_notifier_mock = Mock(spec = TelegramProgressNotifier)
-        self.llm_tool_library_mock = Mock(spec = LLMToolLibrary)
-        self.llm_base_mock = Mock(spec = BaseChatModel)
-        self.llm_tools_mock = Mock(spec = Runnable)
 
-        self.access_token_resolver_mock.get_access_token_for_tool.return_value = SecretStr("test_token")
+        # Create mock DI with all necessary dependencies
+        self.mock_di = Mock(spec = DI)
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker = self.user
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker_chat = self.chat_config
+        # noinspection PyPropertyAccess
+        self.mock_di.command_processor = Mock(spec = CommandProcessor)
+        # noinspection PyPropertyAccess
+        self.mock_di.llm_tool_library = Mock(spec = LLMToolLibrary)
+        # noinspection PyPropertyAccess
+        self.mock_di.telegram_progress_notifier = Mock(return_value = Mock(spec = TelegramProgressNotifier))
+        # noinspection PyPropertyAccess
+        self.mock_di.chat_langchain_model = Mock(return_value = Mock(spec = BaseChatModel))
+
+        # Setup method return values
+        self.mock_di.llm_tool_library.bind_tools.return_value = Mock(spec = Runnable)
+        # noinspection PyPropertyAccess
+        self.mock_di.llm_tool_library.tool_names = ["test_tool"]
+
+        # noinspection PyTypeChecker
+        self.configured_tool = Mock(spec = ConfiguredTool)
+
         self.bot = TelegramChatBot(
-            self.chat_config,
-            self.user,
-            [HumanMessage("Test message")],
-            [],  # attachment_ids
-            "Test message",
-            self.command_processor_mock,
-            self.progress_notifier_mock,
-            self.access_token_resolver_mock,
+            messages = [HumanMessage("Test message")],
+            raw_last_message = "Test message",
+            last_message_id = "msg_123",
+            attachment_ids = [],
+            configured_tool = self.configured_tool,
+            di = self.mock_di,
         )
-        self.bot._TelegramChatBot__llm_tool_library = self.llm_tool_library_mock
-        self.bot._TelegramChatBot__llm_base = self.llm_base_mock
-        self.bot._TelegramChatBot__llm_tools = self.llm_tools_mock
 
     def test_process_commands_no_api_key(self):
-        self.access_token_resolver_mock.get_access_token_for_tool.return_value = None
-        self.command_processor_mock.execute.return_value = CommandProcessor.Result.unknown
+        # Create bot without configured_tool
+        bot_no_key = TelegramChatBot(
+            messages = [HumanMessage("Test message")],
+            raw_last_message = "Test message",
+            last_message_id = "msg_123",
+            attachment_ids = [],
+            configured_tool = None,
+            di = self.mock_di,
+        )
 
-        result, status = self.bot.process_commands()
+        self.mock_di.command_processor.execute.return_value = CommandProcessor.Result.unknown
+
+        result, status = bot_no_key.process_commands()
 
         self.assertIsInstance(result, AIMessage)
         self.assertEqual(status, CommandProcessor.Result.unknown)
         self.assertEqual(result.content, "")
 
     def test_process_commands_failed(self):
-        self.command_processor_mock.execute.return_value = CommandProcessor.Result.failed
+        self.mock_di.command_processor.execute.return_value = CommandProcessor.Result.failed
 
         result, status = self.bot.process_commands()
 
@@ -96,7 +112,7 @@ class TelegramChatBotTest(unittest.TestCase):
         self.assertIn("Unknown command.", result.content)
 
     def test_process_commands_success(self):
-        self.command_processor_mock.execute.return_value = CommandProcessor.Result.success
+        self.mock_di.command_processor.execute.return_value = CommandProcessor.Result.success
 
         result, status = self.bot.process_commands()
 
@@ -164,7 +180,7 @@ class TelegramChatBotTest(unittest.TestCase):
         self.chat_config.is_private = False
         self.chat_config.reply_chance_percent = 100
         self.bot._TelegramChatBot__raw_last_message = "Hello"
-        self.bot._TelegramChatBot__invoker.telegram_username = TELEGRAM_BOT_USER.telegram_username
+        self.mock_di.invoker.telegram_username = TELEGRAM_BOT_USER.telegram_username
 
         self.assertFalse(self.bot.should_reply())
 
@@ -173,7 +189,7 @@ class TelegramChatBotTest(unittest.TestCase):
         self.chat_config.is_private = False
         self.chat_config.reply_chance_percent = 100
         self.bot._TelegramChatBot__raw_last_message = "Hello"
-        self.bot._TelegramChatBot__invoker.telegram_username = "other_user"
+        self.mock_di.invoker.telegram_username = "other_user"
 
         self.assertTrue(self.bot.should_reply())
 
@@ -204,9 +220,18 @@ class TelegramChatBotTest(unittest.TestCase):
     def test_execute_no_api_key(self, mock_should_reply, mock_process_commands):
         mock_should_reply.return_value = True
         mock_process_commands.return_value = (AIMessage(""), CommandProcessor.Result.unknown)
-        self.access_token_resolver_mock.get_access_token_for_tool.return_value = None
-        self.bot._TelegramChatBot__llm_has_access_token = False
-        result = self.bot.execute()
+
+        # Create a new bot instance without configured_tool (simulating no API key)
+        bot_no_key = TelegramChatBot(
+            messages = [HumanMessage("Test message")],
+            raw_last_message = "Test message",
+            last_message_id = "msg_123",
+            attachment_ids = [],
+            configured_tool = None,
+            di = self.mock_di,
+        )
+
+        result = bot_no_key.execute()
         self.assertIn("Not configured", result.content)
 
     @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.process_commands")
@@ -214,9 +239,14 @@ class TelegramChatBotTest(unittest.TestCase):
     def test_execute_llm_response(self, mock_should_reply, mock_process_commands):
         mock_should_reply.return_value = True
         mock_process_commands.return_value = (AIMessage(""), CommandProcessor.Result.unknown)
-        self.llm_tools_mock.invoke.return_value = AIMessage("LLM response")
+
+        # Mock the tools_model invoke to return the final response
+        mock_tools_model = Mock()
+        mock_tools_model.invoke.return_value = AIMessage("LLM response")
+        self.mock_di.llm_tool_library.bind_tools.return_value = mock_tools_model
+
         result = self.bot.execute()
-        self.assertEqual(result, AIMessage("LLM response"))
+        self.assertEqual(result.content, "LLM response")
 
     @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.process_commands")
     @patch("features.chat.telegram.telegram_chat_bot.TelegramChatBot.should_reply")
@@ -229,8 +259,12 @@ class TelegramChatBotTest(unittest.TestCase):
         ai_with_tools = AIMessage(content = "", tool_calls = [tool_call])
         ai_final = AIMessage("Final response")
 
-        self.llm_tools_mock.invoke.side_effect = [ai_with_tools, ai_final]
-        self.llm_tool_library_mock.invoke.return_value = "Tool result"
+        # Mock the tools_model to return first tool calls, then final response
+        mock_tools_model = Mock()
+        mock_tools_model.invoke.side_effect = [ai_with_tools, ai_final]
+        self.mock_di.llm_tool_library.bind_tools.return_value = mock_tools_model
+        self.mock_di.llm_tool_library.invoke.return_value = "Tool result"
+
         result = self.bot.execute()
         self.assertEqual(result.content, "Final response")
 
@@ -239,7 +273,12 @@ class TelegramChatBotTest(unittest.TestCase):
     def test_execute_exception(self, mock_should_reply, mock_process_commands):
         mock_should_reply.return_value = True
         mock_process_commands.return_value = (AIMessage(""), CommandProcessor.Result.unknown)
-        self.llm_tools_mock.invoke.side_effect = Exception("Test error")
+
+        # Mock the tools_model to raise an exception
+        mock_tools_model = Mock()
+        mock_tools_model.invoke.side_effect = Exception("Test error")
+        self.mock_di.llm_tool_library.bind_tools.return_value = mock_tools_model
+
         result = self.bot.execute()
         self.assertIn("⚡", result.content)
         self.assertIn("Test error", result.content)
@@ -258,8 +297,10 @@ class TelegramChatBotTest(unittest.TestCase):
         ai_with_tools = AIMessage(content = "", tool_calls = [tool_call])
 
         # Make the LLM always return messages with tool calls to continue iterations
-        self.llm_tools_mock.invoke.return_value = ai_with_tools
-        self.llm_tool_library_mock.invoke.return_value = "Tool result"
+        mock_tools_model = Mock()
+        mock_tools_model.invoke.return_value = ai_with_tools
+        self.mock_di.llm_tool_library.bind_tools.return_value = mock_tools_model
+        self.mock_di.llm_tool_library.invoke.return_value = "Tool result"
 
         result = self.bot.execute()
 

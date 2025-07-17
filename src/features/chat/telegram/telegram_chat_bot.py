@@ -2,19 +2,15 @@ import random
 import re
 from typing import Any, Tuple, TypeVar
 
-from langchain_core.language_models import BaseChatModel, LanguageModelInput
+from langchain_core.language_models import LanguageModelInput
 from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import Runnable
-from langchain_openai import ChatOpenAI
-from pydantic import SecretStr
 
-from db.schema.chat_config import ChatConfig
-from db.schema.user import User
+from di.di import DI
 from features.chat.command_processor import CommandProcessor
-from features.chat.llm_tools.llm_tool_library import LLMToolLibrary
-from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
-from features.external_tools.access_token_resolver import AccessTokenResolver
+from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import GPT_4_1_MINI
+from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.prompting import prompt_library
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util.config import config
@@ -25,68 +21,48 @@ TooledChatModel = Runnable[LanguageModelInput, BaseMessage]
 
 
 class TelegramChatBot(SafePrinterMixin):
-    __chat: ChatConfig
-    __invoker: User
-    __llm_tool_library: LLMToolLibrary
+    DEFAULT_TOOL: ExternalTool = GPT_4_1_MINI
+    TOOL_TYPE: ToolType = ToolType.chat
+
     __messages: list[BaseMessage]
-    __attachment_ids: list[str]
     __raw_last_message: str  # excludes the resolver formatting
-    __command_processor: CommandProcessor
-    __progress_notifier: TelegramProgressNotifier
-    __access_token_resolver: AccessTokenResolver
-    __llm_has_access_token: bool
-    __llm_base: BaseChatModel
-    __llm_tools: TooledChatModel
+    __last_message_id: str
+    __attachment_ids: list[str]
+    __configured_tool: ConfiguredTool | None
+    __di: DI
 
     def __init__(
         self,
-        chat: ChatConfig,
-        invoker: User,
         messages: list[BaseMessage],
-        attachment_ids: list[str],
         raw_last_message: str,
-        command_processor: CommandProcessor,
-        progress_notifier: TelegramProgressNotifier,
-        access_token_resolver: AccessTokenResolver,
+        last_message_id: str,
+        attachment_ids: list[str],
+        configured_tool: ConfiguredTool | None,
+        di: DI,
     ):
         super().__init__(config.verbose)
-        self.__chat = chat
-        self.__invoker = invoker
-        self.__llm_tool_library = LLMToolLibrary()
         self.__messages = []
         self.__messages.append(
             SystemMessage(
                 prompt_library.add_metadata(
                     base_prompt = prompt_library.translator_on_response(
                         base_prompt = prompt_library.chat_telegram,
-                        language_name = chat.language_name,
-                        language_iso_code = chat.language_iso_code,
+                        language_name = di.invoker_chat.language_name,
+                        language_iso_code = di.invoker_chat.language_iso_code,
                     ),
-                    author = invoker,
-                    chat_id = chat.chat_id,
-                    chat_title = chat.title,
-                    available_tools = self.__llm_tool_library.tool_names,
+                    author = di.invoker,
+                    chat_id = di.invoker_chat.chat_id,
+                    chat_title = di.invoker_chat.title,
+                    available_tools = di.llm_tool_library.tool_names,
                 ),
             ),
         )
         self.__messages.extend(messages)
-        self.__attachment_ids = attachment_ids
         self.__raw_last_message = raw_last_message
-        self.__command_processor = command_processor
-        self.__progress_notifier = progress_notifier
-        self.__access_token_resolver = access_token_resolver
-
-        access_token = self.__access_token_resolver.get_access_token_for_tool(GPT_4_1_MINI)
-        self.__llm_has_access_token = access_token is not None
-        self.__llm_base = ChatOpenAI(
-            model = GPT_4_1_MINI.id,
-            temperature = 0.5,
-            max_tokens = 600,
-            timeout = float(config.web_timeout_s),
-            max_retries = config.web_retries,
-            api_key = access_token or SecretStr(str(None)),
-        )
-        self.__llm_tools = self.__llm_tool_library.bind_tools(self.__llm_base)
+        self.__last_message_id = last_message_id
+        self.__attachment_ids = attachment_ids
+        self.__configured_tool = configured_tool
+        self.__di = di
 
     def __add_message(self, message: TMessage) -> TMessage:
         self.__messages.append(message)
@@ -113,15 +89,18 @@ class TelegramChatBot(SafePrinterMixin):
             return answer
 
         # not a known command, but also no API key found
-        if not self.__llm_has_access_token:
-            self.sprint(f"No API key found for #{self.__invoker.id.hex}, skipping LLM processing")
+        if not self.__configured_tool:
+            self.sprint(f"No API key found for #{self.__di.invoker.id.hex}, skipping LLM processing")
             answer = AIMessage(prompt_library.error_general_problem("Not configured."))
             return answer
 
-        # main flow: process the messages using LLM AI
+        # main flow: process the messages using LLM and Tools
+        base_model = self.__di.chat_langchain_model(self.__configured_tool)
+        tools_model = self.__di.llm_tool_library.bind_tools(base_model)
+        progress_notifier = self.__di.telegram_progress_notifier(self.__last_message_id)
         try:
             iteration = 1
-            self.__progress_notifier.start()
+            progress_notifier.start()
             while True:
                 # don't blow up the costs
                 if iteration > config.max_chatbot_iterations:
@@ -130,7 +109,7 @@ class TelegramChatBot(SafePrinterMixin):
                     raise OverflowError(message)
 
                 # run the actual LLM completion
-                llm_answer = self.__llm_tools.invoke(self.__messages)
+                llm_answer = tools_model.invoke(self.__messages)
                 answer = self.__add_message(llm_answer)
 
                 # noinspection Pydantic
@@ -175,7 +154,7 @@ class TelegramChatBot(SafePrinterMixin):
                     tool_args: Any = tool_call["args"]
 
                     self.sprint(f"  Processing {tool_id} / '{tool_name}' tool call")
-                    tool_result: str | None = self.__llm_tool_library.invoke(tool_name, tool_args)
+                    tool_result: str | None = self.__di.llm_tool_library.invoke(tool_name, tool_args)
                     if not tool_result:
                         self.sprint(f"Tool {tool_name} not invoked!")
                         continue
@@ -188,10 +167,10 @@ class TelegramChatBot(SafePrinterMixin):
             text = prompt_library.error_general_problem(str(e))
             return AIMessage(text)
         finally:
-            self.__progress_notifier.stop()
+            progress_notifier.stop()
 
     def process_commands(self) -> Tuple[AIMessage, CommandProcessor.Result]:
-        result = self.__command_processor.execute(self.__raw_last_message)
+        result = self.__di.command_processor.execute(self.__raw_last_message)
         self.sprint(f"Command processing result is {result.value}")
         if result == CommandProcessor.Result.unknown or result == CommandProcessor.Result.success:
             text = ""
@@ -203,22 +182,26 @@ class TelegramChatBot(SafePrinterMixin):
 
     def should_reply(self) -> bool:
         has_content = bool(self.__raw_last_message.strip())
-        is_not_recursive = self.__invoker.telegram_username != TELEGRAM_BOT_USER.telegram_username
+        is_not_recursive = self.__di.invoker.telegram_username != TELEGRAM_BOT_USER.telegram_username
         is_bot_mentioned = f"@{TELEGRAM_BOT_USER.telegram_username}" in self.__raw_last_message
-        if self.__chat.reply_chance_percent == 100:
+        if self.__di.invoker_chat.reply_chance_percent == 100:
             should_reply_at_random = True
-        elif self.__chat.reply_chance_percent == 0:
+        elif self.__di.invoker_chat.reply_chance_percent == 0:
             should_reply_at_random = False
         else:
-            should_reply_at_random = random.randint(0, 100) <= self.__chat.reply_chance_percent
-        should_reply = has_content and is_not_recursive and (self.__chat.is_private or is_bot_mentioned or should_reply_at_random)
+            should_reply_at_random = random.randint(0, 100) <= self.__di.invoker_chat.reply_chance_percent
+        should_reply = (
+            has_content and
+            is_not_recursive and
+            (self.__di.invoker_chat.is_private or is_bot_mentioned or should_reply_at_random)
+        )
         self.sprint(
             f"Reply decision: {'REPLYING' if should_reply else 'NOT REPLYING'}. Conditions:\n"
             f"  · has_content      = {has_content}\n"
             f"  · is_not_recursive = {is_not_recursive}\n"
-            f"  · is_private_chat  = {self.__chat.is_private}\n"
+            f"  · is_private_chat  = {self.__di.invoker_chat.is_private}\n"
             f"  · is_bot_mentioned = {is_bot_mentioned}\n"
             f"  · reply_at_random  = {should_reply_at_random}\n"
-            f"  · reply_chance     = {self.__chat.reply_chance_percent}%",
+            f"  · reply_chance     = {self.__di.invoker_chat.reply_chance_percent}%",
         )
         return should_reply

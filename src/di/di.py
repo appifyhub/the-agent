@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     from features.chat.command_processor import CommandProcessor
     from features.chat.currency_alert_service import CurrencyAlertService
     from features.chat.dev_announcements_service import DevAnnouncementsService
+    from features.chat.llm_tools.llm_tool_library import LLMToolLibrary
     from features.chat.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
     from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
     from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
@@ -96,6 +97,7 @@ class DI:
     _domain_langchain_mapper: "DomainLangchainMapper | None"
     _telegram_data_resolver: "TelegramDataResolver | None"
     # Features
+    _llm_tool_library: "LLMToolLibrary | None"
     _command_processor: "CommandProcessor | None"
     _exchange_rate_fetcher: "ExchangeRateFetcher | None"
 
@@ -135,6 +137,7 @@ class DI:
         self._domain_langchain_mapper = None
         self._telegram_data_resolver = None
         # Features
+        self._llm_tool_library = None
         self._command_processor = None
         self._exchange_rate_fetcher = None
 
@@ -367,6 +370,13 @@ class DI:
     def chat_langchain_model(self, configured_tool: ConfiguredTool) -> "BaseChatModel":
         return langchain_creator.create(configured_tool)
 
+    @property
+    def llm_tool_library(self) -> "LLMToolLibrary":
+        if self._llm_tool_library is None:
+            from features.chat.llm_tools.llm_tool_library import LLMToolLibrary
+            self._llm_tool_library = LLMToolLibrary()
+        return self._llm_tool_library
+
     def telegram_progress_notifier(
         self,
         message_id: str,
@@ -384,28 +394,6 @@ class DI:
             text_update_interval_s,
         )
 
-    def telegram_chat_bot(
-        self,
-        messages: list[BaseMessage],
-        attachment_ids: list[str],
-        raw_last_message: str,
-        message_id: str,
-        auto_start: bool = False,
-        reaction_interval_s: int = DEFAULT_REACTION_INTERVAL_S,
-        text_update_interval_s: int = DEFAULT_TEXT_UPDATE_INTERVAL_S,
-    ) -> "TelegramChatBot":
-        from features.chat.telegram.telegram_chat_bot import TelegramChatBot
-        return TelegramChatBot(
-            self.invoker_chat,
-            self.invoker,
-            messages,
-            attachment_ids,
-            raw_last_message,
-            self.command_processor,
-            self.telegram_progress_notifier(message_id, auto_start, reaction_interval_s, text_update_interval_s),
-            self.access_token_resolver,
-        )
-
     @property
     def command_processor(self) -> "CommandProcessor":
         if self._command_processor is None:
@@ -419,6 +407,17 @@ class DI:
             )
         return self._command_processor
 
+    def telegram_chat_bot(
+        self,
+        messages: list[BaseMessage],
+        raw_last_message: str,
+        last_message_id: str,
+        attachment_ids: list[str],
+        configured_tool: ConfiguredTool | None,
+    ) -> "TelegramChatBot":
+        from features.chat.telegram.telegram_chat_bot import TelegramChatBot
+        return TelegramChatBot(messages, raw_last_message, last_message_id, attachment_ids, configured_tool, self)
+
     def web_fetcher(
         self,
         url: str,
@@ -431,14 +430,10 @@ class DI:
     ) -> "WebFetcher":
         from features.web_browsing.web_fetcher import WebFetcher
         return WebFetcher(
-            url,
-            self,
-            headers,
-            params,
-            cache_ttl_html,
-            cache_ttl_json,
-            auto_fetch_html,
-            auto_fetch_json,
+            url, self,
+            headers, params,
+            cache_ttl_html, cache_ttl_json,
+            auto_fetch_html, auto_fetch_json,
         )
 
     def html_content_cleaner(self, raw_html: str) -> "HTMLContentCleaner":
@@ -509,7 +504,12 @@ class DI:
         mime_type: str | None = None,
     ) -> "ImageEditor":
         from features.images.image_editor import ImageEditor
-        return ImageEditor(image_url, replicate_api_key, context, mime_type)
+        return ImageEditor(
+            image_url,
+            replicate_api_key,
+            context,
+            mime_type,
+        )
 
     # noinspection PyMethodMayBeStatic
     def image_background_remover(
@@ -519,7 +519,11 @@ class DI:
         mime_type: str | None = None,
     ) -> "ImageBackgroundRemover":
         from features.images.image_background_remover import ImageBackgroundRemover
-        return ImageBackgroundRemover(image_url, replicate_api_key, mime_type)
+        return ImageBackgroundRemover(
+            image_url,
+            replicate_api_key,
+            mime_type,
+        )
 
     # noinspection PyMethodMayBeStatic
     def image_contents_restorer(
@@ -641,11 +645,7 @@ class DI:
     ) -> "UserSupportService":
         from features.support.user_support_service import UserSupportService
         return UserSupportService(
-            user_input,
-            github_author,
-            include_telegram_username,
-            include_full_name,
-            request_type_str,
-            configured_tool,
-            self,
+            user_input, github_author,
+            include_telegram_username, include_full_name,
+            request_type_str, configured_tool, self,
         )
