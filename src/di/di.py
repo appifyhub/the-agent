@@ -316,13 +316,7 @@ class DI:
     def sponsorships_controller(self) -> "SponsorshipsController":
         if self._sponsorships_controller is None:
             from api.sponsorships_controller import SponsorshipsController
-            self._sponsorships_controller = SponsorshipsController(
-                self.invoker_id,
-                self.user_crud,
-                self.sponsorship_crud,
-                self.telegram_bot_sdk,
-                self.chat_config_crud,
-            )
+            self._sponsorships_controller = SponsorshipsController(self)
         return self._sponsorships_controller
 
     # === Internal tools ===
