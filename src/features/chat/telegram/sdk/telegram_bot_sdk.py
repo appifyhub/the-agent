@@ -5,7 +5,6 @@ from di.di import DI
 from features.chat.telegram.model.chat_member import ChatMember
 from features.chat.telegram.model.message import Message
 from features.chat.telegram.model.update import Update
-from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
@@ -101,7 +100,7 @@ class TelegramBotSDK(SafePrinterMixin):
         self.sprint("Storing API message data...")
         message = Message(**raw_api_response["result"])
         update = Update(update_id = time.time_ns(), message = message)
-        mapping_result = TelegramDomainMapper().map_update(update)
+        mapping_result = self.__di.telegram_domain_mapper.map_update(update)
         if not mapping_result:
             raise ValueError(f"Telegram API domain mapping failed for local update '{update.update_id}'")
         resolution_result = self.__di.telegram_data_resolver.resolve(mapping_result)

@@ -11,7 +11,6 @@ ConfiguredTool = tuple[ExternalTool, SecretStr, ToolType]
 
 
 class ToolResolutionError(Exception):
-
     def __init__(self, purpose: ToolType, user_id: str):
         message = f"Unable to resolve a tool for '{purpose.value}' for user '{user_id}'. "
         message += "Open your profile settings page to configure your tool choices and tokens."
@@ -43,9 +42,14 @@ class ToolChoiceResolver(SafePrinterMixin):
         for tool in prioritized_tools:
             access_token = self.__di.access_token_resolver.get_access_token_for_tool(tool)
             if access_token:
+                default_tool_id = (
+                    default_tool.id
+                    if isinstance(default_tool, ExternalTool)
+                    else (default_tool if isinstance(default_tool, str) else "<none>")
+                )
                 self.sprint(f"Found available tool '{tool.id}' from provider '{tool.provider.name}'")
-                self.sprint(f"  - Matches user choice '{user_choice_tool_id}'? {'Yes' if tool == user_choice_tool else 'No'}")
-                self.sprint(f"  - Matches default tool '{default_tool}'? {'Yes' if tool == default_tool else 'No'}")
+                self.sprint(f"  - Matches user choice '{user_choice_tool_id}'? {'Yes' if tool.id == user_choice_tool else 'No'}")
+                self.sprint(f"  - Matches default tool '{default_tool_id}'? {'Yes' if tool.id == default_tool_id else 'No'}")
                 return tool, access_token, purpose
             self.sprint(f"No access to tool '{tool.id}' from provider '{tool.provider.name}'")
 

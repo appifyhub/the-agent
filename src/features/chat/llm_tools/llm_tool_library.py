@@ -221,7 +221,7 @@ def ai_web_search(user_id: str, search_query: str) -> str:
     try:
         with get_detached_session() as db:
             di = DI(db, user_id)
-            configured_tool = di.tool_choice_resolver.require_tool(AIWebSearch.TOOL_TYPE)
+            configured_tool = di.tool_choice_resolver.require_tool(AIWebSearch.TOOL_TYPE, AIWebSearch.DEFAULT_TOOL)
             search = di.ai_web_search(search_query, configured_tool)
             result = search.execute()
             if not result.content:
@@ -243,7 +243,10 @@ def announce_maintenance_or_news(user_id: str, raw_announcement: str) -> str:
     try:
         with get_detached_session() as db:
             di = DI(db, user_id)
-            configured_tool = di.tool_choice_resolver.require_tool(DevAnnouncementsService.TOOL_TYPE)
+            configured_tool = di.tool_choice_resolver.require_tool(
+                DevAnnouncementsService.TOOL_TYPE,
+                DevAnnouncementsService.DEFAULT_TOOL,
+            )
             results = di.dev_announcements_service(raw_announcement, None, configured_tool).execute()
             return __success(
                 {
@@ -268,7 +271,10 @@ def deliver_message(author_user_id: str, message: str, target_telegram_username:
     try:
         with get_detached_session() as db:
             di = DI(db, author_user_id)
-            configured_tool = di.tool_choice_resolver.require_tool(DevAnnouncementsService.TOOL_TYPE)
+            configured_tool = di.tool_choice_resolver.require_tool(
+                DevAnnouncementsService.TOOL_TYPE,
+                DevAnnouncementsService.DEFAULT_TOOL,
+            )
             results = di.dev_announcements_service(message, target_telegram_username, configured_tool).execute()
             return __success(
                 {
@@ -305,7 +311,10 @@ def request_feature_bug_or_support(
     try:
         with get_detached_session() as db:
             di = DI(db, author_user_id)
-            configured_tool = di.tool_choice_resolver.require_tool(UserSupportService.TOOL_TYPE)
+            configured_tool = di.tool_choice_resolver.require_tool(
+                UserSupportService.TOOL_TYPE,
+                UserSupportService.DEFAULT_TOOL,
+            )
             service = di.user_support_service(
                 user_request_details, author_github_username,
                 include_telegram_username, include_full_name,
