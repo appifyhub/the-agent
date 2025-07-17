@@ -1,30 +1,21 @@
 import time
 
-from sqlalchemy.orm import Session
-
 from db.schema.chat_message import ChatMessage
+from di.di import DI
 from features.chat.telegram.model.chat_member import ChatMember
 from features.chat.telegram.model.message import Message
 from features.chat.telegram.model.update import Update
-from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
-from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
 
 class TelegramBotSDK(SafePrinterMixin):
-    _db: Session
-    api: TelegramBotAPI
+    __di: DI
 
-    def __init__(
-        self,
-        db: Session,
-        override_bot_api: TelegramBotAPI | None = None,
-    ):
+    def __init__(self, di: DI):
         super().__init__(config.verbose)
-        self._db = db
-        self.api = override_bot_api or TelegramBotAPI()
+        self.__di = di
 
     def send_text_message(
         self,
@@ -34,7 +25,7 @@ class TelegramBotSDK(SafePrinterMixin):
         disable_notification: bool = False,
         link_preview_options: dict | None = None,
     ) -> ChatMessage:
-        sent_message = self.api.send_text_message(
+        sent_message = self.__di.telegram_bot_api.send_text_message(
             chat_id = chat_id,
             text = text,
             parse_mode = parse_mode,
@@ -51,7 +42,7 @@ class TelegramBotSDK(SafePrinterMixin):
         parse_mode: str = "markdown",
         disable_notification: bool = False,
     ) -> ChatMessage:
-        sent_message = self.api.send_photo(
+        sent_message = self.__di.telegram_bot_api.send_photo(
             chat_id = chat_id,
             photo_url = photo_url,
             caption = caption,
@@ -69,7 +60,7 @@ class TelegramBotSDK(SafePrinterMixin):
         caption: str | None = None,
         disable_notification: bool = False,
     ) -> ChatMessage:
-        sent_message = self.api.send_document(
+        sent_message = self.__di.telegram_bot_api.send_document(
             chat_id = chat_id,
             document_url = document_url,
             caption = caption,
@@ -80,28 +71,28 @@ class TelegramBotSDK(SafePrinterMixin):
         return self.__store_api_response_as_message(sent_message)
 
     def set_status_typing(self, chat_id: int | str):
-        self.api.set_status_typing(chat_id)
+        self.__di.telegram_bot_api.set_status_typing(chat_id)
 
     def set_status_uploading_image(self, chat_id: int | str):
-        self.api.set_status_uploading_image(chat_id)
+        self.__di.telegram_bot_api.set_status_uploading_image(chat_id)
 
     def set_reaction(self, chat_id: int | str, message_id: int | str, reaction: str | None):
-        self.api.set_reaction(chat_id = chat_id, message_id = message_id, reaction = reaction)
+        self.__di.telegram_bot_api.set_reaction(chat_id = chat_id, message_id = message_id, reaction = reaction)
 
     def send_button_link(self, chat_id: int | str, link_url: str, button_text: str = "⚙️") -> ChatMessage:
-        sent_message = self.api.send_button_link(chat_id, link_url, button_text)
+        sent_message = self.__di.telegram_bot_api.send_button_link(chat_id, link_url, button_text)
         return self.__store_api_response_as_message(sent_message)
 
     def get_chat_member(self, chat_id: int | str, user_id: int | str) -> ChatMember | None:
         try:
-            return self.api.get_chat_member(chat_id, user_id)
+            return self.__di.telegram_bot_api.get_chat_member(chat_id, user_id)
         except Exception as e:
             self.sprint(f"Failed to get chat member '{user_id}' from chat '{chat_id}'", e)
             return None
 
     def get_chat_administrators(self, chat_id: int | str) -> list[ChatMember] | None:
         try:
-            return self.api.get_chat_administrators(chat_id)
+            return self.__di.telegram_bot_api.get_chat_administrators(chat_id)
         except Exception as e:
             self.sprint(f"Failed to get chat administrators for chat '{chat_id}'", e)
             return None
@@ -113,9 +104,7 @@ class TelegramBotSDK(SafePrinterMixin):
         mapping_result = TelegramDomainMapper().map_update(update)
         if not mapping_result:
             raise ValueError(f"Telegram API domain mapping failed for local update '{update.update_id}'")
-        # noinspection PyProtectedMember
-        data_resolver = TelegramDataResolver(self._db, self.api)
-        resolution_result = data_resolver.resolve(mapping_result)
+        resolution_result = self.__di.telegram_data_resolver.resolve(mapping_result)
         if not resolution_result.message:
             raise ValueError(f"Telegram data resolution failed for local update '{update.update_id}'")
         # noinspection PyTypeChecker

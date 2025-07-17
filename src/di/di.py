@@ -232,7 +232,7 @@ class DI:
     def telegram_bot_sdk(self) -> "TelegramBotSDK":
         if self._telegram_bot_sdk is None:
             from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
-            self._telegram_bot_sdk = TelegramBotSDK(self.db, self.telegram_bot_api)
+            self._telegram_bot_sdk = TelegramBotSDK(self)
         return self._telegram_bot_sdk
 
     # === Repositories ===
