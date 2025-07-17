@@ -10,10 +10,6 @@ from sqlalchemy.orm import Session
 
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
-from features.chat.telegram.telegram_progress_notifier import (
-    DEFAULT_REACTION_INTERVAL_S,
-    DEFAULT_TEXT_UPDATE_INTERVAL_S,
-)
 from features.llm import langchain_creator
 
 if TYPE_CHECKING:
@@ -381,18 +377,17 @@ class DI:
         self,
         message_id: str,
         auto_start: bool = False,
-        reaction_interval_s: int = DEFAULT_REACTION_INTERVAL_S,
-        text_update_interval_s: int = DEFAULT_TEXT_UPDATE_INTERVAL_S,
+        reaction_interval_s: int | None = None,
+        text_update_interval_s: int | None = None,
     ) -> "TelegramProgressNotifier":
-        from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
-        return TelegramProgressNotifier(
-            self.invoker_chat,
-            message_id,
-            self.telegram_bot_sdk,
-            auto_start,
-            reaction_interval_s,
-            text_update_interval_s,
+        from features.chat.telegram.telegram_progress_notifier import (
+            DEFAULT_REACTION_INTERVAL_S,
+            DEFAULT_TEXT_UPDATE_INTERVAL_S,
+            TelegramProgressNotifier,
         )
+        reaction_interval_s = reaction_interval_s or DEFAULT_REACTION_INTERVAL_S
+        text_update_interval_s = text_update_interval_s or DEFAULT_TEXT_UPDATE_INTERVAL_S
+        return TelegramProgressNotifier(message_id, self, auto_start, reaction_interval_s, text_update_interval_s)
 
     @property
     def command_processor(self) -> "CommandProcessor":
