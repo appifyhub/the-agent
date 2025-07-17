@@ -9,6 +9,7 @@ from requests.exceptions import RequestException, Timeout
 
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from di.di import DI
+from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.web_browsing.twitter_status_fetcher import TwitterStatusFetcher
 from features.web_browsing.twitter_utils import resolve_tweet_id
 from features.web_browsing.uri_cleanup import simplify_url
@@ -27,12 +28,13 @@ class WebFetcher(SafePrinterMixin):
     url: str
     html: str | None
     json: dict | None
-    tweed_id: str | None
+    __tweet_id: str | None
     __cache_key: str
     __headers: dict[str, str]
     __params: dict[str, Any]
     __cache_ttl_html: timedelta
     __cache_ttl_json: timedelta
+    __tweet_fetcher: TwitterStatusFetcher | None
     __di: DI
 
     def __init__(
@@ -56,7 +58,28 @@ class WebFetcher(SafePrinterMixin):
         self.__cache_key = self.__generate_cache_key()
         self.__cache_ttl_html = cache_ttl_html or DEFAULT_CACHE_TTL_HTML
         self.__cache_ttl_json = cache_ttl_json or DEFAULT_CACHE_TTL_JSON
-        self.tweed_id = resolve_tweet_id(self.url)
+        self.__tweet_id = resolve_tweet_id(self.url)
+        if self.__tweet_id:
+            self.sprint(f"Resolved tweet ID: {self.__tweet_id}")
+            twitter_api_tool = di.tool_choice_resolver.require_tool(
+                TwitterStatusFetcher.TWITTER_TOOL_TYPE,
+                TwitterStatusFetcher.DEFAULT_TWITTER_TOOL,
+            )
+            vision_tool = di.tool_choice_resolver.require_tool(
+                TwitterStatusFetcher.VISION_TOOL_TYPE,
+                TwitterStatusFetcher.DEFAULT_VISION_TOOL,
+            )
+            # load the system tool for now (will be migrated away)
+            twitter_enterprise_tool: ConfiguredTool = (
+                TwitterStatusFetcher.DEFAULT_TWITTER_TOOL,
+                config.rapid_api_twitter_token,
+                TwitterStatusFetcher.TWITTER_TOOL_TYPE,
+            )
+            self.__tweet_fetcher = di.twitter_status_fetcher(
+                self.__tweet_id, twitter_api_tool, vision_tool, twitter_enterprise_tool,
+            )
+        else:
+            self.__tweet_fetcher = None
         if auto_fetch_html:
             self.fetch_html()
         if auto_fetch_json:
@@ -84,17 +107,8 @@ class WebFetcher(SafePrinterMixin):
         attempts = 0
         for _ in range(config.web_retries):
             try:
-                if self.tweed_id:
-                    tweet_fetcher = TwitterStatusFetcher(
-                        self.tweed_id,
-                        self.__di.invoker,
-                        self.__di.tools_cache_crud,
-                        self.__di.user_crud,
-                        self.__di.chat_config_crud,
-                        self.__di.sponsorship_crud,
-                        self.__di.telegram_bot_sdk,
-                    )
-                    response_text = tweet_fetcher.execute()
+                if self.__tweet_fetcher:
+                    response_text = self.__tweet_fetcher.execute()
                     self.html = f"<html><body>\n<p>\n{response_text}\n</p>\n</body></html>"
                 else:
                     # run a standard request for a web page
@@ -148,17 +162,8 @@ class WebFetcher(SafePrinterMixin):
         attempts = 0
         for _ in range(config.web_retries):
             try:
-                if self.tweed_id:
-                    tweet_fetcher = TwitterStatusFetcher(
-                        self.tweed_id,
-                        self.__di.invoker,
-                        self.__di.tools_cache_crud,
-                        self.__di.user_crud,
-                        self.__di.chat_config_crud,
-                        self.__di.sponsorship_crud,
-                        self.__di.telegram_bot_sdk,
-                    )
-                    response_text = tweet_fetcher.execute()
+                if self.__tweet_fetcher:
+                    response_text = self.__tweet_fetcher.execute()
                     self.json = {"content": response_text}
                 else:
                     response = requests.get(

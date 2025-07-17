@@ -1,9 +1,8 @@
 from pydantic import SecretStr
 
-from db.crud.sponsorship import SponsorshipCRUD
-from db.crud.user import UserCRUD
 from db.schema.sponsorship import Sponsorship
 from db.schema.user import User
+from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ExternalToolProvider
 from features.external_tools.external_tool_provider_library import (
     ANTHROPIC,
@@ -28,20 +27,11 @@ class TokenResolutionError(Exception):
 
 
 class AccessTokenResolver(SafePrinterMixin):
-    __invoker: User
-    __user_dao: UserCRUD
-    __sponsorship_dao: SponsorshipCRUD
+    __di: DI
 
-    def __init__(
-        self,
-        invoker: User,
-        user_dao: UserCRUD,
-        sponsorship_dao: SponsorshipCRUD,
-    ):
+    def __init__(self, di: DI):
         super().__init__(config.verbose)
-        self.__invoker = invoker
-        self.__user_dao = user_dao
-        self.__sponsorship_dao = sponsorship_dao
+        self.__di = di
 
     def require_access_token_for_tool(self, tool: ExternalTool) -> SecretStr:
         token = self.get_access_token_for_tool(tool)
@@ -63,22 +53,22 @@ class AccessTokenResolver(SafePrinterMixin):
         self.sprint(f"Resolving access token for provider '{provider.id}'")
 
         # check if invoker has a direct token
-        user_token = self.__get_user_token_for_provider(self.__invoker, provider)
+        user_token = self.__get_user_token_for_provider(self.__di.invoker, provider)
         if user_token:
             self.sprint(f"Found direct token for provider '{provider.id}'")
             return SecretStr(user_token)
         self.sprint("No direct token found for invoker user")
 
         # check if invoker has a sponsorship
-        sponsorships_db = self.__sponsorship_dao.get_all_by_receiver(self.__invoker.id, limit = 1)
+        sponsorships_db = self.__di.sponsorship_crud.get_all_by_receiver(self.__di.invoker.id, limit = 1)
         if not sponsorships_db:
-            self.sprint(f"User '{self.__invoker.id.hex}' has no sponsorships")
+            self.sprint(f"User '{self.__di.invoker.id.hex}' has no sponsorships")
             return None
 
         # get sponsor and check their token
         self.sprint("Checking sponsorships for invoker user now")
         sponsorship = Sponsorship.model_validate(sponsorships_db[0])
-        sponsor_user_db = self.__user_dao.get(sponsorship.sponsor_id)
+        sponsor_user_db = self.__di.user_crud.get(sponsorship.sponsor_id)
         if not sponsor_user_db:
             self.sprint(f"Sponsor '{sponsorship.sponsor_id.hex}' not found")
             return None

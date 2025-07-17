@@ -7,6 +7,7 @@ from pydantic import SecretStr
 
 from db.model.user import UserDB
 from db.schema.user import User
+from di.di import DI
 from features.external_tools.access_token_resolver import AccessTokenResolver
 from features.external_tools.external_tool import ToolType
 from features.external_tools.external_tool_library import CLAUDE_3_5_SONNET, GPT_4O_MINI
@@ -16,6 +17,7 @@ from features.external_tools.tool_choice_resolver import ToolChoiceResolver, Too
 class ToolChoiceResolverTest(unittest.TestCase):
     invoker_user: User
     mock_access_token_resolver: Mock
+    mock_di: DI
 
     def setUp(self):
         self.invoker_user = User(
@@ -32,6 +34,11 @@ class ToolChoiceResolverTest(unittest.TestCase):
             created_at = datetime.now().date(),
         )
         self.mock_access_token_resolver = Mock(spec = AccessTokenResolver)
+        self.mock_di = Mock(spec = DI)
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker = self.invoker_user
+        # noinspection PyPropertyAccess
+        self.mock_di.access_token_resolver = self.mock_access_token_resolver
 
     def test_find_tool_by_id_success_existing_tool(self):
         tool = ToolChoiceResolver.find_tool_by_id(GPT_4O_MINI.id)
@@ -135,7 +142,7 @@ class ToolChoiceResolverTest(unittest.TestCase):
     def test_get_tool_success_user_has_access_to_user_choice(self):
         self.mock_access_token_resolver.get_access_token_for_tool.return_value = SecretStr("test_token")
 
-        resolver = ToolChoiceResolver(self.invoker_user, self.mock_access_token_resolver)
+        resolver = ToolChoiceResolver(self.mock_di)
         result = resolver.get_tool(ToolType.chat)
 
         self.assertIsNotNone(result)
@@ -154,7 +161,7 @@ class ToolChoiceResolverTest(unittest.TestCase):
 
         self.mock_access_token_resolver.get_access_token_for_tool.side_effect = mock_get_access_token_for_tool
 
-        resolver = ToolChoiceResolver(self.invoker_user, self.mock_access_token_resolver)
+        resolver = ToolChoiceResolver(self.mock_di)
         result = resolver.get_tool(ToolType.chat)
 
         self.assertIsNotNone(result)
@@ -176,7 +183,7 @@ class ToolChoiceResolverTest(unittest.TestCase):
 
         self.mock_access_token_resolver.get_access_token_for_tool.side_effect = mock_get_access_token_for_tool
 
-        resolver = ToolChoiceResolver(self.invoker_user, self.mock_access_token_resolver)
+        resolver = ToolChoiceResolver(self.mock_di)
         result = resolver.get_tool(ToolType.chat, default_tool = GPT_4O_MINI.id)
 
         self.assertIsNotNone(result)
@@ -190,7 +197,7 @@ class ToolChoiceResolverTest(unittest.TestCase):
     def test_get_tool_failure_no_access_to_any_tool(self):
         self.mock_access_token_resolver.get_access_token_for_tool.return_value = None
 
-        resolver = ToolChoiceResolver(self.invoker_user, self.mock_access_token_resolver)
+        resolver = ToolChoiceResolver(self.mock_di)
         result = resolver.get_tool(ToolType.chat)
 
         self.assertIsNone(result)
@@ -198,7 +205,7 @@ class ToolChoiceResolverTest(unittest.TestCase):
     def test_require_tool_success(self):
         self.mock_access_token_resolver.get_access_token_for_tool.return_value = SecretStr("test_token")
 
-        resolver = ToolChoiceResolver(self.invoker_user, self.mock_access_token_resolver)
+        resolver = ToolChoiceResolver(self.mock_di)
         result = resolver.require_tool(ToolType.chat)
 
         self.assertIsNotNone(result)
@@ -212,7 +219,7 @@ class ToolChoiceResolverTest(unittest.TestCase):
     def test_require_tool_failure_raises_exception(self):
         self.mock_access_token_resolver.get_access_token_for_tool.return_value = None
 
-        resolver = ToolChoiceResolver(self.invoker_user, self.mock_access_token_resolver)
+        resolver = ToolChoiceResolver(self.mock_di)
 
         with self.assertRaises(ToolResolutionError) as context:
             resolver.require_tool(ToolType.chat)
@@ -224,7 +231,7 @@ class ToolChoiceResolverTest(unittest.TestCase):
     def test_user_tool_choice_mapping_through_public_interface(self):
         self.mock_access_token_resolver.get_access_token_for_tool.return_value = SecretStr("test_token_1")
 
-        resolver = ToolChoiceResolver(self.invoker_user, self.mock_access_token_resolver)
+        resolver = ToolChoiceResolver(self.mock_di)
 
         chat_result = resolver.get_tool(ToolType.chat)
         self.assertIsNotNone(chat_result)

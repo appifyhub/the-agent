@@ -11,6 +11,7 @@ from db.model.sponsorship import SponsorshipDB
 from db.model.user import UserDB
 from db.schema.sponsorship import Sponsorship
 from db.schema.user import User
+from di.di import DI
 from features.external_tools.access_token_resolver import AccessTokenResolver, TokenResolutionError
 from features.external_tools.external_tool import ExternalTool, ExternalToolProvider, ToolType
 from features.external_tools.external_tool_provider_library import (
@@ -27,8 +28,9 @@ class AccessTokenResolverTest(unittest.TestCase):
     invoker_user: User
     sponsor_user: User
     sponsorship: Sponsorship
-    mock_user_dao: Mock
-    mock_sponsorship_dao: Mock
+    mock_user_dao: UserCRUD
+    mock_sponsorship_dao: SponsorshipCRUD
+    mock_di: DI
     openai_provider: ExternalToolProvider
     anthropic_provider: ExternalToolProvider
     openai_tool: ExternalTool
@@ -73,6 +75,13 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         self.mock_user_dao = Mock(spec = UserCRUD)
         self.mock_sponsorship_dao = Mock(spec = SponsorshipCRUD)
+        self.mock_di = Mock(spec = DI)
+        # noinspection PyPropertyAccess
+        self.mock_di.user_crud = self.mock_user_dao
+        # noinspection PyPropertyAccess
+        self.mock_di.sponsorship_crud = self.mock_sponsorship_dao
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker = self.invoker_user
 
         self.openai_provider = OPEN_AI
         self.anthropic_provider = ANTHROPIC
@@ -84,87 +93,80 @@ class AccessTokenResolverTest(unittest.TestCase):
         )
 
     def test_init_with_user_object_success(self):
-        resolver = AccessTokenResolver(
-            user_dao = self.mock_user_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            invoker = self.invoker_user,
-        )
+        resolver = AccessTokenResolver(self.mock_di)
 
         # Should not raise an exception
         self.assertIsNotNone(resolver)
+        # noinspection PyUnresolvedReferences
         self.mock_user_dao.get.assert_not_called()
 
     def test_get_access_token_success_user_has_direct_token(self):
         # Mock to avoid sponsorship lookup since user has direct token
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
 
-        resolver = AccessTokenResolver(
-            user_dao = self.mock_user_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            invoker = self.invoker_user,
-        )
+        resolver = AccessTokenResolver(self.mock_di)
 
         token = resolver.get_access_token(self.openai_provider)
 
         self.assertIsNotNone(token)
         self.assertIsInstance(token, SecretStr)
         self.assertEqual(token.get_secret_value(), self.invoker_user.open_ai_key)
+        # noinspection PyUnresolvedReferences
         self.mock_sponsorship_dao.get_all_by_receiver.assert_not_called()
 
     def test_get_access_token_success_user_no_token_has_sponsorship(self):
         user_without_token = self.invoker_user.model_copy(update = {"open_ai_key": None})
         sponsorship_db = SponsorshipDB(**self.sponsorship.model_dump())
         sponsor_user_db = UserDB(**self.sponsor_user.model_dump())
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker = user_without_token
 
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = [sponsorship_db]
         self.mock_user_dao.get.return_value = sponsor_user_db
 
-        resolver = AccessTokenResolver(
-            user_dao = self.mock_user_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            invoker = user_without_token,
-        )
+        resolver = AccessTokenResolver(self.mock_di)
 
         token = resolver.get_access_token(self.openai_provider)
 
         self.assertIsNotNone(token)
         self.assertIsInstance(token, SecretStr)
         self.assertEqual(token.get_secret_value(), self.sponsor_user.open_ai_key)
+        # noinspection PyUnresolvedReferences
         self.mock_sponsorship_dao.get_all_by_receiver.assert_called_once_with(user_without_token.id, limit = 1)
+        # noinspection PyUnresolvedReferences
         self.mock_user_dao.get.assert_called_once_with(self.sponsorship.sponsor_id)
 
     def test_get_access_token_failure_user_no_token_no_sponsorship(self):
         user_without_token = self.invoker_user.model_copy(update = {"open_ai_key": None})
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker = user_without_token
 
-        resolver = AccessTokenResolver(
-            user_dao = self.mock_user_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            invoker = user_without_token,
-        )
+        resolver = AccessTokenResolver(self.mock_di)
 
         token = resolver.get_access_token(self.openai_provider)
 
         self.assertIsNone(token)
+        # noinspection PyUnresolvedReferences
         self.mock_sponsorship_dao.get_all_by_receiver.assert_called_once_with(user_without_token.id, limit = 1)
 
     def test_get_access_token_failure_user_no_token_sponsor_not_found(self):
         user_without_token = self.invoker_user.model_copy(update = {"open_ai_key": None})
         sponsorship_db = SponsorshipDB(**self.sponsorship.model_dump())
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker = user_without_token
 
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = [sponsorship_db]
         self.mock_user_dao.get.return_value = None
 
-        resolver = AccessTokenResolver(
-            user_dao = self.mock_user_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            invoker = user_without_token,
-        )
+        resolver = AccessTokenResolver(self.mock_di)
 
         token = resolver.get_access_token(self.openai_provider)
 
         self.assertIsNone(token)
+        # noinspection PyUnresolvedReferences
         self.mock_sponsorship_dao.get_all_by_receiver.assert_called_once_with(user_without_token.id, limit = 1)
+        # noinspection PyUnresolvedReferences
         self.mock_user_dao.get.assert_called_once_with(self.sponsorship.sponsor_id)
 
     def test_get_access_token_failure_user_no_token_sponsor_no_token(self):
@@ -172,15 +174,13 @@ class AccessTokenResolverTest(unittest.TestCase):
         sponsor_without_token = self.sponsor_user.model_copy(update = {"open_ai_key": None})
         sponsorship_db = SponsorshipDB(**self.sponsorship.model_dump())
         sponsor_user_db = UserDB(**sponsor_without_token.model_dump())
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker = user_without_token
 
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = [sponsorship_db]
         self.mock_user_dao.get.return_value = sponsor_user_db
 
-        resolver = AccessTokenResolver(
-            user_dao = self.mock_user_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            invoker = user_without_token,
-        )
+        resolver = AccessTokenResolver(self.mock_di)
 
         token = resolver.get_access_token(self.openai_provider)
 
@@ -199,11 +199,7 @@ class AccessTokenResolverTest(unittest.TestCase):
             tools = ["test-tool"],
         )
 
-        resolver = AccessTokenResolver(
-            user_dao = self.mock_user_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            invoker = self.invoker_user,
-        )
+        resolver = AccessTokenResolver(self.mock_di)
 
         token = resolver.get_access_token(unsupported_provider)
 
@@ -213,11 +209,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         # Mock to avoid sponsorship lookup since user has direct token
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
 
-        resolver = AccessTokenResolver(
-            user_dao = self.mock_user_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            invoker = self.invoker_user,
-        )
+        resolver = AccessTokenResolver(self.mock_di)
 
         token = resolver.get_access_token_for_tool(self.openai_tool)
 
@@ -229,11 +221,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         # Mock to avoid sponsorship lookup since user has direct token
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
 
-        resolver = AccessTokenResolver(
-            user_dao = self.mock_user_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            invoker = self.invoker_user,
-        )
+        resolver = AccessTokenResolver(self.mock_di)
 
         token = resolver.require_access_token(self.openai_provider)
 
@@ -244,12 +232,10 @@ class AccessTokenResolverTest(unittest.TestCase):
     def test_require_access_token_failure_raises_exception(self):
         user_without_token = self.invoker_user.model_copy(update = {"open_ai_key": None})
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker = user_without_token
 
-        resolver = AccessTokenResolver(
-            user_dao = self.mock_user_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            invoker = user_without_token,
-        )
+        resolver = AccessTokenResolver(self.mock_di)
 
         with self.assertRaises(TokenResolutionError) as context:
             resolver.require_access_token(self.openai_provider)
@@ -260,11 +246,7 @@ class AccessTokenResolverTest(unittest.TestCase):
         # Mock to avoid sponsorship lookup since user has direct token
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
 
-        resolver = AccessTokenResolver(
-            user_dao = self.mock_user_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            invoker = self.invoker_user,
-        )
+        resolver = AccessTokenResolver(self.mock_di)
 
         token = resolver.require_access_token_for_tool(self.openai_tool)
 
@@ -275,12 +257,10 @@ class AccessTokenResolverTest(unittest.TestCase):
     def test_require_access_token_for_tool_failure_raises_exception(self):
         user_without_token = self.invoker_user.model_copy(update = {"open_ai_key": None})
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker = user_without_token
 
-        resolver = AccessTokenResolver(
-            user_dao = self.mock_user_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            invoker = user_without_token,
-        )
+        resolver = AccessTokenResolver(self.mock_di)
 
         with self.assertRaises(TokenResolutionError):
             resolver.require_access_token_for_tool(self.openai_tool)
@@ -288,11 +268,7 @@ class AccessTokenResolverTest(unittest.TestCase):
     def test_get_access_token_anthropic_success_user_has_direct_token(self):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
 
-        resolver = AccessTokenResolver(
-            user_dao = self.mock_user_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            invoker = self.invoker_user,
-        )
+        resolver = AccessTokenResolver(self.mock_di)
 
         token = resolver.get_access_token(ANTHROPIC)
 
@@ -303,11 +279,7 @@ class AccessTokenResolverTest(unittest.TestCase):
     def test_get_access_token_perplexity_success_user_has_direct_token(self):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
 
-        resolver = AccessTokenResolver(
-            user_dao = self.mock_user_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            invoker = self.invoker_user,
-        )
+        resolver = AccessTokenResolver(self.mock_di)
 
         token = resolver.get_access_token(PERPLEXITY)
 
@@ -318,11 +290,7 @@ class AccessTokenResolverTest(unittest.TestCase):
     def test_get_access_token_replicate_success_user_has_direct_token(self):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
 
-        resolver = AccessTokenResolver(
-            user_dao = self.mock_user_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            invoker = self.invoker_user,
-        )
+        resolver = AccessTokenResolver(self.mock_di)
 
         token = resolver.get_access_token(REPLICATE)
 
@@ -333,11 +301,7 @@ class AccessTokenResolverTest(unittest.TestCase):
     def test_get_access_token_rapid_api_success_user_has_direct_token(self):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
 
-        resolver = AccessTokenResolver(
-            user_dao = self.mock_user_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            invoker = self.invoker_user,
-        )
+        resolver = AccessTokenResolver(self.mock_di)
 
         token = resolver.get_access_token(RAPID_API)
 
@@ -348,11 +312,7 @@ class AccessTokenResolverTest(unittest.TestCase):
     def test_get_access_token_coinmarketcap_success_user_has_direct_token(self):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
 
-        resolver = AccessTokenResolver(
-            user_dao = self.mock_user_dao,
-            sponsorship_dao = self.mock_sponsorship_dao,
-            invoker = self.invoker_user,
-        )
+        resolver = AccessTokenResolver(self.mock_di)
 
         token = resolver.get_access_token(COINMARKETCAP)
 

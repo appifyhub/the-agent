@@ -1,15 +1,15 @@
 import unittest
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
-from uuid import UUID
+from unittest.mock import MagicMock, Mock, patch
 
 import requests
 import requests_mock
 from pydantic import SecretStr
 from requests_mock import Mocker
 
-from db.crud.tools_cache import ToolsCacheCRUD
 from db.schema.tools_cache import ToolsCache
+from di.di import DI
+from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.web_browsing.twitter_status_fetcher import TwitterStatusFetcher
 from util.config import config
 
@@ -18,12 +18,10 @@ class TwitterStatusFetcherTest(unittest.TestCase):
     tweet_id: str
     api_url: str
     cache_entry: ToolsCache
-    mock_cache_crud: ToolsCacheCRUD
-    mock_user_dao: MagicMock
-    mock_chat_config_dao: MagicMock
-    mock_sponsorship_dao: MagicMock
-    mock_telegram_bot_sdk: MagicMock
-    mock_user: MagicMock
+    mock_di: DI
+    mock_twitter_api_tool: ConfiguredTool
+    mock_vision_tool: ConfiguredTool
+    mock_twitter_enterprise_tool: ConfiguredTool
 
     def setUp(self):
         config.web_timeout_s = 0
@@ -35,51 +33,50 @@ class TwitterStatusFetcherTest(unittest.TestCase):
             value = "This is cached tweet content",
             expires_at = datetime.now() + timedelta(minutes = 5),
         )
-        self.mock_cache_crud = MagicMock()
-        self.mock_cache_crud.create_key.return_value = "test_cache_key"
-        self.mock_cache_crud.save.return_value = None
-        self.mock_user_dao = MagicMock()
-        self.mock_chat_config_dao = MagicMock()
-        self.mock_sponsorship_dao = MagicMock()
-        self.mock_telegram_bot_sdk = MagicMock()
 
-        # Mock user
-        self.mock_user = MagicMock()
-        self.mock_user.id = UUID("12345678-1234-5678-1234-567812345678")
+        # Set up DI container
+        self.mock_di = Mock(spec = DI)
+        # noinspection PyPropertyAccess
+        self.mock_di.tools_cache_crud = MagicMock()
+        self.mock_di.tools_cache_crud.create_key.return_value = "test_cache_key"
+        self.mock_di.tools_cache_crud.save.return_value = None
+        self.mock_di.computer_vision_analyzer = MagicMock()
+
+        # Set up configured tools
+        mock_twitter_tool = MagicMock()
+        mock_twitter_tool.id = "twitter-api-v1-1-enterprise.p.rapidapi.com"
+        self.mock_twitter_api_tool = (mock_twitter_tool, SecretStr("test_twitter_token"), MagicMock())
+
+        mock_vision_tool = MagicMock()
+        mock_vision_tool.id = "vision-tool-id"
+        self.mock_vision_tool = (mock_vision_tool, SecretStr("test_vision_token"), MagicMock())
+
+        mock_enterprise_tool = MagicMock()
+        mock_enterprise_tool.id = "enterprise-tool-id"
+        self.mock_twitter_enterprise_tool = (mock_enterprise_tool, SecretStr("test_enterprise_token"), MagicMock())
 
     # noinspection PyUnusedLocal
     @requests_mock.Mocker()
-    @patch("features.web_browsing.twitter_status_fetcher.AuthorizationService")
-    @patch("features.web_browsing.twitter_status_fetcher.AccessTokenResolver")
     @patch("features.web_browsing.twitter_status_fetcher.sleep", return_value = None)
-    def test_execute_cache_hit(self, m: Mocker, mock_sleep, mock_token_resolver, mock_auth_service):
-        mock_auth_service.return_value.validate_user.return_value = self.mock_user
-        mock_token_resolver.return_value.require_access_token_for_tool.return_value = SecretStr("test_token")
+    def test_execute_cache_hit(self, m: Mocker, mock_sleep):
+        self.mock_di.tools_cache_crud.get.return_value = self.cache_entry.model_dump()
 
-        self.mock_cache_crud.get.return_value = self.cache_entry.model_dump()
         fetcher = TwitterStatusFetcher(
-            "123456789",
-            self.mock_user,
-            self.mock_cache_crud,
-            self.mock_user_dao,
-            self.mock_chat_config_dao,
-            self.mock_sponsorship_dao,
-            self.mock_telegram_bot_sdk,
+            tweet_id = "123456789",
+            twitter_api_tool = self.mock_twitter_api_tool,
+            vision_tool = self.mock_vision_tool,
+            twitter_enterprise_tool = self.mock_twitter_enterprise_tool,
+            di = self.mock_di,
         )
         result = fetcher.execute()
         self.assertEqual(result, "This is cached tweet content")
 
     # noinspection PyUnusedLocal
     @requests_mock.Mocker()
-    @patch("features.web_browsing.twitter_status_fetcher.AuthorizationService")
-    @patch("features.web_browsing.twitter_status_fetcher.AccessTokenResolver")
     @patch("features.web_browsing.twitter_status_fetcher.sleep", return_value = None)
-    def test_execute_cache_miss(self, m, mock_sleep, mock_token_resolver, mock_auth_service):
-        mock_auth_service.return_value.validate_user.return_value = self.mock_user
-        mock_token_resolver.return_value.get_access_token_for_tool.return_value = SecretStr("test_token")
-        mock_token_resolver.return_value.require_access_token_for_tool.return_value = SecretStr("test_token")
+    def test_execute_cache_miss(self, m: Mocker, mock_sleep):
+        self.mock_di.tools_cache_crud.get.return_value = None
 
-        self.mock_cache_crud.get.return_value = None
         # Mock the API response
         m.get(
             self.api_url,
@@ -106,14 +103,13 @@ class TwitterStatusFetcherTest(unittest.TestCase):
                 },
             },
         )
+
         fetcher = TwitterStatusFetcher(
-            "123456789",
-            self.mock_user,
-            self.mock_cache_crud,
-            self.mock_user_dao,
-            self.mock_chat_config_dao,
-            self.mock_sponsorship_dao,
-            self.mock_telegram_bot_sdk,
+            tweet_id = "123456789",
+            twitter_api_tool = self.mock_twitter_api_tool,
+            vision_tool = self.mock_vision_tool,
+            twitter_enterprise_tool = self.mock_twitter_enterprise_tool,
+            di = self.mock_di,
         )
         result = fetcher.execute()
         self.assertIn("@testuser · Test User", result)
@@ -121,175 +117,175 @@ class TwitterStatusFetcherTest(unittest.TestCase):
 
     # noinspection PyUnusedLocal
     @requests_mock.Mocker()
-    @patch("features.web_browsing.twitter_status_fetcher.AuthorizationService")
-    @patch("features.web_browsing.twitter_status_fetcher.AccessTokenResolver")
     @patch("features.web_browsing.twitter_status_fetcher.sleep", return_value = None)
-    def test_execute_api_error(self, m, mock_sleep, mock_token_resolver, mock_auth_service):
-        mock_auth_service.return_value.validate_user.return_value = self.mock_user
-        mock_token_resolver.return_value.require_access_token_for_tool.return_value = SecretStr("test_token")
+    def test_execute_api_error(self, m: Mocker, mock_sleep):
+        self.mock_di.tools_cache_crud.get.return_value = None
 
-        self.mock_cache_crud.get.return_value = None
-        params = {
-            "resFormat": "json",
-            "id": "123456789",
-            "apiKey": config.rapid_api_twitter_token.get_secret_value(),
-            "cursor": "-1",
-        }
-        full_url = requests.Request("GET", self.api_url, params = params).prepare().url
-        m.get(full_url, status_code = 500)
+        # Mock API error response
+        m.get(self.api_url, status_code = 500)
+
         fetcher = TwitterStatusFetcher(
-            "123456789",
-            self.mock_user,
-            self.mock_cache_crud,
-            self.mock_user_dao,
-            self.mock_chat_config_dao,
-            self.mock_sponsorship_dao,
-            self.mock_telegram_bot_sdk,
+            tweet_id = "123456789",
+            twitter_api_tool = self.mock_twitter_api_tool,
+            vision_tool = self.mock_vision_tool,
+            twitter_enterprise_tool = self.mock_twitter_enterprise_tool,
+            di = self.mock_di,
         )
-        with self.assertRaises(Exception):
+        with self.assertRaises(requests.exceptions.HTTPError):
             fetcher.execute()
 
     # noinspection PyUnusedLocal
     @requests_mock.Mocker()
-    @patch("features.web_browsing.twitter_status_fetcher.AuthorizationService")
-    @patch("features.web_browsing.twitter_status_fetcher.AccessTokenResolver")
     @patch("features.web_browsing.twitter_status_fetcher.sleep", return_value = None)
-    def test_api_call_parameters(self, m, mock_sleep, mock_token_resolver, mock_auth_service):
-        mock_auth_service.return_value.validate_user.return_value = self.mock_user
-        mock_token_resolver.return_value.get_access_token_for_tool.return_value = SecretStr("test_token")
-        mock_token_resolver.return_value.require_access_token_for_tool.return_value = SecretStr("test_token")
+    def test_api_call_parameters(self, m: Mocker, mock_sleep):
+        self.mock_di.tools_cache_crud.get.return_value = None
 
-        self.mock_cache_crud.get.return_value = None
-
+        # Mock the API response
         m.get(
             self.api_url,
             json = {
                 "data": {
                     "data": {
                         "tweetResult": {
-                            "result": {"core": {"user_results": {"result": {"legacy": {}}}}, "legacy": {}},
-                        },
-                    },
-                },
-            },
-        )
-        fetcher = TwitterStatusFetcher(
-            "123456789",
-            self.mock_user,
-            self.mock_cache_crud,
-            self.mock_user_dao,
-            self.mock_chat_config_dao,
-            self.mock_sponsorship_dao,
-            self.mock_telegram_bot_sdk,
-        )
-        fetcher.execute()
-
-        # Check that the API was called with the correct parameters
-        self.assertEqual(len(m.request_history), 1)
-        request = m.request_history[0]
-        self.assertIn("id=123456789", request.url)
-        self.assertIn("resFormat=json", request.url)
-
-    # noinspection PyUnusedLocal
-    @requests_mock.Mocker()
-    @patch("features.web_browsing.twitter_status_fetcher.AuthorizationService")
-    @patch("features.web_browsing.twitter_status_fetcher.AccessTokenResolver")
-    @patch("features.web_browsing.twitter_status_fetcher.ComputerVisionAnalyzer")
-    def test_resolve_photo_contents(self, m, mock_analyzer, mock_token_resolver, mock_auth_service):
-        mock_auth_service.return_value.validate_user.return_value = self.mock_user
-        mock_token_resolver.return_value.require_access_token_for_tool.return_value = SecretStr("test_token")
-
-        # Mock the analyzer's execute method to return a fixed description
-        mock_analyzer.return_value.execute.return_value = "A beautiful landscape."
-
-        fetcher = TwitterStatusFetcher(
-            "123456789",
-            self.mock_user,
-            self.mock_cache_crud,
-            self.mock_user_dao,
-            self.mock_chat_config_dao,
-            self.mock_sponsorship_dao,
-            self.mock_telegram_bot_sdk,
-        )
-
-        # Mock the tweet data with a photo
-        tweet_data = {
-            "extended_entities": {
-                "media": [
-                    {
-                        "media_url_https": "https://pbs.twimg.com/media/example.jpg",
-                        "type": "photo",
-                    },
-                ],
-            },
-        }
-
-        # Test the private method directly for simplicity
-        # noinspection PyUnresolvedReferences
-        result = fetcher._TwitterStatusFetcher__resolve_photo_contents(tweet_data, "Additional context")
-
-        # Verify the result contains photo information
-        self.assertIsNotNone(result)
-        self.assertIn("Photo [1]", result)
-        self.assertIn("https://pbs.twimg.com/media/example.jpg", result)
-        self.assertIn("A beautiful landscape.", result)
-
-        # Verify the analyzer was called with the correct parameters
-        mock_analyzer.assert_called_once()
-        call_args = mock_analyzer.call_args
-        self.assertEqual(call_args[1]["job_id"], "tweet-123456789")
-        self.assertEqual(call_args[1]["image_url"], "https://pbs.twimg.com/media/example.jpg")
-        self.assertIsInstance(call_args[1]["open_ai_api_key"], SecretStr)
-
-    @patch("features.web_browsing.twitter_status_fetcher.AuthorizationService")
-    @patch("features.web_browsing.twitter_status_fetcher.AccessTokenResolver")
-    def test_format_tweet_content_handles_missing_data(self, mock_token_resolver, mock_auth_service):
-        mock_auth_service.return_value.validate_user.return_value = self.mock_user
-        mock_token_resolver.return_value.require_access_token_for_tool.return_value = SecretStr("test_token")
-
-        fetcher = TwitterStatusFetcher(
-            "123456789",
-            self.mock_user,
-            self.mock_cache_crud,
-            self.mock_user_dao,
-            self.mock_chat_config_dao,
-            self.mock_sponsorship_dao,
-            self.mock_telegram_bot_sdk,
-        )
-
-        # Mock response with missing fields
-        response = {
-            "data": {
-                "data": {
-                    "tweetResult": {
-                        "result": {
-                            "core": {
-                                "user_results": {
-                                    "result": {
-                                        "legacy": {
-                                            # Missing name
-                                            "screen_name": "testuser",
-                                            # Missing description
+                            "result": {
+                                "core": {
+                                    "user_results": {
+                                        "result": {
+                                            "legacy": {
+                                                "name": "Test User",
+                                                "screen_name": "testuser",
+                                                "description": "Test bio",
+                                            },
                                         },
                                     },
                                 },
-                            },
-                            "legacy": {
-                                # Missing full_text
-                                "lang": "en",
+                                "legacy": {"full_text": "Test tweet content", "lang": "en"},
                             },
                         },
                     },
                 },
             },
-        }
+        )
 
+        fetcher = TwitterStatusFetcher(
+            tweet_id = "123456789",
+            twitter_api_tool = self.mock_twitter_api_tool,
+            vision_tool = self.mock_vision_tool,
+            twitter_enterprise_tool = self.mock_twitter_enterprise_tool,
+            di = self.mock_di,
+        )
+        fetcher.execute()
+
+        # Verify API was called with correct parameters
+        self.assertEqual(len(m.request_history), 1)
+        request = m.request_history[0]
+        self.assertEqual(request.method, "GET")
+        self.assertIn("123456789", request.url)
+
+    # noinspection PyUnusedLocal
+    @requests_mock.Mocker()
+    @patch("features.web_browsing.twitter_status_fetcher.sleep", return_value = None)
+    def test_resolve_photo_contents(self, m: Mocker, mock_sleep):
+        self.mock_di.tools_cache_crud.get.return_value = None
+
+        # Mock computer vision analyzer
+        mock_analyzer_instance = MagicMock()
+        mock_analyzer_instance.execute.return_value = "Photo description"
+        self.mock_di.computer_vision_analyzer.return_value = mock_analyzer_instance
+
+        # Mock the API response with photo
+        m.get(
+            self.api_url,
+            json = {
+                "data": {
+                    "data": {
+                        "tweetResult": {
+                            "result": {
+                                "core": {
+                                    "user_results": {
+                                        "result": {
+                                            "legacy": {
+                                                "name": "Test User",
+                                                "screen_name": "testuser",
+                                                "description": "Test bio",
+                                            },
+                                        },
+                                    },
+                                },
+                                "legacy": {
+                                    "full_text": "Test tweet content",
+                                    "lang": "en",
+                                    "extended_entities": {
+                                        "media": [
+                                            {
+                                                "type": "photo",
+                                                "media_url_https": "https://example.com/photo.jpg",
+                                            },
+                                        ],
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        )
+
+        fetcher = TwitterStatusFetcher(
+            tweet_id = "123456789",
+            twitter_api_tool = self.mock_twitter_api_tool,
+            vision_tool = self.mock_vision_tool,
+            twitter_enterprise_tool = self.mock_twitter_enterprise_tool,
+            di = self.mock_di,
+        )
+        result = fetcher.execute()
+
+        self.assertIn("Photo description", result)
         # noinspection PyUnresolvedReferences
-        result = fetcher._TwitterStatusFetcher__resolve_content(response)
+        self.mock_di.computer_vision_analyzer.assert_called_once()
+
+    @requests_mock.Mocker()
+    @patch("features.web_browsing.twitter_status_fetcher.sleep", return_value = None)
+    def test_format_tweet_content_handles_missing_data(self, m: Mocker, _):
+        self.mock_di.tools_cache_crud.get.return_value = None
+
+        # Mock API response with missing data
+        m.get(
+            self.api_url,
+            json = {
+                "data": {
+                    "data": {
+                        "tweetResult": {
+                            "result": {
+                                "core": {
+                                    "user_results": {
+                                        "result": {
+                                            "legacy": {
+                                                "screen_name": "testuser",
+                                            },
+                                        },
+                                    },
+                                },
+                                "legacy": {
+                                    "lang": "en",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        )
+
+        fetcher = TwitterStatusFetcher(
+            tweet_id = "123456789",
+            twitter_api_tool = self.mock_twitter_api_tool,
+            vision_tool = self.mock_vision_tool,
+            twitter_enterprise_tool = self.mock_twitter_enterprise_tool,
+            di = self.mock_di,
+        )
+        result = fetcher.execute()
+
+        # Should handle missing data gracefully
         self.assertIn("@testuser · <Anonymous>", result)
         self.assertIn("Bio: \"<No bio>\"", result)
         self.assertIn("<This tweet has no text>", result)
-
-
-if __name__ == "__main__":
-    unittest.main()

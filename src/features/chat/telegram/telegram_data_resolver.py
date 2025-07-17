@@ -1,17 +1,12 @@
 from typing import List
 
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 
-from db.crud.chat_config import ChatConfigCRUD
-from db.crud.chat_message import ChatMessageCRUD
-from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
-from db.crud.user import UserCRUD
 from db.schema.chat_config import ChatConfig, ChatConfigSave
 from db.schema.chat_message import ChatMessage, ChatMessageSave
 from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessageAttachmentSave
 from db.schema.user import User, UserSave
-from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
+from di.di import DI
 from features.chat.telegram.sdk.telegram_bot_sdk_utils import TelegramBotSDKUtils
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from util.config import config
@@ -31,13 +26,11 @@ class TelegramDataResolver(SafePrinterMixin):
         message: ChatMessage
         attachments: List[ChatMessageAttachment]
 
-    __session: Session
-    __bot_api: TelegramBotAPI
+    __di: DI
 
-    def __init__(self, session: Session, api: TelegramBotAPI):
+    def __init__(self, di: DI):
         super().__init__(config.verbose)
-        self.__session = session
-        self.__bot_api = api
+        self.__di = di
 
     def resolve(self, mapping_result: TelegramDomainMapper.Result) -> Result:
         # self.sprint(f"Resolving mapping result: {mapping_result}")
@@ -60,8 +53,7 @@ class TelegramDataResolver(SafePrinterMixin):
 
     def resolve_chat_config(self, mapped_data: ChatConfigSave) -> ChatConfig:
         # self.sprint(f"Resolving chat config: {mapped_data}")
-        db = ChatConfigCRUD(self.__session)
-        old_chat_config_db = db.get(mapped_data.chat_id)
+        old_chat_config_db = self.__di.chat_config_crud.get(mapped_data.chat_id)
         if old_chat_config_db:
             old_chat_config = ChatConfig.model_validate(old_chat_config_db)
             # reset the attributes that are not normally changed through the Telegram API
@@ -70,16 +62,16 @@ class TelegramDataResolver(SafePrinterMixin):
             mapped_data.is_private = old_chat_config.is_private
             mapped_data.reply_chance_percent = old_chat_config.reply_chance_percent
             mapped_data.release_notifications = old_chat_config.release_notifications
-        return ChatConfig.model_validate(db.save(mapped_data))
+        return ChatConfig.model_validate(self.__di.chat_config_crud.save(mapped_data))
 
+    # noinspection DuplicatedCode
     def resolve_author(self, mapped_data: UserSave | None) -> User | None:
         if not mapped_data:
             return None
         # self.sprint(f"Resolving user: {mapped_data}")
-        db = UserCRUD(self.__session)
         old_user_db = (
-            db.get_by_telegram_user_id(mapped_data.telegram_user_id) or
-            db.get_by_telegram_username(mapped_data.telegram_username)
+            self.__di.user_crud.get_by_telegram_user_id(mapped_data.telegram_user_id) or
+            self.__di.user_crud.get_by_telegram_username(mapped_data.telegram_username)
         )
 
         if old_user_db:
@@ -111,10 +103,11 @@ class TelegramDataResolver(SafePrinterMixin):
             mapped_data.group = old_user.group
         else:
             # new users can only be added until the user limit is reached
-            user_count = db.count()
+            user_count = self.__di.user_crud.count()
             if user_count >= config.max_users:
                 self.sprint(f"User limit reached: {user_count}/{config.max_users}")
                 raise ValueError("User limit reached, try again later")
+
         # reset token values to None so that there's no confusion going forward
         if not mapped_data.open_ai_key or not mapped_data.open_ai_key.strip():
             mapped_data.open_ai_key = None
@@ -159,23 +152,21 @@ class TelegramDataResolver(SafePrinterMixin):
             mapped_data.tool_choice_api_crypto_exchange = None
         if not mapped_data.tool_choice_api_twitter or not mapped_data.tool_choice_api_twitter.strip():
             mapped_data.tool_choice_api_twitter = None
-        return User.model_validate(db.save(mapped_data))
+        return User.model_validate(self.__di.user_crud.save(mapped_data))
 
     def resolve_chat_message(self, mapped_data: ChatMessageSave) -> ChatMessage:
         # self.sprint(f"Resolving chat message: {mapped_data}")
-        db = ChatMessageCRUD(self.__session)
-        old_chat_message_db = db.get(mapped_data.chat_id, mapped_data.message_id)
+        old_chat_message_db = self.__di.chat_message_crud.get(mapped_data.chat_id, mapped_data.message_id)
         if old_chat_message_db:
             old_chat_message = ChatMessage.model_validate(old_chat_message_db)
             # reset the attributes that are not normally changed through the Telegram API
             mapped_data.author_id = mapped_data.author_id or old_chat_message.author_id
             mapped_data.sent_at = mapped_data.sent_at or old_chat_message.sent_at
-        return ChatMessage.model_validate(db.save(mapped_data))
+        return ChatMessage.model_validate(self.__di.chat_message_crud.save(mapped_data))
 
     def resolve_chat_message_attachment(self, mapped_data: ChatMessageAttachmentSave) -> ChatMessageAttachment:
         # self.sprint(f"Resolving chat message attachment: {mapped_data}")
-        db = ChatMessageAttachmentCRUD(self.__session)
-        old_attachment_db = db.get(mapped_data.id)
+        old_attachment_db = self.__di.chat_message_attachment_crud.get(mapped_data.id)
         if old_attachment_db:
             old_attachment = ChatMessageAttachment.model_validate(old_attachment_db)
             # reset the attributes that are not normally changed through the Telegram API
@@ -186,7 +177,7 @@ class TelegramDataResolver(SafePrinterMixin):
             mapped_data.mime_type = mapped_data.mime_type or old_attachment.mime_type
         TelegramBotSDKUtils.refresh_attachment(
             source = mapped_data,
-            bot_api = self.__bot_api,
-            chat_message_attachment_dao = ChatMessageAttachmentCRUD(self.__session),
+            bot_api = self.__di.telegram_bot_api,
+            chat_message_attachment_dao = self.__di.chat_message_attachment_crud,
         )
-        return ChatMessageAttachment.model_validate(db.save(mapped_data))
+        return ChatMessageAttachment.model_validate(self.__di.chat_message_attachment_crud.save(mapped_data))

@@ -36,6 +36,8 @@ class AttachmentsDescriberTest(unittest.TestCase):
         self.mock_di.invoker_chat.language_name = "Spanish"
         self.mock_di.invoker_chat.language_iso_code = "es"
         self.mock_di.telegram_bot_api = MagicMock()
+        self.mock_di.tool_choice_resolver = MagicMock()
+        self.mock_di.computer_vision_analyzer = MagicMock()
 
         self.cached_content = "resolved content"
         self.cache_entry = ToolsCache(
@@ -85,49 +87,47 @@ class AttachmentsDescriberTest(unittest.TestCase):
         m.get(str(self.attachment.last_url), content = b"image data", status_code = 200)
         self.mock_cache_crud.get.return_value = self.cache_entry.model_dump()
 
-        with patch("features.chat.attachments_describer.ComputerVisionAnalyzer") as mock_cv_analyzer:
-            mock_cv_instance = MagicMock()
-            mock_cv_instance.execute.return_value = self.cached_content
-            mock_cv_analyzer.return_value = mock_cv_instance
+        mock_cv_instance = MagicMock()
+        mock_cv_instance.execute.return_value = self.cached_content
+        self.mock_di.computer_vision_analyzer.return_value = mock_cv_instance
 
-            resolver = AttachmentsDescriber(
-                additional_context = "context",
-                attachment_ids = ["1"],
-                di = self.mock_di,
-            )
-            result = resolver.execute()
+        resolver = AttachmentsDescriber(
+            additional_context = "context",
+            attachment_ids = ["1"],
+            di = self.mock_di,
+        )
+        result = resolver.execute()
 
-            self.assertEqual(result, AttachmentsDescriber.Result.success)
-            # Use the public get_result property if available, otherwise check the result length
-            self.assertEqual(len(resolver.result), 1)
-            self.assertEqual(resolver.result[0]["text_content"], self.cached_content)
-            mock_cv_analyzer.assert_not_called()
-            mock_cv_instance.execute.assert_not_called()
+        self.assertEqual(result, AttachmentsDescriber.Result.success)
+        # Use the public get_result property if available, otherwise check the result length
+        self.assertEqual(len(resolver.result), 1)
+        self.assertEqual(resolver.result[0]["text_content"], self.cached_content)
+        self.mock_di.computer_vision_analyzer.assert_not_called()
+        mock_cv_instance.execute.assert_not_called()
 
     @requests_mock.Mocker()
     def test_execute_with_cache_miss(self, m: requests_mock.Mocker):
         m.get(str(self.attachment.last_url), content = b"image data", status_code = 200)
         self.mock_cache_crud.get.return_value = None
 
-        with patch("features.chat.attachments_describer.ComputerVisionAnalyzer") as mock_cv_analyzer:
-            mock_cv_instance = MagicMock()
-            mock_cv_instance.execute.return_value = self.cached_content
-            mock_cv_analyzer.return_value = mock_cv_instance
+        mock_cv_instance = MagicMock()
+        mock_cv_instance.execute.return_value = self.cached_content
+        self.mock_di.computer_vision_analyzer.return_value = mock_cv_instance
+        self.mock_di.tool_choice_resolver.require_tool.return_value = MagicMock()
+        self.mock_access_token_resolver.require_access_token_for_tool.return_value = "**********"
 
-            self.mock_access_token_resolver.require_access_token_for_tool.return_value = "**********"
+        resolver = AttachmentsDescriber(
+            additional_context = "context",
+            attachment_ids = ["1"],
+            di = self.mock_di,
+        )
+        result = resolver.execute()
 
-            resolver = AttachmentsDescriber(
-                additional_context = "context",
-                attachment_ids = ["1"],
-                di = self.mock_di,
-            )
-            result = resolver.execute()
-
-            self.assertEqual(result, AttachmentsDescriber.Result.success)
-            self.assertEqual(len(resolver.result), 1)
-            self.assertEqual(resolver.result[0]["text_content"], self.cached_content)
-            mock_cv_instance.execute.assert_called_once()
-            self.mock_cache_crud.save.assert_called_once()
+        self.assertEqual(result, AttachmentsDescriber.Result.success)
+        self.assertEqual(len(resolver.result), 1)
+        self.assertEqual(resolver.result[0]["text_content"], self.cached_content)
+        mock_cv_instance.execute.assert_called_once()
+        self.mock_cache_crud.save.assert_called_once()
 
     def test_empty_attachment_ids_list(self):
         with self.assertRaises(ValueError) as context:

@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 from uuid import UUID
 
 from db.sql_util import SQLUtil
@@ -11,7 +11,7 @@ from db.schema.chat_config import ChatConfig, ChatConfigSave
 from db.schema.chat_message import ChatMessage, ChatMessageSave
 from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessageAttachmentSave
 from db.schema.user import User, UserSave
-from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
+from di.di import DI
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
@@ -20,14 +20,24 @@ from util.config import config
 
 class TelegramDataResolverTest(unittest.TestCase):
     sql: SQLUtil
-    bot_api: TelegramBotAPI
+    mock_di: DI
     resolver: TelegramDataResolver
 
     def setUp(self):
         config.verbose = True
         self.sql = SQLUtil()
-        self.bot_api = MagicMock()
-        self.resolver = TelegramDataResolver(self.sql.get_session(), self.bot_api)
+        self.mock_di = Mock(spec = DI)
+        # noinspection PyPropertyAccess
+        self.mock_di.chat_config_crud = self.sql.chat_config_crud()
+        # noinspection PyPropertyAccess
+        self.mock_di.user_crud = self.sql.user_crud()
+        # noinspection PyPropertyAccess
+        self.mock_di.chat_message_crud = self.sql.chat_message_crud()
+        # noinspection PyPropertyAccess
+        self.mock_di.chat_message_attachment_crud = self.sql.chat_message_attachment_crud()
+        # noinspection PyPropertyAccess
+        self.mock_di.telegram_bot_api = MagicMock()
+        self.resolver = TelegramDataResolver(self.mock_di)
 
     def tearDown(self):
         self.sql.end_session()

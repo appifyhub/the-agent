@@ -1,11 +1,11 @@
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI
-from pydantic import SecretStr
 
+from di.di import DI
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
-from features.external_tools.external_tool import ExternalTool
+from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import GPT_4_1_MINI
+from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
@@ -13,28 +13,36 @@ from util.safe_printer_mixin import SafePrinterMixin
 
 # Not tested as it's just a proxy
 class ComputerVisionAnalyzer(SafePrinterMixin):
+    DEFAULT_TOOL: ExternalTool = GPT_4_1_MINI
+    TOOL_TYPE: ToolType = ToolType.vision
+
     __job_id: str
     __messages: list[BaseMessage]
     __vision_model: BaseChatModel
+    __di: DI
 
     def __init__(
         self,
         job_id: str,
         image_mime_type: str,
-        open_ai_api_key: SecretStr,
+        configured_tool: ConfiguredTool,
+        di: DI,
         image_url: str | None = None,
         image_b64: str | None = None,
         additional_context: str | None = None,
     ):
         super().__init__(config.verbose)
         self.__job_id = job_id
+
+        # validate image input parameters
         if image_mime_type not in KNOWN_IMAGE_FORMATS.values():
             raise ValueError(f"Unsupported image format: {image_mime_type}")
         if image_url is not None and image_b64 is not None:
             raise ValueError("Only one of URL or Base64 value must be provided")
         if image_url is None and image_b64 is None:
             raise ValueError("Either URL or Base64 value must be provided")
-        # set up LLM context
+
+        # set up LLM image context
         image_content_json: dict[str, str | dict] = {"type": "image_url"}
         if image_url is not None:
             image_content_json["image_url"] = {"url": image_url}
@@ -45,17 +53,13 @@ class ComputerVisionAnalyzer(SafePrinterMixin):
         if additional_context:
             content.append({"type": "text", "text": additional_context})
         content.append(image_content_json)
+
+        # initialize the LLM
         self.__messages = []
         self.__messages.append(SystemMessage(prompt_library.observer_computer_vision))
         self.__messages.append(HumanMessage(content = content))
-        self.__vision_model = ChatOpenAI(
-            model = ComputerVisionAnalyzer.get_tool().id,
-            temperature = 0.5,
-            max_tokens = 2048,
-            timeout = float(config.web_timeout_s),
-            max_retries = config.web_retries,
-            api_key = open_ai_api_key,
-        )
+        self.__vision_model = di.chat_langchain_model(configured_tool)
+        self.__di = di
 
     @staticmethod
     def get_tool() -> ExternalTool:

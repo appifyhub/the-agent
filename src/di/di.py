@@ -10,7 +10,6 @@ from sqlalchemy.orm import Session
 
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
-from features.llm import langchain_creator
 
 if TYPE_CHECKING:
     from api.authorization_service import AuthorizationService
@@ -299,7 +298,7 @@ class DI:
     def authorization_service(self) -> "AuthorizationService":
         if self._authorization_service is None:
             from api.authorization_service import AuthorizationService
-            self._authorization_service = AuthorizationService(self.telegram_bot_sdk, self.user_crud, self.chat_config_crud)
+            self._authorization_service = AuthorizationService(self)
         return self._authorization_service
 
     # === Controllers ===
@@ -324,14 +323,14 @@ class DI:
     def access_token_resolver(self) -> "AccessTokenResolver":
         if self._access_token_resolver is None:
             from features.external_tools.access_token_resolver import AccessTokenResolver
-            self._access_token_resolver = AccessTokenResolver(self.invoker, self.user_crud, self.sponsorship_crud)
+            self._access_token_resolver = AccessTokenResolver(self)
         return self._access_token_resolver
 
     @property
     def tool_choice_resolver(self) -> "ToolChoiceResolver":
         if self._tool_choice_resolver is None:
             from features.external_tools.tool_choice_resolver import ToolChoiceResolver
-            self._tool_choice_resolver = ToolChoiceResolver(self.invoker, self.access_token_resolver)
+            self._tool_choice_resolver = ToolChoiceResolver(self)
         return self._tool_choice_resolver
 
     @property
@@ -357,13 +356,14 @@ class DI:
     def telegram_data_resolver(self) -> "TelegramDataResolver":
         if self._telegram_data_resolver is None:
             from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
-            self._telegram_data_resolver = TelegramDataResolver(self.db, self.telegram_bot_api)
+            self._telegram_data_resolver = TelegramDataResolver(self)
         return self._telegram_data_resolver
 
     # === Features ===
 
     # noinspection PyMethodMayBeStatic
     def chat_langchain_model(self, configured_tool: ConfiguredTool) -> "BaseChatModel":
+        from features.llm import langchain_creator
         return langchain_creator.create(configured_tool)
 
     @property
@@ -429,17 +429,15 @@ class DI:
         from features.web_browsing.html_content_cleaner import HTMLContentCleaner
         return HTMLContentCleaner(raw_html, self.tools_cache_crud)
 
-    def twitter_status_fetcher(self, tweet_id: str) -> "TwitterStatusFetcher":
+    def twitter_status_fetcher(
+        self,
+        tweet_id: str,
+        twitter_api_tool: ConfiguredTool,
+        vision_tool: ConfiguredTool,
+        twitter_enterprise_tool: ConfiguredTool,
+    ) -> "TwitterStatusFetcher":
         from features.web_browsing.twitter_status_fetcher import TwitterStatusFetcher
-        return TwitterStatusFetcher(
-            tweet_id,
-            self.invoker,
-            self.tools_cache_crud,
-            self.user_crud,
-            self.chat_config_crud,
-            self.sponsorship_crud,
-            self.telegram_bot_sdk,
-        )
+        return TwitterStatusFetcher(tweet_id, twitter_api_tool, vision_tool, twitter_enterprise_tool, self)
 
     @property
     def exchange_rate_fetcher(self) -> "ExchangeRateFetcher":
@@ -532,25 +530,17 @@ class DI:
             mime_type,
         )
 
-    # noinspection PyMethodMayBeStatic
     def computer_vision_analyzer(
         self,
         job_id: str,
         image_mime_type: str,
-        open_ai_api_key: SecretStr,
+        configured_tool: ConfiguredTool,
         image_url: str | None = None,
         image_b64: str | None = None,
         additional_context: str | None = None,
     ) -> "ComputerVisionAnalyzer":
         from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
-        return ComputerVisionAnalyzer(
-            job_id,
-            image_mime_type,
-            open_ai_api_key,
-            image_url,
-            image_b64,
-            additional_context,
-        )
+        return ComputerVisionAnalyzer(job_id, image_mime_type, configured_tool, self, image_url, image_b64, additional_context)
 
     # noinspection PyMethodMayBeStatic
     def document_search(

@@ -1,36 +1,24 @@
 from uuid import UUID
 
-from db.crud.chat_config import ChatConfigCRUD
-from db.crud.user import UserCRUD
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
-from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from di.di import DI
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
 
 class AuthorizationService(SafePrinterMixin):
-    __telegram_sdk: TelegramBotSDK
-    __user_dao: UserCRUD
-    __chat_config_dao: ChatConfigCRUD
 
-    def __init__(
-        self,
-        telegram_sdk: TelegramBotSDK,
-        user_dao: UserCRUD,
-        chat_config_dao: ChatConfigCRUD,
-    ):
+    def __init__(self, di: DI):
         super().__init__(config.verbose)
-        self.__telegram_sdk = telegram_sdk
-        self.__user_dao = user_dao
-        self.__chat_config_dao = chat_config_dao
+        self.__di = di
 
     def validate_chat(self, chat: str | ChatConfig) -> ChatConfig:
         if isinstance(chat, ChatConfig):
             return chat
 
         self.sprint("Validating chat data")
-        chat_config_db = self.__chat_config_dao.get(chat)
+        chat_config_db = self.__di.chat_config_crud.get(chat)
         if not chat_config_db:
             message = f"Chat '{chat}' not found"
             self.sprint(message)
@@ -41,7 +29,7 @@ class AuthorizationService(SafePrinterMixin):
         if isinstance(user, User):
             return user
 
-        user_db = self.__user_dao.get(user if isinstance(user, UUID) else UUID(hex = user))
+        user_db = self.__di.user_crud.get(user if isinstance(user, UUID) else UUID(hex = user))
         if not user_db:
             message = f"User '{user}' not found"
             self.sprint(message)
@@ -58,7 +46,7 @@ class AuthorizationService(SafePrinterMixin):
 
         self.sprint("  Validating chat configurations")
         max_chats = config.max_users * 10  # assuming each user administers 10 chats
-        all_chat_configs_db = self.__chat_config_dao.get_all(limit = max_chats)
+        all_chat_configs_db = self.__di.chat_config_crud.get_all(limit = max_chats)
         if not all_chat_configs_db:
             self.sprint("  No chat configurations found in DB")
             return []
@@ -78,7 +66,7 @@ class AuthorizationService(SafePrinterMixin):
                         self.sprint(f"    Chat {chat_config.chat_id} is private but does not match invoker's chat ID")
                     continue
 
-                administrators = self.__telegram_sdk.get_chat_administrators(chat_config.chat_id)
+                administrators = self.__di.telegram_bot_sdk.get_chat_administrators(chat_config.chat_id)
                 if not administrators:
                     self.sprint(f"    No administrators returned for chat {chat_config.chat_id}")
                     continue

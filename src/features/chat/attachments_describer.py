@@ -146,11 +146,14 @@ class AttachmentsDescriber(SafePrinterMixin):
 
         # handle images
         if attachment.mime_type in KNOWN_IMAGE_FORMATS.values() or attachment.extension in KNOWN_IMAGE_FORMATS.keys():
-            vision_token = self.__di.access_token_resolver.require_access_token_for_tool(ComputerVisionAnalyzer.get_tool())
-            return ComputerVisionAnalyzer(
+            configured_tool = self.__di.tool_choice_resolver.require_tool(
+                ComputerVisionAnalyzer.TOOL_TYPE,
+                ComputerVisionAnalyzer.DEFAULT_TOOL,
+            )
+            return self.__di.computer_vision_analyzer(
                 job_id = attachment.id,
                 image_mime_type = attachment.mime_type,
-                open_ai_api_key = vision_token,
+                configured_tool = configured_tool,
                 image_b64 = base64.b64encode(contents).decode("utf-8"),
                 additional_context = self.__additional_context,
             ).execute()

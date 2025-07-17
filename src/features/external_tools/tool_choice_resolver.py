@@ -1,7 +1,6 @@
 from pydantic import SecretStr
 
-from db.schema.user import User
-from features.external_tools.access_token_resolver import AccessTokenResolver
+from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ExternalToolProvider, ToolType
 from features.external_tools.external_tool_library import ALL_EXTERNAL_TOOLS
 from util.config import config
@@ -20,16 +19,14 @@ class ToolResolutionError(Exception):
 
 
 class ToolChoiceResolver(SafePrinterMixin):
-    __invoker: User
-    __access_token_resolver: AccessTokenResolver
+    __di: DI
 
-    def __init__(self, invoker: User, access_token_resolver: AccessTokenResolver):
+    def __init__(self, di: DI):
         super().__init__(config.verbose)
-        self.__invoker = invoker
-        self.__access_token_resolver = access_token_resolver
+        self.__di = di
 
     def get_tool(self, purpose: ToolType, default_tool: str | ExternalTool | None = None) -> ConfiguredTool | None:
-        self.sprint(f"Resolving tool for type '{purpose.value}' for user '{self.__invoker.id.hex}'")
+        self.sprint(f"Resolving tool for type '{purpose.value}' for user '{self.__di.invoker.id.hex}'")
 
         # 1. find the user's choice for this purpose
         user_choice_tool_id: str | None = self.__get_user_tool_choice(purpose)
@@ -44,7 +41,7 @@ class ToolChoiceResolver(SafePrinterMixin):
 
         # 3. try tools in order of priority until one with access is found
         for tool in prioritized_tools:
-            access_token = self.__access_token_resolver.get_access_token_for_tool(tool)
+            access_token = self.__di.access_token_resolver.get_access_token_for_tool(tool)
             if access_token:
                 self.sprint(f"Found available tool '{tool.id}' from provider '{tool.provider.name}'")
                 self.sprint(f"  - Matches user choice '{user_choice_tool_id}'? {'Yes' if tool == user_choice_tool else 'No'}")
@@ -58,41 +55,41 @@ class ToolChoiceResolver(SafePrinterMixin):
     def require_tool(self, purpose: ToolType, default_tool: str | ExternalTool | None = None) -> ConfiguredTool:
         result = self.get_tool(purpose, default_tool)
         if result is None:
-            raise ToolResolutionError(purpose, self.__invoker.id.hex)
+            raise ToolResolutionError(purpose, self.__di.invoker.id.hex)
         return result
 
     def __get_user_tool_choice(self, purpose: ToolType) -> str | None:
         match purpose:
             case ToolType.chat:
-                return self.__invoker.tool_choice_chat
+                return self.__di.invoker.tool_choice_chat
             case ToolType.reasoning:
-                return self.__invoker.tool_choice_reasoning
+                return self.__di.invoker.tool_choice_reasoning
             case ToolType.copywriting:
-                return self.__invoker.tool_choice_copywriting
+                return self.__di.invoker.tool_choice_copywriting
             case ToolType.vision:
-                return self.__invoker.tool_choice_vision
+                return self.__di.invoker.tool_choice_vision
             case ToolType.hearing:
-                return self.__invoker.tool_choice_hearing
+                return self.__di.invoker.tool_choice_hearing
             case ToolType.images_gen:
-                return self.__invoker.tool_choice_images_gen
+                return self.__di.invoker.tool_choice_images_gen
             case ToolType.images_edit:
-                return self.__invoker.tool_choice_images_edit
+                return self.__di.invoker.tool_choice_images_edit
             case ToolType.images_restoration:
-                return self.__invoker.tool_choice_images_restoration
+                return self.__di.invoker.tool_choice_images_restoration
             case ToolType.images_inpainting:
-                return self.__invoker.tool_choice_images_inpainting
+                return self.__di.invoker.tool_choice_images_inpainting
             case ToolType.images_background_removal:
-                return self.__invoker.tool_choice_images_background_removal
+                return self.__di.invoker.tool_choice_images_background_removal
             case ToolType.search:
-                return self.__invoker.tool_choice_search
+                return self.__di.invoker.tool_choice_search
             case ToolType.embedding:
-                return self.__invoker.tool_choice_embedding
+                return self.__di.invoker.tool_choice_embedding
             case ToolType.api_fiat_exchange:
-                return self.__invoker.tool_choice_api_fiat_exchange
+                return self.__di.invoker.tool_choice_api_fiat_exchange
             case ToolType.api_crypto_exchange:
-                return self.__invoker.tool_choice_api_crypto_exchange
+                return self.__di.invoker.tool_choice_api_crypto_exchange
             case ToolType.api_twitter:
-                return self.__invoker.tool_choice_api_twitter
+                return self.__di.invoker.tool_choice_api_twitter
         self.sprint(f"Unknown purpose '{purpose.value}'")
         return None
 

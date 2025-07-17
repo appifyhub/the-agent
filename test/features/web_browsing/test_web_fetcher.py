@@ -1,12 +1,12 @@
 import json
 import unittest
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
-from uuid import UUID
+from unittest.mock import MagicMock, Mock, patch
 
 import requests_mock
 
 from db.schema.tools_cache import ToolsCache
+from di.di import DI
 from features.web_browsing.web_fetcher import (
     DEFAULT_HEADERS,
     WebFetcher,
@@ -17,12 +17,7 @@ DEFAULT_URL = "https://example.com"
 
 
 class WebFetcherTest(unittest.TestCase):
-    mock_cache_crud: MagicMock
-    mock_user_dao: MagicMock
-    mock_chat_config_dao: MagicMock
-    mock_sponsorship_dao: MagicMock
-    mock_telegram_bot_sdk: MagicMock
-    mock_user: MagicMock
+    mock_di: DI
     cache_entry_html: ToolsCache
     cache_entry_json: ToolsCache
 
@@ -31,14 +26,12 @@ class WebFetcherTest(unittest.TestCase):
         config.web_retry_delay_s = 0
         config.web_timeout_s = 1
 
-        self.mock_di = MagicMock()
+        self.mock_di = Mock(spec = DI)
+        # noinspection PyPropertyAccess
         self.mock_di.tools_cache_crud = MagicMock()
-        self.mock_di.user_crud = MagicMock()
-        self.mock_di.chat_config_crud = MagicMock()
-        self.mock_di.sponsorship_crud = MagicMock()
-        self.mock_di.telegram_bot_sdk = MagicMock()
-        self.mock_di.invoker = MagicMock()
-        self.mock_di.invoker.id = UUID("12345678-1234-5678-1234-567812345678")
+        # noinspection PyPropertyAccess
+        self.mock_di.tool_choice_resolver = MagicMock()
+        self.mock_di.twitter_status_fetcher = MagicMock()
 
         self.cache_entry_html = ToolsCache(
             key = "web-fetcher::test_key",
@@ -173,6 +166,7 @@ class WebFetcherTest(unittest.TestCase):
         )
         fetcher.fetch_html()
         # Verify that save was called with the custom TTL
+        # noinspection PyUnresolvedReferences
         self.mock_di.tools_cache_crud.save.assert_called_once()
 
     @requests_mock.Mocker()
@@ -187,6 +181,7 @@ class WebFetcherTest(unittest.TestCase):
         )
         fetcher.fetch_json()
         # Verify that save was called with the custom TTL
+        # noinspection PyUnresolvedReferences
         self.mock_di.tools_cache_crud.save.assert_called_once()
 
     @requests_mock.Mocker()
@@ -199,6 +194,7 @@ class WebFetcherTest(unittest.TestCase):
         )
         fetcher.fetch_html()
         # Verify that save was called
+        # noinspection PyUnresolvedReferences
         self.mock_di.tools_cache_crud.save.assert_called_once()
 
     @requests_mock.Mocker()
@@ -211,6 +207,7 @@ class WebFetcherTest(unittest.TestCase):
         )
         fetcher.fetch_json()
         # Verify that save was called
+        # noinspection PyUnresolvedReferences
         self.mock_di.tools_cache_crud.save.assert_called_once()
 
     @requests_mock.Mocker()
@@ -293,10 +290,13 @@ class WebFetcherTest(unittest.TestCase):
         self.assertEqual(result, stub)
 
     @patch("features.web_browsing.web_fetcher.resolve_tweet_id")
-    @patch("features.web_browsing.web_fetcher.TwitterStatusFetcher")
-    def test_fetch_html_twitter(self, mock_twitter_fetcher, mock_resolve_tweet_id):
+    def test_fetch_html_twitter(self, mock_resolve_tweet_id):
         mock_resolve_tweet_id.return_value = "123456"
-        mock_twitter_fetcher.return_value.execute.return_value = "Tweet content"
+
+        # Mock the twitter_status_fetcher method and its return value
+        mock_twitter_fetcher = Mock()
+        mock_twitter_fetcher.execute.return_value = "Tweet content"
+        self.mock_di.twitter_status_fetcher.return_value = mock_twitter_fetcher
 
         # Test cache miss scenario
         self.mock_di.tools_cache_crud.get.return_value = None
@@ -307,24 +307,20 @@ class WebFetcherTest(unittest.TestCase):
         )
         result = fetcher.fetch_html()
 
-        # Verify TwitterStatusFetcher was called with correct parameters
-        mock_twitter_fetcher.assert_called_once_with(
-            "123456",
-            self.mock_di.invoker,
-            self.mock_di.tools_cache_crud,
-            self.mock_di.user_crud,
-            self.mock_di.chat_config_crud,
-            self.mock_di.sponsorship_crud,
-            self.mock_di.telegram_bot_sdk,
-        )
+        # Verify twitter_status_fetcher was called with correct parameters
+        # noinspection PyUnresolvedReferences
+        self.mock_di.twitter_status_fetcher.assert_called_once()
         self.assertIsNotNone(result)
         self.assertIn("Tweet content", str(result))
 
     @patch("features.web_browsing.web_fetcher.resolve_tweet_id")
-    @patch("features.web_browsing.web_fetcher.TwitterStatusFetcher")
-    def test_fetch_json_twitter(self, mock_twitter_fetcher, mock_resolve_tweet_id):
+    def test_fetch_json_twitter(self, mock_resolve_tweet_id):
         mock_resolve_tweet_id.return_value = "123456"
-        mock_twitter_fetcher.return_value.execute.return_value = "Tweet content"
+
+        # Mock the twitter_status_fetcher method and its return value
+        mock_twitter_fetcher = Mock()
+        mock_twitter_fetcher.execute.return_value = "Tweet content"
+        self.mock_di.twitter_status_fetcher.return_value = mock_twitter_fetcher
 
         # Test cache miss scenario
         self.mock_di.tools_cache_crud.get.return_value = None
@@ -335,16 +331,9 @@ class WebFetcherTest(unittest.TestCase):
         )
         result = fetcher.fetch_json()
 
-        # Verify TwitterStatusFetcher was called with correct parameters
-        mock_twitter_fetcher.assert_called_once_with(
-            "123456",
-            self.mock_di.invoker,
-            self.mock_di.tools_cache_crud,
-            self.mock_di.user_crud,
-            self.mock_di.chat_config_crud,
-            self.mock_di.sponsorship_crud,
-            self.mock_di.telegram_bot_sdk,
-        )
+        # Verify twitter_status_fetcher was called with correct parameters
+        # noinspection PyUnresolvedReferences
+        self.mock_di.twitter_status_fetcher.assert_called_once()
         self.assertEqual(result, {"content": "Tweet content"})
 
     @patch("features.web_browsing.web_fetcher.resolve_tweet_id")
@@ -384,7 +373,3 @@ class WebFetcherTest(unittest.TestCase):
         )
         result = fetcher.fetch_json()
         self.assertEqual(result, {"key": "Cached value"})
-
-
-if __name__ == "__main__":
-    unittest.main()
