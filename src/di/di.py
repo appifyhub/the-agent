@@ -292,7 +292,7 @@ class DI:
     def sponsorship_service(self) -> "SponsorshipService":
         if self._sponsorship_service is None:
             from features.sponsorships.sponsorship_service import SponsorshipService
-            self._sponsorship_service = SponsorshipService(self.user_crud, self.sponsorship_crud)
+            self._sponsorship_service = SponsorshipService(self)
         return self._sponsorship_service
 
     @property

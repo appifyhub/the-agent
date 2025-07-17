@@ -9,6 +9,7 @@ from db.crud.user import UserCRUD
 from db.model.user import UserDB
 from db.schema.sponsorship import Sponsorship
 from db.schema.user import User
+from di.di import DI
 from features.sponsorships.sponsorship_service import SponsorshipService
 from util.config import config
 
@@ -17,6 +18,7 @@ class SponsorshipServiceTest(unittest.TestCase):
     user: User
     mock_user_dao: UserCRUD
     mock_sponsorship_dao: SponsorshipCRUD
+    mock_di: DI
     service: SponsorshipService
 
     def setUp(self):
@@ -37,7 +39,12 @@ class SponsorshipServiceTest(unittest.TestCase):
         )
         self.mock_user_dao = Mock(spec = UserCRUD)
         self.mock_sponsorship_dao = Mock(spec = SponsorshipCRUD)
-        self.service = SponsorshipService(self.mock_user_dao, self.mock_sponsorship_dao)
+        self.mock_di = Mock(spec = DI)
+        # noinspection PyPropertyAccess
+        self.mock_di.user_crud = self.mock_user_dao
+        # noinspection PyPropertyAccess
+        self.mock_di.sponsorship_crud = self.mock_sponsorship_dao
+        self.service = SponsorshipService(self.mock_di)
 
     def test_accept_sponsorship_success(self):
         # Create user without API keys for this test
