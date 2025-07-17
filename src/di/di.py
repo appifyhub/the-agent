@@ -393,13 +393,7 @@ class DI:
     def command_processor(self) -> "CommandProcessor":
         if self._command_processor is None:
             from features.chat.command_processor import CommandProcessor
-            self._command_processor = CommandProcessor(
-                self.invoker,
-                self.user_crud,
-                self.sponsorship_service,
-                self.settings_controller,
-                self.telegram_bot_sdk,
-            )
+            self._command_processor = CommandProcessor(self)
         return self._command_processor
 
     def telegram_chat_bot(
