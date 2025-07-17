@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from uuid import UUID
 
 import requests_mock
@@ -171,22 +171,19 @@ class AttachmentsDescriberTest(unittest.TestCase):
         )
         m.get(str(audio_attachment.last_url), content = b"audio data", status_code = 200)
 
-        with patch("features.chat.attachments_describer.AudioTranscriber") as mock_audio_transcriber:
-            mock_audio_instance = MagicMock()
-            mock_audio_instance.execute.return_value = "Audio transcription"
-            mock_audio_transcriber.return_value = mock_audio_instance
+        mock_audio_instance = MagicMock()
+        mock_audio_instance.execute.return_value = "Audio transcription"
+        self.mock_di.audio_transcriber.return_value = mock_audio_instance
 
-            self.mock_access_token_resolver.require_access_token_for_tool.return_value = "**********"
+        resolver = AttachmentsDescriber(
+            additional_context = "context",
+            attachment_ids = ["2"],
+            di = self.mock_di,
+        )
+        content = resolver.fetch_text_content(audio_attachment)
 
-            resolver = AttachmentsDescriber(
-                additional_context = "context",
-                attachment_ids = ["2"],
-                di = self.mock_di,
-            )
-            content = resolver.fetch_text_content(audio_attachment)
-
-            self.assertEqual(content, "Audio transcription")
-            mock_audio_instance.execute.assert_called_once()
+        self.assertEqual(content, "Audio transcription")
+        mock_audio_instance.execute.assert_called_once()
 
     @requests_mock.Mocker()
     def test_fetch_text_content_with_pdf_document(self, m: requests_mock.Mocker):
@@ -201,22 +198,19 @@ class AttachmentsDescriberTest(unittest.TestCase):
         )
         m.get(str(pdf_attachment.last_url), content = b"pdf data", status_code = 200)
 
-        with patch("features.chat.attachments_describer.DocumentSearch") as mock_document_search:
-            mock_document_instance = MagicMock()
-            mock_document_instance.execute.return_value = "Document search results"
-            mock_document_search.return_value = mock_document_instance
+        mock_document_instance = MagicMock()
+        mock_document_instance.execute.return_value = "Document search results"
+        self.mock_di.document_search.return_value = mock_document_instance
 
-            self.mock_access_token_resolver.require_access_token_for_tool.return_value = "**********"
+        resolver = AttachmentsDescriber(
+            additional_context = "context",
+            attachment_ids = ["4"],
+            di = self.mock_di,
+        )
+        content = resolver.fetch_text_content(pdf_attachment)
 
-            resolver = AttachmentsDescriber(
-                additional_context = "context",
-                attachment_ids = ["4"],
-                di = self.mock_di,
-            )
-            content = resolver.fetch_text_content(pdf_attachment)
-
-            self.assertEqual(content, "Document search results")
-            mock_document_instance.execute.assert_called_once()
+        self.assertEqual(content, "Document search results")
+        mock_document_instance.execute.assert_called_once()
 
     @requests_mock.Mocker()
     def test_fetch_text_content_with_unsupported_type(self, m: requests_mock.Mocker):

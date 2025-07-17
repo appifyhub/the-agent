@@ -61,10 +61,6 @@ class ComputerVisionAnalyzer(SafePrinterMixin):
         self.__vision_model = di.chat_langchain_model(configured_tool)
         self.__di = di
 
-    @staticmethod
-    def get_tool() -> ExternalTool:
-        return GPT_4_1_MINI
-
     def execute(self) -> str | None:
         self.sprint(f"Starting computer vision analysis for job '{self.__job_id}'")
         try:

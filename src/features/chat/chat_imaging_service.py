@@ -64,11 +64,14 @@ class ChatImagingService(SafePrinterMixin):
                     self.sprint(f"Attachment '{attachment.id}' has no URL, skipping")
                     result = ChatImagingService.Result.partial
                     continue
-                replicate_token = self.__di.access_token_resolver.require_access_token_for_tool(ImageBackgroundRemover.get_tool())
-                remover = ImageBackgroundRemover(
+                configured_tool = self.__di.tool_choice_resolver.require_tool(
+                    ImageBackgroundRemover.TOOL_TYPE,
+                    ImageBackgroundRemover.DEFAULT_TOOL,
+                )
+                remover = self.__di.image_background_remover(
                     image_url = attachment.last_url,
+                    configured_tool = configured_tool,
                     mime_type = attachment.mime_type,
-                    replicate_api_key = replicate_token,
                 )
                 image_url = remover.execute()
                 if not image_url:
@@ -95,15 +98,19 @@ class ChatImagingService(SafePrinterMixin):
                     self.sprint(f"Attachment '{attachment.id}' has no URL, skipping")
                     result = ChatImagingService.Result.partial
                     continue
-                # TODO clean up, send 2 tools into the restorer
-                self.__di.access_token_resolver.require_access_token_for_tool(ImageContentsRestorer.get_restoration_tool())
-                replicate_token = self.__di.access_token_resolver.require_access_token_for_tool(
-                    ImageContentsRestorer.get_inpainting_tool(),
+                restoration_tool = self.__di.tool_choice_resolver.require_tool(
+                    ImageContentsRestorer.RESTORATION_TOOL_TYPE,
+                    ImageContentsRestorer.DEFAULT_RESTORATION_TOOL,
                 )
-                remover = ImageContentsRestorer(
+                inpainting_tool = self.__di.tool_choice_resolver.require_tool(
+                    ImageContentsRestorer.INPAINTING_TOOL_TYPE,
+                    ImageContentsRestorer.DEFAULT_INPAINTING_TOOL,
+                )
+                remover = self.__di.image_contents_restorer(
                     image_url = attachment.last_url,
                     mime_type = attachment.mime_type,
-                    replicate_api_key = replicate_token,
+                    restoration_tool = restoration_tool,
+                    inpainting_tool = inpainting_tool,
                     # prompts could be added for better accuracy (class supports it)
                 )
                 restoration_result = remover.execute()
@@ -134,10 +141,10 @@ class ChatImagingService(SafePrinterMixin):
                     self.sprint(f"Attachment '{attachment.id}' has no URL, skipping")
                     result = ChatImagingService.Result.partial
                     continue
-                replicate_token = self.__di.access_token_resolver.require_access_token_for_tool(ImageEditor.get_tool())
-                editor = ImageEditor(
+                configured_tool = self.__di.tool_choice_resolver.require_tool(ImageEditor.TOOL_TYPE, ImageEditor.DEFAULT_TOOL)
+                editor = self.__di.image_editor(
                     image_url = attachment.last_url,
-                    replicate_api_key = replicate_token,
+                    configured_tool = configured_tool,
                     context = self.__operation_guidance,
                     mime_type = attachment.mime_type,
                 )

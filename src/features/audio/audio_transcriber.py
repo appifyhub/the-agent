@@ -3,20 +3,20 @@ import os
 from urllib.parse import urlparse
 
 import requests
-from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from openai import OpenAI
-from pydantic import SecretStr
 from pydub import AudioSegment
 
+from di.di import DI
 from features.chat.supported_files import (
     EXTENSION_FORMAT_MAP,
     SUPPORTED_AUDIO_FORMATS,
     TARGET_AUDIO_FORMAT,
 )
-from features.external_tools.external_tool import ExternalTool
+from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_3_5_HAIKU, WHISPER_1
+from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
@@ -24,20 +24,29 @@ from util.safe_printer_mixin import SafePrinterMixin
 
 # Not tested as it's just a proxy
 class AudioTranscriber(SafePrinterMixin):
+    DEFAULT_TRANSCRIBER_TOOL: ExternalTool = WHISPER_1
+    TRANSCRIBER_TOOL_TYPE: ToolType = ToolType.hearing
+    DEFAULT_COPYWRITER_TOOL: ExternalTool = CLAUDE_3_5_HAIKU
+    COPYWRITER_TOOL_TYPE: ToolType = ToolType.copywriting
+
     __job_id: str
     __audio_content: bytes
     __extension: str
-    __copywriter: BaseChatModel
-    __transcriber: OpenAI
+    __transcriber_tool: ConfiguredTool
+    __copywriter_tool: ConfiguredTool
     __language_name: str | None
     __language_iso_code: str | None
+    __transcriber: OpenAI
+    __copywriter: BaseChatModel
+    __di: DI
 
     def __init__(
         self,
         job_id: str,
         audio_url: str,
-        open_ai_api_key: SecretStr,
-        anthropic_token: SecretStr,
+        transcriber_tool: ConfiguredTool,
+        copywriter_tool: ConfiguredTool,
+        di: DI,
         def_extension: str | None = None,
         audio_content: bytes | None = None,
         language_name: str | None = None,
@@ -47,26 +56,14 @@ class AudioTranscriber(SafePrinterMixin):
         self.__job_id = job_id
         self.__resolve_extension(audio_url, def_extension)
         self.__validate_content(audio_url, audio_content)
-        self.__transcriber = OpenAI(api_key = open_ai_api_key.get_secret_value())
+        self.__transcriber_tool = transcriber_tool
+        self.__copywriter_tool = copywriter_tool
         self.__language_name = language_name
         self.__language_iso_code = language_iso_code
-        # noinspection PyArgumentList
-        self.__copywriter = ChatAnthropic(
-            model_name = AudioTranscriber.get_copywriter_tool().id,
-            temperature = 0.5,
-            max_tokens = 2048,
-            timeout = float(config.web_timeout_s) * 2,  # transcribing takes longer
-            max_retries = config.web_retries,
-            api_key = anthropic_token,
-        )
-
-    @staticmethod
-    def get_copywriter_tool() -> ExternalTool:
-        return CLAUDE_3_5_HAIKU
-
-    @staticmethod
-    def get_transcriber_tool() -> ExternalTool:
-        return WHISPER_1
+        _, transcriber_token, _ = transcriber_tool
+        self.__transcriber = OpenAI(api_key = transcriber_token.get_secret_value())
+        self.__copywriter = di.chat_langchain_model(copywriter_tool)
+        self.__di = di
 
     def __validate_content(self, audio_url: str, audio_content: bytes | None):
         self.sprint(f"Fetching and validating audio from URL '{audio_url}'")
@@ -106,8 +103,9 @@ class AudioTranscriber(SafePrinterMixin):
             # first resolve the transcription
             buffer = io.BytesIO(self.__audio_content)
             buffer.name = f"audio.{self.__extension}"
+            transcriber_tool, _, _ = self.__transcriber_tool
             transcript = self.__transcriber.audio.transcriptions.create(
-                model = AudioTranscriber.get_transcriber_tool().id,
+                model = transcriber_tool.id,
                 file = buffer,
                 response_format = "text",
             )

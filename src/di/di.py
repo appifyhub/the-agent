@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage
-from pydantic import SecretStr
 from sqlalchemy.orm import Session
 
 from db.schema.chat_config import ChatConfig
@@ -486,49 +485,35 @@ class DI:
     def image_editor(
         self,
         image_url: str,
-        replicate_api_key: SecretStr,
+        configured_tool: ConfiguredTool,
         context: str | None = None,
         mime_type: str | None = None,
     ) -> "ImageEditor":
         from features.images.image_editor import ImageEditor
-        return ImageEditor(
-            image_url,
-            replicate_api_key,
-            context,
-            mime_type,
-        )
+        return ImageEditor(image_url, configured_tool, context, mime_type)
 
     # noinspection PyMethodMayBeStatic
     def image_background_remover(
         self,
         image_url: str,
-        replicate_api_key: SecretStr,
+        configured_tool: ConfiguredTool,
         mime_type: str | None = None,
     ) -> "ImageBackgroundRemover":
         from features.images.image_background_remover import ImageBackgroundRemover
-        return ImageBackgroundRemover(
-            image_url,
-            replicate_api_key,
-            mime_type,
-        )
+        return ImageBackgroundRemover(image_url, configured_tool, mime_type)
 
     # noinspection PyMethodMayBeStatic
     def image_contents_restorer(
         self,
         image_url: str,
-        replicate_api_key: SecretStr,
+        restoration_tool: ConfiguredTool,
+        inpainting_tool: ConfiguredTool,
         prompt_positive: str | None = None,
         prompt_negative: str | None = None,
         mime_type: str | None = None,
     ) -> "ImageContentsRestorer":
         from features.images.image_contents_restorer import ImageContentsRestorer
-        return ImageContentsRestorer(
-            image_url,
-            replicate_api_key,
-            prompt_positive,
-            prompt_negative,
-            mime_type,
-        )
+        return ImageContentsRestorer(image_url, restoration_tool, inpainting_tool, prompt_positive, prompt_negative, mime_type)
 
     def computer_vision_analyzer(
         self,
@@ -547,20 +532,20 @@ class DI:
         self,
         job_id: str,
         document_url: str,
-        open_ai_api_key: SecretStr,
-        anthropic_token: SecretStr,
+        embedding_tool: ConfiguredTool,
+        copywriter_tool: ConfiguredTool,
         additional_context: str | None = None,
     ) -> "DocumentSearch":
         from features.documents.document_search import DocumentSearch
-        return DocumentSearch(job_id, document_url, open_ai_api_key, anthropic_token, additional_context)
+        return DocumentSearch(job_id, document_url, embedding_tool, copywriter_tool, self, additional_context)
 
     # noinspection PyMethodMayBeStatic
     def audio_transcriber(
         self,
         job_id: str,
         audio_url: str,
-        open_ai_api_key: SecretStr,
-        anthropic_token: SecretStr,
+        transcriber_tool: ConfiguredTool,
+        copywriter_tool: ConfiguredTool,
         def_extension: str | None = None,
         audio_content: bytes | None = None,
         language_name: str | None = None,
@@ -568,14 +553,10 @@ class DI:
     ) -> "AudioTranscriber":
         from features.audio.audio_transcriber import AudioTranscriber
         return AudioTranscriber(
-            job_id,
-            audio_url,
-            open_ai_api_key,
-            anthropic_token,
-            def_extension,
-            audio_content,
-            language_name,
-            language_iso_code,
+            job_id, audio_url,
+            transcriber_tool, copywriter_tool, self,
+            def_extension, audio_content,
+            language_name, language_iso_code,
         )
 
     def attachments_describer(

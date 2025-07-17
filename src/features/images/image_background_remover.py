@@ -4,12 +4,12 @@ from urllib.parse import urlparse
 
 import requests
 from httpx import Timeout
-from pydantic import SecretStr
 from replicate.client import Client
 
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
-from features.external_tools.external_tool import ExternalTool
+from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import BACKGROUND_REMOVAL
+from features.external_tools.tool_choice_resolver import ConfiguredTool
 from util.config import config
 from util.functions import first_key_with_value
 from util.safe_printer_mixin import SafePrinterMixin
@@ -19,27 +19,29 @@ BOOT_AND_RUN_TIMEOUT_S = 120
 
 # Not tested as it's just a proxy
 class ImageBackgroundRemover(SafePrinterMixin):
+    DEFAULT_TOOL: ExternalTool = BACKGROUND_REMOVAL
+    TOOL_TYPE: ToolType = ToolType.images_background_removal
+
     __image_url: str
+    __configured_tool: ConfiguredTool
     __mime_type: str | None
     __replicate: Client
 
     def __init__(
         self,
         image_url: str,
-        replicate_api_key: SecretStr,
+        configured_tool: ConfiguredTool,
         mime_type: str | None = None,
     ):
         super().__init__(config.verbose)
         self.__image_url = image_url
+        self.__configured_tool = configured_tool
         self.__mime_type = mime_type
+        _, token, _ = configured_tool
         self.__replicate = Client(
-            api_token = replicate_api_key.get_secret_value(),
+            api_token = token.get_secret_value(),
             timeout = Timeout(BOOT_AND_RUN_TIMEOUT_S),
         )
-
-    @staticmethod
-    def get_tool() -> ExternalTool:
-        return BACKGROUND_REMOVAL
 
     def execute(self) -> str | None:
         self.sprint("Starting background removal")
@@ -51,7 +53,8 @@ class ImageBackgroundRemover(SafePrinterMixin):
                 temp_file.flush()
                 with open(temp_file.name, "rb") as file:
                     input_data = {"image": file}
-                    result = self.__replicate.run(ImageBackgroundRemover.get_tool().id, input = input_data)
+                    tool, _, _ = self.__configured_tool
+                    result = self.__replicate.run(tool.id, input = input_data)
             if not result:
                 self.sprint("Failed to remove background (no output URL)")
                 return None

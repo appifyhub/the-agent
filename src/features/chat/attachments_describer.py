@@ -160,17 +160,19 @@ class AttachmentsDescriber(SafePrinterMixin):
 
         # handle audio
         if attachment.mime_type in KNOWN_AUDIO_FORMATS.values() or attachment.extension in KNOWN_AUDIO_FORMATS.keys():
-            transcriber_token = self.__di.access_token_resolver.require_access_token_for_tool(
-                AudioTranscriber.get_transcriber_tool(),
+            transcriber_tool = self.__di.tool_choice_resolver.require_tool(
+                AudioTranscriber.TRANSCRIBER_TOOL_TYPE,
+                AudioTranscriber.DEFAULT_TRANSCRIBER_TOOL,
             )
-            copywriter_token = self.__di.access_token_resolver.require_access_token_for_tool(
-                AudioTranscriber.get_copywriter_tool(),
+            copywriter_tool = self.__di.tool_choice_resolver.require_tool(
+                AudioTranscriber.COPYWRITER_TOOL_TYPE,
+                AudioTranscriber.DEFAULT_COPYWRITER_TOOL,
             )
-            return AudioTranscriber(
+            return self.__di.audio_transcriber(
                 job_id = attachment.id,
                 audio_url = attachment.last_url,
-                open_ai_api_key = transcriber_token,
-                anthropic_token = copywriter_token,
+                transcriber_tool = transcriber_tool,
+                copywriter_tool = copywriter_tool,
                 def_extension = attachment.extension,
                 audio_content = contents,
                 language_name = self.__di.invoker_chat.language_name,
@@ -179,13 +181,19 @@ class AttachmentsDescriber(SafePrinterMixin):
 
         # handle documents
         if attachment.mime_type in KNOWN_DOCS_FORMATS.values() or attachment.extension in KNOWN_DOCS_FORMATS.keys():
-            embedding_token = self.__di.access_token_resolver.require_access_token_for_tool(DocumentSearch.get_copywriter_tool())
-            copywriter_token = self.__di.access_token_resolver.require_access_token_for_tool(DocumentSearch.get_copywriter_tool())
-            return DocumentSearch(
+            embedding_tool = self.__di.tool_choice_resolver.require_tool(
+                DocumentSearch.EMBEDDING_TOOL_TYPE,
+                DocumentSearch.DEFAULT_EMBEDDING_TOOL,
+            )
+            copywriter_tool = self.__di.tool_choice_resolver.require_tool(
+                DocumentSearch.COPYWRITER_TOOL_TYPE,
+                DocumentSearch.DEFAULT_COPYWRITER_TOOL,
+            )
+            return self.__di.document_search(
                 job_id = attachment.id,
                 document_url = attachment.last_url,
-                open_ai_api_key = embedding_token,
-                anthropic_token = copywriter_token,
+                embedding_tool = embedding_tool,
+                copywriter_tool = copywriter_tool,
                 additional_context = self.__additional_context,
             ).execute()
 
