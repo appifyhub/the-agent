@@ -427,7 +427,7 @@ class DI:
 
     def html_content_cleaner(self, raw_html: str) -> "HTMLContentCleaner":
         from features.web_browsing.html_content_cleaner import HTMLContentCleaner
-        return HTMLContentCleaner(raw_html, self.tools_cache_crud)
+        return HTMLContentCleaner(raw_html, self)
 
     def twitter_status_fetcher(
         self,

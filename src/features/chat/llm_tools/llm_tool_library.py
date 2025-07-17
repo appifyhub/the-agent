@@ -14,7 +14,6 @@ from features.chat.llm_tools.base_llm_tool_binder import BaseLLMToolBinder
 from features.chat.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
 from features.support.user_support_service import UserSupportService
 from features.web_browsing.ai_web_search import AIWebSearch
-from features.web_browsing.html_content_cleaner import HTMLContentCleaner
 from util.config import config
 from util.safe_printer_mixin import sprint
 
@@ -114,7 +113,7 @@ def fetch_web_content(url: str, user_id: str) -> str:
             di = DI(db, user_id)
             fetcher = di.web_fetcher(url, auto_fetch_html = True)
             html = str(fetcher.html)
-            text = HTMLContentCleaner(html, di.tools_cache_crud).clean_up()
+            text = di.html_content_cleaner(html).clean_up()
             result = text[:TOOL_TRUNCATE_LENGTH] + "..." if len(text) > TOOL_TRUNCATE_LENGTH else text
             return __success({"content": result})
     except Exception as e:
