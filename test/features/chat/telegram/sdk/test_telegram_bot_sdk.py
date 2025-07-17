@@ -22,6 +22,8 @@ class TelegramBotSDKTest(unittest.TestCase):
         self.mock_di.telegram_bot_api = Mock(spec = TelegramBotAPI)
         # noinspection PyPropertyAccess
         self.mock_di.telegram_data_resolver = Mock(spec = TelegramDataResolver)
+        # noinspection PyPropertyAccess
+        self.mock_di.telegram_domain_mapper = Mock(spec = TelegramDomainMapper)
 
         self.sdk = TelegramBotSDK(self.mock_di)
 
@@ -193,9 +195,8 @@ class TelegramBotSDKTest(unittest.TestCase):
         # noinspection PyUnresolvedReferences
         self.mock_di.telegram_bot_api.get_chat_member.assert_called_once_with(self.chat_id, self.user_id)
 
-    @patch.object(TelegramDomainMapper, "map_update")
-    def test_store_api_response_mapping_failure(self, mock_map_update):
-        mock_map_update.return_value = None
+    def test_store_api_response_mapping_failure(self):
+        self.mock_di.telegram_domain_mapper.map_update.return_value = None
 
         with self.assertRaises(ValueError) as context:
             # noinspection PyUnresolvedReferences

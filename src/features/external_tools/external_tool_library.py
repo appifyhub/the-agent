@@ -103,13 +103,6 @@ WHISPER_1 = ExternalTool(
     types = [ToolType.hearing],
 )
 
-GPT_IMAGE_1 = ExternalTool(
-    id = "gpt-image-1",
-    name = "GPT Image 1",
-    provider = OPEN_AI,
-    types = [ToolType.images_gen, ToolType.images_edit],
-)
-
 TEXT_EMBEDDING_3_SMALL = ExternalTool(
     id = "text-embedding-3-small",
     name = "Text Embedding 3 Small",
@@ -270,7 +263,6 @@ ALL_EXTERNAL_TOOLS = [
     GPT_40_TRANSCRIBE,
     GPT_40_MINI_TRANSCRIBE,
     WHISPER_1,
-    GPT_IMAGE_1,
     TEXT_EMBEDDING_3_SMALL,
     TEXT_EMBEDDING_5_LARGE,
     # Anthropic

@@ -13,6 +13,7 @@ class SimpleStableDiffusionGenerator(SafePrinterMixin):
     DEFAULT_TOOL: ExternalTool = IMAGE_GENERATION_FLUX
     TOOL_TYPE: ToolType = ToolType.images_gen
 
+    error: str | None
     __prompt: str
     __configured_tool: ConfiguredTool
     __replicate: Client
@@ -34,6 +35,7 @@ class SimpleStableDiffusionGenerator(SafePrinterMixin):
     def execute(self) -> str | None:
         self.sprint(f"Starting text-stable-diffusion generator with prompt: '{self.__prompt}'")
         tool, _, _ = self.__configured_tool
+        self.error = None
         try:
             result = self.__replicate.run(
                 tool.id,
@@ -51,12 +53,13 @@ class SimpleStableDiffusionGenerator(SafePrinterMixin):
             if isinstance(result, list):
                 if result and isinstance(result[0], str):
                     return result[0]
-                return None
+                raise ValueError("Expected a list of string URLs, but got something else")
             elif isinstance(result, str):
                 return result
             elif result is not None:
                 return str(result)
-            return None
+            raise ValueError("No valid output URL returned from the image generation tool")
         except Exception as e:
             self.sprint("Failed to generate image", e)
+            self.error = str(e)
             return None

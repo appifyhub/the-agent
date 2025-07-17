@@ -90,10 +90,13 @@ class ImageGeneratorTest(unittest.TestCase):
         mock_refresh.return_value = [self.attachment, self.attachment]
         mock_remover_instance1 = MagicMock()
         mock_remover_instance1.execute.return_value = "http://test.com/edited_image.png"
+        mock_remover_instance1.error = None
         mock_remover_instance2 = MagicMock()
         mock_remover_instance2.execute.return_value = None
+        mock_remover_instance2.error = "Processing failed"
         self.mock_di.image_background_remover.side_effect = [mock_remover_instance1, mock_remover_instance2]
         self.mock_di.telegram_bot_sdk.send_document.return_value = {"result": {"message_id": 123}}
+        self.mock_di.telegram_bot_sdk.send_photo.return_value = {"result": {"message_id": 124}}
 
         service = ChatImagingService(
             attachment_ids = self.attachment_ids,
@@ -101,10 +104,14 @@ class ImageGeneratorTest(unittest.TestCase):
             operation_guidance = self.operation_guidance,
             di = self.mock_di,
         )
-        result, stats = service.execute()
+        result, details = service.execute()
 
         self.assertEqual(result, ChatImagingService.Result.partial)
-        self.assertEqual(stats, {"image_backgrounds_removed": 1})
+        expected_details = [
+            {"url": "http://test.com/edited_image.png", "error": None, "status": "delivered"},
+            {"url": None, "error": "Processing failed"},
+        ]
+        self.assertEqual(details, expected_details)
         self.assertEqual(self.mock_di.image_background_remover.call_count, 2)
         self.mock_di.telegram_bot_sdk.send_document.assert_called_once_with(
             self.mock_di.invoker_chat.chat_id,
@@ -117,6 +124,7 @@ class ImageGeneratorTest(unittest.TestCase):
         mock_refresh.return_value = [self.attachment]
         mock_remover_instance = MagicMock()
         mock_remover_instance.execute.return_value = None
+        mock_remover_instance.error = "Background removal failed"
         self.mock_di.image_background_remover.return_value = mock_remover_instance
 
         service = ChatImagingService(
@@ -125,10 +133,11 @@ class ImageGeneratorTest(unittest.TestCase):
             operation_guidance = self.operation_guidance,
             di = self.mock_di,
         )
-        result, stats = service.execute()
+        result, details = service.execute()
 
         self.assertEqual(result, ChatImagingService.Result.failed)
-        self.assertEqual(stats, {"image_backgrounds_removed": 0})
+        expected_details = [{"url": None, "error": "Background removal failed"}]
+        self.assertEqual(details, expected_details)
         mock_remover_instance.execute.assert_called_once()
         self.mock_di.telegram_bot_sdk.send_document.assert_not_called()
 
@@ -137,6 +146,7 @@ class ImageGeneratorTest(unittest.TestCase):
         mock_refresh.return_value = [self.attachment]
         mock_remover_instance = MagicMock()
         mock_remover_instance.execute.side_effect = Exception("Test exception")
+        mock_remover_instance.error = None
         self.mock_di.image_background_remover.return_value = mock_remover_instance
 
         service = ChatImagingService(
@@ -145,10 +155,11 @@ class ImageGeneratorTest(unittest.TestCase):
             operation_guidance = self.operation_guidance,
             di = self.mock_di,
         )
-        result, stats = service.execute()
+        result, details = service.execute()
 
         self.assertEqual(result, ChatImagingService.Result.failed)
-        self.assertEqual(stats, {"image_backgrounds_removed": 0})
+        expected_details = [{"url": None, "error": "Test exception"}]
+        self.assertEqual(details, expected_details)
         mock_remover_instance.execute.assert_called_once()
         self.mock_di.telegram_bot_sdk.send_document.assert_not_called()
 
@@ -171,8 +182,10 @@ class ImageGeneratorTest(unittest.TestCase):
         mock_refresh.return_value = [self.attachment]
         mock_remover_instance = MagicMock()
         mock_remover_instance.execute.return_value = "http://test.com/edited_image.png"
+        mock_remover_instance.error = None
         self.mock_di.image_background_remover.return_value = mock_remover_instance
         self.mock_di.telegram_bot_sdk.send_document.return_value = {"result": {"message_id": 123}}
+        self.mock_di.telegram_bot_sdk.send_photo.return_value = {"result": {"message_id": 124}}
 
         service = ChatImagingService(
             attachment_ids = self.attachment_ids,
@@ -180,10 +193,11 @@ class ImageGeneratorTest(unittest.TestCase):
             operation_guidance = self.operation_guidance,
             di = self.mock_di,
         )
-        result, stats = service.execute()
+        result, details = service.execute()
 
         self.assertEqual(result, ChatImagingService.Result.success)
-        self.assertEqual(stats, {"image_backgrounds_removed": 1})
+        expected_details = [{"url": "http://test.com/edited_image.png", "error": None, "status": "delivered"}]
+        self.assertEqual(details, expected_details)
         mock_remover_instance.execute.assert_called_once()
         self.mock_di.telegram_bot_sdk.send_document.assert_called_once_with(
             self.mock_di.invoker_chat.chat_id,
@@ -198,9 +212,11 @@ class ImageGeneratorTest(unittest.TestCase):
         mock_restorer_instance.execute.return_value = ImageContentsRestorer.Result(
             restored_url = "http://test.com/restored_image.png",
             inpainted_url = "http://test.com/inpainted_image.png",
+            error = None,
         )
         self.mock_di.image_contents_restorer.return_value = mock_restorer_instance
         self.mock_di.telegram_bot_sdk.send_document.return_value = {"result": {"message_id": 123}}
+        self.mock_di.telegram_bot_sdk.send_photo.return_value = {"result": {"message_id": 124}}
 
         service = ChatImagingService(
             attachment_ids = self.attachment_ids,
@@ -208,9 +224,10 @@ class ImageGeneratorTest(unittest.TestCase):
             operation_guidance = self.operation_guidance,
             di = self.mock_di,
         )
-        result, stats = service.execute()
+        result, details = service.execute()
 
         self.assertEqual(result, ChatImagingService.Result.success)
-        self.assertEqual(stats, {"images_restored": 2})
+        expected_details = [{"url": "http://test.com/inpainted_image.png", "error": None, "status": "delivered"}]
+        self.assertEqual(details, expected_details)
         mock_restorer_instance.execute.assert_called_once()
-        self.assertEqual(self.mock_di.telegram_bot_sdk.send_document.call_count, 2)
+        self.mock_di.telegram_bot_sdk.send_document.assert_called_once()

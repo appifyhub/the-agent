@@ -16,6 +16,7 @@ class ComputerVisionAnalyzer(SafePrinterMixin):
     DEFAULT_TOOL: ExternalTool = GPT_4_1_MINI
     TOOL_TYPE: ToolType = ToolType.vision
 
+    error: str | None = None
     __job_id: str
     __messages: list[BaseMessage]
     __vision_model: BaseChatModel
@@ -63,6 +64,7 @@ class ComputerVisionAnalyzer(SafePrinterMixin):
 
     def execute(self) -> str | None:
         self.sprint(f"Starting computer vision analysis for job '{self.__job_id}'")
+        self.error = None
         try:
             answer = self.__vision_model.invoke(self.__messages)
             if not isinstance(answer, AIMessage):
@@ -72,4 +74,5 @@ class ComputerVisionAnalyzer(SafePrinterMixin):
             return str(answer.content)
         except Exception as e:
             self.sprint("Computer vision analysis failed", e)
+            self.error = str(e)
             return None

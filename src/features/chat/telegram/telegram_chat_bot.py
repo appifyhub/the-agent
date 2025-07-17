@@ -141,7 +141,7 @@ class TelegramChatBot(SafePrinterMixin):
                     if system_correction_added:
                         iteration += 1
                         continue
-                    self.sprint(f"Finishing with {type(answer)}: {len(answer.content)} characters")
+                    self.sprint(f"Finishing chat response with {len(answer.content)} characters")
                     return answer
 
                 self.sprint(f"Iteration #{iteration} has tool calls, processing...")

@@ -7,7 +7,7 @@ OPEN_AI = ExternalToolProvider(
     name = "OpenAI",
     token_management_url = "https://platform.openai.com/api-keys",
     token_format = "sk-...abc123",
-    tools = ["ChatGPT", "DALL-E", "Whisper", "Image-1"],
+    tools = ["ChatGPT", "Whisper", "Embedding"],
 )
 
 ANTHROPIC = ExternalToolProvider(

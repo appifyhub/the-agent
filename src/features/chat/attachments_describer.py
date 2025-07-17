@@ -29,6 +29,7 @@ class AttachmentsDescriber(SafePrinterMixin):
     # the following two lists are in sync
     __attachments: list[ChatMessageAttachment | None]
     __contents: list[str | None]
+    __errors: list[str | None]
 
     __additional_context: str | None
     __di: DI
@@ -42,6 +43,7 @@ class AttachmentsDescriber(SafePrinterMixin):
         super().__init__(config.verbose)
         self.__attachments = []
         self.__contents = []
+        self.__errors = []
         self.__additional_context = additional_context
         self.__di = di
         self.__validate(attachment_ids)
@@ -69,7 +71,7 @@ class AttachmentsDescriber(SafePrinterMixin):
         )
 
     @property
-    def resolution_status(self) -> Result:
+    def __resolution_status(self) -> Result:
         if not self.__attachments:
             return AttachmentsDescriber.Result.failed
         all_attachments_exist = all(attachment is not None for attachment in self.__attachments)
@@ -87,12 +89,13 @@ class AttachmentsDescriber(SafePrinterMixin):
     @property
     def result(self) -> list[dict[str, str]]:
         result: list[dict[str, str]] = []
-        for attachment, content in zip(self.__attachments, self.__contents):
+        for attachment, content, error in zip(self.__attachments, self.__contents, self.__errors):
             if attachment is not None:
                 attachment_data = {
                     "id": attachment.id,
                     "text_content": content if content is not None else "<unresolved>",
                     "type": attachment.mime_type if attachment.mime_type else "<unknown>",
+                    "error": error if error else "<none>",
                 }
                 result.append(attachment_data)
         return result
@@ -101,10 +104,12 @@ class AttachmentsDescriber(SafePrinterMixin):
         self.sprint("Resolving attachments content")
 
         self.__contents = []
+        self.__errors = []
         for attachment in self.__attachments:
             if attachment is None:
                 self.sprint("Skipping None attachment")
                 self.__contents.append(None)
+                self.__errors.append("Attachment is not found")
                 continue
             # assuming the URL will never change... users might ask more questions about the same attachment
             additional_content_hash = digest_md5(self.__additional_context) if self.__additional_context else "*"
@@ -116,6 +121,7 @@ class AttachmentsDescriber(SafePrinterMixin):
                 if not cache_entry.is_expired():
                     self.sprint(f"Cache hit for '{cache_key}'")
                     self.__contents.append(cache_entry.value)
+                    self.__errors.append(None)
                     continue
                 self.sprint(f"Cache expired for '{cache_key}'")
             self.sprint(f"Cache miss for '{cache_key}'")
@@ -130,11 +136,13 @@ class AttachmentsDescriber(SafePrinterMixin):
                         ),
                     )
                 self.__contents.append(content)
+                self.__errors.append(None)
             except Exception as e:
                 self.sprint(f"Error resolving contents for '{attachment.id}'", e)
                 self.__contents.append(None)
+                self.__errors.append(str(e))
 
-        result = self.resolution_status
+        result = self.__resolution_status
         self.sprint(f"Resolution result: {result}")
         return result
 

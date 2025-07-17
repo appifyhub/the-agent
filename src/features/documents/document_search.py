@@ -25,6 +25,7 @@ class DocumentSearch(SafePrinterMixin):
     DEFAULT_COPYWRITER_TOOL: ExternalTool = CLAUDE_3_7_SONNET
     COPYWRITER_TOOL_TYPE: ToolType = ToolType.copywriting
 
+    error: str | None
     __job_id: str
     __embeddings: Embeddings
     __loaded_pages: list[Document]
@@ -52,16 +53,14 @@ class DocumentSearch(SafePrinterMixin):
         self.__additional_context = additional_context or DEFAULT_QUESTION
         embedding_model, embedding_token, _ = embedding_tool
         # noinspection PyArgumentList
-        self.__embeddings = OpenAIEmbeddings(
-            model = embedding_model.id,
-            openai_api_key = embedding_token,
-        )
+        self.__embeddings = OpenAIEmbeddings(model = embedding_model.id, openai_api_key = embedding_token)
         # noinspection PyArgumentList
         self.__copywriter = di.chat_langchain_model(copywriter_tool)
         self.__di = di
 
     def execute(self) -> str | None:
         self.sprint(f"Starting document search for job '{self.__job_id}'")
+        self.error = None
         try:
             # run the raw search first
             document_index = InMemoryVectorStore(self.__embeddings)
@@ -90,4 +89,5 @@ class DocumentSearch(SafePrinterMixin):
             return f"Document Search Results:\n\n```\n{str(answer.content)}\n```"
         except Exception as e:
             self.sprint("Document search failed", e)
+            self.error = str(e)
             return None

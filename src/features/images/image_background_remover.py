@@ -22,6 +22,7 @@ class ImageBackgroundRemover(SafePrinterMixin):
     DEFAULT_TOOL: ExternalTool = BACKGROUND_REMOVAL
     TOOL_TYPE: ToolType = ToolType.images_background_removal
 
+    error: str | None
     __image_url: str
     __configured_tool: ConfiguredTool
     __mime_type: str | None
@@ -45,6 +46,7 @@ class ImageBackgroundRemover(SafePrinterMixin):
 
     def execute(self) -> str | None:
         self.sprint("Starting background removal")
+        self.error = None
         try:
             # not using the URL directly because it contains the bot token in its path
             with tempfile.NamedTemporaryFile(delete = True, suffix = self.__get_suffix()) as temp_file:
@@ -56,12 +58,12 @@ class ImageBackgroundRemover(SafePrinterMixin):
                     tool, _, _ = self.__configured_tool
                     result = self.__replicate.run(tool.id, input = input_data)
             if not result:
-                self.sprint("Failed to remove background (no output URL)")
-                return None
+                raise ValueError("Failed to remove background (no output URL)")
             self.sprint("Background removal successful")
             return str(result)
         except Exception as e:
             self.sprint("Error removing background", e)
+            self.error = str(e)
             return None
 
     def __get_suffix(self) -> str:

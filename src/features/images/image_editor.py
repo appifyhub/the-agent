@@ -22,6 +22,7 @@ class ImageEditor(SafePrinterMixin):
     DEFAULT_TOOL: ExternalTool = IMAGE_EDITING_FLUX_KONTEXT_PRO
     TOOL_TYPE: ToolType = ToolType.images_edit
 
+    error: str | None
     __context: str | None
     __image_url: str
     __configured_tool: ConfiguredTool
@@ -48,6 +49,7 @@ class ImageEditor(SafePrinterMixin):
 
     def execute(self) -> str | None:
         self.sprint("Starting photo editing")
+        self.error = None
         try:
             # not using the URL directly because it contains the bot token in its path
             with tempfile.NamedTemporaryFile(delete = True, suffix = self.__get_suffix()) as temp_file:
@@ -65,12 +67,12 @@ class ImageEditor(SafePrinterMixin):
                     tool, _, _ = self.__configured_tool
                     result = self.__replicate.run(tool.id, input = input_data)
             if not result:
-                self.sprint("Failed to edit the image (no output URL)")
-                return None
+                raise ValueError("Failed to edit the image (no output URL)")
             self.sprint("Image edit successful")
             return str(result)
         except Exception as e:
             self.sprint("Error editing image", e)
+            self.error = str(e)
             return None
 
     def __get_suffix(self) -> str:

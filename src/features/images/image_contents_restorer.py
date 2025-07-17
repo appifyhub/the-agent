@@ -1,5 +1,6 @@
 import os
 import tempfile
+from dataclasses import dataclass
 from urllib.parse import urlparse
 
 import requests
@@ -24,13 +25,11 @@ class ImageContentsRestorer(SafePrinterMixin):
     DEFAULT_INPAINTING_TOOL: ExternalTool = IMAGE_INPAINTING
     INPAINTING_TOOL_TYPE: ToolType = ToolType.images_inpainting
 
+    @dataclass
     class Result:
         restored_url: str | None
         inpainted_url: str | None
-
-        def __init__(self, restored_url: str | None, inpainted_url: str | None):
-            self.restored_url = restored_url
-            self.inpainted_url = inpainted_url
+        error: str | None
 
     __image_url: str
     __restoration_tool: ConfiguredTool
@@ -69,7 +68,7 @@ class ImageContentsRestorer(SafePrinterMixin):
         )
 
     def execute(self) -> Result:
-        result = ImageContentsRestorer.Result(None, None)
+        result = ImageContentsRestorer.Result(None, None, None)
 
         # let's do the basic restoring first
         try:
@@ -96,6 +95,7 @@ class ImageContentsRestorer(SafePrinterMixin):
             result.restored_url = str(restored_url)
         except Exception as e:
             self.sprint("Error restoring image contents", e)
+            result.error = str(e)
 
         # then let's do the more advanced inpainting
         try:
@@ -125,6 +125,7 @@ class ImageContentsRestorer(SafePrinterMixin):
             result.inpainted_url = inpainted_url[0]
         except Exception as e:
             self.sprint("Error inpainting image details", e)
+            result.error = str(e)
         return result
 
     def __get_suffix(self, image_url: str) -> str:

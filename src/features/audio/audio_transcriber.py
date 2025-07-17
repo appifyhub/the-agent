@@ -29,6 +29,7 @@ class AudioTranscriber(SafePrinterMixin):
     DEFAULT_COPYWRITER_TOOL: ExternalTool = CLAUDE_3_5_HAIKU
     COPYWRITER_TOOL_TYPE: ToolType = ToolType.copywriting
 
+    error: str | None
     __job_id: str
     __audio_content: bytes
     __extension: str
@@ -99,6 +100,7 @@ class AudioTranscriber(SafePrinterMixin):
 
     def execute(self) -> str | None:
         self.sprint(f"Starting audio analysis for job '{self.__job_id}'")
+        self.error = None
         try:
             # first resolve the transcription
             buffer = io.BytesIO(self.__audio_content)
@@ -128,4 +130,5 @@ class AudioTranscriber(SafePrinterMixin):
             return transcription
         except Exception as e:
             self.sprint("Audio analysis failed", e)
+            self.error = str(e)
             return None

@@ -24,6 +24,7 @@ class SmartStableDiffusionGenerator(SafePrinterMixin):
     DEFAULT_IMAGE_GEN_TOOL: ExternalTool = SimpleStableDiffusionGenerator.DEFAULT_TOOL
     IMAGE_GEN_TOOL_TYPE: ToolType = SimpleStableDiffusionGenerator.TOOL_TYPE
 
+    error: str | None = None
     __llm_input: list[BaseMessage]
     __image_gen_tool: ConfiguredTool
     __copywriter: BaseChatModel
@@ -46,6 +47,7 @@ class SmartStableDiffusionGenerator(SafePrinterMixin):
 
     def execute(self) -> Result:
         self.sprint(f"Generating image for chat '{self.__di.invoker_chat.chat_id}'")
+        self.error = None
 
         # let's correct/prettify and translate the prompt first
         try:
@@ -57,25 +59,35 @@ class SmartStableDiffusionGenerator(SafePrinterMixin):
             self.sprint(f"Finished prompt correction, new size is {len(prompt)} characters")
         except Exception as e:
             self.sprint("Error correcting raw prompt", e)
+            self.error = str(e)
             return SmartStableDiffusionGenerator.Result.failed
 
         # let's generate the image now using the corrected prompt
         try:
             self.sprint("Starting image generation")
-            image_url = self.__di.simple_stable_diffusion_generator(prompt, self.__image_gen_tool).execute()
+            generator = self.__di.simple_stable_diffusion_generator(prompt, self.__image_gen_tool)
+            image_url = generator.execute()
+            if generator.error:
+                self.error = generator.error
+                return SmartStableDiffusionGenerator.Result.failed
             if not image_url:
-                self.sprint("Failed to generate image (no image URL found)")
+                message = "Failed to generate image (no image URL found)"
+                self.sprint(message)
+                self.error = message
                 return SmartStableDiffusionGenerator.Result.failed
         except Exception as e:
             self.sprint("Error generating image", e)
+            self.error = str(e)
             return SmartStableDiffusionGenerator.Result.failed
 
         # let's send the image to the chat
         try:
             self.sprint("Starting image sending")
-            self.__di.telegram_bot_sdk.send_photo(self.__di.invoker_chat.chat_id, image_url)
+            self.__di.telegram_bot_sdk.send_document(self.__di.invoker_chat.chat_id, image_url, thumbnail = image_url)
+            self.__di.telegram_bot_sdk.send_photo(self.__di.invoker_chat.chat_id, image_url, caption = "📸")
         except Exception as e:
             self.sprint("Error sending image", e)
+            self.error = str(e)
             return SmartStableDiffusionGenerator.Result.failed
 
         self.sprint("Image generated and sent successfully")
