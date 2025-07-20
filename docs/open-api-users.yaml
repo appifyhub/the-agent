@@ -1,0 +1,787 @@
+openapi: 3.0.3
+info:
+  title: The Agent's user-facing API
+  description: The user-facing parts of The Agent's API service (excluding system-level endpoints, chat completion, maintenance endpoints, etc.)
+  version: 3.0.0
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://your.agent.com
+    description: Your Agent API
+
+security:
+  - bearerAuth: []
+
+paths:
+  /settings/{settings_type}/{resource_id}:
+    get:
+      summary: Get user or chat settings
+      description: Retrieve settings for a specific user or chat configuration
+      operationId: getSettings
+      parameters:
+        - name: settings_type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [user, chat]
+          description: Type of settings to retrieve
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID (hex) or Chat ID depending on settings_type
+      responses:
+        "200":
+          description: Settings retrieved successfully
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/UserSettingsResponse"
+                  - $ref: "#/components/schemas/ChatSettingsResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /settings/user/{user_id_hex}:
+    patch:
+      summary: Update user settings
+      description: Save user settings including API keys and tool choices
+      operationId: saveUserSettings
+      parameters:
+        - name: user_id_hex
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserSettingsPayload"
+      responses:
+        "200":
+          description: User settings saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /settings/chat/{chat_id}:
+    patch:
+      summary: Update chat settings
+      description: Save chat configuration including language and reply settings
+      operationId: saveChatSettings
+      parameters:
+        - name: chat_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Chat ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatSettingsPayload"
+      responses:
+        "200":
+          description: Chat settings saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /user/{resource_id}/chats:
+    get:
+      summary: Get user's administered chats
+      description: Retrieve all chats that the user administers
+      operationId: getChats
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format
+      responses:
+        "200":
+          description: Chats retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatSummary"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /settings/user/{resource_id}/tools:
+    get:
+      summary: Get user's external tools configuration
+      description: Retrieve external tools and providers configuration status
+      operationId: getTools
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format
+      responses:
+        "200":
+          description: Tools configuration retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExternalToolsResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /user/{resource_id}/sponsorships:
+    get:
+      summary: Get user's sponsorships
+      description: Retrieve all sponsorships created by the user
+      operationId: getSponsorships
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format
+      responses:
+        "200":
+          description: Sponsorships retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SponsorshipsResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+    post:
+      summary: Create a new sponsorship
+      description: Sponsor another user by their Telegram username
+      operationId: sponsorUser
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SponsorshipPayload"
+      responses:
+        "200":
+          description: User sponsored successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /user/{resource_id}/sponsorships/{receiver_telegram_username}:
+    delete:
+      summary: Remove a sponsorship
+      description: Remove sponsorship for a specific user
+      operationId: unsponsorUser
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format
+        - name: receiver_telegram_username
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Telegram username of the sponsored user
+      responses:
+        "200":
+          description: Sponsorship removed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /user/{resource_id}/sponsored:
+    delete:
+      summary: Remove self-sponsorship
+      description: User removes their own sponsorship status
+      operationId: unsponsorSelf
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format
+      responses:
+        "200":
+          description: Self-sponsorship removed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnsponsorSelfResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication flow
+
+  schemas:
+    UserSettingsPayload:
+      type: object
+      properties:
+        open_ai_key:
+          type: string
+          nullable: true
+          description: OpenAI API key
+        anthropic_key:
+          type: string
+          nullable: true
+          description: Anthropic API key
+        perplexity_key:
+          type: string
+          nullable: true
+          description: Perplexity API key
+        replicate_key:
+          type: string
+          nullable: true
+          description: Replicate API key
+        rapid_api_key:
+          type: string
+          nullable: true
+          description: RapidAPI key
+        coinmarketcap_key:
+          type: string
+          nullable: true
+          description: CoinMarketCap API key
+        tool_choice_chat:
+          type: string
+          nullable: true
+          description: Tool choice for chat functionality
+        tool_choice_reasoning:
+          type: string
+          nullable: true
+          description: Tool choice for reasoning tasks
+        tool_choice_copywriting:
+          type: string
+          nullable: true
+          description: Tool choice for copywriting tasks
+        tool_choice_vision:
+          type: string
+          nullable: true
+          description: Tool choice for vision tasks
+        tool_choice_hearing:
+          type: string
+          nullable: true
+          description: Tool choice for audio processing
+        tool_choice_images_gen:
+          type: string
+          nullable: true
+          description: Tool choice for image generation
+        tool_choice_images_edit:
+          type: string
+          nullable: true
+          description: Tool choice for image editing
+        tool_choice_images_restoration:
+          type: string
+          nullable: true
+          description: Tool choice for image restoration
+        tool_choice_images_inpainting:
+          type: string
+          nullable: true
+          description: Tool choice for image inpainting
+        tool_choice_images_background_removal:
+          type: string
+          nullable: true
+          description: Tool choice for background removal
+        tool_choice_search:
+          type: string
+          nullable: true
+          description: Tool choice for search functionality
+        tool_choice_embedding:
+          type: string
+          nullable: true
+          description: Tool choice for embedding generation
+        tool_choice_api_fiat_exchange:
+          type: string
+          nullable: true
+          description: Tool choice for fiat currency exchange
+        tool_choice_api_crypto_exchange:
+          type: string
+          nullable: true
+          description: Tool choice for cryptocurrency exchange
+        tool_choice_api_twitter:
+          type: string
+          nullable: true
+          description: Tool choice for Twitter API integration
+
+    UserSettingsResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: User ID in hexadecimal format
+        full_name:
+          type: string
+          nullable: true
+          description: User's full name
+        telegram_username:
+          type: string
+          nullable: true
+          description: Telegram username
+        telegram_chat_id:
+          type: string
+          nullable: true
+          description: Telegram chat ID
+        telegram_user_id:
+          type: integer
+          nullable: true
+          description: Telegram user ID
+        open_ai_key:
+          type: string
+          nullable: true
+          description: Masked OpenAI API key
+        anthropic_key:
+          type: string
+          nullable: true
+          description: Masked Anthropic API key
+        perplexity_key:
+          type: string
+          nullable: true
+          description: Masked Perplexity API key
+        replicate_key:
+          type: string
+          nullable: true
+          description: Masked Replicate API key
+        rapid_api_key:
+          type: string
+          nullable: true
+          description: Masked RapidAPI key
+        coinmarketcap_key:
+          type: string
+          nullable: true
+          description: Masked CoinMarketCap API key
+        tool_choice_chat:
+          type: string
+          nullable: true
+        tool_choice_reasoning:
+          type: string
+          nullable: true
+        tool_choice_copywriting:
+          type: string
+          nullable: true
+        tool_choice_vision:
+          type: string
+          nullable: true
+        tool_choice_hearing:
+          type: string
+          nullable: true
+        tool_choice_images_gen:
+          type: string
+          nullable: true
+        tool_choice_images_edit:
+          type: string
+          nullable: true
+        tool_choice_images_restoration:
+          type: string
+          nullable: true
+        tool_choice_images_inpainting:
+          type: string
+          nullable: true
+        tool_choice_images_background_removal:
+          type: string
+          nullable: true
+        tool_choice_search:
+          type: string
+          nullable: true
+        tool_choice_embedding:
+          type: string
+          nullable: true
+        tool_choice_api_fiat_exchange:
+          type: string
+          nullable: true
+        tool_choice_api_crypto_exchange:
+          type: string
+          nullable: true
+        tool_choice_api_twitter:
+          type: string
+          nullable: true
+        group:
+          type: string
+          description: User group/role
+        created_at:
+          type: string
+          format: date-time
+          description: User creation timestamp
+      required:
+        - id
+        - group
+        - created_at
+
+    ChatSettingsPayload:
+      type: object
+      properties:
+        language_name:
+          type: string
+          description: Display name of the language
+        language_iso_code:
+          type: string
+          description: ISO code of the language
+        reply_chance_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Percentage chance of replying to messages
+        release_notifications:
+          type: string
+          enum: [none, major, minor, all]
+          description: Release notification settings
+      required:
+        - language_name
+        - language_iso_code
+        - reply_chance_percent
+        - release_notifications
+
+    ChatSettingsResponse:
+      type: object
+      properties:
+        chat_id:
+          type: string
+          description: Chat ID
+        title:
+          type: string
+          nullable: true
+          description: Chat title
+        language_name:
+          type: string
+          nullable: true
+          description: Display name of the language
+        language_iso_code:
+          type: string
+          nullable: true
+          description: ISO code of the language
+        reply_chance_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Percentage chance of replying to messages
+        release_notifications:
+          type: string
+          enum: [none, major, minor, all]
+          description: Release notification settings
+        is_private:
+          type: boolean
+          description: Whether the chat is private
+        is_own:
+          type: boolean
+          description: Whether the chat belongs to the requesting user
+      required:
+        - chat_id
+        - reply_chance_percent
+        - release_notifications
+        - is_private
+        - is_own
+
+    SponsorshipPayload:
+      type: object
+      properties:
+        receiver_telegram_username:
+          type: string
+          description: Telegram username of the user to sponsor
+      required:
+        - receiver_telegram_username
+
+    ChatSummary:
+      type: object
+      properties:
+        chat_id:
+          type: string
+          description: Chat ID
+        title:
+          type: string
+          nullable: true
+          description: Chat title
+        is_own:
+          type: boolean
+          description: Whether the chat belongs to the requesting user
+      required:
+        - chat_id
+        - is_own
+
+    ExternalToolsResponse:
+      type: object
+      properties:
+        tools:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExternalToolResponse"
+          description: List of external tools
+        providers:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExternalToolProviderResponse"
+          description: List of external tool providers
+      required:
+        - tools
+        - providers
+
+    ExternalToolResponse:
+      type: object
+      properties:
+        definition:
+          $ref: "#/components/schemas/ExternalTool"
+        is_configured:
+          type: boolean
+          description: Whether the tool is configured
+      required:
+        - definition
+        - is_configured
+
+    ExternalToolProviderResponse:
+      type: object
+      properties:
+        definition:
+          $ref: "#/components/schemas/ExternalToolProvider"
+        is_configured:
+          type: boolean
+          description: Whether the provider is configured
+      required:
+        - definition
+        - is_configured
+
+    ExternalTool:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Tool ID
+        name:
+          type: string
+          description: Tool name
+        provider:
+          $ref: "#/components/schemas/ExternalToolProvider"
+        types:
+          type: array
+          items:
+            type: string
+          description: Tool types/capabilities
+      required:
+        - id
+        - name
+        - provider
+        - types
+
+    ExternalToolProvider:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Provider ID
+        name:
+          type: string
+          description: Provider name
+        token_management_url:
+          type: string
+          description: URL for managing tokens
+        token_format:
+          type: string
+          description: Expected token format
+        tools:
+          type: array
+          items:
+            type: string
+          description: List of tool names
+      required:
+        - id
+        - name
+        - token_management_url
+        - token_format
+        - tools
+
+    SponsorshipsResponse:
+      type: object
+      properties:
+        sponsorships:
+          type: array
+          items:
+            $ref: "#/components/schemas/SponsorshipInfo"
+          description: List of sponsorships
+        max_sponsorships:
+          type: integer
+          description: Maximum number of sponsorships allowed
+      required:
+        - sponsorships
+        - max_sponsorships
+
+    SponsorshipInfo:
+      type: object
+      properties:
+        full_name:
+          type: string
+          nullable: true
+          description: Full name of sponsored user
+        telegram_username:
+          type: string
+          nullable: true
+          description: Telegram username of sponsored user
+        sponsored_at:
+          type: string
+          format: date-time
+          description: When the sponsorship was created
+        accepted_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the sponsorship was accepted
+      required:
+        - sponsored_at
+
+    StatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [OK]
+          description: Operation status
+      required:
+        - status
+
+    UnsponsorSelfResponse:
+      type: object
+      properties:
+        settings_link:
+          type: string
+          description: Link to settings page
+      required:
+        - settings_link
+
+    ErrorResponse:
+      type: object
+      properties:
+        reason:
+          type: string
+          description: Error reason
+      required:
+        - reason
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required or token expired
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                type: string
+                example: "Token has expired"
+            required:
+              - detail
+
+    ForbiddenError:
+      description: Access denied
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                type: string
+                example: "Could not validate access credentials"
+            required:
+              - detail
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                $ref: "#/components/schemas/ErrorResponse"
+            required:
+              - detail

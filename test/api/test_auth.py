@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 from jose import jwt
+from pydantic import SecretStr
 from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_403_FORBIDDEN
 
 from api.auth import (
@@ -34,7 +35,7 @@ class AuthTest(unittest.TestCase):
 
     @patch("api.auth.config")
     def test_valid_api_key(self, mock_config: MagicMock):
-        mock_config.api_key = "VALI-DKEY"
+        mock_config.api_key = SecretStr("VALI-DKEY")
         api_key = verify_api_key("VALI-DKEY")
         self.assertEqual(api_key, "VALI-DKEY")
 
@@ -63,7 +64,7 @@ class AuthTest(unittest.TestCase):
     @patch("api.auth.config")
     def test_valid_telegram_auth_key(self, mock_config: MagicMock):
         mock_config.telegram_must_auth = True
-        mock_config.telegram_auth_key = "VALI-DKEY"
+        mock_config.telegram_auth_key = SecretStr("VALI-DKEY")
         auth_key = verify_telegram_auth_key("VALI-DKEY")
         self.assertEqual(auth_key, "VALI-DKEY")
 
@@ -85,7 +86,7 @@ class AuthTest(unittest.TestCase):
     @patch("api.auth.jwt")
     @patch("api.auth.config")
     def test_valid_jwt_token(self, mock_config: MagicMock, mock_jwt: MagicMock):
-        mock_config.jwt_secret_key = "secret"
+        mock_config.jwt_secret_key = SecretStr("secret")
         expected_payload = {"sub": "1234"}
         mock_jwt.decode.return_value = expected_payload
 
@@ -95,7 +96,7 @@ class AuthTest(unittest.TestCase):
     def test_create_jwt_token(self):
         payload = {"sub": "1234"}
         encoded_token = create_jwt_token(payload, expires_in_minutes = 1)
-        decoded_token = jwt.decode(encoded_token, config.jwt_secret_key)
+        decoded_token = jwt.decode(encoded_token, config.jwt_secret_key.get_secret_value())
         self.assertIsNotNone(encoded_token, str)
         self.assertIsInstance(encoded_token, str)
         self.assertIsNotNone(decoded_token["exp"])

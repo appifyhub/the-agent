@@ -654,22 +654,17 @@ def add_metadata(
 
 
 def error_general_problem(reason: str) -> str:
-    clean_reason = reason.replace(config.db_url, "db://****")
-    clean_reason = clean_reason.replace(config.parent_organization, "organization")
-    clean_reason = clean_reason.replace(config.telegram_bot_token, "****")
-    clean_reason = clean_reason.replace(config.anthropic_token, "****")
-    clean_reason = clean_reason.replace(config.open_ai_token, "****")
-    clean_reason = clean_reason.replace(config.rapid_api_token, "****")
-    clean_reason = clean_reason.replace(config.rapid_api_twitter_token, "****")
-    clean_reason = clean_reason.replace(config.coinmarketcap_api_token, "****")
-    clean_reason = clean_reason.replace(config.replicate_api_token, "****")
-    clean_reason = clean_reason.replace(config.perplexity_api_token, "****")
-    clean_reason = clean_reason.replace(config.github_issues_token, "****")
-    clean_reason = clean_reason.replace(config.jwt_secret_key, "****")
+    clean_reason = reason.replace(config.db_url.get_secret_value(), "db://****")
+    clean_reason = clean_reason.replace(config.api_key.get_secret_value(), "****")
+    clean_reason = clean_reason.replace(config.telegram_auth_key.get_secret_value(), "****")
+    clean_reason = clean_reason.replace(config.telegram_bot_token.get_secret_value(), "****")
+    clean_reason = clean_reason.replace(config.rapid_api_twitter_token.get_secret_value(), "****")
+    clean_reason = clean_reason.replace(config.github_issues_token.get_secret_value(), "****")
+    clean_reason = clean_reason.replace(config.jwt_secret_key.get_secret_value(), "****")
     return MULTI_MESSAGE_DELIMITER.join(
         [
             "⚡",
-            f"```{clean_reason}```",
+            f"```\n{clean_reason}\n```",
             "Type: /settings",
         ],
     )

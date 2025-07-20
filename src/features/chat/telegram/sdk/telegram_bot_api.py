@@ -17,7 +17,8 @@ class TelegramBotAPI(SafePrinterMixin):
 
     def __init__(self):
         super().__init__(config.verbose)
-        self.__bot_api_url = f"{config.telegram_api_base_url}/bot{config.telegram_bot_token}"
+        bot_token = config.telegram_bot_token.get_secret_value()
+        self.__bot_api_url = f"{config.telegram_api_base_url}/bot{bot_token}"
 
     def get_file_info(self, file_id: str) -> File:
         self.sprint(f"Getting file info for file_id: {file_id}")
@@ -32,7 +33,7 @@ class TelegramBotAPI(SafePrinterMixin):
         text: str,
         parse_mode: str = "markdown",
         disable_notification: bool = False,
-        link_preview_options: dict = None,
+        link_preview_options: dict | None = None,
     ) -> dict:
         self.sprint(f"Sending message to chat #{chat_id}")
         url = f"{self.__bot_api_url}/sendMessage"

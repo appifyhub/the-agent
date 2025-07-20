@@ -20,18 +20,22 @@ SUPPORTED_AUDIO_FORMATS = {
     "wav": "audio/wav",
     "webm": "video/webm",
 }
+
 # File extension -> Audio format
 EXTENSION_FORMAT_MAP = {
     **{ext: ext for ext in SUPPORTED_AUDIO_FORMATS.keys()},
     "oga": "ogg",
     "ogg": "ogg",
 }
+
 # Formats we know how to convert from
 CONVERTIBLE_AUDIO_FORMATS = {
     "oga": "audio/ogg",
     "ogg": "audio/ogg",
 }
+
 KNOWN_AUDIO_FORMATS = SUPPORTED_AUDIO_FORMATS | CONVERTIBLE_AUDIO_FORMATS
+
 TARGET_AUDIO_FORMAT = "wav"
 
 KNOWN_DOCS_FORMATS = {

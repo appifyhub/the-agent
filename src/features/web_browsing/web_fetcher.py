@@ -7,8 +7,9 @@ from typing import Any
 import requests
 from requests.exceptions import RequestException, Timeout
 
-from db.crud.tools_cache import ToolsCacheCRUD
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
+from di.di import DI
+from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.web_browsing.twitter_status_fetcher import TwitterStatusFetcher
 from features.web_browsing.twitter_utils import resolve_tweet_id
 from features.web_browsing.uri_cleanup import simplify_url
@@ -27,18 +28,19 @@ class WebFetcher(SafePrinterMixin):
     url: str
     html: str | None
     json: dict | None
-    tweed_id: str | None
+    __tweet_id: str | None
     __cache_key: str
     __headers: dict[str, str]
     __params: dict[str, Any]
     __cache_ttl_html: timedelta
     __cache_ttl_json: timedelta
-    __cache_dao: ToolsCacheCRUD
+    __tweet_fetcher: TwitterStatusFetcher | None
+    __di: DI
 
     def __init__(
         self,
         url: str,
-        cache_dao: ToolsCacheCRUD,
+        di: DI,
         headers: dict[str, str] | None = None,
         params: dict[str, Any] | None = None,
         cache_ttl_html: timedelta | None = None,
@@ -48,15 +50,36 @@ class WebFetcher(SafePrinterMixin):
     ):
         super().__init__(config.verbose)
         self.url = url
+        self.__di = di
         self.html = None
         self.json = None
-        self.__cache_dao = cache_dao
         self.__headers = {**DEFAULT_HEADERS, **(headers or {})}
         self.__params = params or {}
         self.__cache_key = self.__generate_cache_key()
         self.__cache_ttl_html = cache_ttl_html or DEFAULT_CACHE_TTL_HTML
         self.__cache_ttl_json = cache_ttl_json or DEFAULT_CACHE_TTL_JSON
-        self.tweed_id = resolve_tweet_id(self.url)
+        self.__tweet_id = resolve_tweet_id(self.url)
+        if self.__tweet_id:
+            self.sprint(f"Resolved tweet ID: {self.__tweet_id}")
+            twitter_api_tool = di.tool_choice_resolver.require_tool(
+                TwitterStatusFetcher.TWITTER_TOOL_TYPE,
+                TwitterStatusFetcher.DEFAULT_TWITTER_TOOL,
+            )
+            vision_tool = di.tool_choice_resolver.require_tool(
+                TwitterStatusFetcher.VISION_TOOL_TYPE,
+                TwitterStatusFetcher.DEFAULT_VISION_TOOL,
+            )
+            # load the system tool for now (will be migrated away)
+            twitter_enterprise_tool: ConfiguredTool = (
+                TwitterStatusFetcher.DEFAULT_TWITTER_TOOL,
+                config.rapid_api_twitter_token,
+                TwitterStatusFetcher.TWITTER_TOOL_TYPE,
+            )
+            self.__tweet_fetcher = di.twitter_status_fetcher(
+                self.__tweet_id, twitter_api_tool, vision_tool, twitter_enterprise_tool,
+            )
+        else:
+            self.__tweet_fetcher = None
         if auto_fetch_html:
             self.fetch_html()
         if auto_fetch_json:
@@ -66,12 +89,12 @@ class WebFetcher(SafePrinterMixin):
         headers_str = json.dumps(self.__headers, sort_keys = True)
         params_str = json.dumps(self.__params, sort_keys = True)
         key_components = f"{simplify_url(self.url)}|{headers_str}|{params_str}"
-        return self.__cache_dao.create_key(CACHE_PREFIX, key_components)
+        return self.__di.tools_cache_crud.create_key(CACHE_PREFIX, key_components)
 
     def fetch_html(self) -> str | None:
         self.html = None  # reset value
 
-        cache_entry_db = self.__cache_dao.get(self.__cache_key)
+        cache_entry_db = self.__di.tools_cache_crud.get(self.__cache_key)
         if cache_entry_db:
             cache_entry = ToolsCache.model_validate(cache_entry_db)
             if not cache_entry.is_expired():
@@ -84,9 +107,8 @@ class WebFetcher(SafePrinterMixin):
         attempts = 0
         for _ in range(config.web_retries):
             try:
-                if self.tweed_id:
-                    tweet_fetcher = TwitterStatusFetcher(self.tweed_id, self.__cache_dao)
-                    response_text = tweet_fetcher.execute()
+                if self.__tweet_fetcher:
+                    response_text = self.__tweet_fetcher.execute()
                     self.html = f"<html><body>\n<p>\n{response_text}\n</p>\n</body></html>"
                 else:
                     # run a standard request for a web page
@@ -109,10 +131,10 @@ class WebFetcher(SafePrinterMixin):
                         self.html = None
                         break
                     self.html = content_text
-                self.__cache_dao.save(
+                self.__di.tools_cache_crud.save(
                     ToolsCacheSave(
                         key = self.__cache_key,
-                        value = self.html,
+                        value = self.html or "",
                         expires_at = datetime.now() + self.__cache_ttl_html,
                     ),
                 )
@@ -127,7 +149,7 @@ class WebFetcher(SafePrinterMixin):
     def fetch_json(self) -> dict | None:
         self.json = None  # reset value
 
-        cache_entry_db = self.__cache_dao.get(self.__cache_key)
+        cache_entry_db = self.__di.tools_cache_crud.get(self.__cache_key)
         if cache_entry_db:
             cache_entry = ToolsCache.model_validate(cache_entry_db)
             if not cache_entry.is_expired():
@@ -140,9 +162,8 @@ class WebFetcher(SafePrinterMixin):
         attempts = 0
         for _ in range(config.web_retries):
             try:
-                if self.tweed_id:
-                    tweet_fetcher = TwitterStatusFetcher(self.tweed_id, self.__cache_dao)
-                    response_text = tweet_fetcher.execute()
+                if self.__tweet_fetcher:
+                    response_text = self.__tweet_fetcher.execute()
                     self.json = {"content": response_text}
                 else:
                     response = requests.get(
@@ -153,7 +174,7 @@ class WebFetcher(SafePrinterMixin):
                     )
                     response.raise_for_status()
                     self.json = response.json()
-                self.__cache_dao.save(
+                self.__di.tools_cache_crud.save(
                     ToolsCacheSave(
                         key = self.__cache_key,
                         value = json.dumps(self.json),

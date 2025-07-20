@@ -6,6 +6,7 @@
         <option name="CONTINUATION_INDENT_SIZE" value="2" />
       </value>
     </option>
+    <option name="RIGHT_MARGIN" value="130" />
     <JavaCodeStyleSettings>
       <option name="DO_NOT_WRAP_AFTER_SINGLE_ANNOTATION" value="true" />
       <option name="CLASS_COUNT_TO_USE_IMPORT_ON_DEMAND" value="99" />
@@ -100,6 +101,7 @@
       </indentOptions>
     </codeStyleSettings>
     <codeStyleSettings language="Python">
+      <option name="RIGHT_MARGIN" value="130" />
       <option name="ALIGN_MULTILINE_PARAMETERS" value="false" />
       <option name="ALIGN_MULTILINE_PARAMETERS_IN_CALLS" value="false" />
       <option name="CALL_PARAMETERS_WRAP" value="5" />

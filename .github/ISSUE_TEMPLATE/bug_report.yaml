@@ -1,7 +1,7 @@
 name: Bug report
 description: Create a report to help us improve
 title: "But Title Here"
-labels: ["Help", "Bug"]
+labels: [ "Help", "Bug" ]
 
 body:
   - type: markdown

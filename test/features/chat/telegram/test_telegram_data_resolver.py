@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 from uuid import UUID
 
 from db.sql_util import SQLUtil
@@ -11,7 +11,7 @@ from db.schema.chat_config import ChatConfig, ChatConfigSave
 from db.schema.chat_message import ChatMessage, ChatMessageSave
 from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessageAttachmentSave
 from db.schema.user import User, UserSave
-from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
+from di.di import DI
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
@@ -20,14 +20,24 @@ from util.config import config
 
 class TelegramDataResolverTest(unittest.TestCase):
     sql: SQLUtil
-    bot_api: TelegramBotAPI
+    mock_di: DI
     resolver: TelegramDataResolver
 
     def setUp(self):
         config.verbose = True
         self.sql = SQLUtil()
-        self.bot_api = MagicMock()
-        self.resolver = TelegramDataResolver(self.sql.get_session(), self.bot_api)
+        self.mock_di = Mock(spec = DI)
+        # noinspection PyPropertyAccess
+        self.mock_di.chat_config_crud = self.sql.chat_config_crud()
+        # noinspection PyPropertyAccess
+        self.mock_di.user_crud = self.sql.user_crud()
+        # noinspection PyPropertyAccess
+        self.mock_di.chat_message_crud = self.sql.chat_message_crud()
+        # noinspection PyPropertyAccess
+        self.mock_di.chat_message_attachment_crud = self.sql.chat_message_attachment_crud()
+        # noinspection PyPropertyAccess
+        self.mock_di.telegram_bot_api = MagicMock()
+        self.resolver = TelegramDataResolver(self.mock_di)
 
     def tearDown(self):
         self.sql.end_session()
@@ -283,6 +293,22 @@ class TelegramDataResolverTest(unittest.TestCase):
             telegram_chat_id = "c1",
             open_ai_key = "sk-key",
             group = UserDB.Group.developer,
+            # Add all tool choice fields to test preservation
+            tool_choice_chat = "openai",
+            tool_choice_reasoning = "anthropic",
+            tool_choice_copywriting = "perplexity",
+            tool_choice_vision = "openai",
+            tool_choice_hearing = "openai",
+            tool_choice_images_gen = "replicate",
+            tool_choice_images_edit = "replicate",
+            tool_choice_images_restoration = "replicate",
+            tool_choice_images_inpainting = "replicate",
+            tool_choice_images_background_removal = "replicate",
+            tool_choice_search = "perplexity",
+            tool_choice_embedding = "openai",
+            tool_choice_api_fiat_exchange = "rapidapi",
+            tool_choice_api_crypto_exchange = "coinmarketcap",
+            tool_choice_api_twitter = "rapidapi",
         )
         existing_user_db = self.sql.user_crud().save(existing_user_data)
         existing_user = User.model_validate(existing_user_db)
@@ -306,6 +332,23 @@ class TelegramDataResolverTest(unittest.TestCase):
         self.assertEqual(result.open_ai_key, existing_user.open_ai_key)
         self.assertEqual(result.group, existing_user.group)
         self.assertEqual(result.created_at, existing_user.created_at)
+
+        # Verify all tool choice fields are preserved from existing user
+        self.assertEqual(result.tool_choice_chat, existing_user.tool_choice_chat)
+        self.assertEqual(result.tool_choice_reasoning, existing_user.tool_choice_reasoning)
+        self.assertEqual(result.tool_choice_copywriting, existing_user.tool_choice_copywriting)
+        self.assertEqual(result.tool_choice_vision, existing_user.tool_choice_vision)
+        self.assertEqual(result.tool_choice_hearing, existing_user.tool_choice_hearing)
+        self.assertEqual(result.tool_choice_images_gen, existing_user.tool_choice_images_gen)
+        self.assertEqual(result.tool_choice_images_edit, existing_user.tool_choice_images_edit)
+        self.assertEqual(result.tool_choice_images_restoration, existing_user.tool_choice_images_restoration)
+        self.assertEqual(result.tool_choice_images_inpainting, existing_user.tool_choice_images_inpainting)
+        self.assertEqual(result.tool_choice_images_background_removal, existing_user.tool_choice_images_background_removal)
+        self.assertEqual(result.tool_choice_search, existing_user.tool_choice_search)
+        self.assertEqual(result.tool_choice_embedding, existing_user.tool_choice_embedding)
+        self.assertEqual(result.tool_choice_api_fiat_exchange, existing_user.tool_choice_api_fiat_exchange)
+        self.assertEqual(result.tool_choice_api_crypto_exchange, existing_user.tool_choice_api_crypto_exchange)
+        self.assertEqual(result.tool_choice_api_twitter, existing_user.tool_choice_api_twitter)
 
     @patch("db.crud.user.UserCRUD.get_by_telegram_user_id")
     @patch("db.crud.user.UserCRUD.get_by_telegram_username")
@@ -351,6 +394,28 @@ class TelegramDataResolverTest(unittest.TestCase):
         fake_user.open_ai_key = "valid_key"
         result = self.resolver.resolve_author(mapped_data)
         self.assertEqual(result.open_ai_key, "valid_key", "open_ai_key should remain unchanged if valid")
+
+    def test_resolve_author_tool_choice_cleanup(self):
+        mapped_data = UserSave(
+            telegram_user_id = 1,
+            full_name = "Test User",
+            telegram_chat_id = "c1",
+            # Test various empty/whitespace scenarios for tool choice fields
+            tool_choice_chat = "",  # empty string
+            tool_choice_reasoning = "   ",  # whitespace
+            tool_choice_copywriting = "perplexity",  # valid value
+            tool_choice_vision = None,  # already None
+        )
+
+        result = self.resolver.resolve_author(mapped_data)
+        # Empty string should be cleaned to None
+        self.assertIsNone(result.tool_choice_chat, "Empty tool_choice_chat should be reset to None")
+        # Whitespace should be cleaned to None
+        self.assertIsNone(result.tool_choice_reasoning, "Whitespace tool_choice_reasoning should be reset to None")
+        # Valid value should be preserved
+        self.assertEqual(result.tool_choice_copywriting, "perplexity", "Valid tool_choice_copywriting should be preserved")
+        # None should remain None
+        self.assertIsNone(result.tool_choice_vision, "None tool_choice_vision should remain None")
 
     def test_resolve_chat_message_new(self):
         mapped_data = ChatMessageSave(

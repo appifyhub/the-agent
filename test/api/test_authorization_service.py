@@ -10,6 +10,7 @@ from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
+from di.di import DI
 from features.chat.telegram.model.chat_member import ChatMemberAdministrator
 from features.chat.telegram.model.user import User as TelegramUser
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
@@ -22,6 +23,7 @@ class AuthorizationServiceTest(unittest.TestCase):
     mock_user_dao: UserCRUD
     mock_chat_config_dao: ChatConfigCRUD
     mock_telegram_sdk: TelegramBotSDK
+    mock_di: DI
 
     def setUp(self):
         self.invoker_user = User(
@@ -58,6 +60,13 @@ class AuthorizationServiceTest(unittest.TestCase):
         self.mock_chat_config_dao.get.return_value = self.chat_config
         self.mock_telegram_sdk = Mock(spec = TelegramBotSDK)
         self.mock_telegram_sdk.get_chat_member.return_value = self.chat_member
+        self.mock_di = Mock(spec = DI)
+        # noinspection PyPropertyAccess
+        self.mock_di.telegram_bot_sdk = self.mock_telegram_sdk
+        # noinspection PyPropertyAccess
+        self.mock_di.user_crud = self.mock_user_dao
+        # noinspection PyPropertyAccess
+        self.mock_di.chat_config_crud = self.mock_chat_config_dao
 
     @staticmethod
     def create_admin_member(telegram_user, is_manager = True):
@@ -79,42 +88,46 @@ class AuthorizationServiceTest(unittest.TestCase):
             can_delete_stories = is_manager,
         )
 
-    def test_validate_chat_success(self):
-        service = AuthorizationService(
-            telegram_sdk = self.mock_telegram_sdk,
-            user_dao = self.mock_user_dao,
-            chat_config_dao = self.mock_chat_config_dao,
-        )
+    def test_validate_chat_success_with_string(self):
+        service = AuthorizationService(self.mock_di)
         result = service.validate_chat(self.chat_config.chat_id)
         self.assertEqual(result.chat_id, self.chat_config.chat_id)
 
+    def test_validate_chat_success_with_instance(self):
+        service = AuthorizationService(self.mock_di)
+        result = service.validate_chat(self.chat_config)
+        self.assertEqual(result.chat_id, self.chat_config.chat_id)
+        # Should return the same instance that was passed in
+        self.assertIs(result, self.chat_config)
+
     def test_validate_chat_failure_chat_not_found(self):
         self.mock_chat_config_dao.get.return_value = None
-        service = AuthorizationService(
-            telegram_sdk = self.mock_telegram_sdk,
-            user_dao = self.mock_user_dao,
-            chat_config_dao = self.mock_chat_config_dao,
-        )
+        service = AuthorizationService(self.mock_di)
         with self.assertRaises(ValueError) as context:
             service.validate_chat("wrong_chat_id")
         self.assertIn("Chat 'wrong_chat_id' not found", str(context.exception))
 
-    def test_validate_user_success(self):
-        service = AuthorizationService(
-            telegram_sdk = self.mock_telegram_sdk,
-            user_dao = self.mock_user_dao,
-            chat_config_dao = self.mock_chat_config_dao,
-        )
+    def test_validate_user_success_with_hex_string(self):
+        service = AuthorizationService(self.mock_di)
         result = service.validate_user(self.invoker_user.id.hex)
         self.assertEqual(result.id, self.invoker_user.id)
 
+    def test_validate_user_success_with_uuid(self):
+        service = AuthorizationService(self.mock_di)
+        result = service.validate_user(self.invoker_user.id)
+        self.assertEqual(result.id, self.invoker_user.id)
+
+    def test_validate_user_success_with_instance(self):
+        service = AuthorizationService(self.mock_di)
+        result = service.validate_user(self.invoker_user)
+        self.assertEqual(result.id, self.invoker_user.id)
+        # Should return the same instance that was passed in
+        self.assertIs(result, self.invoker_user)
+
     def test_validate_user_failure_user_not_found(self):
-        self.mock_user_dao.get.return_value = None
-        service = AuthorizationService(
-            telegram_sdk = self.mock_telegram_sdk,
-            user_dao = self.mock_user_dao,
-            chat_config_dao = self.mock_chat_config_dao,
-        )
+        # Reset mock to return None for this test
+        self.mock_di.user_crud.get.return_value = None
+        service = AuthorizationService(self.mock_di)
         with self.assertRaises(ValueError) as context:
             service.validate_user("00000000000000000000000000000000")
         self.assertIn("User '00000000000000000000000000000000' not found", str(context.exception))
@@ -124,11 +137,7 @@ class AuthorizationServiceTest(unittest.TestCase):
         admin_member = self.create_admin_member(self.invoker_telegram_user, is_manager = True)
         self.mock_telegram_sdk.get_chat_administrators.return_value = [admin_member]
 
-        service = AuthorizationService(
-            telegram_sdk = self.mock_telegram_sdk,
-            user_dao = self.mock_user_dao,
-            chat_config_dao = self.mock_chat_config_dao,
-        )
+        service = AuthorizationService(self.mock_di)
         result = service.authorize_for_chat(self.invoker_user, self.chat_config.chat_id)
         self.assertEqual(result.chat_id, self.chat_config.chat_id)
 
@@ -140,21 +149,13 @@ class AuthorizationServiceTest(unittest.TestCase):
         )
         self.mock_telegram_sdk.get_chat_administrators.return_value = [other_admin]
 
-        service = AuthorizationService(
-            telegram_sdk = self.mock_telegram_sdk,
-            user_dao = self.mock_user_dao,
-            chat_config_dao = self.mock_chat_config_dao,
-        )
+        service = AuthorizationService(self.mock_di)
         with self.assertRaises(ValueError) as context:
             service.authorize_for_chat(self.invoker_user, self.chat_config.chat_id)
         self.assertIn("is not admin in", str(context.exception))
 
     def test_authorize_for_user_success(self):
-        service = AuthorizationService(
-            telegram_sdk = self.mock_telegram_sdk,
-            user_dao = self.mock_user_dao,
-            chat_config_dao = self.mock_chat_config_dao,
-        )
+        service = AuthorizationService(self.mock_di)
         result = service.authorize_for_user(self.invoker_user, self.invoker_user.id.hex)
         self.assertEqual(result.id, self.invoker_user.id)
 
@@ -171,11 +172,7 @@ class AuthorizationServiceTest(unittest.TestCase):
         )
         self.mock_user_dao.get.return_value = other_user
 
-        service = AuthorizationService(
-            telegram_sdk = self.mock_telegram_sdk,
-            user_dao = self.mock_user_dao,
-            chat_config_dao = self.mock_chat_config_dao,
-        )
+        service = AuthorizationService(self.mock_di)
         with self.assertRaises(ValueError) as context:
             service.authorize_for_user(self.invoker_user, other_user.id.hex)
         self.assertIn("is not the allowed user", str(context.exception))
@@ -226,11 +223,7 @@ class AuthorizationServiceTest(unittest.TestCase):
 
         self.mock_telegram_sdk.get_chat_administrators.side_effect = mock_get_admins
 
-        service = AuthorizationService(
-            telegram_sdk = self.mock_telegram_sdk,
-            user_dao = self.mock_user_dao,
-            chat_config_dao = self.mock_chat_config_dao,
-        )
+        service = AuthorizationService(self.mock_di)
         admin_chats = service.get_authorized_chats(self.invoker_user)
 
         self.assertEqual(len(admin_chats), 2)
@@ -272,11 +265,7 @@ class AuthorizationServiceTest(unittest.TestCase):
 
         self.mock_telegram_sdk.get_chat_administrators.side_effect = mock_get_admins
 
-        service = AuthorizationService(
-            telegram_sdk = self.mock_telegram_sdk,
-            user_dao = self.mock_user_dao,
-            chat_config_dao = self.mock_chat_config_dao,
-        )
+        service = AuthorizationService(self.mock_di)
         admin_chats = service.get_authorized_chats(self.invoker_user)
 
         self.assertEqual(len(admin_chats), 2)
@@ -297,18 +286,14 @@ class AuthorizationServiceTest(unittest.TestCase):
             created_at = datetime.now().date(),
         )
 
-        service = AuthorizationService(
-            telegram_sdk = self.mock_telegram_sdk,
-            user_dao = self.mock_user_dao,
-            chat_config_dao = self.mock_chat_config_dao,
-        )
+        service = AuthorizationService(self.mock_di)
         admin_chats = service.get_authorized_chats(user_without_telegram_id)
 
         self.assertEqual(len(admin_chats), 0)
 
     def test_get_authorized_chats_sorting_order(self):
         private_chat = ChatConfig(
-            chat_id = self.invoker_user.telegram_chat_id,
+            chat_id = self.invoker_user.telegram_chat_id or "invoker_chat_id",
             title = "Private Chat",
             is_private = True,
             language_iso_code = "en",
@@ -345,11 +330,7 @@ class AuthorizationServiceTest(unittest.TestCase):
         admin_member = self.create_admin_member(self.invoker_telegram_user, is_manager = True)
         self.mock_telegram_sdk.get_chat_administrators.return_value = [admin_member]
 
-        service = AuthorizationService(
-            telegram_sdk = self.mock_telegram_sdk,
-            user_dao = self.mock_user_dao,
-            chat_config_dao = self.mock_chat_config_dao,
-        )
+        service = AuthorizationService(self.mock_di)
         admin_chats = service.get_authorized_chats(self.invoker_user)
 
         expected_order = [
@@ -361,3 +342,25 @@ class AuthorizationServiceTest(unittest.TestCase):
 
         actual_order = [chat.chat_id for chat in admin_chats]
         self.assertEqual(actual_order, expected_order)
+
+    def test_authorize_for_chat_success_with_instance(self):
+        # Test that authorize_for_chat works with ChatConfig instance
+        self.mock_di.chat_config_crud.get_all.return_value = [self.chat_config]
+        admin_member = self.create_admin_member(self.invoker_telegram_user, is_manager = True)
+        self.mock_di.telegram_bot_sdk.get_chat_administrators.return_value = [admin_member]
+
+        service = AuthorizationService(self.mock_di)
+        result = service.authorize_for_chat(self.invoker_user, self.chat_config)
+        self.assertEqual(result.chat_id, self.chat_config.chat_id)
+
+    def test_authorize_for_user_success_with_uuid(self):
+        service = AuthorizationService(self.mock_di)
+        result = service.authorize_for_user(self.invoker_user, self.invoker_user.id)
+        self.assertEqual(result.id, self.invoker_user.id)
+
+    def test_authorize_for_user_success_with_instance(self):
+        service = AuthorizationService(self.mock_di)
+        result = service.authorize_for_user(self.invoker_user, self.invoker_user)
+        self.assertEqual(result.id, self.invoker_user.id)
+        # Should return the same instance that was passed in
+        self.assertIs(result, self.invoker_user)

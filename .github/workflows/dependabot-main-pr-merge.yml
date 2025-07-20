@@ -2,7 +2,7 @@ name: Dependabot's PR Merging
 
 on:
   pull_request:
-    types: [labeled]
+    types: [ labeled ]
 
 concurrency:
   group: merge-${{ github.event.pull_request.number }}

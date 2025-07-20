@@ -2,8 +2,7 @@ import random
 import time
 from threading import Event, Lock, Thread
 
-from db.schema.chat_config import ChatConfig
-from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from di.di import DI
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
@@ -22,7 +21,6 @@ ESCALATING_REACTIONS = [
 
 
 class TelegramProgressNotifier(SafePrinterMixin):
-    __chat_config: ChatConfig
     __message_id: str
     __last_reaction_time: float
     __last_text_update_time: float
@@ -31,19 +29,18 @@ class TelegramProgressNotifier(SafePrinterMixin):
     __lock: Lock
     __thread: Thread | None
     __signal: Event
-    __bot_sdk: TelegramBotSDK
+    __di: DI
 
     def __init__(
         self,
-        chat_config: ChatConfig,
         message_id: str,
-        bot_sdk: TelegramBotSDK,
-        auto_start: bool = True,
+        di: DI,
+        auto_start: bool = False,
         reaction_interval_s: int = DEFAULT_REACTION_INTERVAL_S,
         text_update_interval_s: int = DEFAULT_TEXT_UPDATE_INTERVAL_S,
     ):
         super().__init__(config.verbose)
-        self.__chat_config = chat_config
+        self.__di = di
         self.__message_id = message_id
         self.__last_reaction_time = 0
         self.__last_text_update_time = 0
@@ -54,7 +51,6 @@ class TelegramProgressNotifier(SafePrinterMixin):
         self.__signal = Event()
         self.__reaction_interval_s = reaction_interval_s
         self.__text_update_interval_s = text_update_interval_s
-        self.__bot_sdk = bot_sdk
         if auto_start:
             self.start()
         self.sprint(f"Text update interval: {self.__text_update_interval_s}")
@@ -96,7 +92,7 @@ class TelegramProgressNotifier(SafePrinterMixin):
         # noinspection TryExceptPass
         # remove the stale reaction (sometimes fails due to API race condition but doesn't matter)
         try:
-            self.__bot_sdk.set_reaction(self.__chat_config.chat_id, self.__message_id, None)
+            self.__di.telegram_bot_sdk.set_reaction(self.__di.invoker_chat.chat_id, self.__message_id, None)
         except:  # noqa: E722
             pass
 
@@ -133,9 +129,9 @@ class TelegramProgressNotifier(SafePrinterMixin):
         self.sprint(f"Setting \"{status}\" status")
         try:
             if is_long:
-                self.__bot_sdk.set_status_uploading_image(self.__chat_config.chat_id)
+                self.__di.telegram_bot_sdk.set_status_uploading_image(self.__di.invoker_chat.chat_id)
             else:
-                self.__bot_sdk.set_status_typing(self.__chat_config.chat_id)
+                self.__di.telegram_bot_sdk.set_status_typing(self.__di.invoker_chat.chat_id)
         except Exception as e:
             self.sprint(f"Failed to set \"{status}\" status", e)
 
@@ -145,6 +141,6 @@ class TelegramProgressNotifier(SafePrinterMixin):
         try:
             next_reaction = ESCALATING_REACTIONS[self.__next_reaction_index]
             self.__next_reaction_index = (self.__next_reaction_index + 1) % len(ESCALATING_REACTIONS)
-            self.__bot_sdk.set_reaction(self.__chat_config.chat_id, self.__message_id, next_reaction)
+            self.__di.telegram_bot_sdk.set_reaction(self.__di.invoker_chat.chat_id, self.__message_id, next_reaction)
         except Exception as e:
             self.sprint(f"Failed to send reaction: {e}")

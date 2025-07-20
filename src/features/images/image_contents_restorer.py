@@ -1,14 +1,16 @@
 import os
 import tempfile
+from dataclasses import dataclass
 from urllib.parse import urlparse
 
-import replicate
 import requests
 from httpx import Timeout
-from replicate import Client
+from replicate.client import Client
 
-from features.ai_tools.external_ai_tool_library import IMAGE_INPAINTING, IMAGE_RESTORATION
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
+from features.external_tools.external_tool import ExternalTool, ToolType
+from features.external_tools.external_tool_library import IMAGE_INPAINTING, IMAGE_RESTORATION
+from features.external_tools.tool_choice_resolver import ConfiguredTool
 from util.config import config
 from util.functions import first_key_with_value
 from util.safe_printer_mixin import SafePrinterMixin
@@ -18,40 +20,55 @@ BOOT_AND_RUN_TIMEOUT_S = 300
 
 # Not tested as it's just a proxy
 class ImageContentsRestorer(SafePrinterMixin):
+    DEFAULT_RESTORATION_TOOL: ExternalTool = IMAGE_RESTORATION
+    RESTORATION_TOOL_TYPE: ToolType = ToolType.images_restoration
+    DEFAULT_INPAINTING_TOOL: ExternalTool = IMAGE_INPAINTING
+    INPAINTING_TOOL_TYPE: ToolType = ToolType.images_inpainting
+
+    @dataclass
     class Result:
         restored_url: str | None
         inpainted_url: str | None
-
-        def __init__(self, restored_url: str | None, inpainted_url: str | None):
-            self.restored_url = restored_url
-            self.inpainted_url = inpainted_url
+        error: str | None
 
     __image_url: str
+    __restoration_tool: ConfiguredTool
+    __inpainting_tool: ConfiguredTool
     __mime_type: str | None
     __prompt_positive: str | None
     __prompt_negative: str | None
-    __replicate: Client
+    __replicate_restoration: Client
+    __replicate_inpainting: Client
 
     def __init__(
         self,
         image_url: str,
-        replicate_api_key: str,
+        restoration_tool: ConfiguredTool,
+        inpainting_tool: ConfiguredTool,
         prompt_positive: str | None = None,
         prompt_negative: str | None = None,
         mime_type: str | None = None,
     ):
         super().__init__(config.verbose)
         self.__image_url = image_url
+        self.__restoration_tool = restoration_tool
+        self.__inpainting_tool = inpainting_tool
         self.__mime_type = mime_type
         self.__prompt_positive = prompt_positive
         self.__prompt_negative = prompt_negative
-        self.__replicate = replicate.Client(
-            api_token = replicate_api_key,
+        _, restoration_token, _ = restoration_tool
+        self.__replicate_restoration = Client(
+            api_token = restoration_token.get_secret_value(),
+            timeout = Timeout(BOOT_AND_RUN_TIMEOUT_S),
+        )
+        _, inpainting_token, _ = inpainting_tool
+        self.__replicate_inpainting = Client(
+            api_token = inpainting_token.get_secret_value(),
             timeout = Timeout(BOOT_AND_RUN_TIMEOUT_S),
         )
 
     def execute(self) -> Result:
-        result = ImageContentsRestorer.Result(None, None)
+        result = ImageContentsRestorer.Result(None, None, None)
 
         # let's do the basic restoring first
         try:
@@ -69,14 +86,16 @@ class ImageContentsRestorer(SafePrinterMixin):
                         "background_enhance": True,
                         "codeformer_fidelity": 0.1,
                     }
-                    restored_url = self.__replicate.run(IMAGE_RESTORATION.id, input = input_data)
+                    restoration_tool, _, _ = self.__restoration_tool
+                    restored_url = self.__replicate_restoration.run(restoration_tool.id, input = input_data)
             if not restored_url:
                 raise ValueError("Failed to restore image contents (no output URL)")
             self.sprint("Image contents restoration successful")
             # noinspection PyTypeChecker
-            result.restored_url = restored_url
+            result.restored_url = str(restored_url)
         except Exception as e:
             self.sprint("Error restoring image contents", e)
+            result.error = str(e)
 
         # then let's do the more advanced inpainting
         try:
@@ -98,13 +117,15 @@ class ImageContentsRestorer(SafePrinterMixin):
                         "guidance_scale": 0.1,
                         "negative_prompt": self.__prompt_negative or "bad anatomy, ugly, low quality",
                     }
-                    inpainted_url = self.__replicate.run(IMAGE_INPAINTING.id, input = input_data)
+                    inpainting_tool, _, _ = self.__inpainting_tool
+                    inpainted_url = self.__replicate_inpainting.run(inpainting_tool.id, input = input_data)
             if not inpainted_url or not inpainted_url[0]:
                 raise ValueError("Failed to inpaint image details (no output URL)")
             self.sprint("Image detail inpainting successful")
             result.inpainted_url = inpainted_url[0]
         except Exception as e:
             self.sprint("Error inpainting image details", e)
+            result.error = str(e)
         return result
 
     def __get_suffix(self, image_url: str) -> str:
@@ -112,7 +133,7 @@ class ImageContentsRestorer(SafePrinterMixin):
         url_path = urlparse(image_url).path
         file_with_extension = os.path.splitext(url_path)[1]
         if file_with_extension:
-            return f".{file_with_extension.lstrip(".")}"
+            return f".{file_with_extension.lstrip('.')}"
         # if no extension in URL, use MIME type to determine extension
         if self.__mime_type:
             return first_key_with_value(KNOWN_IMAGE_FORMATS, self.__mime_type)

@@ -1,4 +1,3 @@
-from langchain_anthropic import ChatAnthropic
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
@@ -6,9 +5,11 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_openai import OpenAIEmbeddings
-from pydantic import SecretStr
 
-from features.ai_tools.external_ai_tool_library import CLAUDE_4_SONNET, TEXT_EMBEDDING_3_SMALL
+from di.di import DI
+from features.external_tools.external_tool import ExternalTool, ToolType
+from features.external_tools.external_tool_library import CLAUDE_3_7_SONNET, TEXT_EMBEDDING_3_SMALL
+from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.prompting import prompt_library
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
@@ -19,41 +20,47 @@ SEARCH_RESULT_PAGES = 2
 
 # Not tested as it's just a proxy
 class DocumentSearch(SafePrinterMixin):
+    DEFAULT_EMBEDDING_TOOL: ExternalTool = TEXT_EMBEDDING_3_SMALL
+    EMBEDDING_TOOL_TYPE: ToolType = ToolType.embedding
+    DEFAULT_COPYWRITER_TOOL: ExternalTool = CLAUDE_3_7_SONNET
+    COPYWRITER_TOOL_TYPE: ToolType = ToolType.copywriting
+
+    error: str | None
     __job_id: str
     __embeddings: Embeddings
     __loaded_pages: list[Document]
+    __embedding_tool: ConfiguredTool
+    __copywriter_tool: ConfiguredTool
     __additional_context: str
     __copywriter: BaseChatModel
+    __di: DI
 
     def __init__(
         self,
         job_id: str,
         document_url: str,
-        open_ai_api_key: str,
+        embedding_tool: ConfiguredTool,
+        copywriter_tool: ConfiguredTool,
+        di: DI,
         additional_context: str | None = None,
     ):
         super().__init__(config.verbose)
         self.__job_id = job_id
         self.__loaded_pages = PyMuPDFLoader(document_url).load()
         self.sprint(f"Loaded document pages: {len(self.__loaded_pages)}")
-        # noinspection PyArgumentList
-        self.__embeddings = OpenAIEmbeddings(
-            model = TEXT_EMBEDDING_3_SMALL.id,
-            openai_api_key = SecretStr(open_ai_api_key),
-        )
+        self.__embedding_tool = embedding_tool
+        self.__copywriter_tool = copywriter_tool
         self.__additional_context = additional_context or DEFAULT_QUESTION
+        embedding_model, embedding_token, _ = embedding_tool
         # noinspection PyArgumentList
-        self.__copywriter = ChatAnthropic(
-            model_name = CLAUDE_4_SONNET.id,
-            temperature = 0.3,
-            max_tokens = 4096,
-            timeout = float(config.web_timeout_s),
-            max_retries = config.web_retries,
-            api_key = SecretStr(str(config.anthropic_token)),
-        )
+        self.__embeddings = OpenAIEmbeddings(model = embedding_model.id, openai_api_key = embedding_token)
+        # noinspection PyArgumentList
+        self.__copywriter = di.chat_langchain_model(copywriter_tool)
+        self.__di = di
 
     def execute(self) -> str | None:
         self.sprint(f"Starting document search for job '{self.__job_id}'")
+        self.error = None
         try:
             # run the raw search first
             document_index = InMemoryVectorStore(self.__embeddings)
@@ -82,4 +89,5 @@ class DocumentSearch(SafePrinterMixin):
             return f"Document Search Results:\n\n```\n{str(answer.content)}\n```"
         except Exception as e:
             self.sprint("Document search failed", e)
+            self.error = str(e)
             return None
