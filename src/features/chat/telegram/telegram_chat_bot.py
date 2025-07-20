@@ -94,10 +94,16 @@ class TelegramChatBot(SafePrinterMixin):
             answer = AIMessage(prompt_library.error_general_problem("Not configured."))
             return answer
 
-        # main flow: process the messages using LLM and Tools
-        base_model = self.__di.chat_langchain_model(self.__configured_tool)
-        tools_model = self.__di.llm_tool_library.bind_tools(base_model)
+        # prepare the LLM model and connected tools
         progress_notifier = self.__di.telegram_progress_notifier(self.__last_message_id)
+        base_model = self.__di.chat_langchain_model(self.__configured_tool)
+        tools_model: TooledChatModel | None = None
+        try:
+            tools_model = self.__di.llm_tool_library.bind_tools(base_model)
+        except Exception as e:
+            self.sprint("Failed to bind tools to the LLM model, using base model", e)
+
+        # main flow: process the messages using the LLM
         try:
             iteration = 1
             progress_notifier.start()
@@ -109,7 +115,7 @@ class TelegramChatBot(SafePrinterMixin):
                     raise OverflowError(message)
 
                 # run the actual LLM completion
-                llm_answer = tools_model.invoke(self.__messages)
+                llm_answer = (tools_model or base_model).invoke(self.__messages)
                 answer = self.__add_message(llm_answer)
 
                 # noinspection Pydantic
