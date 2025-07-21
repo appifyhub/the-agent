@@ -246,6 +246,13 @@ IMAGE_EDITING_FLUX_KONTEXT_PRO = ExternalTool(
     types = [ToolType.images_edit],
 )
 
+IMAGE_EDITING_SEED_EDIT = ExternalTool(
+    id = "bytedance/seededit-3.0",
+    name = "ByteDance's Seed Edit 3.0",
+    provider = REPLICATE,
+    types = [ToolType.images_edit],
+)
+
 ###  All External Tools  ###
 
 ALL_EXTERNAL_TOOLS = [
@@ -286,4 +293,6 @@ ALL_EXTERNAL_TOOLS = [
     IMAGE_RESTORATION,
     IMAGE_INPAINTING,
     IMAGE_GENERATION_FLUX,
+    IMAGE_EDITING_FLUX_KONTEXT_PRO,
+    IMAGE_EDITING_SEED_EDIT,
 ]
