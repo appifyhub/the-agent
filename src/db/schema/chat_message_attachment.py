@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class ChatMessageAttachmentBase(BaseModel):
-    id: str
+    ext_id: str | None = None
     chat_id: str
     message_id: str
     size: int | None = None
@@ -22,8 +22,9 @@ class ChatMessageAttachmentBase(BaseModel):
 
 
 class ChatMessageAttachmentSave(ChatMessageAttachmentBase):
-    pass
+    id: str | None = None  # auto-generated if not provided
 
 
 class ChatMessageAttachment(ChatMessageAttachmentBase):
+    id: str
     model_config = ConfigDict(from_attributes = True)

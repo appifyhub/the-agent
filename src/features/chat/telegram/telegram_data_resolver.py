@@ -70,8 +70,8 @@ class TelegramDataResolver(SafePrinterMixin):
             return None
         # self.sprint(f"Resolving user: {mapped_data}")
         old_user_db = (
-            self.__di.user_crud.get_by_telegram_user_id(mapped_data.telegram_user_id) or
-            self.__di.user_crud.get_by_telegram_username(mapped_data.telegram_username)
+            self.__di.user_crud.get_by_telegram_user_id(mapped_data.telegram_user_id or -1) or
+            self.__di.user_crud.get_by_telegram_username(mapped_data.telegram_username or "")
         )
 
         if old_user_db:
@@ -166,18 +166,18 @@ class TelegramDataResolver(SafePrinterMixin):
 
     def resolve_chat_message_attachment(self, mapped_data: ChatMessageAttachmentSave) -> ChatMessageAttachment:
         # self.sprint(f"Resolving chat message attachment: {mapped_data}")
-        old_attachment_db = self.__di.chat_message_attachment_crud.get(mapped_data.id)
+        old_attachment_db = None
+        if mapped_data.ext_id:
+            old_attachment_db = self.__di.chat_message_attachment_crud.get_by_ext_id(mapped_data.ext_id)
+
         if old_attachment_db:
             old_attachment = ChatMessageAttachment.model_validate(old_attachment_db)
             # reset the attributes that are not normally changed through the Telegram API
+            mapped_data.id = old_attachment.id
             mapped_data.size = mapped_data.size or old_attachment.size
             mapped_data.last_url = mapped_data.last_url or old_attachment.last_url
             mapped_data.last_url_until = mapped_data.last_url_until or old_attachment.last_url_until
             mapped_data.extension = mapped_data.extension or old_attachment.extension
             mapped_data.mime_type = mapped_data.mime_type or old_attachment.mime_type
-        TelegramBotSDKUtils.refresh_attachment(
-            source = mapped_data,
-            bot_api = self.__di.telegram_bot_api,
-            chat_message_attachment_dao = self.__di.chat_message_attachment_crud,
-        )
-        return ChatMessageAttachment.model_validate(self.__di.chat_message_attachment_crud.save(mapped_data))
+
+        return TelegramBotSDKUtils.refresh_attachment(self.__di, attachment_save = mapped_data)

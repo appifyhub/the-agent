@@ -4,7 +4,7 @@ from uuid import UUID
 
 from db.schema.user import User
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
-from util.functions import construct_bot_message_id, first_key_with_value, is_the_agent, mask_secret, silent
+from util.functions import construct_bot_message_id, first_key_with_value, generate_short_uuid, is_the_agent, mask_secret, silent
 
 
 class FunctionsTest(unittest.TestCase):
@@ -162,3 +162,45 @@ class FunctionsTest(unittest.TestCase):
         secret = "abcdefghijklmnopqrstuvwxyz"
         result = mask_secret(secret, mask = "#")
         self.assertEqual(result, "abc#####xyz")
+
+    def test_generate_short_uuid_length(self):
+        result = generate_short_uuid()
+        self.assertEqual(len(result), 8)
+
+    def test_generate_short_uuid_format(self):
+        result = generate_short_uuid()
+        # Should only contain hexadecimal characters
+        self.assertRegex(result, r"^[0-9a-f]{8}$")
+
+    def test_generate_deterministic_short_uuid_consistency(self):
+        from util.functions import generate_deterministic_short_uuid
+        seed = "test_file_id_123"
+        result1 = generate_deterministic_short_uuid(seed)
+        result2 = generate_deterministic_short_uuid(seed)
+        self.assertEqual(result1, result2)
+
+    def test_generate_deterministic_short_uuid_format(self):
+        from util.functions import generate_deterministic_short_uuid
+        result = generate_deterministic_short_uuid("test_seed")
+        self.assertEqual(len(result), 8)
+        # Should only contain hexadecimal characters
+        self.assertRegex(result, r"^[0-9a-f]{8}$")
+
+    def test_generate_deterministic_short_uuid_different_seeds(self):
+        from util.functions import generate_deterministic_short_uuid
+        result1 = generate_deterministic_short_uuid("seed1")
+        result2 = generate_deterministic_short_uuid("seed2")
+        self.assertNotEqual(result1, result2)
+
+    def test_generate_deterministic_short_uuid_realistic_telegram_ids(self):
+        from util.functions import generate_deterministic_short_uuid
+        # Test with realistic Telegram file IDs
+        telegram_file_id = "BAADBQADBgADmEjNSW5XPx5aVTaiAg"
+        result1 = generate_deterministic_short_uuid(telegram_file_id)
+        result2 = generate_deterministic_short_uuid(telegram_file_id)
+
+        # Should be consistent
+        self.assertEqual(result1, result2)
+        # Should be valid format
+        self.assertEqual(len(result1), 8)
+        self.assertRegex(result1, r"^[0-9a-f]{8}$")
