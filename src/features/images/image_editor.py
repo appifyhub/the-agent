@@ -59,10 +59,12 @@ class ImageEditor(SafePrinterMixin):
                 with open(temp_file.name, "rb") as file:
                     input_data = {
                         "prompt": self.__context or "",
+                        "image": file,
                         "input_image": file,
                         "aspect_ratio": "match_input_image",
                         "output_format": "png",
                         "safety_tolerance": 2,
+                        "guidance_scale": 5.5,
                     }
                     tool, _, _ = self.__configured_tool
                     result = self.__replicate.run(tool.id, input = input_data)
