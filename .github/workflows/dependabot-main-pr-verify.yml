@@ -2,7 +2,7 @@ name: Dependabot's PR Verification
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize, labeled]
+    types: [ opened, reopened, synchronize, labeled ]
     branches:
       - main
 

@@ -15,10 +15,6 @@ from util.safe_printer_mixin import SafePrinterMixin
 
 
 class TelegramDomainMapper(SafePrinterMixin):
-    """
-    Maps the Telegram network models to domain models.
-    """
-
     class Result(BaseModel):
         chat: ChatConfigSave
         author: UserSave | None
@@ -220,7 +216,8 @@ class TelegramDomainMapper(SafePrinterMixin):
         mime_type: str | None,
     ) -> ChatMessageAttachmentSave:
         # self.sprint(f"Creating attachment from file: {file}")
-        last_url = f"{config.telegram_api_base_url}/file/bot{config.telegram_bot_token}/{file.file_path}"
+        bot_token = config.telegram_bot_token.get_secret_value()
+        last_url = f"{config.telegram_api_base_url}/file/bot{bot_token}/{file.file_path}"
         return ChatMessageAttachmentSave(
             id = file.file_id,
             chat_id = chat_id,

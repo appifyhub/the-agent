@@ -27,8 +27,20 @@ echo "PYTHONPATH=\"\${PWD}/src:\${PWD}/test\"" > .env
 # Set a trap to revert environment files on script exit
 trap revert_env_files EXIT
 
-echoinfo "Running lint in pipenv environment..." -n
-pipenv run ruff check
+echoinfo ""
+echoinfo "Running custom checks..." -n
+pipenv run python tools/check_spacing.py "$@"
+spacing_exit_code=$?
 
 echoinfo ""
-echoinfo "🧠  Remember, you can run 'pipenv run ruff check --fix' to fix issues automatically." -n
+echoinfo "Running lint in pipenv environment..." -n
+pipenv run ruff check "$@"
+ruff_exit_code=$?
+
+echoinfo ""
+echoinfo "🧠  Remember, you can run this script with --fix to fix issues automatically." -n
+
+# Exit with failure if either check failed
+if [ $spacing_exit_code -ne 0 ] || [ $ruff_exit_code -ne 0 ]; then
+    exit 1
+fi

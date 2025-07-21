@@ -11,10 +11,6 @@ from util.safe_printer_mixin import SafePrinterMixin
 
 
 class DomainLangchainMapper(SafePrinterMixin):
-    """
-    Maps the domain models to Langchain models.
-    """
-
     def __init__(self):
         super().__init__(config.verbose)
 

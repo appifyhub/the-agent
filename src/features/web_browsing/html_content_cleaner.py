@@ -3,8 +3,8 @@ from datetime import datetime, timedelta
 
 from readabilipy import simple_json_from_html_string
 
-from db.crud.tools_cache import ToolsCacheCRUD
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
+from di.di import DI
 from util.config import config
 from util.functions import digest_md5
 from util.safe_printer_mixin import SafePrinterMixin
@@ -16,23 +16,23 @@ CACHE_TTL = timedelta(weeks = 52)
 class HTMLContentCleaner(SafePrinterMixin):
     raw_html: str
     plain_text: str
-    __cache_dao: ToolsCacheCRUD
+    __di: DI
 
     def __init__(
         self,
         raw_html: str,
-        cache_dao: ToolsCacheCRUD,
+        di: DI,
     ):
         super().__init__(config.verbose)
         self.raw_html = raw_html
         self.plain_text = ""
-        self.__cache_dao = cache_dao
+        self.__di = di
 
     def clean_up(self) -> str:
         self.plain_text = ""  # reset value
 
-        cache_key = self.__cache_dao.create_key(CACHE_PREFIX, digest_md5(self.raw_html))
-        cache_entry_db = self.__cache_dao.get(cache_key)
+        cache_key = self.__di.tools_cache_crud.create_key(CACHE_PREFIX, digest_md5(self.raw_html))
+        cache_entry_db = self.__di.tools_cache_crud.get(cache_key)
         if cache_entry_db:
             cache_entry = ToolsCache.model_validate(cache_entry_db)
             if not cache_entry.is_expired():
@@ -60,7 +60,7 @@ class HTMLContentCleaner(SafePrinterMixin):
         # remove extra whitespace
         self.plain_text = re.sub(r"\n\s*\n+", "\n", self.plain_text)  # empty newlines
         self.plain_text = re.sub(r"[ \t]+", " ", self.plain_text).strip()  # horizontal spaces
-        self.__cache_dao.save(
+        self.__di.tools_cache_crud.save(
             ToolsCacheSave(
                 key = cache_key,
                 value = self.plain_text,

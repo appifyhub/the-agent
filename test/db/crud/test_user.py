@@ -22,6 +22,26 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
             open_ai_key = "test-key",
+            anthropic_key = "test-anthropic-key",
+            perplexity_key = "test-perplexity-key",
+            replicate_key = "test-replicate-key",
+            rapid_api_key = "test-rapid-api-key",
+            coinmarketcap_key = "test-coinmarketcap-key",
+            tool_choice_chat = "gpt-4o",
+            tool_choice_reasoning = "claude-3-5-sonnet-latest",
+            tool_choice_copywriting = "gpt-4o-mini",
+            tool_choice_vision = "gpt-4o",
+            tool_choice_hearing = "whisper-1",
+            tool_choice_images_gen = "dall-e-3",
+            tool_choice_images_edit = "dall-e-2",
+            tool_choice_images_restoration = "replicate-restoration",
+            tool_choice_images_inpainting = "replicate-inpainting",
+            tool_choice_images_background_removal = "replicate-bg-removal",
+            tool_choice_search = "perplexity-search",
+            tool_choice_embedding = "text-embedding-3-large",
+            tool_choice_api_fiat_exchange = "rapid-api-fiat",
+            tool_choice_api_crypto_exchange = "coinmarketcap-api",
+            tool_choice_api_twitter = "rapid-api-twitter",
             group = UserDB.Group.standard,
         )
 
@@ -32,6 +52,26 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(user.telegram_username, user_data.telegram_username)
         self.assertEqual(user.telegram_chat_id, user_data.telegram_chat_id)
         self.assertEqual(user.open_ai_key, user_data.open_ai_key)
+        self.assertEqual(user.anthropic_key, user_data.anthropic_key)
+        self.assertEqual(user.perplexity_key, user_data.perplexity_key)
+        self.assertEqual(user.replicate_key, user_data.replicate_key)
+        self.assertEqual(user.rapid_api_key, user_data.rapid_api_key)
+        self.assertEqual(user.coinmarketcap_key, user_data.coinmarketcap_key)
+        self.assertEqual(user.tool_choice_chat, user_data.tool_choice_chat)
+        self.assertEqual(user.tool_choice_reasoning, user_data.tool_choice_reasoning)
+        self.assertEqual(user.tool_choice_copywriting, user_data.tool_choice_copywriting)
+        self.assertEqual(user.tool_choice_vision, user_data.tool_choice_vision)
+        self.assertEqual(user.tool_choice_hearing, user_data.tool_choice_hearing)
+        self.assertEqual(user.tool_choice_images_gen, user_data.tool_choice_images_gen)
+        self.assertEqual(user.tool_choice_images_edit, user_data.tool_choice_images_edit)
+        self.assertEqual(user.tool_choice_images_restoration, user_data.tool_choice_images_restoration)
+        self.assertEqual(user.tool_choice_images_inpainting, user_data.tool_choice_images_inpainting)
+        self.assertEqual(user.tool_choice_images_background_removal, user_data.tool_choice_images_background_removal)
+        self.assertEqual(user.tool_choice_search, user_data.tool_choice_search)
+        self.assertEqual(user.tool_choice_embedding, user_data.tool_choice_embedding)
+        self.assertEqual(user.tool_choice_api_fiat_exchange, user_data.tool_choice_api_fiat_exchange)
+        self.assertEqual(user.tool_choice_api_crypto_exchange, user_data.tool_choice_api_crypto_exchange)
+        self.assertEqual(user.tool_choice_api_twitter, user_data.tool_choice_api_twitter)
         self.assertEqual(user.group.value, user_data.group.value)
         self.assertEqual(user.telegram_user_id, user_data.telegram_user_id)
         self.assertIsNotNone(user.created_at)
@@ -43,6 +83,13 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
             open_ai_key = "test-key",
+            anthropic_key = "test-anthropic-key",
+            perplexity_key = "test-perplexity-key",
+            replicate_key = "test-replicate-key",
+            rapid_api_key = "test-rapid-api-key",
+            coinmarketcap_key = "test-coinmarketcap-key",
+            tool_choice_chat = "gpt-4o",
+            tool_choice_vision = "gpt-4o",
             group = UserDB.Group.standard,
         )
         created_user = self.sql.user_crud().create(user_data)
@@ -53,6 +100,8 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(fetched_user.full_name, user_data.full_name)
         self.assertEqual(fetched_user.telegram_username, user_data.telegram_username)
         self.assertEqual(fetched_user.telegram_user_id, user_data.telegram_user_id)
+        self.assertEqual(fetched_user.tool_choice_chat, user_data.tool_choice_chat)
+        self.assertEqual(fetched_user.tool_choice_vision, user_data.tool_choice_vision)
 
     def test_get_all_users(self):
         users = [
@@ -76,6 +125,13 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "1234561",
             telegram_user_id = 1234561,
             open_ai_key = "test-key-1",
+            anthropic_key = "test-anthropic-key-1",
+            perplexity_key = "test-perplexity-key-1",
+            replicate_key = "test-replicate-key-1",
+            rapid_api_key = "test-rapid-api-key-1",
+            coinmarketcap_key = "test-coinmarketcap-key-1",
+            tool_choice_chat = "gpt-4o",
+            tool_choice_reasoning = "claude-3-5-sonnet-latest",
             group = UserDB.Group.standard,
         )
         user_data2 = UserSave(
@@ -84,6 +140,13 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "1234562",
             telegram_user_id = 1234562,
             open_ai_key = "test-key-2",
+            anthropic_key = "test-anthropic-key-2",
+            perplexity_key = "test-perplexity-key-2",
+            replicate_key = "test-replicate-key-2",
+            rapid_api_key = "test-rapid-api-key-2",
+            coinmarketcap_key = "test-coinmarketcap-key-2",
+            tool_choice_vision = "gpt-4o",
+            tool_choice_images_gen = "dall-e-3",
             group = UserDB.Group.standard,
         )
         self.sql.user_crud().create(user_data1)
@@ -99,6 +162,13 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "123456",
             telegram_user_id = 55555,
             open_ai_key = "test-key",
+            anthropic_key = "test-anthropic-key",
+            perplexity_key = "test-perplexity-key",
+            replicate_key = "test-replicate-key",
+            rapid_api_key = "test-rapid-api-key",
+            coinmarketcap_key = "test-coinmarketcap-key",
+            tool_choice_hearing = "whisper-1",
+            tool_choice_search = "perplexity-search",
             group = UserDB.Group.standard,
         )
         created_user = self.sql.user_crud().create(user_data)
@@ -109,6 +179,8 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(fetched_user.full_name, user_data.full_name)
         self.assertEqual(fetched_user.telegram_username, user_data.telegram_username)
         self.assertEqual(fetched_user.telegram_user_id, user_data.telegram_user_id)
+        self.assertEqual(fetched_user.tool_choice_hearing, user_data.tool_choice_hearing)
+        self.assertEqual(fetched_user.tool_choice_search, user_data.tool_choice_search)
 
     def test_get_user_by_telegram_username(self):
         user_data = UserSave(
@@ -117,6 +189,13 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "123456",
             telegram_user_id = 55555,
             open_ai_key = "test-key",
+            anthropic_key = "test-anthropic-key",
+            perplexity_key = "test-perplexity-key",
+            replicate_key = "test-replicate-key",
+            rapid_api_key = "test-rapid-api-key",
+            coinmarketcap_key = "test-coinmarketcap-key",
+            tool_choice_embedding = "text-embedding-3-large",
+            tool_choice_api_twitter = "rapid-api-twitter",
             group = UserDB.Group.standard,
         )
         created_user = self.sql.user_crud().create(user_data)
@@ -128,6 +207,8 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(fetched_user.full_name, user_data.full_name)
         self.assertEqual(fetched_user.telegram_username, user_data.telegram_username)
         self.assertEqual(fetched_user.telegram_user_id, user_data.telegram_user_id)
+        self.assertEqual(fetched_user.tool_choice_embedding, user_data.tool_choice_embedding)
+        self.assertEqual(fetched_user.tool_choice_api_twitter, user_data.tool_choice_api_twitter)
 
     def test_update_user(self):
         user_data = UserSave(
@@ -136,6 +217,14 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
             open_ai_key = "test-key",
+            anthropic_key = "test-anthropic-key",
+            perplexity_key = "test-perplexity-key",
+            replicate_key = "test-replicate-key",
+            rapid_api_key = "test-rapid-api-key",
+            coinmarketcap_key = "test-coinmarketcap-key",
+            tool_choice_chat = "gpt-4o",
+            tool_choice_reasoning = "claude-3-5-sonnet-latest",
+            tool_choice_vision = "gpt-4o",
             group = UserDB.Group.standard,
         )
         created_user = self.sql.user_crud().create(user_data)
@@ -147,6 +236,16 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "654321",
             telegram_user_id = 654321,
             open_ai_key = "updated-key",
+            anthropic_key = "updated-anthropic-key",
+            perplexity_key = "updated-perplexity-key",
+            replicate_key = "updated-replicate-key",
+            rapid_api_key = "updated-rapid-api-key",
+            coinmarketcap_key = "updated-coinmarketcap-key",
+            tool_choice_chat = "claude-3-5-sonnet-latest",
+            tool_choice_reasoning = "gpt-4o",
+            tool_choice_vision = "claude-3-5-sonnet-latest",
+            tool_choice_hearing = "whisper-1",
+            tool_choice_images_gen = "dall-e-3",
             group = UserDB.Group.developer,
         )
         updated_user = self.sql.user_crud().update(update_data)
@@ -156,6 +255,16 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(updated_user.telegram_username, update_data.telegram_username)
         self.assertEqual(updated_user.telegram_chat_id, update_data.telegram_chat_id)
         self.assertEqual(updated_user.open_ai_key, update_data.open_ai_key)
+        self.assertEqual(updated_user.anthropic_key, update_data.anthropic_key)
+        self.assertEqual(updated_user.perplexity_key, update_data.perplexity_key)
+        self.assertEqual(updated_user.replicate_key, update_data.replicate_key)
+        self.assertEqual(updated_user.rapid_api_key, update_data.rapid_api_key)
+        self.assertEqual(updated_user.coinmarketcap_key, update_data.coinmarketcap_key)
+        self.assertEqual(updated_user.tool_choice_chat, update_data.tool_choice_chat)
+        self.assertEqual(updated_user.tool_choice_reasoning, update_data.tool_choice_reasoning)
+        self.assertEqual(updated_user.tool_choice_vision, update_data.tool_choice_vision)
+        self.assertEqual(updated_user.tool_choice_hearing, update_data.tool_choice_hearing)
+        self.assertEqual(updated_user.tool_choice_images_gen, update_data.tool_choice_images_gen)
         self.assertEqual(updated_user.group.value, update_data.group.value)
         self.assertEqual(updated_user.telegram_user_id, update_data.telegram_user_id)
         self.assertEqual(updated_user.created_at, created_user.created_at)
@@ -167,6 +276,14 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
             open_ai_key = "test-key",
+            anthropic_key = "test-anthropic-key",
+            perplexity_key = "test-perplexity-key",
+            replicate_key = "test-replicate-key",
+            rapid_api_key = "test-rapid-api-key",
+            coinmarketcap_key = "test-coinmarketcap-key",
+            tool_choice_copywriting = "gpt-4o-mini",
+            tool_choice_images_edit = "dall-e-2",
+            tool_choice_api_fiat_exchange = "rapid-api-fiat",
             group = UserDB.Group.standard,
         )
 
@@ -178,6 +295,14 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(saved_user.telegram_chat_id, user_data.telegram_chat_id)
         self.assertEqual(saved_user.telegram_user_id, user_data.telegram_user_id)
         self.assertEqual(saved_user.open_ai_key, user_data.open_ai_key)
+        self.assertEqual(saved_user.anthropic_key, user_data.anthropic_key)
+        self.assertEqual(saved_user.perplexity_key, user_data.perplexity_key)
+        self.assertEqual(saved_user.replicate_key, user_data.replicate_key)
+        self.assertEqual(saved_user.rapid_api_key, user_data.rapid_api_key)
+        self.assertEqual(saved_user.coinmarketcap_key, user_data.coinmarketcap_key)
+        self.assertEqual(saved_user.tool_choice_copywriting, user_data.tool_choice_copywriting)
+        self.assertEqual(saved_user.tool_choice_images_edit, user_data.tool_choice_images_edit)
+        self.assertEqual(saved_user.tool_choice_api_fiat_exchange, user_data.tool_choice_api_fiat_exchange)
         self.assertEqual(saved_user.group.value, user_data.group.value)
 
         # Now, save should update the existing record
@@ -188,6 +313,16 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "654321",
             telegram_user_id = 654321,
             open_ai_key = "updated-key",
+            anthropic_key = "updated-anthropic-key",
+            perplexity_key = "updated-perplexity-key",
+            replicate_key = "updated-replicate-key",
+            rapid_api_key = "updated-rapid-api-key",
+            coinmarketcap_key = "updated-coinmarketcap-key",
+            tool_choice_copywriting = "claude-3-5-sonnet-latest",
+            tool_choice_images_edit = "dall-e-3",
+            tool_choice_api_fiat_exchange = "updated-rapid-api-fiat",
+            tool_choice_images_restoration = "replicate-restoration",
+            tool_choice_api_crypto_exchange = "coinmarketcap-api",
             group = UserDB.Group.developer,
         )
         updated_user = self.sql.user_crud().save(update_data)
@@ -197,6 +332,16 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(updated_user.telegram_chat_id, update_data.telegram_chat_id)
         self.assertEqual(updated_user.telegram_user_id, update_data.telegram_user_id)
         self.assertEqual(updated_user.open_ai_key, update_data.open_ai_key)
+        self.assertEqual(updated_user.anthropic_key, update_data.anthropic_key)
+        self.assertEqual(updated_user.perplexity_key, update_data.perplexity_key)
+        self.assertEqual(updated_user.replicate_key, update_data.replicate_key)
+        self.assertEqual(updated_user.rapid_api_key, update_data.rapid_api_key)
+        self.assertEqual(updated_user.coinmarketcap_key, update_data.coinmarketcap_key)
+        self.assertEqual(updated_user.tool_choice_copywriting, update_data.tool_choice_copywriting)
+        self.assertEqual(updated_user.tool_choice_images_edit, update_data.tool_choice_images_edit)
+        self.assertEqual(updated_user.tool_choice_api_fiat_exchange, update_data.tool_choice_api_fiat_exchange)
+        self.assertEqual(updated_user.tool_choice_images_restoration, update_data.tool_choice_images_restoration)
+        self.assertEqual(updated_user.tool_choice_api_crypto_exchange, update_data.tool_choice_api_crypto_exchange)
         self.assertEqual(updated_user.group.value, update_data.group.value)
 
     def test_delete_user(self):
@@ -206,6 +351,13 @@ class UserCRUDTest(unittest.TestCase):
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
             open_ai_key = "test-key",
+            anthropic_key = "test-anthropic-key",
+            perplexity_key = "test-perplexity-key",
+            replicate_key = "test-replicate-key",
+            rapid_api_key = "test-rapid-api-key",
+            coinmarketcap_key = "test-coinmarketcap-key",
+            tool_choice_images_inpainting = "replicate-inpainting",
+            tool_choice_images_background_removal = "replicate-bg-removal",
             group = UserDB.Group.standard,
         )
         created_user = self.sql.user_crud().create(user_data)

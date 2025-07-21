@@ -43,7 +43,7 @@ target_metadata = BaseModel.metadata
 
 # Get the database URL from an environment variable
 # noinspection PyUnresolvedReferences
-config.set_main_option("sqlalchemy.url", app_config.db_url)
+config.set_main_option("sqlalchemy.url", app_config.db_url.get_secret_value())
 
 
 def run_migrations_offline() -> None:

@@ -29,4 +29,8 @@ echo "VERBOSE=True" >> .env
 trap revert_env_files EXIT
 
 echoinfo "Running tests in pipenv environment..." -n
-pipenv run pytest -v test
+if [ $# -eq 0 ]; then
+    pipenv run pytest -v test
+else
+    pipenv run pytest -v "$@"
+fi

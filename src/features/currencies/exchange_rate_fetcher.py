@@ -1,17 +1,12 @@
 import json
 from datetime import datetime, timedelta
+from time import sleep
 from typing import Any, Dict
-from uuid import UUID
 
-from tenacity import sleep
-
-from db.crud.tools_cache import ToolsCacheCRUD
-from db.crud.user import UserCRUD
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
-from db.schema.user import User
-from features.ai_tools.external_ai_tool_library import CRYPTO_CURRENCY_EXCHANGE, FIAT_CURRENCY_EXCHANGE
+from di.di import DI
 from features.currencies.supported_currencies import SUPPORTED_CRYPTO, SUPPORTED_FIAT
-from features.web_browsing.web_fetcher import WebFetcher
+from features.external_tools.external_tool_library import CRYPTO_CURRENCY_EXCHANGE, FIAT_CURRENCY_EXCHANGE
 from util.config import config
 from util.safe_printer_mixin import SafePrinterMixin
 
@@ -22,23 +17,11 @@ RATE_LIMIT_DELAY_S = 1
 
 
 class ExchangeRateFetcher(SafePrinterMixin):
-    __user_dao: UserCRUD
-    __cache_dao: ToolsCacheCRUD
+    __di: DI
 
-    def __init__(self, invoker_user_id_hex: str | None, user_dao: UserCRUD, cache_dao: ToolsCacheCRUD):
+    def __init__(self, di: DI):
         super().__init__(config.verbose)
-        self.__user_dao = user_dao
-        self.__cache_dao = cache_dao
-        if invoker_user_id_hex:  # system invocations don't have an invoker
-            self.__validate(invoker_user_id_hex)
-
-    def __validate(self, invoker_user_id_hex: str):
-        invoker_user_db = self.__user_dao.get(UUID(hex = invoker_user_id_hex))
-        if not invoker_user_db:
-            message = f"Invoker '{invoker_user_id_hex}' not found"
-            self.sprint(message)
-            raise ValueError(message)
-        User.model_validate(invoker_user_db)
+        self.__di = di
 
     def execute(
         self,
@@ -93,7 +76,7 @@ class ExchangeRateFetcher(SafePrinterMixin):
             raise ValueError(message)
 
     def __cache_key_of(self, a: str, b: str) -> str:
-        return self.__cache_dao.create_key(CACHE_PREFIX, f"{a}-{b}")
+        return self.__di.tools_cache_crud.create_key(CACHE_PREFIX, f"{a}-{b}")
 
     # when converting exchange rates, the inverse rule applies:  A / B = 1 / (B / A)
     def __get_cached_rate_of_one(self, base_currency_code: str, desired_currency_code: str) -> float | None:
@@ -101,7 +84,7 @@ class ExchangeRateFetcher(SafePrinterMixin):
         self.sprint(f"Fetching cached rate for {base_currency_code}/{desired_currency_code}")
         cache_key = self.__cache_key_of(base_currency_code, desired_currency_code)
         self.sprint(f"    Cache key: '{cache_key}'")
-        cache_entry_db = self.__cache_dao.get(cache_key)
+        cache_entry_db = self.__di.tools_cache_crud.get(cache_key)
         if cache_entry_db:
             cache_entry = ToolsCache.model_validate(cache_entry_db)
             if not cache_entry.is_expired():
@@ -114,7 +97,7 @@ class ExchangeRateFetcher(SafePrinterMixin):
         self.sprint(f"Fetching cached inverse rate for {base_currency_code}/{desired_currency_code}")
         cache_key = self.__cache_key_of(desired_currency_code, base_currency_code)
         self.sprint(f"    Cache key: '{cache_key}'")
-        cache_entry_db = self.__cache_dao.get(cache_key)
+        cache_entry_db = self.__di.tools_cache_crud.get(cache_key)
         if cache_entry_db:
             cache_entry = ToolsCache.model_validate(cache_entry_db)
             if not cache_entry.is_expired():
@@ -126,7 +109,7 @@ class ExchangeRateFetcher(SafePrinterMixin):
 
     def __save_rate_to_cache(self, a: str, b: str, rate: float) -> None:
         key = self.__cache_key_of(a, b)
-        self.__cache_dao.save(ToolsCacheSave(key = key, value = str(rate), expires_at = datetime.now() + CACHE_TTL))
+        self.__di.tools_cache_crud.save(ToolsCacheSave(key = key, value = str(rate), expires_at = datetime.now() + CACHE_TTL))
         self.sprint(f"Cache updated for {a}/{b} and key '{key}'")
 
     def get_crypto_conversion_rate(self, base_currency_code: str, desired_currency_code: str) -> float:
@@ -145,29 +128,18 @@ class ExchangeRateFetcher(SafePrinterMixin):
 
         rate: float
         api_url = f"https://pro-api.coinmarketcap.com/{CRYPTO_CURRENCY_EXCHANGE.id.replace(".", "/")}"
-        headers = {"Accept": "application/json", "X-CMC_PRO_API_KEY": config.coinmarketcap_api_token}
+        cmc_token = self.__di.access_token_resolver.require_access_token_for_tool(CRYPTO_CURRENCY_EXCHANGE).get_secret_value()
+        headers = {"Accept": "application/json", "X-CMC_PRO_API_KEY": cmc_token}
         if base_currency_code != DEFAULT_FIAT and desired_currency_code != DEFAULT_FIAT:
             # due to API limitations, we must traverse both cryptos through USD
             params_base = {"symbol": base_currency_code, "convert": DEFAULT_FIAT}
             sleep(RATE_LIMIT_DELAY_S)
-            fetcher_base = WebFetcher(
-                api_url,
-                self.__cache_dao,
-                headers = headers,
-                params = params_base,
-                cache_ttl_json = CACHE_TTL,
-            )
+            fetcher_base = self.__di.web_fetcher(api_url, headers, params_base, cache_ttl_json = CACHE_TTL)
             response_base = fetcher_base.fetch_json() or {}
 
             params_desired = {"symbol": desired_currency_code, "convert": DEFAULT_FIAT}
             sleep(RATE_LIMIT_DELAY_S)
-            fetcher_desired = WebFetcher(
-                api_url,
-                self.__cache_dao,
-                headers = headers,
-                params = params_desired,
-                cache_ttl_json = CACHE_TTL,
-            )
+            fetcher_desired = self.__di.web_fetcher(api_url, headers, params_desired, cache_ttl_json = CACHE_TTL)
             response_desired = fetcher_desired.fetch_json() or {}
 
             base_rate = float(response_base["data"][base_currency_code]["quote"][DEFAULT_FIAT]["price"])
@@ -178,13 +150,7 @@ class ExchangeRateFetcher(SafePrinterMixin):
             symbol = desired_currency_code if base_currency_code == DEFAULT_FIAT else base_currency_code
             params = {"symbol": symbol, "convert": DEFAULT_FIAT}
             sleep(RATE_LIMIT_DELAY_S)
-            fetcher = WebFetcher(
-                api_url,
-                self.__cache_dao,
-                headers = headers,
-                params = params,
-                cache_ttl_json = CACHE_TTL,
-            )
+            fetcher = self.__di.web_fetcher(api_url, headers, params, cache_ttl_json = CACHE_TTL)
             response = fetcher.fetch_json() or {}
 
             rate = float(response["data"][symbol]["quote"][DEFAULT_FIAT]["price"])
@@ -211,18 +177,15 @@ class ExchangeRateFetcher(SafePrinterMixin):
         sleep(RATE_LIMIT_DELAY_S)
         api_url = f"https://{FIAT_CURRENCY_EXCHANGE.id}/currency/convert"
         params = {"format": "json", "from": base_currency_code, "to": desired_currency_code, "amount": "1.0"}
-        headers = {"X-RapidAPI-Key": config.rapid_api_token, "X-RapidAPI-Host": FIAT_CURRENCY_EXCHANGE.id}
-        fetcher = WebFetcher(
-            api_url,
-            self.__cache_dao,
-            headers = headers,
-            params = params,
-            cache_ttl_json = CACHE_TTL,
-        )
+        rapid_api_token = self.__di.access_token_resolver.require_access_token_for_tool(FIAT_CURRENCY_EXCHANGE).get_secret_value()
+        headers = {"X-RapidAPI-Key": rapid_api_token, "X-RapidAPI-Host": FIAT_CURRENCY_EXCHANGE.id}
+        fetcher = self.__di.web_fetcher(api_url, headers, params, cache_ttl_json = CACHE_TTL)
         response = fetcher.fetch_json() or {}
 
         rate = float(response["rates"][desired_currency_code]["rate_for_amount"])
         if rate:
             self.__save_rate_to_cache(base_currency_code, desired_currency_code, rate)
             return rate
-        raise ValueError(f"Invalid rate: {rate}; response data: {json.dumps(response)}")
+        raise ValueError(
+            f"Invalid rate: {rate}; API: {FIAT_CURRENCY_EXCHANGE.id}; response data: {json.dumps(response)}",
+        )

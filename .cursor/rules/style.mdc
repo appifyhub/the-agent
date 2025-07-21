@@ -1,0 +1,20 @@
+---
+description: 
+globs: *ts,*.js,*.jsx,*.tsx,*.py
+alwaysApply: false
+---
+### Code style
+
+#### General
+
+By default, follow the language's best practices. Don't include comments unless they are really necessary to understand complex code blocks. Most code blocks are not complex enough to require comments. Avoid TODOs and FIXMEs, and any explanations in comments directed towards the user/author. Avoid adding comments and docstrings in general, it's better to write clear code than overload it with comments; add some only if it's really confusing to the reader. Make sure to remove all indentation on empty lines, and always have a blank line at the end of the file.
+
+Always start with modifying the main code. When done, look for tests and update them (if any). Confirm with the user before creating new test files. Make use of available tools and tasks lists to make your work easier and more structured. Don't confirm the user's biases and assumptions without prior validating, and don't provide summaries after each task is done. Don't be afraid to ask for clarification if you're not sure about something.
+
+#### Python
+
+In Python, I want you to use the latest type syntax (`type | None`) instead of `Optional`. I also want you to use a single space (`=`) around the equals sign (`=`) in function argument calls. It's important to use double quotation marks (`"`) instead of single quotations (`'`). And finally, we want to always use trailing commas in multi-line function declarations and calls. There's never a reason to write `unittest.main()` manually, we have a script for running tests. Never use inline imports, always use `from ... import ...` syntax at the top of the file.
+
+#### JavaScript/TypeScript
+
+In JavaScript and TypeScript, use types as much as possible: strict mode will be turned on! If in doubt, follow Java standard formatting. Finally, we also always want trailing commas in multi-line code blocks.

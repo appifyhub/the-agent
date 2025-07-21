@@ -2,10 +2,9 @@ import time
 from contextlib import contextmanager
 from typing import Generator
 
-from requests import Session
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 from db.model.base import BaseModel
 from util.config import config
@@ -15,7 +14,10 @@ engine: Engine
 LocalSession: sessionmaker
 
 
-def initialize_db(db_url: str = config.db_url, multi_connection_setup: bool = True) -> tuple[Engine, sessionmaker]:
+def initialize_db(
+    db_url: str = config.db_url.get_secret_value(),
+    multi_connection_setup: bool = True,
+) -> tuple[Engine, sessionmaker]:
     global engine, LocalSession
     engine = __create_db_engine(db_url, multi_connection_setup = multi_connection_setup)
     # noinspection PyPep8Naming
@@ -35,12 +37,12 @@ def __create_db_engine(
         try:
             if multi_connection_setup:
                 created_engine = create_engine(
-                    url = db_url,          # where the DB is at
+                    url = db_url,  # where the DB is at
                     pool_pre_ping = True,  # check connections before using them
-                    pool_recycle = 300,    # recycle connections after 5 minutes
-                    pool_size = 3,         # start with a modest pool size
-                    max_overflow = 10,     # allow more connections as requirements grow
-                    pool_timeout = 10,     # wait for a few seconds for available connections
+                    pool_recycle = 300,  # recycle connections after 5 minutes
+                    pool_size = 3,  # start with a modest pool size
+                    max_overflow = 10,  # allow more connections as requirements grow
+                    pool_timeout = 10,  # wait for a few seconds for available connections
                 )
             else:
                 created_engine = create_engine(db_url)

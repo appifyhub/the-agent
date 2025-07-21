@@ -1,7 +1,7 @@
 name: Support Request
 description: Request support or ask questions about using the tools
 title: "Support Request Title"
-labels: ["Help", "Request"]
+labels: [ "Help", "Request" ]
 
 body:
   - type: markdown
