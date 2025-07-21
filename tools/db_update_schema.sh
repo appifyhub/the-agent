@@ -10,7 +10,7 @@ fi
 
 echoinfo "Have you imported the latest models in 'src/db/alembic/env.py' imports? (y/n) "
 read -r RESPONSE
-if [ ! "$RESPONSE" = "Y" ]; then
+if [ "$RESPONSE" != "Y" ] && [ "$RESPONSE" != "y" ]; then
     echowarn "Let's import the latest models before continuing."
     echoerr "Exiting..." -n >&2
     exit 1
