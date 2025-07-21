@@ -1,10 +1,11 @@
 import unittest
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import requests_mock
 
+import features.chat.telegram.sdk.telegram_bot_sdk_utils
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.chat_message_attachment import ChatMessageAttachment
@@ -68,6 +69,7 @@ class AttachmentsDescriberTest(unittest.TestCase):
         )
         self.attachment = ChatMessageAttachment(
             id = "1",
+            ext_id = "telegram_file_1",
             chat_id = "1",
             message_id = "1",
             mime_type = "image/png",
@@ -81,6 +83,17 @@ class AttachmentsDescriberTest(unittest.TestCase):
         self.mock_chat_message_attachment_crud.get.return_value = self.attachment.model_dump()
         self.mock_chat_message_attachment_crud.save.return_value = self.attachment.model_dump()
         self.mock_cache_crud.create_key.return_value = "test_cache_key"
+
+        # Mock TelegramBotSDKUtils refresh methods
+        self.mock_refresh_patcher = patch.object(
+            features.chat.telegram.sdk.telegram_bot_sdk_utils.TelegramBotSDKUtils,
+            "refresh_attachment_instances",
+        )
+        self.mock_refresh = self.mock_refresh_patcher.start()
+        self.mock_refresh.return_value = [self.attachment]
+
+    def tearDown(self):
+        self.mock_refresh_patcher.stop()
 
     @requests_mock.Mocker()
     def test_execute_with_cache_hit(self, m: requests_mock.Mocker):

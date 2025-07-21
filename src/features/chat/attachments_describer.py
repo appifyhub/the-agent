@@ -27,7 +27,7 @@ class AttachmentsDescriber(SafePrinterMixin):
         success = "Success"
 
     # the following two lists are in sync
-    __attachments: list[ChatMessageAttachment | None]
+    __attachments: list[ChatMessageAttachment]
     __contents: list[str | None]
     __errors: list[str | None]
 
@@ -54,6 +54,7 @@ class AttachmentsDescriber(SafePrinterMixin):
             message = "Malformed LLM Input Error: No attachment IDs provided. You may retry only once!"
             self.sprint(message)
             raise ValueError(message)
+        attachments: list[ChatMessageAttachment] = []
         for attachment_id in attachment_ids:
             if not attachment_id:
                 message = "Malformed LLM Input Error: Attachment ID cannot be empty. You may retry only once!"
@@ -64,40 +65,38 @@ class AttachmentsDescriber(SafePrinterMixin):
                 message = f"Malformed LLM Input Error: Attachment '{attachment_id}' not found in DB. You may retry only once!"
                 self.sprint(message)
                 raise ValueError(message)
-        self.__attachments = TelegramBotSDKUtils.refresh_attachments(
-            sources = attachment_ids,
-            chat_message_attachment_dao = self.__di.chat_message_attachment_crud,
-            bot_api = self.__di.telegram_bot_api,
-        )
+            attachments.append(ChatMessageAttachment.model_validate(attachment_db))
+        self.__attachments = TelegramBotSDKUtils.refresh_attachment_instances(self.__di, attachments)
 
     @property
     def __resolution_status(self) -> Result:
         if not self.__attachments:
             return AttachmentsDescriber.Result.failed
-        all_attachments_exist = all(attachment is not None for attachment in self.__attachments)
-        all_contents_exist = all(content is not None for content in self.__contents)
         contents_match_attachments = len(self.__attachments) == len(self.__contents)
-        # failure -> there are no attachments || some attachments are None || attachments don't match contents
-        if not all_attachments_exist or not contents_match_attachments:
+        # failure -> attachments don't match contents (system error)
+        if not contents_match_attachments:
             return AttachmentsDescriber.Result.failed
-        # success -> all attachments and their contents are non-None && attachments match contents
-        if all_attachments_exist and all_contents_exist and contents_match_attachments:
+        successful_contents = sum(1 for content in self.__contents if content is not None)
+        # failure -> 0% success (no content resolved)
+        if successful_contents == 0:
+            return AttachmentsDescriber.Result.failed
+        # success -> 100% success (all content resolved)
+        if successful_contents == len(self.__attachments):
             return AttachmentsDescriber.Result.success
-        # partial -> some attachments are None || some attachments don't match contents || contents are None
+        # partial -> some content resolved, some failed
         return AttachmentsDescriber.Result.partial
 
     @property
     def result(self) -> list[dict[str, str]]:
         result: list[dict[str, str]] = []
         for attachment, content, error in zip(self.__attachments, self.__contents, self.__errors):
-            if attachment is not None:
-                attachment_data = {
-                    "id": attachment.id,
-                    "text_content": content if content is not None else "<unresolved>",
-                    "type": attachment.mime_type if attachment.mime_type else "<unknown>",
-                    "error": error if error else "<none>",
-                }
-                result.append(attachment_data)
+            attachment_data = {
+                "id": attachment.id,
+                "text_content": content if content is not None else "<unresolved>",
+                "type": attachment.mime_type if attachment.mime_type else "<unknown>",
+                "error": error if error else "<none>",
+            }
+            result.append(attachment_data)
         return result
 
     def execute(self) -> Result:
@@ -106,11 +105,6 @@ class AttachmentsDescriber(SafePrinterMixin):
         self.__contents = []
         self.__errors = []
         for attachment in self.__attachments:
-            if attachment is None:
-                self.sprint("Skipping None attachment")
-                self.__contents.append(None)
-                self.__errors.append("Attachment is not found")
-                continue
             # assuming the URL will never change... users might ask more questions about the same attachment
             additional_content_hash = digest_md5(self.__additional_context) if self.__additional_context else "*"
             unique_identifier = f"{attachment.id}-{additional_content_hash}"
@@ -150,7 +144,7 @@ class AttachmentsDescriber(SafePrinterMixin):
         self.sprint(f"Resolving text content for attachment '{attachment.id}'")
 
         # fetching binary contents will also validate the URL
-        contents = requests.get(attachment.last_url).content
+        contents = requests.get(str(attachment.last_url)).content
 
         # handle images
         if attachment.mime_type in KNOWN_IMAGE_FORMATS.values() or attachment.extension in KNOWN_IMAGE_FORMATS.keys():
@@ -160,7 +154,7 @@ class AttachmentsDescriber(SafePrinterMixin):
             )
             return self.__di.computer_vision_analyzer(
                 job_id = attachment.id,
-                image_mime_type = attachment.mime_type,
+                image_mime_type = str(attachment.mime_type),
                 configured_tool = configured_tool,
                 image_b64 = base64.b64encode(contents).decode("utf-8"),
                 additional_context = self.__additional_context,
@@ -178,7 +172,7 @@ class AttachmentsDescriber(SafePrinterMixin):
             )
             return self.__di.audio_transcriber(
                 job_id = attachment.id,
-                audio_url = attachment.last_url,
+                audio_url = str(attachment.last_url),
                 transcriber_tool = transcriber_tool,
                 copywriter_tool = copywriter_tool,
                 def_extension = attachment.extension,
@@ -199,7 +193,7 @@ class AttachmentsDescriber(SafePrinterMixin):
             )
             return self.__di.document_search(
                 job_id = attachment.id,
-                document_url = attachment.last_url,
+                document_url = str(attachment.last_url),
                 embedding_tool = embedding_tool,
                 copywriter_tool = copywriter_tool,
                 additional_context = self.__additional_context,

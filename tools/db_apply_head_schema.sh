@@ -9,9 +9,9 @@ if [ ! -f "Pipfile" ]; then
 fi
 
 if [ "$1" != "-y" ]; then
-    echoinfo "Have you created all previous schemas and applied them to the database? (y/n) "
+    echoinfo "Have you applied all previous schemas to the database? (y/n) "
     read -r RESPONSE
-    if [ ! "$RESPONSE" = "Y" ]; then
+    if [ "$RESPONSE" != "Y" ] && [ "$RESPONSE" != "y" ]; then
         echowarn "Let's make sure that's done first."
         echoerr "Exiting..." -n >&2
         exit 1

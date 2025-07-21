@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 
 from db.model.chat_message_attachment import ChatMessageAttachmentDB
 from db.schema.chat_message_attachment import ChatMessageAttachmentSave
+from util.functions import generate_short_uuid
 
 
 class ChatMessageAttachmentCRUD:
@@ -13,6 +14,11 @@ class ChatMessageAttachmentCRUD:
     def get(self, attachment_id: str) -> ChatMessageAttachmentDB | None:
         return self._db.query(ChatMessageAttachmentDB).filter(
             ChatMessageAttachmentDB.id == attachment_id,
+        ).first()
+
+    def get_by_ext_id(self, ext_id: str) -> ChatMessageAttachmentDB | None:
+        return self._db.query(ChatMessageAttachmentDB).filter(
+            ChatMessageAttachmentDB.ext_id == ext_id,
         ).first()
 
     def get_all(self, skip: int = 0, limit: int = 100) -> list[ChatMessageAttachmentDB]:
@@ -27,6 +33,8 @@ class ChatMessageAttachmentCRUD:
         ).all()
 
     def create(self, create_data: ChatMessageAttachmentSave) -> ChatMessageAttachmentDB:
+        if not create_data.id:
+            create_data.id = generate_short_uuid()
         attachment = ChatMessageAttachmentDB(**create_data.model_dump())
         self._db.add(attachment)
         self._db.commit()
@@ -34,6 +42,8 @@ class ChatMessageAttachmentCRUD:
         return attachment
 
     def update(self, update_data: ChatMessageAttachmentSave) -> ChatMessageAttachmentDB | None:
+        if not update_data.id:
+            return None
         attachment = self.get(update_data.id)
         if attachment:
             for key, value in update_data.model_dump().items():
