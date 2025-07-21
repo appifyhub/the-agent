@@ -61,7 +61,13 @@ def process_attachments(
                 result, details = di.chat_imaging_service(attachment_ids_list, operation, context).execute()
                 if result == ChatImagingService.Result.failed:
                     raise ValueError("Failed to edit the images! Details: " + str(details))
-                return __success({"status": result.value, "details": details, "next_step": "Deliver any errors to the partner"})
+                return __success(
+                    {
+                        "status": result.value,
+                        "details": details,
+                        "next_step": "Deliver any errors to the partner (no links)",
+                    },
+                )
             else:
                 # Unknown operation, must report back
                 raise ValueError(f"Unknown operation '{operation}'; try one of: [{', '.join(allowed_operations)}]")
@@ -324,7 +330,7 @@ def request_feature_bug_or_support(
             return __success(
                 {
                     "github_issue_url": issue_url,
-                    "next_step": "Report this resolution back to the partner",
+                    "next_step": "Report this link back to the partner",
                 },
             )
     except Exception as e:

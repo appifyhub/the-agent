@@ -48,12 +48,10 @@ class ChatImagingService(SafePrinterMixin):
         di: DI,
     ):
         super().__init__(config.verbose)
+        if not attachment_ids:
+            raise ValueError("No attachment IDs provided")
         self.__di = di
-        self.__attachments = TelegramBotSDKUtils.refresh_attachments(
-            sources = attachment_ids,
-            bot_api = self.__di.telegram_bot_api,
-            chat_message_attachment_dao = self.__di.chat_message_attachment_crud,
-        )
+        self.__attachments = TelegramBotSDKUtils.refresh_attachments_by_ids(self.__di, attachment_ids)
         self.__operation = ChatImagingService.Operation.resolve(operation_name)
         self.__operation_guidance = operation_guidance
 

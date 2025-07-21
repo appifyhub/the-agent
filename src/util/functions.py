@@ -1,5 +1,6 @@
 import hashlib
 import random
+import uuid
 from datetime import datetime
 from typing import Any, Callable, TypeVar
 
@@ -21,6 +22,16 @@ def construct_bot_message_id(chat_id: str, sent_at: datetime) -> str:
     formatted_time = sent_at.strftime("%y%m%d%H%M%S")
     result = f"{chat_id}-{formatted_time}-{random_seed}"
     return result
+
+
+def generate_short_uuid() -> str:
+    return uuid.uuid4().hex[:8]
+
+
+def generate_deterministic_short_uuid(seed: str) -> str:
+    # noinspection InsecureHash
+    hash_digest = hashlib.sha256(seed.encode()).hexdigest()
+    return hash_digest[:8]
 
 
 def silent(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -55,6 +66,7 @@ def mask_secret(secret: str | None = None, mask: str = "*") -> str | None:
 
 ###           U N T E S T E D           ###
 # No idea how to test other than manually #
+
 
 def digest_md5(content: str) -> str:
     # noinspection InsecureHash

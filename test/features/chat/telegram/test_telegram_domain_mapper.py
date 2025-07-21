@@ -1,3 +1,4 @@
+import re
 import unittest
 from datetime import datetime
 
@@ -50,11 +51,20 @@ class TelegramDomainMapperTest(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(result.chat.chat_id, "10")
         self.assertEqual(result.message.message_id, "100")
-        self.assertEqual(result.message.text, "This is a test message\n\n📎 [ a1 (audio/mpeg), d2 ]")
+        # Verify the text format with dynamic short IDs
+        expected_base_text = "This is a test message\n\n📎 [ "
+        self.assertTrue(result.message.text.startswith(expected_base_text))
+        # Extract and verify attachment part: "shortid (audio/mpeg), shortid ]"
+        attachment_part = result.message.text[len(expected_base_text):]
+        attachment_pattern = r"[a-f0-9]{8} \(audio/mpeg\), [a-f0-9]{8} \]"
+        self.assertTrue(
+            re.match(attachment_pattern, attachment_part),
+            f"Attachment part '{attachment_part}' doesn't match expected format",
+        )
         self.assertEqual(result.author.full_name, "First Last")
         self.assertEqual(len(result.attachments), 2)
-        self.assertEqual(result.attachments[0].id, "a1")
-        self.assertEqual(result.attachments[1].id, "d2")
+        self.assertEqual(result.attachments[0].ext_id, "a1")
+        self.assertEqual(result.attachments[1].ext_id, "d2")
 
     def test_map_update_empty(self):
         update = Update(update_id = 1)
@@ -154,13 +164,13 @@ class TelegramDomainMapperTest(unittest.TestCase):
 
         result = self.mapper.map_text_as_reply(message)
 
-        expected_text = (
-            ">>>> This is a caption\n\n"
-            ">>>> This is a test message\n\n"
-            ">>>> 📎 [ a1 (audio/mpeg) ]"
-        )
-
-        self.assertEqual(result, expected_text)
+        # Verify format with dynamic short ID
+        lines = result.split("\n\n")
+        self.assertEqual(lines[0], ">>>> This is a caption")
+        self.assertEqual(lines[1], ">>>> This is a test message")
+        # Check attachment line format: ">>>> 📎 [ shortid (audio/mpeg) ]"
+        attachment_pattern = r">>>> 📎 \[ [a-f0-9]{8} \(audio/mpeg\) \]"
+        self.assertTrue(re.match(attachment_pattern, lines[2]), f"Attachment line '{lines[2]}' doesn't match expected format")
 
     def test_map_text_as_reply_empty(self):
         # 'from' is a reserved keyword in Python, so we use a workaround to access it
@@ -196,15 +206,15 @@ class TelegramDomainMapperTest(unittest.TestCase):
 
         result = self.mapper.map_text(message)
 
-        expected_text = (
-            ">>>> This is a reply message\n\n"
-            ">> This is a quote\n\n"
-            "This is a caption\n\n"
-            "This is a test message\n\n"
-            "📎 [ v4 (audio/ogg) ]"
-        )
-
-        self.assertEqual(result, expected_text)
+        # Verify format with dynamic short ID
+        lines = result.split("\n\n")
+        self.assertEqual(lines[0], ">>>> This is a reply message")
+        self.assertEqual(lines[1], ">> This is a quote")
+        self.assertEqual(lines[2], "This is a caption")
+        self.assertEqual(lines[3], "This is a test message")
+        # Check attachment line format: "📎 [ shortid (audio/ogg) ]"
+        attachment_pattern = r"📎 \[ [a-f0-9]{8} \(audio/ogg\) \]"
+        self.assertTrue(re.match(attachment_pattern, lines[4]), f"Attachment line '{lines[4]}' doesn't match expected format")
 
     def test_map_text_empty(self):
         # 'from' is a reserved keyword in Python, so we use a workaround to access it
@@ -309,7 +319,9 @@ class TelegramDomainMapperTest(unittest.TestCase):
 
         result = self.mapper.map_attachments_as_text(message)
 
-        self.assertEqual(result, "[ a1 (audio/mpeg), d2 ]")
+        # Verify format: [ shortid (mime), shortid ]
+        expected_pattern = r"\[ [a-f0-9]{8} \(audio/mpeg\), [a-f0-9]{8} \]"
+        self.assertTrue(re.match(expected_pattern, result), f"Result '{result}' doesn't match expected format")
 
     def test_map_attachments_as_text_empty(self):
         # 'from' is a reserved keyword in Python, so we use a workaround to access it
@@ -345,7 +357,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
         self.assertEqual(len(result), 4)
         # audio
         self.assertEqual(result[0].message_id, str(message.message_id))
-        self.assertEqual(result[0].id, message.audio.file_id)
+        self.assertIsNotNone(result[0].id)
+        self.assertEqual(result[0].ext_id, message.audio.file_id)
         self.assertEqual(result[0].chat_id, str(message.chat.id))
         self.assertEqual(result[0].size, message.audio.file_size)
         self.assertEqual(result[0].mime_type, message.audio.mime_type)
@@ -354,7 +367,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
         self.assertIsNone(result[0].last_url_until)
         # document
         self.assertEqual(result[1].message_id, str(message.message_id))
-        self.assertEqual(result[1].id, message.document.file_id)
+        self.assertIsNotNone(result[1].id)
+        self.assertEqual(result[1].ext_id, message.document.file_id)
         self.assertEqual(result[1].chat_id, str(message.chat.id))
         self.assertEqual(result[1].size, message.document.file_size)
         self.assertEqual(result[1].mime_type, message.document.mime_type)
@@ -363,7 +377,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
         self.assertIsNone(result[1].last_url_until)
         # photo
         self.assertEqual(result[2].message_id, str(message.message_id))
-        self.assertEqual(result[2].id, message.photo[1].file_id)
+        self.assertIsNotNone(result[2].id)
+        self.assertEqual(result[2].ext_id, message.photo[1].file_id)
         self.assertEqual(result[2].chat_id, str(message.chat.id))
         self.assertEqual(result[2].size, message.photo[1].file_size)
         self.assertIsNone(result[2].mime_type)
@@ -372,7 +387,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
         self.assertIsNone(result[2].last_url_until)
         # voice
         self.assertEqual(result[3].message_id, str(message.message_id))
-        self.assertEqual(result[3].id, message.voice.file_id)
+        self.assertIsNotNone(result[3].id)
+        self.assertEqual(result[3].ext_id, message.voice.file_id)
         self.assertEqual(result[3].chat_id, str(message.chat.id))
         self.assertEqual(result[3].size, message.voice.file_size)
         self.assertEqual(result[3].mime_type, message.voice.mime_type)
@@ -406,7 +422,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
 
         result = self.mapper.map_to_attachment(file, chat_id, message_id, mime_type)
 
-        self.assertEqual(result.id, file.file_id)
+        self.assertIsNotNone(result.id)
+        self.assertEqual(result.ext_id, file.file_id)
         self.assertEqual(result.chat_id, chat_id)
         self.assertEqual(result.message_id, message_id)
         self.assertEqual(result.size, file.file_size)
@@ -427,7 +444,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
 
         result = self.mapper.map_to_attachment(file, chat_id, message_id, mime_type = None)
 
-        self.assertEqual(result.id, file.file_id)
+        self.assertIsNotNone(result.id)
+        self.assertEqual(result.ext_id, file.file_id)
         self.assertEqual(result.chat_id, chat_id)
         self.assertEqual(result.message_id, message_id)
         self.assertEqual(result.size, file.file_size)
@@ -446,7 +464,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
 
         result = self.mapper.map_to_attachment(file, chat_id, message_id, mime_type = None)
 
-        self.assertEqual(result.id, file.file_id)
+        self.assertIsNotNone(result.id)
+        self.assertEqual(result.ext_id, file.file_id)
         self.assertEqual(result.chat_id, chat_id)
         self.assertEqual(result.message_id, message_id)
         self.assertEqual(result.size, file.file_size)

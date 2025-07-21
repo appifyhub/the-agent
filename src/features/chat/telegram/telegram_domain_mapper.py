@@ -11,6 +11,7 @@ from features.chat.telegram.model.attachment.file import File
 from features.chat.telegram.model.message import Message
 from features.chat.telegram.model.update import Update
 from util.config import config
+from util.functions import generate_deterministic_short_uuid
 from util.safe_printer_mixin import SafePrinterMixin
 
 
@@ -136,7 +137,9 @@ class TelegramDomainMapper(SafePrinterMixin):
         if not attachments:
             return None
         formatted_attachments = [
-            f"{attachment.id} ({attachment.mime_type})" if attachment.mime_type else f"{attachment.id}"
+            f"{attachment.id} ({attachment.mime_type})"
+            if attachment.mime_type
+            else f"{attachment.id}"
             for attachment in attachments
         ]
         # self.sprint(f"Mapping attachments: {formatted_attachments}")
@@ -219,7 +222,8 @@ class TelegramDomainMapper(SafePrinterMixin):
         bot_token = config.telegram_bot_token.get_secret_value()
         last_url = f"{config.telegram_api_base_url}/file/bot{bot_token}/{file.file_path}"
         return ChatMessageAttachmentSave(
-            id = file.file_id,
+            id = generate_deterministic_short_uuid(file.file_id),
+            ext_id = file.file_id,
             chat_id = chat_id,
             message_id = message_id,
             size = file.file_size,
