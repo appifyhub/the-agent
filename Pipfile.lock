@@ -805,12 +805,12 @@
         },
         "langchain-core": {
             "hashes": [
-                "sha256:383e9cb4919f7ef4b24bf8552ef42e4323c064924fea88b28dd5d7ddb740d3b8",
-                "sha256:c132961117cc7f0227a4c58dd3e209674a6dd5b7e74abc61a0df93b0d736e283"
+                "sha256:56f1ce0ab410508e25b3b4b3b87a8ffae38bf16294e5f605ac63a8aff5bc13a4",
+                "sha256:58551e5411ff9f92c7c8f4379e07e762ca66800e821cd904e19881fe41f691ee"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.9'",
-            "version": "==0.3.69"
+            "version": "==0.3.70"
         },
         "langchain-openai": {
             "hashes": [
@@ -1993,7 +1993,6 @@
                 "sha256:6ae9aa5db235e4846decc1e7b79c4f346adf41e9777aebeb49dfd09bbd7023d8",
                 "sha256:c5847e96134e5c5371ee9fac6fdf1a67336d5815e09eb2a01fdb57a351ef915b"
             ],
-            "index": "pypi",
             "markers": "python_version >= '3.9'",
             "version": "==0.47.2"
         },
