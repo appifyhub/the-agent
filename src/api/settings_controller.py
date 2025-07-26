@@ -1,7 +1,7 @@
 from dataclasses import asdict
 from typing import Annotated, Any, List, Literal, TypeAlias, get_args
 
-from api.auth import create_jwt_token
+from api import auth
 from api.mapper.user_mapper import api_to_domain, domain_to_api
 from api.model.chat_settings_payload import ChatSettingsPayload
 from api.model.external_tools_response import ExternalToolProviderResponse, ExternalToolResponse, ExternalToolsResponse
@@ -66,29 +66,25 @@ class SettingsController(SafePrinterMixin):
         if chat_config.language_iso_code:
             lang_iso_code = chat_config.language_iso_code
 
-        # find the sponsorship information, if available
-        sponsored_by: str | None = None
-        sponsorships_db = self.__di.sponsorship_crud.get_all_by_receiver(self.__di.invoker.id)
-        if sponsorships_db:
-            sponsorship = Sponsorship.model_validate(sponsorships_db[0])
-            sponsor_db = self.__di.user_crud.get(sponsorship.sponsor_id)
-            if sponsor_db:
-                sponsor = User.model_validate(sponsor_db)
-                sponsored_by = sponsor.full_name or sponsor.telegram_username  # or None, transitively
-
-        telegram_user_id = self.__di.invoker.telegram_user_id
-        telegram_username = self.__di.invoker.telegram_username
-        token_payload = {
-            "iss": config.telegram_bot_name,  # issuer, app name
-            "sub": self.__di.invoker.id.hex,  # subject, user's unique identifier
-            **({"telegram_user_id": telegram_user_id} if telegram_user_id else {}),
-            **({"telegram_username": telegram_username} if telegram_username else {}),
-            **({"sponsored_by": sponsored_by} if sponsored_by else {}),
-        }
+        sponsored_by = self.__resolve_sponsor_name()
+        jwt_token = self.__create_jwt_token(sponsored_by)
 
         page = "sponsorships" if (settings_type == "user" and sponsored_by) else "settings"
-        jwt_token = create_jwt_token(token_payload, config.jwt_expires_in_minutes)
         settings_url_base = f"{config.backoffice_url_base}/{lang_iso_code}/{settings_type}/{resource_id}/{page}"
+        return f"{settings_url_base}?{SETTINGS_TOKEN_VAR}={jwt_token}"
+
+    def create_help_link(self) -> str:
+        lang_iso_code: str = "en"
+        if not self.__di.invoker.telegram_chat_id:
+            message = "User never sent a private message, cannot create settings link"
+            self.sprint(message)
+            raise ValueError(message)
+        chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, self.__di.invoker.telegram_chat_id)
+        if chat_config.language_iso_code:
+            lang_iso_code = chat_config.language_iso_code
+
+        jwt_token = self.__create_jwt_token()
+        settings_url_base = f"{config.backoffice_url_base}/{lang_iso_code}/features"
         return f"{settings_url_base}?{SETTINGS_TOKEN_VAR}={jwt_token}"
 
     def fetch_external_tools(self, user_id_hex: str) -> dict[str, Any]:
@@ -174,3 +170,27 @@ class SettingsController(SafePrinterMixin):
             }
             result.append(record)
         return result
+
+    def __resolve_sponsor_name(self) -> str | None:
+        sponsored_by: str | None = None
+        sponsorships_db = self.__di.sponsorship_crud.get_all_by_receiver(self.__di.invoker.id)
+        if sponsorships_db:
+            sponsorship = Sponsorship.model_validate(sponsorships_db[0])
+            sponsor_db = self.__di.user_crud.get(sponsorship.sponsor_id)
+            if sponsor_db:
+                sponsor = User.model_validate(sponsor_db)
+                sponsored_by = sponsor.full_name or sponsor.telegram_username  # or None, transitively
+        return sponsored_by
+
+    def __create_jwt_token(self, sponsored_by: str | None = None) -> str:
+        sponsored_by = sponsored_by or self.__resolve_sponsor_name()
+        telegram_user_id = self.__di.invoker.telegram_user_id
+        telegram_username = self.__di.invoker.telegram_username
+        token_payload = {
+            "iss": config.telegram_bot_name,  # issuer, app name
+            "sub": self.__di.invoker.id.hex,  # subject, user's unique identifier
+            **({"telegram_user_id": telegram_user_id} if telegram_user_id else {}),
+            **({"telegram_username": telegram_username} if telegram_username else {}),
+            **({"sponsored_by": sponsored_by} if sponsored_by else {}),
+        }
+        return auth.create_jwt_token(token_payload, config.jwt_expires_in_minutes)
