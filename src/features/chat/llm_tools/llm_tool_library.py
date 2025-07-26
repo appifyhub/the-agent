@@ -377,7 +377,44 @@ def configure_settings(
                         "next_step": "Notify the user that the link was sent to their private chat",
                     },
                 )
+    except Exception as e:
+        return __error(e)
 
+
+@tool
+def read_help_and_features(
+    author_user_id: str,
+    chat_id: str | None = None,
+) -> str:
+    """
+    Launches the help screen. This allows the user to understand more about the service, how to use it,
+    look for help or FAQ, as well as check the details of the many features available in the service.
+    This does not allow the user to request support or report issues - use another tool for that.
+
+    Args:
+        author_user_id: [mandatory] A unique identifier of the user/author, usually found in the metadata
+        chat_id: [optional] A unique identifier of the chat to be configured, usually found in the metadata
+    """
+    try:
+        with get_detached_session() as db:
+            di = DI(db, author_user_id)
+            help_link = di.settings_controller.create_help_link()
+            # let's send the settings link to the user's private chat, for security and privacy reasons
+            if not di.invoker.telegram_chat_id:
+                return __error("Author has no private chat with the bot; cannot send settings link")
+            di.telegram_bot_sdk.send_button_link(di.invoker.telegram_chat_id, help_link)
+            if chat_id and chat_id == str(di.invoker.telegram_chat_id or 0):
+                return __success(
+                    {
+                        "next_step": "Notify the user to click on the settings link above",
+                    },
+                )
+            else:
+                return __success(
+                    {
+                        "next_step": "Notify the user that the link was sent to their private chat",
+                    },
+                )
     except Exception as e:
         return __error(e)
 
@@ -441,6 +478,7 @@ class LLMToolLibrary(BaseLLMToolBinder):
                 "deliver_message": deliver_message,
                 "request_feature_bug_or_support": request_feature_bug_or_support,
                 "configure_settings": configure_settings,
+                "read_help_and_features": read_help_and_features,
                 "get_version": get_version,
             },
         )

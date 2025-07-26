@@ -582,3 +582,71 @@ class SettingsControllerTest(unittest.TestCase):
         unconfigured_providers = [provider for provider in result["providers"] if not provider["is_configured"]]
         self.assertEqual(len(configured_providers), 1)
         self.assertEqual(len(unconfigured_providers), 1)
+
+    @patch("api.auth.create_jwt_token")
+    def test_create_help_link_success(self, mock_create_jwt_token):
+        """Test successful creation of help link"""
+        mock_create_jwt_token.return_value = "test_jwt_token"
+
+        controller = SettingsController(self.mock_di)
+        link = controller.create_help_link()
+
+        self.assertIn("features", link)
+        self.assertIn("token=", link)
+        self.assertIn("en", link)  # Default language
+        mock_create_jwt_token.assert_called_once()
+
+    @patch("api.auth.create_jwt_token")
+    def test_create_help_link_success_with_custom_language(self, mock_create_jwt_token):
+        """Test help link creation with custom language from chat config"""
+        mock_create_jwt_token.return_value = "test_jwt_token"
+
+        custom_chat_config = ChatConfig(
+            chat_id = str(self.invoker_user.telegram_chat_id),
+            title = "Test Chat",
+            language_iso_code = "es",  # Spanish
+            reply_chance_percent = 100,
+            is_private = True,
+            release_notifications = ChatConfigDB.ReleaseNotifications.all,
+        )
+        self.mock_authorization_service.authorize_for_chat.return_value = custom_chat_config
+
+        controller = SettingsController(self.mock_di)
+        link = controller.create_help_link()
+
+        self.assertIn("features", link)
+        self.assertIn("token=", link)
+        self.assertIn("es", link)  # Custom language
+        mock_create_jwt_token.assert_called_once()
+
+    def test_create_help_link_failure_no_telegram_chat_id(self):
+        """Test that users without telegram_chat_id cannot create help links"""
+        user_without_chat = User(
+            id = self.invoker_user.id,
+            full_name = self.invoker_user.full_name,
+            telegram_username = self.invoker_user.telegram_username,
+            telegram_chat_id = None,  # No chat ID
+            telegram_user_id = self.invoker_user.telegram_user_id,
+            open_ai_key = self.invoker_user.open_ai_key,
+            anthropic_key = self.invoker_user.anthropic_key,
+            perplexity_key = self.invoker_user.perplexity_key,
+            replicate_key = self.invoker_user.replicate_key,
+            rapid_api_key = self.invoker_user.rapid_api_key,
+            coinmarketcap_key = self.invoker_user.coinmarketcap_key,
+            tool_choice_chat = self.invoker_user.tool_choice_chat,
+            tool_choice_reasoning = self.invoker_user.tool_choice_reasoning,
+            tool_choice_vision = self.invoker_user.tool_choice_vision,
+            tool_choice_images_gen = self.invoker_user.tool_choice_images_gen,
+            tool_choice_search = self.invoker_user.tool_choice_search,
+            group = self.invoker_user.group,
+            created_at = self.invoker_user.created_at,
+        )
+
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker = user_without_chat
+        controller = SettingsController(self.mock_di)
+
+        with self.assertRaises(ValueError) as context:
+            controller.create_help_link()
+
+        self.assertIn("User never sent a private message", str(context.exception))
