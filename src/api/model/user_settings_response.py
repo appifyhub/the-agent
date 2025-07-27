@@ -9,6 +9,7 @@ class UserSettingsResponse(BaseModel):
     telegram_user_id: int | None = None
     open_ai_key: str | None = None
     anthropic_key: str | None = None
+    google_ai_key: str | None = None
     perplexity_key: str | None = None
     replicate_key: str | None = None
     rapid_api_key: str | None = None

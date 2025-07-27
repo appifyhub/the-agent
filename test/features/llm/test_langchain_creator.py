@@ -2,12 +2,13 @@ import unittest
 from unittest.mock import patch
 
 from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langchain_perplexity import ChatPerplexity
 from pydantic import SecretStr
 
 from features.external_tools.external_tool import ExternalTool, ExternalToolProvider, ToolType
-from features.external_tools.external_tool_provider_library import ANTHROPIC, OPEN_AI, PERPLEXITY
+from features.external_tools.external_tool_provider_library import ANTHROPIC, GOOGLE_AI, OPEN_AI, PERPLEXITY
 from features.llm.langchain_creator import create
 
 
@@ -16,6 +17,7 @@ class LangchainCreatorTest(unittest.TestCase):
     def setUp(self):
         self.mock_openai_provider = OPEN_AI
         self.mock_anthropic_provider = ANTHROPIC
+        self.mock_google_ai_provider = GOOGLE_AI
         self.mock_perplexity_provider = PERPLEXITY
 
         self.mock_openai_tool = ExternalTool(
@@ -29,6 +31,13 @@ class LangchainCreatorTest(unittest.TestCase):
             id = "claude-3-5-sonnet-latest",
             name = "Claude 3.5 Sonnet",
             provider = self.mock_anthropic_provider,
+            types = [ToolType.chat, ToolType.reasoning],
+        )
+
+        self.mock_google_ai_tool = ExternalTool(
+            id = "gemini-1.5-flash",
+            name = "Gemini 1.5 Flash",
+            provider = self.mock_google_ai_provider,
             types = [ToolType.chat, ToolType.reasoning],
         )
 
@@ -74,6 +83,18 @@ class LangchainCreatorTest(unittest.TestCase):
         result = create(configured_tool)
 
         self.assertIsInstance(result, ChatPerplexity)
+
+    @patch("features.llm.langchain_creator.config")
+    def test_create_google_ai_chat_model(self, mock_config):
+        mock_config.web_retries = 3
+        mock_config.web_timeout_s = 10
+
+        api_key = SecretStr("test-google-ai-key")
+        configured_tool = (self.mock_google_ai_tool, api_key, ToolType.chat)
+
+        result = create(configured_tool)
+
+        self.assertIsInstance(result, ChatGoogleGenerativeAI)
 
     @patch("features.llm.langchain_creator.config")
     def test_create_copywriting_model(self, mock_config):
@@ -236,6 +257,27 @@ class LangchainCreatorTest(unittest.TestCase):
                 configured_tool = (self.mock_perplexity_tool, api_key, tool_type)
                 result = create(configured_tool)
                 self.assertIsInstance(result, ChatPerplexity)
+
+    @patch("features.llm.langchain_creator.config")
+    def test_all_supported_tool_types_with_google_ai(self, mock_config):
+        mock_config.web_retries = 3
+        mock_config.web_timeout_s = 10
+
+        # Test all supported tool types
+        supported_types = [
+            ToolType.chat,
+            ToolType.reasoning,
+            ToolType.copywriting,
+            ToolType.vision,
+            ToolType.search,
+        ]
+
+        api_key = SecretStr("test-key")
+        for tool_type in supported_types:
+            with self.subTest(tool_type = tool_type):
+                configured_tool = (self.mock_google_ai_tool, api_key, tool_type)
+                result = create(configured_tool)
+                self.assertIsInstance(result, ChatGoogleGenerativeAI)
 
     @patch("features.llm.langchain_creator.config")
     def test_config_values_are_used(self, mock_config):

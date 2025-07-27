@@ -1,11 +1,13 @@
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langchain_perplexity import ChatPerplexity
 
 from features.external_tools.external_tool import ExternalToolProvider, ToolType
 from features.external_tools.external_tool_provider_library import (
     ANTHROPIC,
+    GOOGLE_AI,
     OPEN_AI,
     PERPLEXITY,
 )
@@ -39,6 +41,8 @@ def create(configured_tool: ConfiguredTool) -> BaseChatModel:
             return ChatAnthropic(**model_args)
         case PERPLEXITY.id:
             return ChatPerplexity(**model_args)
+        case GOOGLE_AI.id:
+            return ChatGoogleGenerativeAI(**model_args)
     raise ValueError(f"{tool.provider.name}/{tool.name} does not support LLMs")
 
 
@@ -64,6 +68,8 @@ def __normalize_temperature(temperature_percent: float, provider: ExternalToolPr
         case ANTHROPIC.id:
             return temperature_percent * 1
         case PERPLEXITY.id:
+            return temperature_percent * 2
+        case GOOGLE_AI.id:
             return temperature_percent * 2
     raise ValueError(f"{provider.name}/{provider.id} does not support temperature")
 

@@ -2,6 +2,7 @@ from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_provider_library import (
     ANTHROPIC,
     COINMARKETCAP,
+    GOOGLE_AI,
     OPEN_AI,
     PERPLEXITY,
     RAPID_API,
@@ -147,6 +148,50 @@ CLAUDE_4_SONNET = ExternalTool(
     types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
 )
 
+###  Google AI  ###
+
+GEMINI_2_FLASH_LITE = ExternalTool(
+    id = "gemini-2.0-flash-lite",
+    name = "Gemini 2.0 Flash-Lite",
+    provider = GOOGLE_AI,
+    types = [ToolType.chat, ToolType.copywriting, ToolType.vision],
+)
+
+GEMINI_2_FLASH = ExternalTool(
+    id = "gemini-2.0-flash",
+    name = "Gemini 2.0 Flash",
+    provider = GOOGLE_AI,
+    types = [ToolType.chat, ToolType.copywriting, ToolType.vision],
+)
+
+GEMINI_2_5_FLASH_LITE = ExternalTool(
+    id = "gemini-2.5-flash-lite",
+    name = "Gemini 2.5 Flash-Lite",
+    provider = GOOGLE_AI,
+    types = [ToolType.chat, ToolType.copywriting, ToolType.vision],
+)
+
+GEMINI_2_5_FLASH = ExternalTool(
+    id = "gemini-2.5-flash",
+    name = "Gemini 2.5 Flash",
+    provider = GOOGLE_AI,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+)
+
+GEMINI_2_5_PRO = ExternalTool(
+    id = "gemini-2.5-pro",
+    name = "Gemini 2.5 Pro",
+    provider = GOOGLE_AI,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+)
+
+GEMINI_2_IMAGE_PREVIEW = ExternalTool(
+    id = "gemini-2.0-flash-preview-image-generation",
+    name = "Gemini 2.0 Flash (Preview) Image Generation",
+    provider = GOOGLE_AI,
+    types = [ToolType.images_gen],
+)
+
 ###  Perplexity  ###
 
 SONAR = ExternalTool(
@@ -277,6 +322,13 @@ ALL_EXTERNAL_TOOLS = [
     CLAUDE_3_5_SONNET,
     CLAUDE_3_7_SONNET,
     CLAUDE_4_SONNET,
+    # Google AI
+    GEMINI_2_FLASH_LITE,
+    GEMINI_2_FLASH,
+    GEMINI_2_5_FLASH_LITE,
+    GEMINI_2_5_FLASH,
+    GEMINI_2_5_PRO,
+    GEMINI_2_IMAGE_PREVIEW,
     # Perplexity
     SONAR,
     SONAR_PRO,

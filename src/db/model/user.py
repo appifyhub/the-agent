@@ -43,6 +43,7 @@ class UserDB(BaseModel):
 
     open_ai_key = Column(String, nullable = True)
     anthropic_key = Column(String, nullable = True)
+    google_ai_key = Column(String, nullable = True)
     perplexity_key = Column(String, nullable = True)
     replicate_key = Column(String, nullable = True)
     rapid_api_key = Column(String, nullable = True)

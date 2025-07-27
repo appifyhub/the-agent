@@ -81,6 +81,7 @@ class TelegramDataResolver(SafePrinterMixin):
             mapped_data.telegram_chat_id = mapped_data.telegram_chat_id or old_user.telegram_chat_id
             mapped_data.open_ai_key = old_user.open_ai_key
             mapped_data.anthropic_key = old_user.anthropic_key
+            mapped_data.google_ai_key = old_user.google_ai_key
             mapped_data.perplexity_key = old_user.perplexity_key
             mapped_data.replicate_key = old_user.replicate_key
             mapped_data.rapid_api_key = old_user.rapid_api_key
@@ -113,6 +114,8 @@ class TelegramDataResolver(SafePrinterMixin):
             mapped_data.open_ai_key = None
         if not mapped_data.anthropic_key or not mapped_data.anthropic_key.strip():
             mapped_data.anthropic_key = None
+        if not mapped_data.google_ai_key or not mapped_data.google_ai_key.strip():
+            mapped_data.google_ai_key = None
         if not mapped_data.perplexity_key or not mapped_data.perplexity_key.strip():
             mapped_data.perplexity_key = None
         if not mapped_data.replicate_key or not mapped_data.replicate_key.strip():

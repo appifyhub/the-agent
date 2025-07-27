@@ -15,6 +15,7 @@ class UserBase(BaseModel):
 
     open_ai_key: str | None = None
     anthropic_key: str | None = None
+    google_ai_key: str | None = None
     perplexity_key: str | None = None
     replicate_key: str | None = None
     rapid_api_key: str | None = None
@@ -53,6 +54,7 @@ class User(UserBase):
             [
                 self.open_ai_key,
                 self.anthropic_key,
+                self.google_ai_key,
                 self.perplexity_key,
                 self.replicate_key,
                 self.rapid_api_key,
