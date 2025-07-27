@@ -30,8 +30,10 @@ langchain-core = "*"
 langchain-community = "*"
 langchain-openai = "*"
 langchain-anthropic = "*"
+langchain-google-genai = "*"
 readabilipy = "*"
 langchain-perplexity = "*"
+google-genai = "*"
 
 [dev-packages]
 pytest = "*"
