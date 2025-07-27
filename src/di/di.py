@@ -470,7 +470,17 @@ class DI:
         configured_tool: ConfiguredTool,
     ) -> "SimpleStableDiffusionGenerator":
         from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
-        return SimpleStableDiffusionGenerator(prompt, configured_tool)
+        return SimpleStableDiffusionGenerator(prompt, configured_tool, self)
+
+    # noinspection PyMethodMayBeStatic
+    def image_uploader(
+        self,
+        binary_image: bytes | None = None,
+        base64_image: str | None = None,
+        expiration_s: int | None = None,
+    ):
+        from features.images.image_uploader import ImageUploader
+        return ImageUploader(binary_image, base64_image, expiration_s)
 
     def chat_imaging_service(
         self,

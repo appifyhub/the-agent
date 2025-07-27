@@ -6,6 +6,7 @@ from pydantic import BaseModel, field_validator
 class UserSettingsPayload(BaseModel):
     open_ai_key: str | None = None
     anthropic_key: str | None = None
+    google_ai_key: str | None = None
     perplexity_key: str | None = None
     replicate_key: str | None = None
     rapid_api_key: str | None = None
@@ -31,6 +32,7 @@ class UserSettingsPayload(BaseModel):
     @field_validator(
         "open_ai_key",
         "anthropic_key",
+        "google_ai_key",
         "perplexity_key",
         "replicate_key",
         "rapid_api_key",

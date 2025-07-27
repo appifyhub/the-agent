@@ -7,6 +7,7 @@ from features.external_tools.external_tool import ExternalTool, ExternalToolProv
 from features.external_tools.external_tool_provider_library import (
     ANTHROPIC,
     COINMARKETCAP,
+    GOOGLE_AI,
     OPEN_AI,
     PERPLEXITY,
     RAPID_API,
@@ -97,5 +98,7 @@ class AccessTokenResolver(SafePrinterMixin):
                 return user.rapid_api_key
             case COINMARKETCAP.id:
                 return user.coinmarketcap_key
+            case GOOGLE_AI.id:
+                return user.google_ai_key
         self.sprint(f"Unknown provider '{provider.id}'")
         return None

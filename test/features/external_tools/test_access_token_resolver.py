@@ -17,6 +17,7 @@ from features.external_tools.external_tool import ExternalTool, ExternalToolProv
 from features.external_tools.external_tool_provider_library import (
     ANTHROPIC,
     COINMARKETCAP,
+    GOOGLE_AI,
     OPEN_AI,
     PERPLEXITY,
     RAPID_API,
@@ -44,6 +45,7 @@ class AccessTokenResolverTest(unittest.TestCase):
             telegram_user_id = 1,
             open_ai_key = "invoker_openai_key",
             anthropic_key = "invoker_anthropic_key",
+            google_ai_key = "invoker_google_ai_key",
             perplexity_key = "invoker_perplexity_key",
             replicate_key = "invoker_replicate_key",
             rapid_api_key = "invoker_rapid_api_key",
@@ -59,6 +61,7 @@ class AccessTokenResolverTest(unittest.TestCase):
             telegram_user_id = 2,
             open_ai_key = "sponsor_openai_key",
             anthropic_key = "sponsor_anthropic_key",
+            google_ai_key = "sponsor_google_ai_key",
             perplexity_key = "sponsor_perplexity_key",
             replicate_key = "sponsor_replicate_key",
             rapid_api_key = "sponsor_rapid_api_key",
@@ -319,3 +322,14 @@ class AccessTokenResolverTest(unittest.TestCase):
         self.assertIsNotNone(token)
         self.assertIsInstance(token, SecretStr)
         self.assertEqual(token.get_secret_value(), self.invoker_user.coinmarketcap_key)
+
+    def test_get_access_token_google_ai_success_user_has_direct_token(self):
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+
+        resolver = AccessTokenResolver(self.mock_di)
+
+        token = resolver.get_access_token(GOOGLE_AI)
+
+        self.assertIsNotNone(token)
+        self.assertIsInstance(token, SecretStr)
+        self.assertEqual(token.get_secret_value(), self.invoker_user.google_ai_key)

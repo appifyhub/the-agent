@@ -12,6 +12,8 @@ def api_to_domain(payload: UserSettingsPayload, existing_user: User) -> UserSave
         user_save.open_ai_key = payload.open_ai_key if payload.open_ai_key.strip() else None
     if payload.anthropic_key is not None:
         user_save.anthropic_key = payload.anthropic_key if payload.anthropic_key.strip() else None
+    if payload.google_ai_key is not None:
+        user_save.google_ai_key = payload.google_ai_key if payload.google_ai_key.strip() else None
     if payload.perplexity_key is not None:
         user_save.perplexity_key = payload.perplexity_key if payload.perplexity_key.strip() else None
     if payload.replicate_key is not None:
@@ -75,6 +77,7 @@ def domain_to_api(user: User) -> UserSettingsResponse:
         telegram_user_id = user.telegram_user_id,
         open_ai_key = mask_secret(user.open_ai_key),
         anthropic_key = mask_secret(user.anthropic_key),
+        google_ai_key = mask_secret(user.google_ai_key),
         perplexity_key = mask_secret(user.perplexity_key),
         replicate_key = mask_secret(user.replicate_key),
         rapid_api_key = mask_secret(user.rapid_api_key),
