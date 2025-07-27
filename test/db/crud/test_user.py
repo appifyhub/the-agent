@@ -23,6 +23,7 @@ class UserCRUDTest(unittest.TestCase):
             telegram_user_id = 123456,
             open_ai_key = "test-key",
             anthropic_key = "test-anthropic-key",
+            google_ai_key = "test-google-ai-key",
             perplexity_key = "test-perplexity-key",
             replicate_key = "test-replicate-key",
             rapid_api_key = "test-rapid-api-key",

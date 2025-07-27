@@ -51,6 +51,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.jwt_secret_key.get_secret_value(), "default")
         self.assertEqual(config.github_issues_token.get_secret_value(), "invalid")
         self.assertEqual(config.rapid_api_twitter_token.get_secret_value(), "invalid")
+        self.assertEqual(config.free_img_host_token.get_secret_value(), "invalid")
 
     def test_custom_config(self):
         os.environ["VERBOSE"] = "true"
@@ -85,6 +86,7 @@ class ConfigTest(unittest.TestCase):
         os.environ["JWT_SECRET_KEY"] = "custom"
         os.environ["THE_AGENT_ISSUES_TOKEN"] = "sk-gi-valid"
         os.environ["RAPID_API_TWITTER_TOKEN"] = "sk-rt-valid"
+        os.environ["FREE_IMG_HOST_TOKEN"] = "sk-im-valid"
 
         config = Config()
 
@@ -117,3 +119,4 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.jwt_secret_key.get_secret_value(), "custom")
         self.assertEqual(config.github_issues_token.get_secret_value(), "sk-gi-valid")
         self.assertEqual(config.rapid_api_twitter_token.get_secret_value(), "sk-rt-valid")
+        self.assertEqual(config.free_img_host_token.get_secret_value(), "sk-im-valid")

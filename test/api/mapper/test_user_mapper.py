@@ -21,6 +21,7 @@ class UserMapperTest(unittest.TestCase):
             telegram_user_id = 123456789,
             open_ai_key = "sk-test123",
             anthropic_key = "sk-ant-test456",
+            google_ai_key = "google-test789",
             perplexity_key = "pplx-test789",
             replicate_key = "r8_test012",
             rapid_api_key = "rapid-test345",
@@ -48,6 +49,7 @@ class UserMapperTest(unittest.TestCase):
         payload = UserSettingsPayload(
             open_ai_key = "sk-new123",
             anthropic_key = "sk-ant-new456",
+            google_ai_key = "google-new789",
             perplexity_key = "pplx-new789",
             replicate_key = "r8_new012",
             rapid_api_key = "rapid-new345",
@@ -74,6 +76,7 @@ class UserMapperTest(unittest.TestCase):
         # Check that all fields were updated
         self.assertEqual(user_save.open_ai_key, "sk-new123")
         self.assertEqual(user_save.anthropic_key, "sk-ant-new456")
+        self.assertEqual(user_save.google_ai_key, "google-new789")
         self.assertEqual(user_save.perplexity_key, "pplx-new789")
         self.assertEqual(user_save.replicate_key, "r8_new012")
         self.assertEqual(user_save.rapid_api_key, "rapid-new345")
@@ -113,6 +116,7 @@ class UserMapperTest(unittest.TestCase):
 
         # Check that non-provided fields remain unchanged
         self.assertEqual(user_save.anthropic_key, self.user.anthropic_key)
+        self.assertEqual(user_save.google_ai_key, self.user.google_ai_key)
         self.assertEqual(user_save.tool_choice_reasoning, self.user.tool_choice_reasoning)
 
     def test_api_to_domain_with_empty_strings(self):
@@ -142,6 +146,7 @@ class UserMapperTest(unittest.TestCase):
         # Check that API keys are masked
         self.assertEqual(masked_user.open_ai_key, mask_secret(self.user.open_ai_key))
         self.assertEqual(masked_user.anthropic_key, mask_secret(self.user.anthropic_key))
+        self.assertEqual(masked_user.google_ai_key, mask_secret(self.user.google_ai_key))
         self.assertEqual(masked_user.perplexity_key, mask_secret(self.user.perplexity_key))
         self.assertEqual(masked_user.replicate_key, mask_secret(self.user.replicate_key))
         self.assertEqual(masked_user.rapid_api_key, mask_secret(self.user.rapid_api_key))

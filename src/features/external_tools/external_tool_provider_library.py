@@ -18,6 +18,14 @@ ANTHROPIC = ExternalToolProvider(
     tools = ["Claude"],
 )
 
+GOOGLE_AI = ExternalToolProvider(
+    id = "google-ai",
+    name = "Google AI",
+    token_management_url = "https://aistudio.google.com/app/apikey",
+    token_format = "AI...abc123",
+    tools = ["Gemini"],
+)
+
 PERPLEXITY = ExternalToolProvider(
     id = "perplexity",
     name = "Perplexity",
@@ -50,4 +58,4 @@ COINMARKETCAP = ExternalToolProvider(
     tools = ["Crypto"],
 )
 
-ALL_PROVIDERS = [OPEN_AI, ANTHROPIC, PERPLEXITY, REPLICATE, RAPID_API, COINMARKETCAP]
+ALL_PROVIDERS = [OPEN_AI, ANTHROPIC, GOOGLE_AI, PERPLEXITY, REPLICATE, RAPID_API, COINMARKETCAP]
