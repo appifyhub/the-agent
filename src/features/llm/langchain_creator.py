@@ -4,7 +4,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langchain_perplexity import ChatPerplexity
 
-from features.external_tools.external_tool import ExternalToolProvider, ToolType
+from features.external_tools.external_tool import ExternalTool, ExternalToolProvider, ToolType
 from features.external_tools.external_tool_provider_library import (
     ANTHROPIC,
     GOOGLE_AI,
@@ -22,7 +22,7 @@ def create(configured_tool: ConfiguredTool) -> BaseChatModel:
     temperature_percent = __get_temperature_percent(purpose)
     temperature = __normalize_temperature(temperature_percent, tool.provider)
     max_tokens = __get_max_tokens(purpose)
-    timeout = __get_timeout(purpose)
+    timeout = __get_timeout(purpose, tool)
     max_retries = config.web_retries
 
     model_args = {
@@ -89,9 +89,11 @@ def __get_max_tokens(tool_type: ToolType) -> int:
     raise ValueError(f"{tool_type} does not support token limits")
 
 
-def __get_timeout(tool_type: ToolType) -> float:
+def __get_timeout(tool_type: ToolType, tool: ExternalTool) -> float:
     match tool_type:
         case ToolType.chat:
+            if ToolType.reasoning in tool.types:
+                return float(config.web_timeout_s) * 3
             return float(config.web_timeout_s)
         case ToolType.reasoning:
             return float(config.web_timeout_s) * 3

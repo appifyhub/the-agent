@@ -149,6 +149,16 @@ class SettingsController(SafePrinterMixin):
     def save_user_settings(self, user_id_hex: str, payload: UserSettingsPayload):
         self.sprint(f"Saving user settings for user '{user_id_hex}'")
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
+
+        # validate tool choices
+        configured_tools = self.fetch_external_tools(user_id_hex)
+        configured_tool_ids = {tool["definition"]["id"] for tool in configured_tools["tools"] if tool["is_configured"]}
+        for key, value in payload.model_dump().items():
+            if key.startswith("tool_choice_") and value and (value not in configured_tool_ids):
+                message = f"Invalid tool choice '{value}' for '{key}'. Tool is not configured."
+                self.sprint(message)
+                raise ValueError(message)
+
         user_save = api_to_domain(payload, user)
         User.model_validate(self.__di.user_crud.save(user_save))
         self.sprint("User settings saved")
