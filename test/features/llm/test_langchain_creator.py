@@ -211,6 +211,7 @@ class LangchainCreatorTest(unittest.TestCase):
 
         api_key = SecretStr("test-key")
         for tool_type in supported_types:
+            # noinspection PyUnresolvedReferences
             with self.subTest(tool_type = tool_type):
                 configured_tool = (self.mock_openai_tool, api_key, tool_type)
                 result = create(configured_tool)
@@ -312,3 +313,31 @@ class LangchainCreatorTest(unittest.TestCase):
             self.assertIsInstance(chat_result, ChatOpenAI)
             self.assertIsInstance(reasoning_result, ChatOpenAI)
             self.assertIsInstance(copywriting_result, ChatOpenAI)
+
+    @patch("features.llm.langchain_creator.config")
+    def test_reasoning_tool_has_longer_timeout(self, mock_config):
+        mock_config.web_retries = 3
+        mock_config.web_timeout_s = 10
+
+        api_key = SecretStr("test-key")
+
+        # [1] chat requested, tool supports reasoning -> 3x timeout
+        configured_tool_chat = (self.mock_openai_tool, api_key, ToolType.chat)
+        result_chat = create(configured_tool_chat)
+        self.assertEqual(result_chat.request_timeout, 30)  # 10 * 3
+
+        # [2] reasoning requested -> 3x timeout
+        configured_tool_reasoning = (self.mock_openai_tool, api_key, ToolType.reasoning)
+        result_reasoning = create(configured_tool_reasoning)
+        self.assertEqual(result_reasoning.request_timeout, 30)  # 10 * 3
+
+        # [3] chat requested, tool does not support reasoning -> 1x timeout
+        chat_only_tool = ExternalTool(
+            id = "chat-only",
+            name = "Chat Only",
+            provider = self.mock_openai_provider,
+            types = [ToolType.chat],
+        )
+        configured_tool_chat_only = (chat_only_tool, api_key, ToolType.chat)
+        result_chat_only = create(configured_tool_chat_only)
+        self.assertEqual(result_chat_only.request_timeout, 10)  # 10 * 1

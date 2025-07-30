@@ -166,10 +166,6 @@ class SettingsControllerTest(unittest.TestCase):
 
         self.assertIn("Chat ID must be provided", str(context.exception))
 
-    def test_validate_invoker_not_found(self):
-        # This test is not relevant anymore since DI handles invoker validation
-        pass
-
     def test_fetch_chat_settings_success(self):
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
@@ -242,7 +238,8 @@ class SettingsControllerTest(unittest.TestCase):
         # noinspection PyUnresolvedReferences
         self.mock_chat_config_dao.save.assert_called_once()
 
-    def test_save_user_settings_with_all_tokens(self):
+    @patch("api.settings_controller.SettingsController.fetch_external_tools")
+    def test_save_user_settings_with_all_tokens(self, mock_fetch_external_tools):
         # Create a proper UserDB mock for the save return value
         saved_user_db = UserDB(
             id = self.invoker_user.id,
@@ -266,6 +263,17 @@ class SettingsControllerTest(unittest.TestCase):
         )
         self.mock_user_dao.save.return_value = saved_user_db
 
+        # Mock the fetch_external_tools method
+        mock_fetch_external_tools.return_value = {
+            "tools": [
+                {"definition": {"id": "claude-3-5-sonnet-latest"}, "is_configured": True},
+                {"definition": {"id": "gpt-4o"}, "is_configured": True},
+                {"definition": {"id": "dall-e-2"}, "is_configured": True},
+                {"definition": {"id": "updated-perplexity-search"}, "is_configured": True},
+            ],
+            "providers": [],
+        }
+
         controller = SettingsController(self.mock_di)
         payload = UserSettingsPayload(
             open_ai_key = "new_openai_key",
@@ -288,8 +296,19 @@ class SettingsControllerTest(unittest.TestCase):
         # noinspection PyUnresolvedReferences
         self.mock_user_dao.save.assert_called_once()
 
+    def test_save_user_settings_failure_invalid_tool_choice(self):
+        controller = SettingsController(self.mock_di)
+        payload = UserSettingsPayload(
+            tool_choice_chat = "unconfigured-tool",
+        )
+
+        with self.assertRaises(ValueError) as context:
+            controller.save_user_settings(self.invoker_user.id.hex, payload)
+
+        self.assertIn("Invalid tool choice", str(context.exception))
+        self.assertIn("not configured", str(context.exception))
+
     def test_save_chat_settings_failure_language_mismatch(self):
-        """Test that providing empty language fields fails"""
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
 
@@ -307,7 +326,6 @@ class SettingsControllerTest(unittest.TestCase):
         self.assertIn("Both language_name and language_iso_code must be non-empty", str(context.exception))
 
     def test_save_chat_settings_failure_reply_chance_private_chat(self):
-        """Test that private chats can't have reply chance changed"""
         self.mock_user_dao.get.return_value = self.invoker_user
         private_chat_config = ChatConfig(
             chat_id = "private_chat_123",
@@ -334,7 +352,6 @@ class SettingsControllerTest(unittest.TestCase):
         self.assertIn("Chat is private, reply chance cannot be changed", str(context.exception))
 
     def test_save_chat_settings_failure_invalid_release_notifications(self):
-        """Test that invalid release notification values are rejected"""
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
 
@@ -352,7 +369,6 @@ class SettingsControllerTest(unittest.TestCase):
         self.assertIn("Invalid release notifications setting value", str(context.exception))
 
     def test_save_chat_settings_success_all_fields(self):
-        """Test successful save with all fields provided"""
         self.mock_user_dao.get.return_value = self.invoker_user
         self.mock_chat_config_dao.get.return_value = self.chat_config
 
@@ -472,7 +488,6 @@ class SettingsControllerTest(unittest.TestCase):
         self.assertIn("token=", link)
 
     def test_create_settings_link_no_telegram_chat_id(self):
-        """Test that users without telegram_chat_id cannot create settings links"""
         user_without_chat = User(
             id = self.invoker_user.id,
             full_name = self.invoker_user.full_name,
@@ -504,7 +519,6 @@ class SettingsControllerTest(unittest.TestCase):
         self.assertIn("User never sent a private message", str(context.exception))
 
     def test_fetch_external_tools_success_mixed_configuration(self):
-        """Test fetch_external_tools with mixed configuration (some configured, some not)"""
         # Create mock tools and providers
         mock_tool_1 = ExternalTool(
             id = "configured-tool",
@@ -585,7 +599,6 @@ class SettingsControllerTest(unittest.TestCase):
 
     @patch("api.auth.create_jwt_token")
     def test_create_help_link_success(self, mock_create_jwt_token):
-        """Test successful creation of help link"""
         mock_create_jwt_token.return_value = "test_jwt_token"
 
         controller = SettingsController(self.mock_di)
@@ -598,7 +611,6 @@ class SettingsControllerTest(unittest.TestCase):
 
     @patch("api.auth.create_jwt_token")
     def test_create_help_link_success_with_custom_language(self, mock_create_jwt_token):
-        """Test help link creation with custom language from chat config"""
         mock_create_jwt_token.return_value = "test_jwt_token"
 
         custom_chat_config = ChatConfig(
@@ -620,7 +632,6 @@ class SettingsControllerTest(unittest.TestCase):
         mock_create_jwt_token.assert_called_once()
 
     def test_create_help_link_failure_no_telegram_chat_id(self):
-        """Test that users without telegram_chat_id cannot create help links"""
         user_without_chat = User(
             id = self.invoker_user.id,
             full_name = self.invoker_user.full_name,
