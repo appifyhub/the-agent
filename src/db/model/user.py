@@ -7,6 +7,7 @@ from sqlalchemy import Enum as EnumSQL
 from sqlalchemy.dialects.postgresql import UUID
 
 from db.model.base import BaseModel
+from db.model.encrypted_string import EncryptedString
 
 
 class UserDB(BaseModel):
@@ -41,13 +42,13 @@ class UserDB(BaseModel):
     telegram_chat_id = Column(String, nullable = True)  # can be changed in Telegram
     telegram_user_id = Column(BigInteger, unique = True, nullable = True, index = True)
 
-    open_ai_key = Column(String, nullable = True)
-    anthropic_key = Column(String, nullable = True)
-    google_ai_key = Column(String, nullable = True)
-    perplexity_key = Column(String, nullable = True)
-    replicate_key = Column(String, nullable = True)
-    rapid_api_key = Column(String, nullable = True)
-    coinmarketcap_key = Column(String, nullable = True)
+    open_ai_key = Column(EncryptedString, nullable = True)
+    anthropic_key = Column(EncryptedString, nullable = True)
+    google_ai_key = Column(EncryptedString, nullable = True)
+    perplexity_key = Column(EncryptedString, nullable = True)
+    replicate_key = Column(EncryptedString, nullable = True)
+    rapid_api_key = Column(EncryptedString, nullable = True)
+    coinmarketcap_key = Column(EncryptedString, nullable = True)
 
     # in sync with features.external_tools.external_tool.ToolType
     tool_choice_chat = Column(String, nullable = True)

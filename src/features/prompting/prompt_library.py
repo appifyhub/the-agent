@@ -14,7 +14,6 @@ TELEGRAM_BOT_USER = UserSave(
     telegram_username = config.telegram_bot_username,
     telegram_chat_id = str(config.telegram_bot_id),
     telegram_user_id = config.telegram_bot_id,
-    open_ai_key = None,
     group = UserDB.Group.standard,
     id = uuid.uuid5(uuid.NAMESPACE_DNS, config.telegram_bot_username),
 )
@@ -598,12 +597,14 @@ def translator_on_response(
     preference: str
     if not language_name and not language_iso_code:
         return base_prompt
-    if not language_name:
+    if not language_name and language_iso_code:
         preference = f"You should try to respond in language '{language_iso_code.upper()}' (ISO code)."
-    elif not language_iso_code:
+    elif language_name and not language_iso_code:
         preference = f"You should try to respond in {language_name.capitalize()}."
-    else:
+    elif language_name and language_iso_code:
         preference = f"You should try to respond in {language_name.capitalize()} (ISO '{language_iso_code.upper()}')."
+    else:
+        raise ValueError("Impossible state")
     return (
         PromptBuilder(base_prompt)
         .add_section(

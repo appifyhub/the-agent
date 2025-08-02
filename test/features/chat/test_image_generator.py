@@ -3,6 +3,8 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
+from pydantic import SecretStr
+
 from db.model.chat_message_attachment import ChatMessageAttachmentDB
 from db.model.user import UserDB
 from db.schema.chat_message_attachment import ChatMessageAttachment
@@ -37,8 +39,8 @@ class ImageGeneratorTest(unittest.TestCase):
             telegram_username = "test_username",
             telegram_chat_id = "test_chat_id",
             telegram_user_id = 1,
-            open_ai_key = "test_api_key",
-            replicate_key = "test_replicate_key",
+            open_ai_key = SecretStr("test_api_key"),
+            replicate_key = SecretStr("test_replicate_key"),
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )

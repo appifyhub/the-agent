@@ -110,20 +110,19 @@ class TelegramDataResolver(SafePrinterMixin):
                 raise ValueError("User limit reached, try again later")
 
         # reset token values to None so that there's no confusion going forward
-        if not mapped_data.open_ai_key or not mapped_data.open_ai_key.strip():
-            mapped_data.open_ai_key = None
-        if not mapped_data.anthropic_key or not mapped_data.anthropic_key.strip():
-            mapped_data.anthropic_key = None
-        if not mapped_data.google_ai_key or not mapped_data.google_ai_key.strip():
-            mapped_data.google_ai_key = None
-        if not mapped_data.perplexity_key or not mapped_data.perplexity_key.strip():
-            mapped_data.perplexity_key = None
-        if not mapped_data.replicate_key or not mapped_data.replicate_key.strip():
-            mapped_data.replicate_key = None
-        if not mapped_data.rapid_api_key or not mapped_data.rapid_api_key.strip():
-            mapped_data.rapid_api_key = None
-        if not mapped_data.coinmarketcap_key or not mapped_data.coinmarketcap_key.strip():
-            mapped_data.coinmarketcap_key = None
+        def is_empty_secret(secret):
+            if not secret:
+                return True
+            if hasattr(secret, "get_secret_value"):
+                return not secret.get_secret_value().strip()
+            return not secret.strip() if isinstance(secret, str) else False
+
+        # reset all SecretStr fields that are empty
+        api_key_fields = mapped_data._get_secret_str_fields()
+        for field_name in api_key_fields:
+            field_value = getattr(mapped_data, field_name)
+            if is_empty_secret(field_value):
+                setattr(mapped_data, field_name, None)
         # reset tool choice values to None if they are empty strings
         if not mapped_data.tool_choice_chat or not mapped_data.tool_choice_chat.strip():
             mapped_data.tool_choice_chat = None

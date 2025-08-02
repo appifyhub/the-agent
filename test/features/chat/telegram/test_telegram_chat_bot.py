@@ -6,6 +6,7 @@ from uuid import UUID
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import Runnable
+from pydantic import SecretStr
 
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
@@ -33,12 +34,7 @@ class TelegramChatBotTest(unittest.TestCase):
             telegram_username = "test_user",
             telegram_chat_id = "test_chat_id",
             telegram_user_id = 1,
-            open_ai_key = "test_openai_key",
-            anthropic_key = None,
-            perplexity_key = None,
-            replicate_key = None,
-            rapid_api_key = None,
-            coinmarketcap_key = None,
+            open_ai_key = SecretStr("test_openai_key"),
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )

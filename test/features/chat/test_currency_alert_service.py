@@ -3,6 +3,8 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
+from pydantic import SecretStr
+
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.price_alert import PriceAlertCRUD
 from db.crud.sponsorship import SponsorshipCRUD
@@ -51,7 +53,7 @@ class CurrencyAlertServiceTest(unittest.TestCase):
             telegram_username = "test_username",
             telegram_chat_id = "test_chat_id",
             telegram_user_id = 1,
-            open_ai_key = "test_api_key",
+            open_ai_key = SecretStr("test_api_key"),
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )

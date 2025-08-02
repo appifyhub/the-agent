@@ -71,7 +71,7 @@ class ReleaseSummaryResponderTest(unittest.TestCase):
             telegram_chat_id = TELEGRAM_BOT_USER.telegram_chat_id,
             telegram_user_id = TELEGRAM_BOT_USER.telegram_user_id,
             open_ai_key = TELEGRAM_BOT_USER.open_ai_key,
-            anthropic_key = "test-anthropic-key",  # Provide a test key for the bot
+            anthropic_key = "test-anthropic-key",  # Provide a proper test key for the bot
             perplexity_key = TELEGRAM_BOT_USER.perplexity_key,
             replicate_key = TELEGRAM_BOT_USER.replicate_key,
             rapid_api_key = TELEGRAM_BOT_USER.rapid_api_key,

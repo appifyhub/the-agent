@@ -3,6 +3,8 @@ from datetime import datetime
 from unittest.mock import Mock
 from uuid import UUID
 
+from pydantic import SecretStr
+
 from api.authorization_service import AuthorizationService
 from db.crud.chat_config import ChatConfigCRUD
 from db.crud.user import UserCRUD
@@ -32,7 +34,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             telegram_username = "invoker_username",
             telegram_chat_id = "invoker_chat_id",
             telegram_user_id = 1,
-            open_ai_key = "invoker_api_key",
+            open_ai_key = SecretStr("invoker_api_key"),
             group = UserDB.Group.developer,
             created_at = datetime.now().date(),
         )
@@ -166,7 +168,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             telegram_username = "other_username",
             telegram_chat_id = "other_chat_id",
             telegram_user_id = 2,
-            open_ai_key = "other_api_key",
+            open_ai_key = SecretStr("other_api_key"),
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
@@ -281,7 +283,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             telegram_username = "user_no_telegram",
             telegram_chat_id = None,
             telegram_user_id = None,
-            open_ai_key = "api_key",
+            open_ai_key = SecretStr("api_key"),
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
