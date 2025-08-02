@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import requests_mock
+from pydantic import SecretStr
 
 import features.chat.telegram.sdk.telegram_bot_sdk_utils
 from db.model.user import UserDB
@@ -53,12 +54,12 @@ class AttachmentsDescriberTest(unittest.TestCase):
             telegram_username = "test_user",
             telegram_chat_id = "test_chat_id",
             telegram_user_id = 1,
-            open_ai_key = "test_openai_key",
-            anthropic_key = "test_anthropic_key",
-            perplexity_key = "test_perplexity_key",
-            replicate_key = "test_replicate_key",
-            rapid_api_key = "test_rapid_api_key",
-            coinmarketcap_key = "test_coinmarketcap_key",
+            open_ai_key = SecretStr("test_openai_key"),
+            anthropic_key = SecretStr("test_anthropic_key"),
+            perplexity_key = SecretStr("test_perplexity_key"),
+            replicate_key = SecretStr("test_replicate_key"),
+            rapid_api_key = SecretStr("test_rapid_api_key"),
+            coinmarketcap_key = SecretStr("test_coinmarketcap_key"),
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )

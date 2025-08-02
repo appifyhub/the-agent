@@ -28,8 +28,8 @@ class UserSupportServiceTest(unittest.TestCase):
             telegram_username = "test_username",
             telegram_chat_id = "test_chat_id",
             telegram_user_id = 1,
-            open_ai_key = "test_api_key",
-            anthropic_key = "test_anthropic_key",
+            open_ai_key = SecretStr("test_api_key"),
+            anthropic_key = SecretStr("test_anthropic_key"),
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )

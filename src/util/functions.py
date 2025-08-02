@@ -4,6 +4,8 @@ import uuid
 from datetime import datetime
 from typing import Any, Callable, TypeVar
 
+from pydantic import SecretStr
+
 from db.schema.user import User, UserSave
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 
@@ -51,9 +53,12 @@ def first_key_with_value(source: dict[K, V], value: V) -> K | None:
     return None
 
 
-def mask_secret(secret: str | None = None, mask: str = "*") -> str | None:
+def mask_secret(secret: str | SecretStr | None = None, mask: str = "*") -> str | None:
     if secret is None:
         return None
+    # extract the secret value
+    if isinstance(secret, SecretStr):
+        secret = secret.get_secret_value()
     # short strings: mask all
     if len(secret) <= 4:
         return mask * len(secret)

@@ -1,6 +1,7 @@
 import unittest
 
 from db.sql_util import SQLUtil
+from pydantic import SecretStr
 
 from db.model.user import UserDB
 from db.schema.user import UserSave
@@ -21,13 +22,13 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "test-user",
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
-            open_ai_key = "test-key",
-            anthropic_key = "test-anthropic-key",
-            google_ai_key = "test-google-ai-key",
-            perplexity_key = "test-perplexity-key",
-            replicate_key = "test-replicate-key",
-            rapid_api_key = "test-rapid-api-key",
-            coinmarketcap_key = "test-coinmarketcap-key",
+            open_ai_key = SecretStr("test-key"),
+            anthropic_key = SecretStr("test-anthropic-key"),
+            google_ai_key = SecretStr("test-google-ai-key"),
+            perplexity_key = SecretStr("test-perplexity-key"),
+            replicate_key = SecretStr("test-replicate-key"),
+            rapid_api_key = SecretStr("test-rapid-api-key"),
+            coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
             tool_choice_chat = "gpt-4o",
             tool_choice_reasoning = "claude-3-5-sonnet-latest",
             tool_choice_copywriting = "gpt-4o-mini",
@@ -52,12 +53,18 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(user.full_name, user_data.full_name)
         self.assertEqual(user.telegram_username, user_data.telegram_username)
         self.assertEqual(user.telegram_chat_id, user_data.telegram_chat_id)
-        self.assertEqual(user.open_ai_key, user_data.open_ai_key)
-        self.assertEqual(user.anthropic_key, user_data.anthropic_key)
-        self.assertEqual(user.perplexity_key, user_data.perplexity_key)
-        self.assertEqual(user.replicate_key, user_data.replicate_key)
-        self.assertEqual(user.rapid_api_key, user_data.rapid_api_key)
-        self.assertEqual(user.coinmarketcap_key, user_data.coinmarketcap_key)
+        assert user_data.open_ai_key is not None
+        self.assertEqual(user.open_ai_key, user_data.open_ai_key.get_secret_value())
+        assert user_data.anthropic_key is not None
+        self.assertEqual(user.anthropic_key, user_data.anthropic_key.get_secret_value())
+        assert user_data.perplexity_key is not None
+        self.assertEqual(user.perplexity_key, user_data.perplexity_key.get_secret_value())
+        assert user_data.replicate_key is not None
+        self.assertEqual(user.replicate_key, user_data.replicate_key.get_secret_value())
+        assert user_data.rapid_api_key is not None
+        self.assertEqual(user.rapid_api_key, user_data.rapid_api_key.get_secret_value())
+        assert user_data.coinmarketcap_key is not None
+        self.assertEqual(user.coinmarketcap_key, user_data.coinmarketcap_key.get_secret_value())
         self.assertEqual(user.tool_choice_chat, user_data.tool_choice_chat)
         self.assertEqual(user.tool_choice_reasoning, user_data.tool_choice_reasoning)
         self.assertEqual(user.tool_choice_copywriting, user_data.tool_choice_copywriting)
@@ -83,12 +90,12 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "test-user",
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
-            open_ai_key = "test-key",
-            anthropic_key = "test-anthropic-key",
-            perplexity_key = "test-perplexity-key",
-            replicate_key = "test-replicate-key",
-            rapid_api_key = "test-rapid-api-key",
-            coinmarketcap_key = "test-coinmarketcap-key",
+            open_ai_key = SecretStr("test-key"),
+            anthropic_key = SecretStr("test-anthropic-key"),
+            perplexity_key = SecretStr("test-perplexity-key"),
+            replicate_key = SecretStr("test-replicate-key"),
+            rapid_api_key = SecretStr("test-rapid-api-key"),
+            coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
             tool_choice_chat = "gpt-4o",
             tool_choice_vision = "gpt-4o",
             group = UserDB.Group.standard,
@@ -97,6 +104,7 @@ class UserCRUDTest(unittest.TestCase):
 
         fetched_user = self.sql.user_crud().get(created_user.id)
 
+        assert fetched_user is not None
         self.assertEqual(fetched_user.id, created_user.id)
         self.assertEqual(fetched_user.full_name, user_data.full_name)
         self.assertEqual(fetched_user.telegram_username, user_data.telegram_username)
@@ -125,12 +133,12 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "test-user-1",
             telegram_chat_id = "1234561",
             telegram_user_id = 1234561,
-            open_ai_key = "test-key-1",
-            anthropic_key = "test-anthropic-key-1",
-            perplexity_key = "test-perplexity-key-1",
-            replicate_key = "test-replicate-key-1",
-            rapid_api_key = "test-rapid-api-key-1",
-            coinmarketcap_key = "test-coinmarketcap-key-1",
+            open_ai_key = SecretStr("test-key-1"),
+            anthropic_key = SecretStr("test-anthropic-key-1"),
+            perplexity_key = SecretStr("test-perplexity-key-1"),
+            replicate_key = SecretStr("test-replicate-key-1"),
+            rapid_api_key = SecretStr("test-rapid-api-key-1"),
+            coinmarketcap_key = SecretStr("test-coinmarketcap-key-1"),
             tool_choice_chat = "gpt-4o",
             tool_choice_reasoning = "claude-3-5-sonnet-latest",
             group = UserDB.Group.standard,
@@ -140,12 +148,12 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "test-user-2",
             telegram_chat_id = "1234562",
             telegram_user_id = 1234562,
-            open_ai_key = "test-key-2",
-            anthropic_key = "test-anthropic-key-2",
-            perplexity_key = "test-perplexity-key-2",
-            replicate_key = "test-replicate-key-2",
-            rapid_api_key = "test-rapid-api-key-2",
-            coinmarketcap_key = "test-coinmarketcap-key-2",
+            open_ai_key = SecretStr("test-key-2"),
+            anthropic_key = SecretStr("test-anthropic-key-2"),
+            perplexity_key = SecretStr("test-perplexity-key-2"),
+            replicate_key = SecretStr("test-replicate-key-2"),
+            rapid_api_key = SecretStr("test-rapid-api-key-2"),
+            coinmarketcap_key = SecretStr("test-coinmarketcap-key-2"),
             tool_choice_vision = "gpt-4o",
             tool_choice_images_gen = "dall-e-3",
             group = UserDB.Group.standard,
@@ -162,12 +170,12 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "test-user",
             telegram_chat_id = "123456",
             telegram_user_id = 55555,
-            open_ai_key = "test-key",
-            anthropic_key = "test-anthropic-key",
-            perplexity_key = "test-perplexity-key",
-            replicate_key = "test-replicate-key",
-            rapid_api_key = "test-rapid-api-key",
-            coinmarketcap_key = "test-coinmarketcap-key",
+            open_ai_key = SecretStr("test-key"),
+            anthropic_key = SecretStr("test-anthropic-key"),
+            perplexity_key = SecretStr("test-perplexity-key"),
+            replicate_key = SecretStr("test-replicate-key"),
+            rapid_api_key = SecretStr("test-rapid-api-key"),
+            coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
             tool_choice_hearing = "whisper-1",
             tool_choice_search = "perplexity-search",
             group = UserDB.Group.standard,
@@ -176,6 +184,7 @@ class UserCRUDTest(unittest.TestCase):
 
         fetched_user = self.sql.user_crud().get_by_telegram_user_id(created_user.telegram_user_id)
 
+        assert fetched_user is not None
         self.assertEqual(fetched_user.id, created_user.id)
         self.assertEqual(fetched_user.full_name, user_data.full_name)
         self.assertEqual(fetched_user.telegram_username, user_data.telegram_username)
@@ -189,12 +198,12 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "test-user",
             telegram_chat_id = "123456",
             telegram_user_id = 55555,
-            open_ai_key = "test-key",
-            anthropic_key = "test-anthropic-key",
-            perplexity_key = "test-perplexity-key",
-            replicate_key = "test-replicate-key",
-            rapid_api_key = "test-rapid-api-key",
-            coinmarketcap_key = "test-coinmarketcap-key",
+            open_ai_key = SecretStr("test-key"),
+            anthropic_key = SecretStr("test-anthropic-key"),
+            perplexity_key = SecretStr("test-perplexity-key"),
+            replicate_key = SecretStr("test-replicate-key"),
+            rapid_api_key = SecretStr("test-rapid-api-key"),
+            coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
             tool_choice_embedding = "text-embedding-3-large",
             tool_choice_api_twitter = "rapid-api-twitter",
             group = UserDB.Group.standard,
@@ -203,7 +212,7 @@ class UserCRUDTest(unittest.TestCase):
 
         fetched_user = self.sql.user_crud().get_by_telegram_username(created_user.telegram_username)
 
-        self.assertIsNotNone(fetched_user)
+        assert fetched_user is not None
         self.assertEqual(fetched_user.id, created_user.id)
         self.assertEqual(fetched_user.full_name, user_data.full_name)
         self.assertEqual(fetched_user.telegram_username, user_data.telegram_username)
@@ -217,12 +226,12 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "test-user",
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
-            open_ai_key = "test-key",
-            anthropic_key = "test-anthropic-key",
-            perplexity_key = "test-perplexity-key",
-            replicate_key = "test-replicate-key",
-            rapid_api_key = "test-rapid-api-key",
-            coinmarketcap_key = "test-coinmarketcap-key",
+            open_ai_key = SecretStr("test-key"),
+            anthropic_key = SecretStr("test-anthropic-key"),
+            perplexity_key = SecretStr("test-perplexity-key"),
+            replicate_key = SecretStr("test-replicate-key"),
+            rapid_api_key = SecretStr("test-rapid-api-key"),
+            coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
             tool_choice_chat = "gpt-4o",
             tool_choice_reasoning = "claude-3-5-sonnet-latest",
             tool_choice_vision = "gpt-4o",
@@ -236,12 +245,12 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "updated-user",
             telegram_chat_id = "654321",
             telegram_user_id = 654321,
-            open_ai_key = "updated-key",
-            anthropic_key = "updated-anthropic-key",
-            perplexity_key = "updated-perplexity-key",
-            replicate_key = "updated-replicate-key",
-            rapid_api_key = "updated-rapid-api-key",
-            coinmarketcap_key = "updated-coinmarketcap-key",
+            open_ai_key = SecretStr("updated-key"),
+            anthropic_key = SecretStr("updated-anthropic-key"),
+            perplexity_key = SecretStr("updated-perplexity-key"),
+            replicate_key = SecretStr("updated-replicate-key"),
+            rapid_api_key = SecretStr("updated-rapid-api-key"),
+            coinmarketcap_key = SecretStr("updated-coinmarketcap-key"),
             tool_choice_chat = "claude-3-5-sonnet-latest",
             tool_choice_reasoning = "gpt-4o",
             tool_choice_vision = "claude-3-5-sonnet-latest",
@@ -251,16 +260,23 @@ class UserCRUDTest(unittest.TestCase):
         )
         updated_user = self.sql.user_crud().update(update_data)
 
+        assert updated_user is not None
         self.assertEqual(updated_user.id, created_user.id)
         self.assertEqual(updated_user.full_name, update_data.full_name)
         self.assertEqual(updated_user.telegram_username, update_data.telegram_username)
         self.assertEqual(updated_user.telegram_chat_id, update_data.telegram_chat_id)
-        self.assertEqual(updated_user.open_ai_key, update_data.open_ai_key)
-        self.assertEqual(updated_user.anthropic_key, update_data.anthropic_key)
-        self.assertEqual(updated_user.perplexity_key, update_data.perplexity_key)
-        self.assertEqual(updated_user.replicate_key, update_data.replicate_key)
-        self.assertEqual(updated_user.rapid_api_key, update_data.rapid_api_key)
-        self.assertEqual(updated_user.coinmarketcap_key, update_data.coinmarketcap_key)
+        assert update_data.open_ai_key is not None
+        self.assertEqual(updated_user.open_ai_key, update_data.open_ai_key.get_secret_value())
+        assert update_data.anthropic_key is not None
+        self.assertEqual(updated_user.anthropic_key, update_data.anthropic_key.get_secret_value())
+        assert update_data.perplexity_key is not None
+        self.assertEqual(updated_user.perplexity_key, update_data.perplexity_key.get_secret_value())
+        assert update_data.replicate_key is not None
+        self.assertEqual(updated_user.replicate_key, update_data.replicate_key.get_secret_value())
+        assert update_data.rapid_api_key is not None
+        self.assertEqual(updated_user.rapid_api_key, update_data.rapid_api_key.get_secret_value())
+        assert update_data.coinmarketcap_key is not None
+        self.assertEqual(updated_user.coinmarketcap_key, update_data.coinmarketcap_key.get_secret_value())
         self.assertEqual(updated_user.tool_choice_chat, update_data.tool_choice_chat)
         self.assertEqual(updated_user.tool_choice_reasoning, update_data.tool_choice_reasoning)
         self.assertEqual(updated_user.tool_choice_vision, update_data.tool_choice_vision)
@@ -276,12 +292,12 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "test-user",
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
-            open_ai_key = "test-key",
-            anthropic_key = "test-anthropic-key",
-            perplexity_key = "test-perplexity-key",
-            replicate_key = "test-replicate-key",
-            rapid_api_key = "test-rapid-api-key",
-            coinmarketcap_key = "test-coinmarketcap-key",
+            open_ai_key = SecretStr("test-key"),
+            anthropic_key = SecretStr("test-anthropic-key"),
+            perplexity_key = SecretStr("test-perplexity-key"),
+            replicate_key = SecretStr("test-replicate-key"),
+            rapid_api_key = SecretStr("test-rapid-api-key"),
+            coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
             tool_choice_copywriting = "gpt-4o-mini",
             tool_choice_images_edit = "dall-e-2",
             tool_choice_api_fiat_exchange = "rapid-api-fiat",
@@ -295,12 +311,18 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(saved_user.telegram_username, user_data.telegram_username)
         self.assertEqual(saved_user.telegram_chat_id, user_data.telegram_chat_id)
         self.assertEqual(saved_user.telegram_user_id, user_data.telegram_user_id)
-        self.assertEqual(saved_user.open_ai_key, user_data.open_ai_key)
-        self.assertEqual(saved_user.anthropic_key, user_data.anthropic_key)
-        self.assertEqual(saved_user.perplexity_key, user_data.perplexity_key)
-        self.assertEqual(saved_user.replicate_key, user_data.replicate_key)
-        self.assertEqual(saved_user.rapid_api_key, user_data.rapid_api_key)
-        self.assertEqual(saved_user.coinmarketcap_key, user_data.coinmarketcap_key)
+        assert user_data.open_ai_key is not None
+        self.assertEqual(saved_user.open_ai_key, user_data.open_ai_key.get_secret_value())
+        assert user_data.anthropic_key is not None
+        self.assertEqual(saved_user.anthropic_key, user_data.anthropic_key.get_secret_value())
+        assert user_data.perplexity_key is not None
+        self.assertEqual(saved_user.perplexity_key, user_data.perplexity_key.get_secret_value())
+        assert user_data.replicate_key is not None
+        self.assertEqual(saved_user.replicate_key, user_data.replicate_key.get_secret_value())
+        assert user_data.rapid_api_key is not None
+        self.assertEqual(saved_user.rapid_api_key, user_data.rapid_api_key.get_secret_value())
+        assert user_data.coinmarketcap_key is not None
+        self.assertEqual(saved_user.coinmarketcap_key, user_data.coinmarketcap_key.get_secret_value())
         self.assertEqual(saved_user.tool_choice_copywriting, user_data.tool_choice_copywriting)
         self.assertEqual(saved_user.tool_choice_images_edit, user_data.tool_choice_images_edit)
         self.assertEqual(saved_user.tool_choice_api_fiat_exchange, user_data.tool_choice_api_fiat_exchange)
@@ -313,12 +335,12 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "updated-user",
             telegram_chat_id = "654321",
             telegram_user_id = 654321,
-            open_ai_key = "updated-key",
-            anthropic_key = "updated-anthropic-key",
-            perplexity_key = "updated-perplexity-key",
-            replicate_key = "updated-replicate-key",
-            rapid_api_key = "updated-rapid-api-key",
-            coinmarketcap_key = "updated-coinmarketcap-key",
+            open_ai_key = SecretStr("updated-key"),
+            anthropic_key = SecretStr("updated-anthropic-key"),
+            perplexity_key = SecretStr("updated-perplexity-key"),
+            replicate_key = SecretStr("updated-replicate-key"),
+            rapid_api_key = SecretStr("updated-rapid-api-key"),
+            coinmarketcap_key = SecretStr("updated-coinmarketcap-key"),
             tool_choice_copywriting = "claude-3-5-sonnet-latest",
             tool_choice_images_edit = "dall-e-3",
             tool_choice_api_fiat_exchange = "updated-rapid-api-fiat",
@@ -332,12 +354,12 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(updated_user.telegram_username, update_data.telegram_username)
         self.assertEqual(updated_user.telegram_chat_id, update_data.telegram_chat_id)
         self.assertEqual(updated_user.telegram_user_id, update_data.telegram_user_id)
-        self.assertEqual(updated_user.open_ai_key, update_data.open_ai_key)
-        self.assertEqual(updated_user.anthropic_key, update_data.anthropic_key)
-        self.assertEqual(updated_user.perplexity_key, update_data.perplexity_key)
-        self.assertEqual(updated_user.replicate_key, update_data.replicate_key)
-        self.assertEqual(updated_user.rapid_api_key, update_data.rapid_api_key)
-        self.assertEqual(updated_user.coinmarketcap_key, update_data.coinmarketcap_key)
+        self.assertEqual(updated_user.open_ai_key, update_data.open_ai_key.get_secret_value())
+        self.assertEqual(updated_user.anthropic_key, update_data.anthropic_key.get_secret_value())
+        self.assertEqual(updated_user.perplexity_key, update_data.perplexity_key.get_secret_value())
+        self.assertEqual(updated_user.replicate_key, update_data.replicate_key.get_secret_value())
+        self.assertEqual(updated_user.rapid_api_key, update_data.rapid_api_key.get_secret_value())
+        self.assertEqual(updated_user.coinmarketcap_key, update_data.coinmarketcap_key.get_secret_value())
         self.assertEqual(updated_user.tool_choice_copywriting, update_data.tool_choice_copywriting)
         self.assertEqual(updated_user.tool_choice_images_edit, update_data.tool_choice_images_edit)
         self.assertEqual(updated_user.tool_choice_api_fiat_exchange, update_data.tool_choice_api_fiat_exchange)
@@ -351,12 +373,12 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "test-user",
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
-            open_ai_key = "test-key",
-            anthropic_key = "test-anthropic-key",
-            perplexity_key = "test-perplexity-key",
-            replicate_key = "test-replicate-key",
-            rapid_api_key = "test-rapid-api-key",
-            coinmarketcap_key = "test-coinmarketcap-key",
+            open_ai_key = SecretStr("test-key"),
+            anthropic_key = SecretStr("test-anthropic-key"),
+            perplexity_key = SecretStr("test-perplexity-key"),
+            replicate_key = SecretStr("test-replicate-key"),
+            rapid_api_key = SecretStr("test-rapid-api-key"),
+            coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
             tool_choice_images_inpainting = "replicate-inpainting",
             tool_choice_images_background_removal = "replicate-bg-removal",
             group = UserDB.Group.standard,

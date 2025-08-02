@@ -39,6 +39,7 @@ class Config(metaclass = Singleton):
     github_issues_token: SecretStr
     rapid_api_twitter_token: SecretStr
     free_img_host_token: SecretStr
+    token_encrypt_secret: SecretStr
 
     def __init__(
         self,
@@ -75,6 +76,7 @@ class Config(metaclass = Singleton):
         def_github_issues_token: SecretStr = SecretStr("invalid"),
         def_rapid_api_twitter_token: SecretStr = SecretStr("invalid"),
         def_free_img_host_token: SecretStr = SecretStr("invalid"),
+        def_token_encrypt_secret: SecretStr = SecretStr("default"),
     ):
         # @formatter:off
         self.max_sponsorships_per_user = int(self.__env("MAX_SPONSORSHIPS_PER_USER", lambda: str(def_max_sponsorships_per_user)))
@@ -107,6 +109,7 @@ class Config(metaclass = Singleton):
         self.github_issues_token = self.__senv("THE_AGENT_ISSUES_TOKEN", lambda: def_github_issues_token)
         self.rapid_api_twitter_token = self.__senv("RAPID_API_TWITTER_TOKEN", lambda: def_rapid_api_twitter_token)
         self.free_img_host_token = self.__senv("FREE_IMG_HOST_TOKEN", lambda: def_free_img_host_token)
+        self.token_encrypt_secret = self.__senv("TOKEN_ENCRYPT_SECRET", lambda: def_token_encrypt_secret)
         # @formatter:on
 
     def __set_up_db(self, def_db_user: SecretStr, def_db_pass: SecretStr, def_db_host: SecretStr, def_db_name: SecretStr):

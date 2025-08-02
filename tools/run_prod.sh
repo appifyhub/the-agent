@@ -34,7 +34,7 @@ fi
 
 # Run database migrations if needed
 echoinfo "Running database migrations..."
-sh "./tools/db_apply_head_schema.sh" -y
+sh "./tools/db_apply_migration.sh" -y
 
 # Base command - we run with 2 workers, seems to be enough
 CMD="pipenv run uvicorn --workers 2 --host 0.0.0.0 --port 80"
