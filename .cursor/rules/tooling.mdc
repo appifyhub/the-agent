@@ -13,9 +13,9 @@ alwaysApply: true
 
 #### Database Migrations
 
-- Use `./tools/db_update_schema.sh` to create new Alembic migrations (auto-generates based on model changes)
-- Use `./tools/db_apply_head_schema.sh` to apply migrations to database
-- Always check if model imports in `src/db/alembic/env.py` are up to date before running `db_update_schema.sh`
+- Use `./tools/db_generate_migration.sh -y` to generate new Alembic migrations (auto-generates based on model changes)
+- Use `./tools/db_apply_migration.sh` to apply migrations to database (only with user's approval)
+- Always check if model imports in `src/db/alembic/env.py` are up to date before running `db_generate_migration.sh`
 
 #### Development Workflow
 
