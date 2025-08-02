@@ -2,6 +2,8 @@ import unittest
 from datetime import date
 from uuid import UUID
 
+from pydantic import SecretStr
+
 from api.mapper.user_mapper import api_to_domain, domain_to_api
 from api.model.user_settings_payload import UserSettingsPayload
 from db.model.user import UserDB
@@ -19,13 +21,13 @@ class UserMapperTest(unittest.TestCase):
             telegram_username = "testuser",
             telegram_chat_id = "123456789",
             telegram_user_id = 123456789,
-            open_ai_key = "sk-test123",
-            anthropic_key = "sk-ant-test456",
-            google_ai_key = "google-test789",
-            perplexity_key = "pplx-test789",
-            replicate_key = "r8_test012",
-            rapid_api_key = "rapid-test345",
-            coinmarketcap_key = "cmc-test678",
+            open_ai_key = SecretStr("sk-test123"),
+            anthropic_key = SecretStr("sk-ant-test456"),
+            google_ai_key = SecretStr("google-test789"),
+            perplexity_key = SecretStr("pplx-test789"),
+            replicate_key = SecretStr("r8_test012"),
+            rapid_api_key = SecretStr("rapid-test345"),
+            coinmarketcap_key = SecretStr("cmc-test678"),
             tool_choice_chat = "gpt-4o",
             tool_choice_reasoning = "claude-3-5-sonnet-latest",
             tool_choice_copywriting = "gpt-4o-mini",
@@ -74,13 +76,13 @@ class UserMapperTest(unittest.TestCase):
         user_save = api_to_domain(payload, self.user)
 
         # Check that all fields were updated
-        self.assertEqual(user_save.open_ai_key, "sk-new123")
-        self.assertEqual(user_save.anthropic_key, "sk-ant-new456")
-        self.assertEqual(user_save.google_ai_key, "google-new789")
-        self.assertEqual(user_save.perplexity_key, "pplx-new789")
-        self.assertEqual(user_save.replicate_key, "r8_new012")
-        self.assertEqual(user_save.rapid_api_key, "rapid-new345")
-        self.assertEqual(user_save.coinmarketcap_key, "cmc-new678")
+        self.assertEqual(user_save.open_ai_key.get_secret_value() if user_save.open_ai_key else None, "sk-new123")
+        self.assertEqual(user_save.anthropic_key.get_secret_value() if user_save.anthropic_key else None, "sk-ant-new456")
+        self.assertEqual(user_save.google_ai_key.get_secret_value() if user_save.google_ai_key else None, "google-new789")
+        self.assertEqual(user_save.perplexity_key.get_secret_value() if user_save.perplexity_key else None, "pplx-new789")
+        self.assertEqual(user_save.replicate_key.get_secret_value() if user_save.replicate_key else None, "r8_new012")
+        self.assertEqual(user_save.rapid_api_key.get_secret_value() if user_save.rapid_api_key else None, "rapid-new345")
+        self.assertEqual(user_save.coinmarketcap_key.get_secret_value() if user_save.coinmarketcap_key else None, "cmc-new678")
         self.assertEqual(user_save.tool_choice_chat, "gpt-4o-mini")
         self.assertEqual(user_save.tool_choice_reasoning, "claude-3-opus-latest")
         self.assertEqual(user_save.tool_choice_copywriting, "gpt-4o")
@@ -111,7 +113,7 @@ class UserMapperTest(unittest.TestCase):
         user_save = api_to_domain(payload, self.user)
 
         # Check that provided fields were updated
-        self.assertEqual(user_save.open_ai_key, "sk-new123")
+        self.assertEqual(user_save.open_ai_key.get_secret_value() if user_save.open_ai_key else None, "sk-new123")
         self.assertEqual(user_save.tool_choice_chat, "gpt-4o-mini")
 
         # Check that non-provided fields remain unchanged

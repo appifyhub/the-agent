@@ -43,13 +43,13 @@ class AccessTokenResolverTest(unittest.TestCase):
             telegram_username = "invoker_user",
             telegram_chat_id = "invoker_chat_id",
             telegram_user_id = 1,
-            open_ai_key = "invoker_openai_key",
-            anthropic_key = "invoker_anthropic_key",
-            google_ai_key = "invoker_google_ai_key",
-            perplexity_key = "invoker_perplexity_key",
-            replicate_key = "invoker_replicate_key",
-            rapid_api_key = "invoker_rapid_api_key",
-            coinmarketcap_key = "invoker_coinmarketcap_key",
+            open_ai_key = SecretStr("invoker_openai_key"),
+            anthropic_key = SecretStr("invoker_anthropic_key"),
+            google_ai_key = SecretStr("invoker_google_ai_key"),
+            perplexity_key = SecretStr("invoker_perplexity_key"),
+            replicate_key = SecretStr("invoker_replicate_key"),
+            rapid_api_key = SecretStr("invoker_rapid_api_key"),
+            coinmarketcap_key = SecretStr("invoker_coinmarketcap_key"),
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
@@ -59,13 +59,13 @@ class AccessTokenResolverTest(unittest.TestCase):
             telegram_username = "sponsor_user",
             telegram_chat_id = "sponsor_chat_id",
             telegram_user_id = 2,
-            open_ai_key = "sponsor_openai_key",
-            anthropic_key = "sponsor_anthropic_key",
-            google_ai_key = "sponsor_google_ai_key",
-            perplexity_key = "sponsor_perplexity_key",
-            replicate_key = "sponsor_replicate_key",
-            rapid_api_key = "sponsor_rapid_api_key",
-            coinmarketcap_key = "sponsor_coinmarketcap_key",
+            open_ai_key = SecretStr("sponsor_openai_key"),
+            anthropic_key = SecretStr("sponsor_anthropic_key"),
+            google_ai_key = SecretStr("sponsor_google_ai_key"),
+            perplexity_key = SecretStr("sponsor_perplexity_key"),
+            replicate_key = SecretStr("sponsor_replicate_key"),
+            rapid_api_key = SecretStr("sponsor_rapid_api_key"),
+            coinmarketcap_key = SecretStr("sponsor_coinmarketcap_key"),
             group = UserDB.Group.developer,
             created_at = datetime.now().date(),
         )
@@ -111,9 +111,9 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         token = resolver.get_access_token(self.openai_provider)
 
-        self.assertIsNotNone(token)
+        assert token is not None
         self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.invoker_user.open_ai_key)
+        self.assertEqual(token.get_secret_value(), self.invoker_user.open_ai_key.get_secret_value())
         # noinspection PyUnresolvedReferences
         self.mock_sponsorship_dao.get_all_by_receiver.assert_not_called()
 
@@ -131,9 +131,9 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         token = resolver.get_access_token(self.openai_provider)
 
-        self.assertIsNotNone(token)
+        assert token is not None
         self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.sponsor_user.open_ai_key)
+        self.assertEqual(token.get_secret_value(), self.sponsor_user.open_ai_key.get_secret_value())
         # noinspection PyUnresolvedReferences
         self.mock_sponsorship_dao.get_all_by_receiver.assert_called_once_with(user_without_token.id, limit = 1)
         # noinspection PyUnresolvedReferences
@@ -149,7 +149,7 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         token = resolver.get_access_token(self.openai_provider)
 
-        self.assertIsNone(token)
+        assert token is None
         # noinspection PyUnresolvedReferences
         self.mock_sponsorship_dao.get_all_by_receiver.assert_called_once_with(user_without_token.id, limit = 1)
 
@@ -166,7 +166,7 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         token = resolver.get_access_token(self.openai_provider)
 
-        self.assertIsNone(token)
+        assert token is None
         # noinspection PyUnresolvedReferences
         self.mock_sponsorship_dao.get_all_by_receiver.assert_called_once_with(user_without_token.id, limit = 1)
         # noinspection PyUnresolvedReferences
@@ -187,7 +187,7 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         token = resolver.get_access_token(self.openai_provider)
 
-        self.assertIsNone(token)
+        assert token is None
 
     def test_get_access_token_failure_unsupported_provider(self):
         # Set up mock to return empty list to avoid sponsorship lookup since user has direct token
@@ -216,9 +216,9 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         token = resolver.get_access_token_for_tool(self.openai_tool)
 
-        self.assertIsNotNone(token)
+        assert token is not None
         self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.invoker_user.open_ai_key)
+        self.assertEqual(token.get_secret_value(), self.invoker_user.open_ai_key.get_secret_value())
 
     def test_require_access_token_success(self):
         # Mock to avoid sponsorship lookup since user has direct token
@@ -228,9 +228,9 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         token = resolver.require_access_token(self.openai_provider)
 
-        self.assertIsNotNone(token)
+        assert token is not None
         self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.invoker_user.open_ai_key)
+        self.assertEqual(token.get_secret_value(), self.invoker_user.open_ai_key.get_secret_value())
 
     def test_require_access_token_failure_raises_exception(self):
         user_without_token = self.invoker_user.model_copy(update = {"open_ai_key": None})
@@ -253,9 +253,9 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         token = resolver.require_access_token_for_tool(self.openai_tool)
 
-        self.assertIsNotNone(token)
+        assert token is not None
         self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.invoker_user.open_ai_key)
+        self.assertEqual(token.get_secret_value(), self.invoker_user.open_ai_key.get_secret_value())
 
     def test_require_access_token_for_tool_failure_raises_exception(self):
         user_without_token = self.invoker_user.model_copy(update = {"open_ai_key": None})
@@ -275,9 +275,9 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         token = resolver.get_access_token(ANTHROPIC)
 
-        self.assertIsNotNone(token)
+        assert token is not None
         self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.invoker_user.anthropic_key)
+        self.assertEqual(token.get_secret_value(), self.invoker_user.anthropic_key.get_secret_value())
 
     def test_get_access_token_perplexity_success_user_has_direct_token(self):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
@@ -286,9 +286,9 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         token = resolver.get_access_token(PERPLEXITY)
 
-        self.assertIsNotNone(token)
+        assert token is not None
         self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.invoker_user.perplexity_key)
+        self.assertEqual(token.get_secret_value(), self.invoker_user.perplexity_key.get_secret_value())
 
     def test_get_access_token_replicate_success_user_has_direct_token(self):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
@@ -297,9 +297,9 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         token = resolver.get_access_token(REPLICATE)
 
-        self.assertIsNotNone(token)
+        assert token is not None
         self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.invoker_user.replicate_key)
+        self.assertEqual(token.get_secret_value(), self.invoker_user.replicate_key.get_secret_value())
 
     def test_get_access_token_rapid_api_success_user_has_direct_token(self):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
@@ -308,9 +308,9 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         token = resolver.get_access_token(RAPID_API)
 
-        self.assertIsNotNone(token)
+        assert token is not None
         self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.invoker_user.rapid_api_key)
+        self.assertEqual(token.get_secret_value(), self.invoker_user.rapid_api_key.get_secret_value())
 
     def test_get_access_token_coinmarketcap_success_user_has_direct_token(self):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
@@ -319,9 +319,9 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         token = resolver.get_access_token(COINMARKETCAP)
 
-        self.assertIsNotNone(token)
+        assert token is not None
         self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.invoker_user.coinmarketcap_key)
+        self.assertEqual(token.get_secret_value(), self.invoker_user.coinmarketcap_key.get_secret_value())
 
     def test_get_access_token_google_ai_success_user_has_direct_token(self):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
@@ -330,6 +330,6 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         token = resolver.get_access_token(GOOGLE_AI)
 
-        self.assertIsNotNone(token)
+        assert token is not None
         self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.invoker_user.google_ai_key)
+        self.assertEqual(token.get_secret_value(), self.invoker_user.google_ai_key.get_secret_value())

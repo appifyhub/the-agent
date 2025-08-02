@@ -26,7 +26,6 @@ class CommandProcessorTest(unittest.TestCase):
             telegram_username = "test_username",
             telegram_chat_id = "test_chat_id",
             telegram_user_id = 1,
-            open_ai_key = None,
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )

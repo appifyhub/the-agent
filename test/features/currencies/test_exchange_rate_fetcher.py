@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import requests_mock
+from pydantic import SecretStr
 from requests_mock.mocker import Mocker
 
 from db.crud.chat_config import ChatConfigCRUD
@@ -42,9 +43,9 @@ class ExchangeRateFetcherTest(unittest.TestCase):
             telegram_username = "test_username",
             telegram_chat_id = "test_chat_id",
             telegram_user_id = 1,
-            open_ai_key = "test_api_key",
-            rapid_api_key = "test_rapid_api_key",
-            coinmarketcap_key = "test_coinmarketcap_key",
+            open_ai_key = SecretStr("test_api_key"),
+            rapid_api_key = SecretStr("test_rapid_api_key"),
+            coinmarketcap_key = SecretStr("test_coinmarketcap_key"),
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )

@@ -2,6 +2,7 @@ import unittest
 from datetime import datetime, timedelta
 
 from db.sql_util import SQLUtil
+from pydantic import SecretStr
 
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfigSave
@@ -26,7 +27,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
                 telegram_username = "test-user",
                 telegram_chat_id = "123456",
                 telegram_user_id = 123456,
-                open_ai_key = "test-key",
+                open_ai_key = SecretStr("test-key"),
                 group = UserDB.Group.standard,
             ),
         )
@@ -54,7 +55,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
                 telegram_username = "test-user",
                 telegram_chat_id = "123456",
                 telegram_user_id = 123456,
-                open_ai_key = "test-key",
+                open_ai_key = SecretStr("test-key"),
                 group = UserDB.Group.standard,
             ),
         )
@@ -85,7 +86,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
                 telegram_username = "test-user",
                 telegram_chat_id = "123456",
                 telegram_user_id = 123456,
-                open_ai_key = "test-key",
+                open_ai_key = SecretStr("test-key"),
                 group = UserDB.Group.standard,
             ),
         )
@@ -115,7 +116,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
                 telegram_username = "test-user",
                 telegram_chat_id = "123456",
                 telegram_user_id = 123456,
-                open_ai_key = "test-key",
+                open_ai_key = SecretStr("test-key"),
                 group = UserDB.Group.standard,
             ),
         )
@@ -184,7 +185,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
                 telegram_username = "test-user",
                 telegram_chat_id = "123456",
                 telegram_user_id = 123456,
-                open_ai_key = "test-key",
+                open_ai_key = SecretStr("test-key"),
                 group = UserDB.Group.standard,
             ),
         )
@@ -218,7 +219,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
                 telegram_username = "test-user",
                 telegram_chat_id = "123456",
                 telegram_user_id = 123456,
-                open_ai_key = "test-key",
+                open_ai_key = SecretStr("test-key"),
                 group = UserDB.Group.standard,
             ),
         )
@@ -263,7 +264,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
                 telegram_username = "test-user",
                 telegram_chat_id = "123456",
                 telegram_user_id = 123456,
-                open_ai_key = "test-key",
+                open_ai_key = SecretStr("test-key"),
                 group = UserDB.Group.standard,
             ),
         )

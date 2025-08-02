@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 from uuid import UUID
 
 from langchain_core.messages import AIMessage
+from pydantic import SecretStr
 
 from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
@@ -28,9 +29,9 @@ class DevAnnouncementsServiceTest(unittest.TestCase):
             telegram_username = "test_username",
             telegram_chat_id = "test_chat_id",
             telegram_user_id = 1,
-            open_ai_key = "test_api_key",
-            replicate_key = "test_replicate_key",
-            anthropic_key = "test_anthropic_key",
+            open_ai_key = SecretStr("test_api_key"),
+            replicate_key = SecretStr("test_replicate_key"),
+            anthropic_key = SecretStr("test_anthropic_key"),
             group = UserDB.Group.developer,
             created_at = datetime.now().date(),
         )
@@ -196,9 +197,9 @@ class DevAnnouncementsServiceTest(unittest.TestCase):
             telegram_username = "target_user",
             telegram_chat_id = "target_chat_id",
             telegram_user_id = 2,
-            open_ai_key = "test_api_key",
-            replicate_key = "test_replicate_key",
-            anthropic_key = "test_anthropic_key",
+            open_ai_key = SecretStr("test_api_key"),
+            replicate_key = SecretStr("test_replicate_key"),
+            anthropic_key = SecretStr("test_anthropic_key"),
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
@@ -239,9 +240,9 @@ class DevAnnouncementsServiceTest(unittest.TestCase):
             telegram_username = "target_user",
             telegram_chat_id = None,
             telegram_user_id = 2,
-            open_ai_key = "test_api_key",
-            replicate_key = "test_replicate_key",
-            anthropic_key = "test_anthropic_key",
+            open_ai_key = SecretStr("test_api_key"),
+            replicate_key = SecretStr("test_replicate_key"),
+            anthropic_key = SecretStr("test_anthropic_key"),
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
@@ -265,9 +266,9 @@ class DevAnnouncementsServiceTest(unittest.TestCase):
             telegram_username = "target_user",
             telegram_chat_id = "target_chat_id",
             telegram_user_id = 2,
-            open_ai_key = "test_api_key",
-            replicate_key = "test_replicate_key",
-            anthropic_key = "test_anthropic_key",
+            open_ai_key = SecretStr("test_api_key"),
+            replicate_key = SecretStr("test_replicate_key"),
+            anthropic_key = SecretStr("test_anthropic_key"),
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )

@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 from unittest.mock import Mock
 from uuid import UUID
 
+from pydantic import SecretStr
+
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.model.user import UserDB
@@ -28,7 +30,7 @@ class SponsorshipServiceTest(unittest.TestCase):
             telegram_username = "test_username",
             telegram_chat_id = "test_chat_id",
             telegram_user_id = 1,
-            open_ai_key = "test_api_key",
+            open_ai_key = SecretStr("test_api_key"),
             anthropic_key = None,
             perplexity_key = None,
             replicate_key = None,
@@ -269,7 +271,7 @@ class SponsorshipServiceTest(unittest.TestCase):
             telegram_username = receiver_telegram_username,
             telegram_chat_id = "receiver_chat_id",
             telegram_user_id = 2,
-            open_ai_key = "receiver_api_key",
+            open_ai_key = SecretStr("receiver_api_key"),
             anthropic_key = None,
             perplexity_key = None,
             replicate_key = None,
@@ -300,7 +302,7 @@ class SponsorshipServiceTest(unittest.TestCase):
             telegram_username = receiver_telegram_username,
             telegram_chat_id = "receiver_chat_id",
             telegram_user_id = 2,
-            open_ai_key = "test_api_key",
+            open_ai_key = SecretStr("test_api_key"),
             anthropic_key = None,
             perplexity_key = None,
             replicate_key = None,
@@ -425,7 +427,7 @@ class SponsorshipServiceTest(unittest.TestCase):
             telegram_username = "sponsor_username",
             telegram_chat_id = "sponsor_chat_id",
             telegram_user_id = 2,
-            open_ai_key = "sponsor_api_key",
+            open_ai_key = SecretStr("sponsor_api_key"),
             anthropic_key = None,
             perplexity_key = None,
             replicate_key = None,
@@ -514,7 +516,7 @@ class SponsorshipServiceTest(unittest.TestCase):
             telegram_username = "sponsor_username",
             telegram_chat_id = "sponsor_chat_id",
             telegram_user_id = 2,
-            open_ai_key = "sponsor_api_key",
+            open_ai_key = SecretStr("sponsor_api_key"),
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )

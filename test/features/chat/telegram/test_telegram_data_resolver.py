@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, Mock, patch
 from uuid import UUID
 
 from db.sql_util import SQLUtil
+from pydantic import SecretStr
 
 from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
@@ -109,11 +110,12 @@ class TelegramDataResolverTest(unittest.TestCase):
 
         result = self.resolver.resolve(mapping_result)
 
+        assert result.author is not None
         self.assertIsNotNone(result.author.id)
-        self.assertEqual(result.chat.chat_id, chat_config_data.chat_id)
-        self.assertEqual(result.chat.is_private, chat_config_data.is_private)
         self.assertEqual(result.author.telegram_user_id, author_data.telegram_user_id)
         self.assertIsNone(result.author.telegram_chat_id)
+        self.assertEqual(result.chat.chat_id, chat_config_data.chat_id)
+        self.assertEqual(result.chat.is_private, chat_config_data.is_private)
         self.assertEqual(result.message.chat_id, message_data.chat_id)
         self.assertEqual(result.message.message_id, message_data.message_id)
         self.assertIsNotNone(result.message.author_id)
@@ -152,11 +154,12 @@ class TelegramDataResolverTest(unittest.TestCase):
 
         result = self.resolver.resolve(mapping_result)
 
+        assert result.author is not None
         self.assertIsNotNone(result.author.id)
-        self.assertEqual(result.chat.chat_id, chat_config_data.chat_id)
-        self.assertEqual(result.chat.is_private, chat_config_data.is_private)
         self.assertEqual(result.author.telegram_user_id, author_data.telegram_user_id)
         self.assertEqual(result.author.telegram_chat_id, chat_config_data.chat_id)
+        self.assertEqual(result.chat.chat_id, chat_config_data.chat_id)
+        self.assertEqual(result.chat.is_private, chat_config_data.is_private)
         self.assertEqual(result.message.chat_id, message_data.chat_id)
         self.assertEqual(result.message.message_id, message_data.message_id)
         self.assertIsNotNone(result.message.author_id)
@@ -231,6 +234,7 @@ class TelegramDataResolverTest(unittest.TestCase):
         saved_user_db = self.sql.user_crud().get_by_telegram_user_id(mapped_data.telegram_user_id)
         saved_user = User.model_validate(saved_user_db)
 
+        assert result is not None
         self.assertEqual(result, saved_user)
         self.assertIsNotNone(result.id)
         self.assertEqual(result.full_name, mapped_data.full_name)
@@ -261,6 +265,7 @@ class TelegramDataResolverTest(unittest.TestCase):
         saved_user_db = self.sql.user_crud().get(result.id)
         saved_user = User.model_validate(saved_user_db)
 
+        assert result is not None
         self.assertEqual(result, saved_user)
         self.assertEqual(result.id, existing_user.id)
         self.assertEqual(result.full_name, mapped_data.full_name)
@@ -291,7 +296,12 @@ class TelegramDataResolverTest(unittest.TestCase):
             telegram_user_id = 1,
             full_name = "Existing User",
             telegram_chat_id = "c1",
-            open_ai_key = "sk-key",
+            open_ai_key = SecretStr("sk-key"),
+            anthropic_key = SecretStr("sk-key"),
+            perplexity_key = SecretStr("sk-key"),
+            replicate_key = SecretStr("sk-key"),
+            rapid_api_key = SecretStr("sk-key"),
+            coinmarketcap_key = SecretStr("sk-key"),
             group = UserDB.Group.developer,
             # Add all tool choice fields to test preservation
             tool_choice_chat = "openai",
@@ -320,6 +330,8 @@ class TelegramDataResolverTest(unittest.TestCase):
         )
 
         result = self.resolver.resolve_author(mapped_data)
+        assert result is not None
+
         saved_user_db = self.sql.user_crud().get(result.id)
         saved_user = User.model_validate(saved_user_db)
 
@@ -330,6 +342,11 @@ class TelegramDataResolverTest(unittest.TestCase):
         self.assertEqual(result.telegram_chat_id, mapped_data.telegram_chat_id)
         self.assertEqual(result.telegram_user_id, mapped_data.telegram_user_id)
         self.assertEqual(result.open_ai_key, existing_user.open_ai_key)
+        self.assertEqual(result.anthropic_key, existing_user.anthropic_key)
+        self.assertEqual(result.perplexity_key, existing_user.perplexity_key)
+        self.assertEqual(result.replicate_key, existing_user.replicate_key)
+        self.assertEqual(result.rapid_api_key, existing_user.rapid_api_key)
+        self.assertEqual(result.coinmarketcap_key, existing_user.coinmarketcap_key)
         self.assertEqual(result.group, existing_user.group)
         self.assertEqual(result.created_at, existing_user.created_at)
 
@@ -352,7 +369,7 @@ class TelegramDataResolverTest(unittest.TestCase):
 
     @patch("db.crud.user.UserCRUD.get_by_telegram_user_id")
     @patch("db.crud.user.UserCRUD.get_by_telegram_username")
-    def test_resolve_author_open_ai_key_reset(self, mock_get_by_username, mock_get_by_user_id):
+    def test_resolve_author_api_key_reset(self, mock_get_by_username, mock_get_by_user_id):
         fake_user = User(
             id = UUID("123e4567-e89b-12d3-a456-426614174000"),
             full_name = "Existing User",
@@ -360,6 +377,12 @@ class TelegramDataResolverTest(unittest.TestCase):
             telegram_chat_id = "c1",
             telegram_user_id = 1,
             open_ai_key = None,
+            anthropic_key = None,
+            google_ai_key = None,
+            perplexity_key = None,
+            replicate_key = None,
+            rapid_api_key = None,
+            coinmarketcap_key = None,
             group = UserDB.Group.developer,
             created_at = datetime.now().date(),
         )
@@ -367,33 +390,44 @@ class TelegramDataResolverTest(unittest.TestCase):
         mock_get_by_user_id.return_value = fake_user
         mock_get_by_username.return_value = None
 
-        # test the no-key behavior
+        # Get all API key fields dynamically
+        api_key_fields = User._get_secret_str_fields()
+
+        # test the no-key behavior for all API keys
         mapped_data = UserSave(
             telegram_user_id = 1,
             full_name = "Test User",
             telegram_chat_id = "c1",
-            open_ai_key = None,
         )
         result = self.resolver.resolve_author(mapped_data)
-        self.assertIsNone(result.open_ai_key, "open_ai_key should be remain None when already None")
+        for field in api_key_fields:
+            self.assertIsNone(getattr(result, field), f"{field} should remain None when already None")
 
-        # test the empty key behavior
-        mapped_data.open_ai_key = ""
-        fake_user.open_ai_key = ""
+        # test the empty key behavior for all API keys
+        for field in api_key_fields:
+            setattr(mapped_data, field, SecretStr(""))
+            setattr(fake_user, field, SecretStr(""))
         result = self.resolver.resolve_author(mapped_data)
-        self.assertIsNone(result.open_ai_key, "open_ai_key should be reset to None if empty")
+        for field in api_key_fields:
+            self.assertIsNone(getattr(result, field), f"{field} should be reset to None if empty")
 
-        # test the whitespace behavior
-        mapped_data.open_ai_key = "    "
-        fake_user.open_ai_key = "    "
+        # test the whitespace behavior for all API keys
+        for field in api_key_fields:
+            setattr(mapped_data, field, SecretStr("    "))
+            setattr(fake_user, field, SecretStr("    "))
         result = self.resolver.resolve_author(mapped_data)
-        self.assertIsNone(result.open_ai_key, "open_ai_key should be reset to None if whitespace")
+        for field in api_key_fields:
+            self.assertIsNone(getattr(result, field), f"{field} should be reset to None if whitespace")
 
-        # test the valid key behavior
-        mapped_data.open_ai_key = "valid_key"
-        fake_user.open_ai_key = "valid_key"
+        # test the valid key behavior for all API keys
+        for field in api_key_fields:
+            setattr(mapped_data, field, SecretStr(f"valid_{field}"))
+            setattr(fake_user, field, SecretStr(f"valid_{field}"))
         result = self.resolver.resolve_author(mapped_data)
-        self.assertEqual(result.open_ai_key, "valid_key", "open_ai_key should remain unchanged if valid")
+        for field in api_key_fields:
+            result_key = getattr(result, field)
+            expected_key = result_key.get_secret_value() if result_key else None
+            self.assertEqual(expected_key, f"valid_{field}", f"{field} should remain unchanged if valid")
 
     def test_resolve_author_tool_choice_cleanup(self):
         mapped_data = UserSave(
@@ -408,6 +442,7 @@ class TelegramDataResolverTest(unittest.TestCase):
         )
 
         result = self.resolver.resolve_author(mapped_data)
+        assert result is not None
         # Empty string should be cleaned to None
         self.assertIsNone(result.tool_choice_chat, "Empty tool_choice_chat should be reset to None")
         # Whitespace should be cleaned to None
