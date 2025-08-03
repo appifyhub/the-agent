@@ -10,6 +10,7 @@ fi
 
 export VERBOSE=true
 export API_KEY=developer
+export LOG_LEVEL=${LOG_LEVEL:-debug}
 
 echoinfo "Installing dependencies in pipenv dev environment..." -n
 pipenv install
@@ -35,5 +36,5 @@ pipenv run uvicorn \
     --host 0.0.0.0 \
     --port 80 \
     --reload \
-    --log-level debug \
+    --log-level ${LOG_LEVEL} \
     src.fast_api:app

@@ -77,6 +77,7 @@ def notify_of_currency_alerts(
     db = Depends(get_session),
     _ = Depends(verify_api_key),
 ) -> dict:
+    assert TELEGRAM_BOT_USER.id is not None
     di = DI(db, TELEGRAM_BOT_USER.id.hex)
     return respond_with_currency_alerts(di)
 
@@ -87,6 +88,7 @@ def notify_of_release(
     db = Depends(get_session),
     _ = Depends(verify_api_key),
 ) -> dict:
+    assert TELEGRAM_BOT_USER.id is not None
     di = DI(db, TELEGRAM_BOT_USER.id.hex)
     return respond_with_summary(payload, di)
 
