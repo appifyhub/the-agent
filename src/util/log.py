@@ -19,6 +19,8 @@ def _should_log(level: str) -> bool:
 def _format_args(*args: Any) -> tuple[str, list[Exception]]:
     exceptions = []
     formatted_parts = []
+
+    # prepare the print components
     for arg in args:
         if isinstance(arg, Exception):
             exceptions.append(arg)
@@ -28,16 +30,22 @@ def _format_args(*args: Any) -> tuple[str, list[Exception]]:
         else:
             formatted_parts.append(f"{str(arg)}")
 
+    # edge: no message to print
     if not formatted_parts:
         return "", exceptions
 
-    if exceptions:
-        return "\n ├─ ".join(formatted_parts), exceptions
-
+    # edge: only one message line to print
     if len(formatted_parts) == 1:
         return formatted_parts[0], exceptions
-    else:
-        return "\n ├─ ".join(formatted_parts[:-1]) + "\n └─ " + formatted_parts[-1], exceptions
+
+    # edge: message lines are available, but no exceptions
+    if not exceptions:
+        head_lines = "\n ├─ ".join(formatted_parts[:-1])
+        tail_line = formatted_parts[-1]
+        return f"{head_lines}\n └─ {tail_line}", exceptions
+
+    # message and exceptions are available, connect messages with a tree
+    return "\n ├─ ".join(formatted_parts), exceptions
 
 
 def _log_message(level: str, message: str, exceptions: list[Exception]) -> str:
