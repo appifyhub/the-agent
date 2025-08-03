@@ -9,10 +9,11 @@ from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig
 from di.di import DI
 from features.announcements.release_summary_service import ReleaseSummaryService
-from util.safe_printer_mixin import sprint
+from util import log
 
 
 class SummaryResult:
+
     summary: str
     chats_eligible: int
     chats_subscribed: int
@@ -58,15 +59,13 @@ def respond_with_summary(payload: ReleaseOutputPayload, di: DI) -> dict:
         release_quality: str = release_output_json["release_quality"]
         release_notes_b64: str = release_output_json["release_notes_b64"]
         release_notes: str = base64.b64decode(release_notes_b64).decode("utf-8")
-        print("Summarizing release notes:")
-        print(f"    - Latest version: {latest_version}")
-        print(f"    - New target version: {new_target_version}")
-        print(f"    - Release quality: {release_quality}")
-        print(f"    - Change log: {json.dumps(release_notes[:15])}...")
+        log.i("Summarizing release notes:")
+        log.i(f"  · Latest version: {latest_version}")
+        log.i(f"  · New target version: {new_target_version}")
+        log.i(f"  · Release quality: {release_quality}")
+        log.i(f"  · Change log: {json.dumps(release_notes[:15])}...")
     except Exception as e:
-        message = "Failed to decode release notes"
-        sprint(message, e)
-        result.summary = message
+        result.summary = log.e("Failed to decode release notes", e)
         return result.to_dict()
 
     # summarize for the default language first
@@ -84,9 +83,7 @@ def respond_with_summary(payload: ReleaseOutputPayload, di: DI) -> dict:
         result.summary = stripped_content
         result.summaries_created += 1
     except Exception as e:
-        message = "Release summary failed for default language"
-        sprint(message, e)
-        result.summary = message
+        result.summary = log.e("Release summary failed for default language", e)
         return result.to_dict()
 
     # prepare and filter the eligible chats
@@ -114,7 +111,7 @@ def respond_with_summary(payload: ReleaseOutputPayload, di: DI) -> dict:
                 summary = translations.save(stripped_content, chat.language_name, chat.language_iso_code)
                 result.summaries_created += 1
         except Exception as e:
-            sprint(f"Release summary failed for chat #{chat.chat_id} in {chat.language_name}", e)
+            log.w(f"Release summary failed for chat #{chat.chat_id} in {chat.language_name}", e)
             continue
 
         # we need to notify each chat of the summary
@@ -122,12 +119,12 @@ def respond_with_summary(payload: ReleaseOutputPayload, di: DI) -> dict:
             di.telegram_bot_sdk.send_text_message(chat.chat_id, summary)
             result.chats_notified += 1
         except Exception as e:
-            sprint(f"Chat notification failed for chat #{chat.chat_id}", e)
+            log.w(f"Chat notification failed for chat #{chat.chat_id}", e)
             continue
 
     # and we're done, let's report back
-    sprint("Summary execution completed:")
-    sprint(json.dumps(result.to_dict(), indent = 2))
+    log.i("Summary execution completed:")
+    log.t(json.dumps(result.to_dict(), indent = 2))
     return result.to_dict()
 
 

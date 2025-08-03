@@ -7,6 +7,7 @@ from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessage
 
 
 class ChatMessageAttachmentCRUDTest(unittest.TestCase):
+
     sql: SQLUtil
 
     def setUp(self):

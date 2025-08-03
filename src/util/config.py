@@ -9,8 +9,8 @@ from util.singleton import Singleton
 
 
 class Config(metaclass = Singleton):
+
     max_sponsorships_per_user: int
-    verbose: bool
     log_level: str
     log_telegram_update: bool
     web_retries: int
@@ -45,7 +45,6 @@ class Config(metaclass = Singleton):
     def __init__(
         self,
         def_max_sponsorships_per_user: int = 2,
-        def_verbose: bool = False,
         def_log_level: str = "INFO",
         def_log_telegram_update: bool = False,
         def_web_retries: int = 3,
@@ -82,7 +81,6 @@ class Config(metaclass = Singleton):
     ):
         # @formatter:off
         self.max_sponsorships_per_user = int(self.__env("MAX_SPONSORSHIPS_PER_USER", lambda: str(def_max_sponsorships_per_user)))
-        self.verbose = self.__env("VERBOSE", lambda: str(def_verbose)).lower() == "true"
         self.log_level = self.__env("LOG_LEVEL", lambda: def_log_level).lower()
         self.log_telegram_update = self.__env("LOG_TG_UPDATE", lambda: str(def_log_telegram_update)).lower() == "true"
         self.web_retries = int(self.__env("WEB_RETRIES", lambda: str(def_web_retries)))

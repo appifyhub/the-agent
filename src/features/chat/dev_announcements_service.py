@@ -13,12 +13,12 @@ from features.external_tools.external_tool_library import CLAUDE_3_5_SONNET
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.prompting import prompt_library
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
-from util.config import config
+from util import log
 from util.functions import construct_bot_message_id
-from util.safe_printer_mixin import SafePrinterMixin
 
 
-class DevAnnouncementsService(SafePrinterMixin):
+class DevAnnouncementsService:
+
     DEFAULT_TOOL: ExternalTool = CLAUDE_3_5_SONNET
     TOOL_TYPE: ToolType = ToolType.copywriting
 
@@ -34,47 +34,38 @@ class DevAnnouncementsService(SafePrinterMixin):
         configured_tool: ConfiguredTool,
         di: DI,
     ):
-        super().__init__(config.verbose)
         self.__raw_message = raw_message
         self.__di = di
         self.__validate(target_telegram_username)
         self.__copywriter = di.chat_langchain_model(configured_tool)
 
     def __validate(self, target_telegram_username: str | None):
-        self.sprint("Validating invoker permissions")
+        log.t("Validating invoker permissions")
         if self.__di.invoker.group < UserDB.Group.developer:
-            message = f"Invoker '{self.__di.invoker.id.hex}' is not a developer"
-            self.sprint(message)
-            raise ValueError(message)
+            raise ValueError(log.d(f"Invoker '{self.__di.invoker.id.hex}' is not a developer"))
 
-        self.sprint("Validating target user data")
+        log.t("Validating target user data")
         self.__target_chat = None
         if target_telegram_username:
             target_user_db = self.__di.user_crud.get_by_telegram_username(target_telegram_username)
             if not target_user_db:
-                message = f"Target user '{target_telegram_username}' not found"
-                self.sprint(message)
-                raise ValueError(message)
+                raise ValueError(log.d(f"Target user '{target_telegram_username}' not found"))
             target_user = User.model_validate(target_user_db)
             if not target_user.telegram_chat_id:
-                message = f"Target user '{target_telegram_username}' has no private chat ID yet"
-                self.sprint(message)
-                raise ValueError(message)
+                raise ValueError(log.d(f"Target user '{target_telegram_username}' has no private chat ID yet"))
             target_chat_db = self.__di.chat_config_crud.get(target_user.telegram_chat_id)
             if not target_chat_db:
-                message = f"Target chat '{target_user.telegram_chat_id}' not found"
-                self.sprint(message)
-                raise ValueError(message)
+                raise ValueError(log.d(f"Target chat '{target_user.telegram_chat_id}' not found"))
             self.__target_chat = ChatConfig.model_validate(target_chat_db)
 
     def execute(self) -> dict:
-        self.sprint(f"Executing announcement from {self.__di.invoker.id.hex}")
+        log.t(f"Executing announcement from {self.__di.invoker.id.hex}")
         target_chats: list[ChatConfig]
         if self.__target_chat:
-            self.sprint(f"Target chat: {self.__target_chat.chat_id}")
+            log.t(f"  Target chat: {self.__target_chat.chat_id}")
             target_chats = [self.__target_chat]
         else:
-            self.sprint("Target chats: all")
+            log.t("  Targeting all chats")
             invoker_chat_id = str(self.__di.invoker.telegram_chat_id)
             bot_chat_id = str(TELEGRAM_BOT_USER.telegram_chat_id)
             target_chats_db = self.__di.chat_config_crud.get_all(limit = 2048)
@@ -94,7 +85,7 @@ class DevAnnouncementsService(SafePrinterMixin):
             translations.save(str(answer.content))
             summaries_created += 1
         except Exception as e:
-            self.sprint("Announcement translation failed for default language", e)
+            log.e("Announcement translation failed for default language", e)
 
         # translate and notify for each chat
         for chat in target_chats:
@@ -107,9 +98,9 @@ class DevAnnouncementsService(SafePrinterMixin):
                 self.__notify_chat(chat, summary)
                 chats_notified += 1
             except Exception as e:
-                self.sprint(f"Announcement failed for chat #{chat.chat_id}", e)
+                log.e(f"Announcement failed for chat #{chat.chat_id}", e)
 
-        self.sprint(f"Chats: {len(target_chats)}, summaries created: {summaries_created}, notified: {chats_notified}")
+        log.i(f"Chats: {len(target_chats)}, summaries created: {summaries_created}, notified: {chats_notified}")
         return {
             "chats_selected": len(target_chats),
             "chats_notified": chats_notified,

@@ -21,6 +21,7 @@ from features.prompting.prompt_library import TELEGRAM_BOT_USER
 
 
 class TelegramChatBotTest(unittest.TestCase):
+
     user: User
     chat_config: ChatConfig
     mock_di: DI

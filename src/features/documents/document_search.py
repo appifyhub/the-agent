@@ -11,15 +11,15 @@ from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_3_7_SONNET, TEXT_EMBEDDING_3_SMALL
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.prompting import prompt_library
-from util.config import config
-from util.safe_printer_mixin import SafePrinterMixin
+from util import log
 
 DEFAULT_QUESTION = "What is this document about?"
 SEARCH_RESULT_PAGES = 2
 
 
 # Not tested as it's just a proxy
-class DocumentSearch(SafePrinterMixin):
+class DocumentSearch:
+
     DEFAULT_EMBEDDING_TOOL: ExternalTool = TEXT_EMBEDDING_3_SMALL
     EMBEDDING_TOOL_TYPE: ToolType = ToolType.embedding
     DEFAULT_COPYWRITER_TOOL: ExternalTool = CLAUDE_3_7_SONNET
@@ -29,11 +29,8 @@ class DocumentSearch(SafePrinterMixin):
     __job_id: str
     __embeddings: Embeddings
     __loaded_pages: list[Document]
-    __embedding_tool: ConfiguredTool
-    __copywriter_tool: ConfiguredTool
     __additional_context: str
     __copywriter: BaseChatModel
-    __di: DI
 
     def __init__(
         self,
@@ -44,29 +41,25 @@ class DocumentSearch(SafePrinterMixin):
         di: DI,
         additional_context: str | None = None,
     ):
-        super().__init__(config.verbose)
         self.__job_id = job_id
         self.__loaded_pages = PyMuPDFLoader(document_url).load()
-        self.sprint(f"Loaded document pages: {len(self.__loaded_pages)}")
-        self.__embedding_tool = embedding_tool
-        self.__copywriter_tool = copywriter_tool
+        log.t(f"Loaded document pages: {len(self.__loaded_pages)}")
         self.__additional_context = additional_context or DEFAULT_QUESTION
         embedding_model, embedding_token, _ = embedding_tool
         # noinspection PyArgumentList
-        self.__embeddings = OpenAIEmbeddings(model = embedding_model.id, openai_api_key = embedding_token)
+        self.__embeddings = OpenAIEmbeddings(model = embedding_model.id, api_key = embedding_token)
         # noinspection PyArgumentList
         self.__copywriter = di.chat_langchain_model(copywriter_tool)
-        self.__di = di
 
     def execute(self) -> str | None:
-        self.sprint(f"Starting document search for job '{self.__job_id}'")
+        log.d(f"Starting document search for job '{self.__job_id}'")
         self.error = None
         try:
             # run the raw search first
             document_index = InMemoryVectorStore(self.__embeddings)
             document_index.add_documents(self.__loaded_pages)
             results = document_index.similarity_search(query = self.__additional_context, k = SEARCH_RESULT_PAGES)
-            self.sprint(f"Document search returned {len(results)} similarity search results")
+            log.t(f"Document search returned {len(results)} similarity search results")
             search_results: str = ""
             if results:
                 for result in results:
@@ -78,7 +71,7 @@ class DocumentSearch(SafePrinterMixin):
                 search_results = "<No results>"
 
             # then run the copywriter on the search results
-            self.sprint("Invoking copywriter on search results")
+            log.t("Invoking copywriter on search results")
             copywriter_prompt = prompt_library.document_search_copywriter(self.__additional_context)
             copywriter_messages = [SystemMessage(copywriter_prompt), HumanMessage(search_results)]
             answer = self.__copywriter.invoke(copywriter_messages)
@@ -88,6 +81,5 @@ class DocumentSearch(SafePrinterMixin):
                 raise AssertionError(f"Received an unexpected content from the model: {answer}")
             return f"Document Search Results:\n\n```\n{str(answer.content)}\n```"
         except Exception as e:
-            self.sprint("Document search failed", e)
-            self.error = str(e)
+            self.error = log.e("Document search failed", e)
             return None

@@ -20,6 +20,7 @@ from util.config import config
 
 
 class SponsorshipsControllerTest(unittest.TestCase):
+
     invoker_user: User
     sponsor_user: User
     receiver_user: User

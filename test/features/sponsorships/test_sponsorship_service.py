@@ -17,6 +17,7 @@ from util.config import config
 
 
 class SponsorshipServiceTest(unittest.TestCase):
+
     user: User
     mock_user_dao: UserCRUD
     mock_sponsorship_dao: SponsorshipCRUD

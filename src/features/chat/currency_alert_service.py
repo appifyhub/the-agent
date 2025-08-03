@@ -9,13 +9,13 @@ from db.schema.chat_config import ChatConfig
 from db.schema.price_alert import PriceAlert, PriceAlertSave
 from di.di import DI
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
-from util.config import config
-from util.safe_printer_mixin import SafePrinterMixin, sprint
+from util import log
 
 DATETIME_PRINT_FORMAT = "%Y-%m-%d %H:%M %Z"
 
 
-class CurrencyAlertService(SafePrinterMixin):
+class CurrencyAlertService:
+
     class TriggeredAlert(BaseModel):
         chat_id: str
         owner_id: UUID
@@ -45,20 +45,15 @@ class CurrencyAlertService(SafePrinterMixin):
         target_chat_id: str | None,  # can be for a specific chat, or all chats
         di: DI,
     ):
-        super().__init__(config.verbose)
         self.__di = di
         self.__target_chat_config = self.__di.authorization_service.validate_chat(target_chat_id) if target_chat_id else None
 
     def create_alert(self, base_currency: str, desired_currency: str, threshold_percent: int) -> ActiveAlert:
-        self.sprint(f"Setting price alert for {base_currency}/{desired_currency} at {threshold_percent}%")
+        log.d(f"Setting price alert for {base_currency}/{desired_currency} at {threshold_percent}%")
         if not self.__target_chat_config:
-            message = "Target chat is not set"
-            self.sprint(message)
-            raise ValueError(message)
+            raise ValueError(log.e("Target chat is not set"))
         if self.__di.invoker.id == TELEGRAM_BOT_USER.id:
-            message = "Bot cannot set price alerts"
-            self.sprint(message)
-            raise ValueError(message)
+            raise ValueError(log.e("Bot cannot set price alerts"))
 
         current_rate: float = self.__di.exchange_rate_fetcher.execute(base_currency, desired_currency)["rate"]
         price_alert_db = self.__di.price_alert_crud.save(
@@ -84,11 +79,9 @@ class CurrencyAlertService(SafePrinterMixin):
         )
 
     def delete_alert(self, base_currency: str, desired_currency: str) -> ActiveAlert | None:
-        self.sprint(f"Deleting price alert for {base_currency}/{desired_currency}")
+        log.d(f"Deleting price alert for {base_currency}/{desired_currency}")
         if not self.__target_chat_config:
-            message = "Target chat is not set"
-            self.sprint(message)
-            raise ValueError(message)
+            raise ValueError(log.e("Target chat is not set"))
 
         deleted_alert_db = self.__di.price_alert_crud.delete(
             self.__target_chat_config.chat_id, base_currency, desired_currency,
@@ -109,10 +102,10 @@ class CurrencyAlertService(SafePrinterMixin):
     def get_active_alerts(self) -> list[ActiveAlert]:
         price_alerts_db: list[PriceAlertDB]
         if self.__target_chat_config:
-            sprint(f"Listing price alerts for chat '{self.__target_chat_config.chat_id}'")
+            log.d(f"Listing price alerts for chat '{self.__target_chat_config.chat_id}'")
             price_alerts_db = self.__di.price_alert_crud.get_alerts_by_chat(self.__target_chat_config.chat_id)
         else:
-            sprint("Listing all price alerts")
+            log.d("Listing all price alerts")
             price_alerts_db = self.__di.price_alert_crud.get_all()
         price_alerts = [PriceAlert.model_validate(price_alert_db) for price_alert_db in price_alerts_db]
         return [
@@ -129,7 +122,7 @@ class CurrencyAlertService(SafePrinterMixin):
         ]
 
     def get_triggered_alerts(self) -> list[TriggeredAlert]:
-        sprint("Checking triggered price alerts")
+        log.d("Checking triggered price alerts")
 
         active_alerts = self.get_active_alerts()
         triggered_alerts: list[CurrencyAlertService.TriggeredAlert] = []
@@ -172,6 +165,6 @@ class CurrencyAlertService(SafePrinterMixin):
                     )
             except Exception as e:
                 currency_pair = f"{alert.base_currency}/{alert.desired_currency}"
-                self.sprint(f"Failed to check chat '{alert.chat_id}' alert '{currency_pair}'", e)
+                log.w(f"Failed to check chat '{alert.chat_id}' alert '{currency_pair}'", e)
                 continue
         return triggered_alerts

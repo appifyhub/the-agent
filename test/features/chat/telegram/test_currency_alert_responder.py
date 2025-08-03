@@ -20,6 +20,7 @@ from util.translations_cache import TranslationsCache
 
 
 class TelegramPriceAlertResponderTest(unittest.TestCase):
+
     mock_di: DI
     mock_scoped_di: DI
     mock_currency_alert_service: CurrencyAlertService

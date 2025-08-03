@@ -8,6 +8,7 @@ from db.schema.user import UserSave
 
 
 class SponsorshipCRUDTest(unittest.TestCase):
+
     sql: SQLUtil
 
     def setUp(self):

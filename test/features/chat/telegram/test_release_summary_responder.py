@@ -32,6 +32,7 @@ from util.translations_cache import TranslationsCache
 
 
 class ReleaseSummaryResponderTest(unittest.TestCase):
+
     mock_di: DI
     payload: ReleaseOutputPayload
 

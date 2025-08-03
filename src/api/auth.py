@@ -6,8 +6,8 @@ from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBea
 from jose import ExpiredSignatureError, jwt
 from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_403_FORBIDDEN
 
+from util import log
 from util.config import config
-from util.safe_printer_mixin import sprint
 
 __JWT_ALGORITHM = "HS256"
 
@@ -33,7 +33,7 @@ def verify_jwt_credentials(authorization: HTTPAuthorizationCredentials = Securit
         return verify_jwt_token(authorization.credentials)
     except ExpiredSignatureError as e:
         message = "Token has expired"
-        sprint(message, e)
+        log.w(message, e)
         raise HTTPException(
             status_code = HTTP_401_UNAUTHORIZED,
             detail = message,
@@ -41,7 +41,7 @@ def verify_jwt_credentials(authorization: HTTPAuthorizationCredentials = Securit
         )
     except Exception as e:
         message = "Could not validate access credentials"
-        sprint(message, e)
+        log.w(message, e)
         raise HTTPException(
             status_code = HTTP_401_UNAUTHORIZED,
             detail = message,
@@ -61,12 +61,12 @@ def verify_jwt_token(token: str) -> Dict[str, Any]:
 def get_user_id_from_jwt(token_claims: Dict[str, Any] | None) -> str:
     if not token_claims:
         message = "Empty token"
-        sprint(message)
+        log.e(message)
         raise ValueError(message)
     user_id = token_claims.get("sub")
     if not user_id:
         message = "No user ID in token"
-        sprint(message)
+        log.e(message)
         raise ValueError(message)
     return user_id
 

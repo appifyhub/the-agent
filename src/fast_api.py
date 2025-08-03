@@ -18,19 +18,17 @@ from features.chat.telegram.model.update import Update
 from features.chat.telegram.release_summary_responder import respond_with_summary
 from features.chat.telegram.telegram_update_responder import respond_to_update
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
+from util import log
 from util.config import config
-from util.safe_printer_mixin import sprint
 
 
 # noinspection PyUnusedLocal
 @asynccontextmanager
 async def lifespan(owner: FastAPI):
-    # startup
-    sprint("Lifecycle: Starting up endpoints...")
+    log.i("Lifecycle: Starting up endpoints...")
     initialize_db()
-    yield
-    # shutdown
-    sprint("Lifecycle: Shutting down...")
+    yield  # this holds the app alive until the server is shut down
+    log.i("Lifecycle: Shutting down...")
 
 
 app = FastAPI(
@@ -38,7 +36,7 @@ app = FastAPI(
     redoc_url = None,
     title = "The Agent's API",
     description = "This is the API service for The Agent.",
-    debug = config.verbose,
+    debug = config.log_level in ["trace", "debug"],
     lifespan = lifespan,
 )
 
@@ -66,7 +64,7 @@ def health() -> dict:
 async def telegram_chat_update(
     update: Update,
     offloader: BackgroundTasks,
-    _ = Depends(verify_telegram_auth_key),
+    _=Depends(verify_telegram_auth_key),
 ) -> dict:
     offloader.add_task(respond_to_update, update)
     return {"status": "ok"}
@@ -74,8 +72,8 @@ async def telegram_chat_update(
 
 @app.post("/notify/price-alerts")
 def notify_of_currency_alerts(
-    db = Depends(get_session),
-    _ = Depends(verify_api_key),
+    db=Depends(get_session),
+    _=Depends(verify_api_key),
 ) -> dict:
     assert TELEGRAM_BOT_USER.id is not None
     di = DI(db, TELEGRAM_BOT_USER.id.hex)
@@ -85,8 +83,8 @@ def notify_of_currency_alerts(
 @app.post("/notify/release")
 def notify_of_release(
     payload: ReleaseOutputPayload,
-    db = Depends(get_session),
-    _ = Depends(verify_api_key),
+    db=Depends(get_session),
+    _=Depends(verify_api_key),
 ) -> dict:
     assert TELEGRAM_BOT_USER.id is not None
     di = DI(db, TELEGRAM_BOT_USER.id.hex)
@@ -95,182 +93,172 @@ def notify_of_release(
 
 @app.post("/task/clear-expired-cache")
 def clear_expired_cache(
-    db = Depends(get_session),
-    _ = Depends(verify_api_key),
+    db=Depends(get_session),
+    _=Depends(verify_api_key),
 ) -> dict:
     try:
         di = DI(db)
         cleared_count = di.tools_cache_crud.delete_expired()
-        sprint(f"Cleared expired cache entries: {cleared_count}")
+        log.i(f"Cleared expired cache entries: {cleared_count}")
         return {"cleared_entries_count": cleared_count}
     except Exception as e:
-        sprint("Failed to clear expired cache", e)
-        raise HTTPException(status_code = 500, detail = {"reason ": str(e)})
+        raise HTTPException(status_code = 500, detail = {"reason ": log.e("Failed to clear expired cache", e)})
 
 
 @app.get("/settings/{settings_type}/{resource_id}")
 def get_settings(
     settings_type: SettingsType,
     resource_id: str,
-    db = Depends(get_session),
+    db=Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
     try:
-        sprint(f"Fetching '{settings_type}' settings for resource '{resource_id}'")
+        log.d(f"Fetching '{settings_type}' settings for resource '{resource_id}'")
         invoker_id_hex = get_user_id_from_jwt(token)
-        sprint(f"  Invoker ID: {invoker_id_hex}")
+        log.d(f"  Invoker ID: {invoker_id_hex}")
         di = DI(db, invoker_id_hex)
         if settings_type == "user":
             return di.settings_controller.fetch_user_settings(resource_id)
         else:
             return di.settings_controller.fetch_chat_settings(resource_id)
     except Exception as e:
-        sprint("Failed to get settings", e)
-        raise HTTPException(status_code = 500, detail = {"reason": str(e)})
+        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get settings", e)})
 
 
 @app.patch("/settings/user/{user_id_hex}")
 def save_user_settings(
     user_id_hex: str,
     payload: UserSettingsPayload,
-    db = Depends(get_session),
+    db=Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
     try:
-        sprint(f"Saving user settings for user '{user_id_hex}'")
+        log.d(f"Saving user settings for user '{user_id_hex}'")
         invoker_id_hex = get_user_id_from_jwt(token)
-        sprint(f"  Invoker ID: {invoker_id_hex}")
+        log.d(f"  Invoker ID: {invoker_id_hex}")
         di = DI(db, invoker_id_hex)
         di.settings_controller.save_user_settings(user_id_hex, payload)
         return {"status": "OK"}
     except Exception as e:
-        sprint("Failed to save user settings", e)
-        raise HTTPException(status_code = 500, detail = {"reason": str(e)})
+        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to save user settings", e)})
 
 
 @app.patch("/settings/chat/{chat_id}")
 def save_chat_settings(
     chat_id: str,
     payload: ChatSettingsPayload,
-    db = Depends(get_session),
+    db=Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
     try:
-        sprint(f"Saving chat settings for chat '{chat_id}'")
+        log.d(f"Saving chat settings for chat '{chat_id}'")
         invoker_id_hex = get_user_id_from_jwt(token)
-        sprint(f"  Invoker ID: {invoker_id_hex}")
+        log.d(f"  Invoker ID: {invoker_id_hex}")
         di = DI(db, invoker_id_hex)
         di.settings_controller.save_chat_settings(chat_id, payload)
         return {"status": "OK"}
     except Exception as e:
-        sprint("Failed to save chat settings", e)
-        raise HTTPException(status_code = 500, detail = {"reason": str(e)})
+        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to save chat settings", e)})
 
 
 @app.get("/user/{resource_id}/chats")
 def get_chats(
     resource_id: str,
-    db = Depends(get_session),
+    db=Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> list[dict]:
     try:
-        sprint(f"Fetching all chats for {resource_id}")
+        log.d(f"Fetching all chats for {resource_id}")
         invoker_id_hex = get_user_id_from_jwt(token)
-        sprint(f"  Invoker ID: {invoker_id_hex}")
+        log.d(f"  Invoker ID: {invoker_id_hex}")
         di = DI(db, invoker_id_hex)
         return di.settings_controller.fetch_admin_chats(resource_id)
     except Exception as e:
-        sprint("Failed to get chats", e)
-        raise HTTPException(status_code = 500, detail = {"reason": str(e)})
+        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get chats", e)})
 
 
 @app.get("/settings/user/{resource_id}/tools")
 def get_tools(
     resource_id: str,
-    db = Depends(get_session),
+    db=Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
     try:
-        sprint(f"Fetching tools for {resource_id}")
+        log.d(f"Fetching tools for {resource_id}")
         invoker_id_hex = get_user_id_from_jwt(token)
-        sprint(f"  Invoker ID: {invoker_id_hex}")
+        log.d(f"  Invoker ID: {invoker_id_hex}")
         di = DI(db, invoker_id_hex)
         return di.settings_controller.fetch_external_tools(resource_id)
     except Exception as e:
-        sprint("Failed to get external tools", e)
-        raise HTTPException(status_code = 500, detail = {"reason": str(e)})
+        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get external tools", e)})
 
 
 @app.get("/user/{resource_id}/sponsorships")
 def get_sponsorships(
     resource_id: str,
-    db = Depends(get_session),
+    db=Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
     try:
-        sprint(f"Fetching sponsorships for {resource_id}")
+        log.d(f"Fetching sponsorships for {resource_id}")
         invoker_id_hex = get_user_id_from_jwt(token)
-        sprint(f"  Invoker ID: {invoker_id_hex}")
+        log.d(f"  Invoker ID: {invoker_id_hex}")
         di = DI(db, invoker_id_hex)
         sponsorships_controller = di.sponsorships_controller
         return sponsorships_controller.fetch_sponsorships(resource_id)
     except Exception as e:
-        sprint("Failed to get sponsorships", e)
-        raise HTTPException(status_code = 500, detail = {"reason": str(e)})
+        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get sponsorships", e)})
 
 
 @app.post("/user/{resource_id}/sponsorships")
 def sponsor_user(
     resource_id: str,
     payload: SponsorshipPayload,
-    db = Depends(get_session),
+    db=Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
     try:
-        sprint(f"Sponsoring user from {resource_id}")
+        log.d(f"Sponsoring user from {resource_id}")
         invoker_id_hex = get_user_id_from_jwt(token)
-        sprint(f"  Invoker ID: {invoker_id_hex}")
+        log.d(f"  Invoker ID: {invoker_id_hex}")
         di = DI(db, invoker_id_hex)
         di.sponsorships_controller.sponsor_user(resource_id, payload.receiver_telegram_username)
         return {"status": "OK"}
     except Exception as e:
-        sprint("Failed to sponsor user", e)
-        raise HTTPException(status_code = 500, detail = {"reason": str(e)})
+        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to sponsor user", e)})
 
 
 @app.delete("/user/{resource_id}/sponsorships/{receiver_telegram_username}")
 def unsponsor_user(
     resource_id: str,
     receiver_telegram_username: str,
-    db = Depends(get_session),
+    db=Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
     try:
-        sprint(f"Unsponsoring user from {resource_id}")
+        log.d(f"Unsponsoring user from {resource_id}")
         invoker_id_hex = get_user_id_from_jwt(token)
-        sprint(f"  Invoker ID: {invoker_id_hex}")
+        log.d(f"  Invoker ID: {invoker_id_hex}")
         di = DI(db, invoker_id_hex)
         di.sponsorships_controller.unsponsor_user(resource_id, receiver_telegram_username)
         return {"status": "OK"}
     except Exception as e:
-        sprint("Failed to unsponsor user", e)
-        raise HTTPException(status_code = 500, detail = {"reason": str(e)})
+        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to unsponsor user", e)})
 
 
 @app.delete("/user/{resource_id}/sponsored")
 def unsponsor_self(
     resource_id: str,
-    db = Depends(get_session),
+    db=Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
     try:
-        sprint(f"User {resource_id} is unsponsoring themselves")
+        log.d(f"User {resource_id} is unsponsoring themselves")
         invoker_id_hex = get_user_id_from_jwt(token)
-        sprint(f"  Invoker ID: {invoker_id_hex}")
+        log.d(f"  Invoker ID: {invoker_id_hex}")
         di = DI(db, invoker_id_hex)
         di.sponsorships_controller.unsponsor_self(resource_id)
         settings_link = di.settings_controller.create_settings_link()
         return {"settings_link": settings_link}
     except Exception as e:
-        sprint("Failed to unsponsor self", e)
-        raise HTTPException(status_code = 500, detail = {"reason": str(e)})
+        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to unsponsor self", e)})

@@ -3,7 +3,7 @@ import json
 from db.schema.chat_config import ChatConfig
 from di.di import DI
 from features.announcements.sys_announcements_service import SysAnnouncementsService
-from util.safe_printer_mixin import sprint
+from util import log
 from util.translations_cache import DEFAULT_ISO_CODE, DEFAULT_LANGUAGE, TranslationsCache
 
 
@@ -37,12 +37,12 @@ def respond_with_currency_alerts(di: DI) -> dict:
             language_iso_code = chat_config.language_iso_code or DEFAULT_ISO_CODE
             announcement_text = translations.get(language_name, language_iso_code)
             if announcement_text:
-                sprint(
+                log.t(
                     f"Announcement already cached for alert type {translations_cache_key} "
                     f"in chat {triggered_alert.chat_id}",
                 )
             else:
-                sprint(
+                log.t(
                     f"No cached announcement available for alert type {translations_cache_key} "
                     f"in chat {triggered_alert.chat_id}",
                 )
@@ -57,7 +57,7 @@ def respond_with_currency_alerts(di: DI) -> dict:
                 announcement_text = translations.save(str(answer.content), language_name, language_iso_code)
                 announcements_created += 1
         except Exception as e:
-            sprint("Price alert announcement failed", e)
+            log.e("Price alert announcement failed", e)
             continue
 
         # now let's send the announcement to each chat
@@ -65,11 +65,11 @@ def respond_with_currency_alerts(di: DI) -> dict:
             di.telegram_bot_sdk.send_text_message(triggered_alert.chat_id, announcement_text)
             chats_notified += 1
         except Exception as e:
-            sprint(f"Chat notification failed for chat #{triggered_alert.chat_id}", e)
+            log.w(f"Chat notification failed for chat #{triggered_alert.chat_id}", e)
 
     # we're done, report back
     all_chat_ids = set([alert.chat_id for alert in triggered_alerts])
-    sprint(
+    log.i(
         f"Alerts: {len(triggered_alerts)}, "
         f"chats: {len(all_chat_ids)}, "
         f"announcements created: {announcements_created}, "

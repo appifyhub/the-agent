@@ -112,7 +112,7 @@ class ImageGeneratorTest(unittest.TestCase):
         self.assertEqual(result, ChatImagingService.Result.partial)
         expected_details = [
             {"url": "http://test.com/edited_image.png", "error": None, "status": "delivered"},
-            {"url": None, "error": "Processing failed"},
+            {"url": None, "error": "Error removing background from attachment 'attachment1': Processing failed"},
         ]
         self.assertEqual(details, expected_details)
         self.assertEqual(self.mock_di.image_background_remover.call_count, 2)
@@ -139,7 +139,9 @@ class ImageGeneratorTest(unittest.TestCase):
         result, details = service.execute()
 
         self.assertEqual(result, ChatImagingService.Result.failed)
-        expected_details = [{"url": None, "error": "Background removal failed"}]
+        expected_details = [
+            {"url": None, "error": "Error removing background from attachment 'attachment1': Background removal failed"},
+        ]
         self.assertEqual(details, expected_details)
         mock_remover_instance.execute.assert_called_once()
         self.mock_di.telegram_bot_sdk.send_document.assert_not_called()
@@ -161,7 +163,9 @@ class ImageGeneratorTest(unittest.TestCase):
         result, details = service.execute()
 
         self.assertEqual(result, ChatImagingService.Result.failed)
-        expected_details = [{"url": None, "error": "Test exception"}]
+        expected_details = [
+            {"url": None, "error": "Failed to remove background from attachment 'attachment1'\n ├─ ! Exception (see below)"},
+        ]
         self.assertEqual(details, expected_details)
         mock_remover_instance.execute.assert_called_once()
         self.mock_di.telegram_bot_sdk.send_document.assert_not_called()

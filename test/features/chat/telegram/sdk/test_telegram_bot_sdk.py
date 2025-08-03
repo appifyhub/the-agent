@@ -11,6 +11,7 @@ from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 
 
 class TelegramBotSDKTest(unittest.TestCase):
+
     sdk: TelegramBotSDK
     mock_di: DI
 

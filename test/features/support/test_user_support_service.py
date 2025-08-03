@@ -16,6 +16,7 @@ from features.support.user_support_service import UserSupportService
 
 
 class UserSupportServiceTest(unittest.TestCase):
+
     user: User
     mock_di: DI
     mock_configured_tool: tuple[ExternalTool, SecretStr, ToolType]

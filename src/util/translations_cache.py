@@ -5,6 +5,7 @@ DEFAULT_ISO_CODE = "en"
 
 
 class TranslationsCache:
+
     __cache: Dict[str, str]
 
     def __init__(self):

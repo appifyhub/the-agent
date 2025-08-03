@@ -13,8 +13,8 @@ from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.web_browsing.twitter_status_fetcher import TwitterStatusFetcher
 from features.web_browsing.twitter_utils import resolve_tweet_id
 from features.web_browsing.uri_cleanup import simplify_url
+from util import log
 from util.config import config
-from util.safe_printer_mixin import SafePrinterMixin
 
 PLATFORM = f"{platform.python_implementation()}/{platform.python_version()}"
 USER_AGENT = f"Mozilla/5.0 (compatible; TheAgent/1.0; {PLATFORM})"
@@ -24,7 +24,8 @@ DEFAULT_CACHE_TTL_HTML = timedelta(weeks = 3)
 DEFAULT_CACHE_TTL_JSON = timedelta(minutes = 5)
 
 
-class WebFetcher(SafePrinterMixin):
+class WebFetcher:
+
     url: str
     html: str | None
     json: dict | None
@@ -48,7 +49,6 @@ class WebFetcher(SafePrinterMixin):
         auto_fetch_html: bool = False,
         auto_fetch_json: bool = False,
     ):
-        super().__init__(config.verbose)
         self.url = url
         self.__di = di
         self.html = None
@@ -60,7 +60,7 @@ class WebFetcher(SafePrinterMixin):
         self.__cache_ttl_json = cache_ttl_json or DEFAULT_CACHE_TTL_JSON
         self.__tweet_id = resolve_tweet_id(self.url)
         if self.__tweet_id:
-            self.sprint(f"Resolved tweet ID: {self.__tweet_id}")
+            log.t(f"Resolved tweet ID: {self.__tweet_id}")
             twitter_api_tool = di.tool_choice_resolver.require_tool(
                 TwitterStatusFetcher.TWITTER_TOOL_TYPE,
                 TwitterStatusFetcher.DEFAULT_TWITTER_TOOL,
@@ -98,11 +98,11 @@ class WebFetcher(SafePrinterMixin):
         if cache_entry_db:
             cache_entry = ToolsCache.model_validate(cache_entry_db)
             if not cache_entry.is_expired():
-                self.sprint(f"Cache hit for '{self.__cache_key}'")
+                log.t(f"Cache hit for '{self.__cache_key}'")
                 self.html = cache_entry.value
                 return self.html
-            self.sprint(f"Cache expired for '{self.__cache_key}'")
-        self.sprint(f"Cache miss for '{self.__cache_key}'")
+            log.t(f"Cache expired for '{self.__cache_key}'")
+        log.t(f"Cache miss for '{self.__cache_key}'")
 
         attempts = 0
         for _ in range(config.web_retries):
@@ -124,10 +124,10 @@ class WebFetcher(SafePrinterMixin):
                     try:
                         content_text = content_bytes.decode(response.encoding or "utf-8")
                     except Exception:
-                        self.sprint(f"Failed to decode content from {self.url}")
+                        log.w(f"Failed to decode content from {self.url}")
                         content_text = None
                     if b"\x00" in content_bytes or content_text is None:
-                        self.sprint(f"Not caching binary or invalid content from {self.url}")
+                        log.w(f"Not caching binary or invalid content from {self.url}")
                         self.html = None
                         break
                     self.html = content_text
@@ -142,7 +142,7 @@ class WebFetcher(SafePrinterMixin):
             except (RequestException, Timeout) as e:
                 attempts += 1
                 attempts_left = config.web_retries - attempts + 1
-                self.sprint(f"Error fetching HTML content: {e}. Retries left: {attempts_left}")
+                log.w(f"Error fetching HTML content: {e}. Retries left: {attempts_left}")
                 time.sleep(config.web_retry_delay_s)
         return self.html
 
@@ -153,11 +153,11 @@ class WebFetcher(SafePrinterMixin):
         if cache_entry_db:
             cache_entry = ToolsCache.model_validate(cache_entry_db)
             if not cache_entry.is_expired():
-                self.sprint(f"Cache hit for '{self.__cache_key}'")
+                log.t(f"Cache hit for '{self.__cache_key}'")
                 self.json = json.loads(cache_entry.value)
                 return self.json
-            self.sprint(f"Cache expired for '{self.__cache_key}'")
-        self.sprint(f"Cache miss for '{self.__cache_key}'")
+            log.t(f"Cache expired for '{self.__cache_key}'")
+        log.t(f"Cache miss for '{self.__cache_key}'")
 
         attempts = 0
         for _ in range(config.web_retries):
@@ -185,6 +185,6 @@ class WebFetcher(SafePrinterMixin):
             except (RequestException, Timeout) as e:
                 attempts += 1
                 attempts_left = config.web_retries - attempts + 1
-                self.sprint(f"Error fetching JSON content: {e}. Retries left: {attempts_left}")
+                log.w(f"Error fetching JSON content: {e}. Retries left: {attempts_left}")
                 time.sleep(config.web_retry_delay_s)
         return self.json

@@ -12,15 +12,15 @@ from features.chat.supported_files import KNOWN_AUDIO_FORMATS, KNOWN_DOCS_FORMAT
 from features.chat.telegram.sdk.telegram_bot_sdk_utils import TelegramBotSDKUtils
 from features.documents.document_search import DocumentSearch
 from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
-from util.config import config
+from util import log
 from util.functions import digest_md5
-from util.safe_printer_mixin import SafePrinterMixin
 
 CACHE_PREFIX = "attachments-describer"
 CACHE_TTL = timedelta(weeks = 13)
 
 
-class AttachmentsDescriber(SafePrinterMixin):
+class AttachmentsDescriber:
+
     class Result(Enum):
         failed = "Failed"
         partial = "Partial"
@@ -40,7 +40,6 @@ class AttachmentsDescriber(SafePrinterMixin):
         attachment_ids: list[str],
         di: DI,
     ):
-        super().__init__(config.verbose)
         self.__attachments = []
         self.__contents = []
         self.__errors = []
@@ -49,22 +48,18 @@ class AttachmentsDescriber(SafePrinterMixin):
         self.__validate(attachment_ids)
 
     def __validate(self, attachment_ids: list[str]) -> None:
-        self.sprint(f"Validating {len(attachment_ids)} attachments in chat '{self.__di.invoker_chat_id}'")
+        log.d(f"Validating {len(attachment_ids)} attachments in chat '{self.__di.invoker_chat_id}'")
         if not attachment_ids:
-            message = "Malformed LLM Input Error: No attachment IDs provided. You may retry only once!"
-            self.sprint(message)
-            raise ValueError(message)
+            raise ValueError(log.d("Malformed LLM Input Error: No attachment IDs provided. You may retry only once!"))
         attachments: list[ChatMessageAttachment] = []
         for attachment_id in attachment_ids:
             if not attachment_id:
-                message = "Malformed LLM Input Error: Attachment ID cannot be empty. You may retry only once!"
-                self.sprint(message)
-                raise ValueError(message)
+                raise ValueError(log.d("Malformed LLM Input Error: Attachment ID cannot be empty. You may retry only once!"))
             attachment_db = self.__di.chat_message_attachment_crud.get(attachment_id)
             if not attachment_db:
-                message = f"Malformed LLM Input Error: Attachment '{attachment_id}' not found in DB. You may retry only once!"
-                self.sprint(message)
-                raise ValueError(message)
+                raise ValueError(
+                    log.d(f"Malformed LLM Input Error: Attachment '{attachment_id}' not found in DB. You may retry only once!"),
+                )
             attachments.append(ChatMessageAttachment.model_validate(attachment_db))
         self.__attachments = TelegramBotSDKUtils.refresh_attachment_instances(self.__di, attachments)
 
@@ -100,7 +95,7 @@ class AttachmentsDescriber(SafePrinterMixin):
         return result
 
     def execute(self) -> Result:
-        self.sprint("Resolving attachments content")
+        log.d("Resolving attachments content")
 
         self.__contents = []
         self.__errors = []
@@ -113,12 +108,12 @@ class AttachmentsDescriber(SafePrinterMixin):
             if cache_entry_db:
                 cache_entry = ToolsCache.model_validate(cache_entry_db)
                 if not cache_entry.is_expired():
-                    self.sprint(f"Cache hit for '{cache_key}'")
+                    log.t(f"Cache hit for '{cache_key}'")
                     self.__contents.append(cache_entry.value)
                     self.__errors.append(None)
                     continue
-                self.sprint(f"Cache expired for '{cache_key}'")
-            self.sprint(f"Cache miss for '{cache_key}'")
+                log.t(f"Cache expired for '{cache_key}'")
+            log.t(f"Cache miss for '{cache_key}'")
             try:
                 content = self.fetch_text_content(attachment)
                 if content is not None:
@@ -132,16 +127,15 @@ class AttachmentsDescriber(SafePrinterMixin):
                 self.__contents.append(content)
                 self.__errors.append(None)
             except Exception as e:
-                self.sprint(f"Error resolving contents for '{attachment.id}'", e)
                 self.__contents.append(None)
-                self.__errors.append(str(e))
+                self.__errors.append(log.w(f"Error resolving contents for '{attachment.id}'", e))
 
         result = self.__resolution_status
-        self.sprint(f"Resolution result: {result}")
+        log.i(f"Resolution result: {result}")
         return result
 
     def fetch_text_content(self, attachment: ChatMessageAttachment) -> str | None:
-        self.sprint(f"Resolving text content for attachment '{attachment.id}'")
+        log.t(f"Resolving text content for attachment '{attachment.id}'")
 
         # fetching binary contents will also validate the URL
         contents = requests.get(str(attachment.last_url)).content
@@ -199,5 +193,5 @@ class AttachmentsDescriber(SafePrinterMixin):
                 additional_context = self.__additional_context,
             ).execute()
 
-        self.sprint(f"Unsupported attachment '{attachment.id}': {attachment.mime_type}; '.{attachment.extension}'")
+        log.w(f"Unsupported attachment '{attachment.id}': {attachment.mime_type}; '.{attachment.extension}'")
         return None

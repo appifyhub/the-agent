@@ -61,6 +61,7 @@ class ConstructorDependencyNotMetError(Exception):
 
 
 class DI:
+
     # Dynamic dependencies
     _db: Session | None
     _invoker_id: str | None

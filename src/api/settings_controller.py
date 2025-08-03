@@ -13,8 +13,8 @@ from db.schema.user import User
 from di.di import DI
 from features.external_tools.external_tool_library import ALL_EXTERNAL_TOOLS
 from features.external_tools.external_tool_provider_library import ALL_PROVIDERS
+from util import log
 from util.config import config
-from util.safe_printer_mixin import SafePrinterMixin
 
 SettingsType: TypeAlias = Annotated[str, Literal["user", "chat"]]
 InvokerType: TypeAlias = Annotated[str, Literal["creator", "administrator"]]
@@ -22,19 +22,18 @@ DEF_SETTINGS_TYPE: SettingsType = "user"
 SETTINGS_TOKEN_VAR: str = "token"
 
 
-class SettingsController(SafePrinterMixin):
+class SettingsController:
+
+    __di: DI
 
     def __init__(self, di: DI):
-        super().__init__(config.verbose)
         self.__di = di
 
     def __validate_settings_type(self, settings_type: str) -> SettingsType:
-        self.sprint("Validating settings type")
+        log.d("Validating settings type")
         literal_type = get_args(SettingsType)[1]
         if settings_type not in get_args(literal_type):
-            message = f"Invalid settings type '{settings_type}'"
-            self.sprint(message)
-            raise ValueError(message)
+            raise ValueError(log.e(f"Invalid settings type '{settings_type}'"))
         return settings_type
 
     def create_settings_link(self, raw_settings_type: str | None = None, target_chat_id: str | None = None) -> str:
@@ -47,21 +46,15 @@ class SettingsController(SafePrinterMixin):
             resource_id = self.__di.invoker.id.hex
             user_chat_id: str | None = self.__di.invoker.telegram_chat_id
             if not user_chat_id:
-                message = "User never sent a private message, cannot create settings link"
-                self.sprint(message)
-                raise ValueError(message)
+                raise ValueError(log.e("User never sent a private message, cannot create settings link"))
             chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, user_chat_id)
         elif settings_type == "chat":
             if not target_chat_id:
-                message = "Chat ID must be provided when requesting chat settings"
-                self.sprint(message)
-                raise ValueError(message)
+                raise ValueError(log.e("Chat ID must be provided when requesting chat settings"))
             chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, target_chat_id)
             resource_id = chat_config.chat_id
         else:  # should never happen due to validation, let's explode if it does
-            message = f"Invalid settings type '{settings_type}'"
-            self.sprint(message)
-            raise ValueError(message)
+            raise ValueError(log.e(f"Invalid settings type '{settings_type}'"))
 
         if chat_config.language_iso_code:
             lang_iso_code = chat_config.language_iso_code
@@ -76,9 +69,7 @@ class SettingsController(SafePrinterMixin):
     def create_help_link(self) -> str:
         lang_iso_code: str = "en"
         if not self.__di.invoker.telegram_chat_id:
-            message = "User never sent a private message, cannot create settings link"
-            self.sprint(message)
-            raise ValueError(message)
+            raise ValueError(log.e("User never sent a private message, cannot create settings link"))
         chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, self.__di.invoker.telegram_chat_id)
         if chat_config.language_iso_code:
             lang_iso_code = chat_config.language_iso_code
@@ -112,42 +103,36 @@ class SettingsController(SafePrinterMixin):
         return domain_to_api(user).model_dump()
 
     def save_chat_settings(self, chat_id: str, payload: ChatSettingsPayload):
-        self.sprint(f"Saving chat settings for chat '{chat_id}'")
+        log.d(f"Saving chat settings for chat '{chat_id}'")
         chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, chat_id)
         chat_config_save = ChatConfigSave(**chat_config.model_dump())
 
         # validate language changes
         if not payload.language_name or not payload.language_iso_code:
-            message = "Both language_name and language_iso_code must be non-empty"
-            self.sprint(message)
-            raise ValueError(message)
-        self.sprint(f"  Updating language to '{payload.language_name}' ({payload.language_iso_code})")
+            raise ValueError(log.e("Both language_name and language_iso_code must be non-empty"))
+        log.t(f"  Updating language to '{payload.language_name}' ({payload.language_iso_code})")
         chat_config_save.language_name = payload.language_name
         chat_config_save.language_iso_code = payload.language_iso_code
 
         # validate reply chance changes
         if chat_config_save.is_private and payload.reply_chance_percent != 100:
-            message = "Chat is private, reply chance cannot be changed"
-            self.sprint(message)
-            raise ValueError(message)
-        self.sprint(f"  Updating reply chance to {payload.reply_chance_percent}%")
+            raise ValueError(log.e("Chat is private, reply chance cannot be changed"))
+        log.t(f"  Updating reply chance to {payload.reply_chance_percent}%")
         chat_config_save.reply_chance_percent = payload.reply_chance_percent
 
         # validate release notifications changes
         release_notifications = ChatConfigDB.ReleaseNotifications.lookup(payload.release_notifications)
         if not release_notifications:
-            message = f"Invalid release notifications setting value '{payload.release_notifications}'"
-            self.sprint(message)
-            raise ValueError(message)
-        self.sprint(f"  Updating release notifications to '{release_notifications.value}'")
+            raise ValueError(log.e(f"Invalid release notifications setting value '{payload.release_notifications}'"))
+        log.t(f"  Updating release notifications to '{release_notifications.value}'")
         chat_config_save.release_notifications = release_notifications
 
         # finally store the changes
         ChatConfig.model_validate(self.__di.chat_config_crud.save(chat_config_save))
-        self.sprint("Chat settings saved")
+        log.i("Chat settings saved")
 
     def save_user_settings(self, user_id_hex: str, payload: UserSettingsPayload):
-        self.sprint(f"Saving user settings for user '{user_id_hex}'")
+        log.d(f"Saving user settings for user '{user_id_hex}'")
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
 
         # validate tool choices
@@ -155,21 +140,19 @@ class SettingsController(SafePrinterMixin):
         configured_tool_ids = {tool["definition"]["id"] for tool in configured_tools["tools"] if tool["is_configured"]}
         for key, value in payload.model_dump().items():
             if key.startswith("tool_choice_") and value and (value not in configured_tool_ids):
-                message = f"Invalid tool choice '{value}' for '{key}'. Tool is not configured."
-                self.sprint(message)
-                raise ValueError(message)
+                raise ValueError(log.e(f"Invalid tool choice '{value}' for '{key}'. Tool is not configured."))
 
         user_save = api_to_domain(payload, user)
         User.model_validate(self.__di.user_crud.save(user_save))
-        self.sprint("User settings saved")
+        log.i("User settings saved")
 
     def fetch_admin_chats(self, user_id_hex: str) -> list[dict[str, Any]]:
-        self.sprint("Fetching administered chats")
+        log.d("Fetching administered chats")
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
         admin_chats = self.__di.authorization_service.get_authorized_chats(user)
         result: list[dict[str, Any]] = []
         if not admin_chats:
-            self.sprint("  No administered chats found")
+            log.d("  No administered chats found")
             return result
         owner_telegram_chat_id = str(user.telegram_chat_id or 0)
         for chat_config in admin_chats:

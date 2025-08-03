@@ -9,12 +9,12 @@ from db.schema.user import User, UserSave
 from di.di import DI
 from features.chat.telegram.sdk.telegram_bot_sdk_utils import TelegramBotSDKUtils
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
+from util import log
 from util.config import config
 from util.functions import is_the_agent
-from util.safe_printer_mixin import SafePrinterMixin
 
 
-class TelegramDataResolver(SafePrinterMixin):
+class TelegramDataResolver:
     """
     Resolves the final set of data attributes ready to be used by the service.
     If needed, this resolver will fetch more data from the API or the database.
@@ -29,11 +29,10 @@ class TelegramDataResolver(SafePrinterMixin):
     __di: DI
 
     def __init__(self, di: DI):
-        super().__init__(config.verbose)
         self.__di = di
 
     def resolve(self, mapping_result: TelegramDomainMapper.Result) -> Result:
-        # self.sprint(f"Resolving mapping result: {mapping_result}")
+        log.t(f"Resolving mapping result: {mapping_result}")
         resolved_chat_config = self.resolve_chat_config(mapping_result.chat)
         resolved_author: User | None = None
         if mapping_result.author:
@@ -52,7 +51,7 @@ class TelegramDataResolver(SafePrinterMixin):
         )
 
     def resolve_chat_config(self, mapped_data: ChatConfigSave) -> ChatConfig:
-        # self.sprint(f"Resolving chat config: {mapped_data}")
+        log.t(f"  Resolving chat config: {mapped_data}")
         old_chat_config_db = self.__di.chat_config_crud.get(mapped_data.chat_id)
         if old_chat_config_db:
             old_chat_config = ChatConfig.model_validate(old_chat_config_db)
@@ -68,7 +67,7 @@ class TelegramDataResolver(SafePrinterMixin):
     def resolve_author(self, mapped_data: UserSave | None) -> User | None:
         if not mapped_data:
             return None
-        # self.sprint(f"Resolving user: {mapped_data}")
+        log.t(f"  Resolving user: {mapped_data}")
         old_user_db = (
             self.__di.user_crud.get_by_telegram_user_id(mapped_data.telegram_user_id or -1) or
             self.__di.user_crud.get_by_telegram_username(mapped_data.telegram_username or "")
@@ -106,8 +105,7 @@ class TelegramDataResolver(SafePrinterMixin):
             # new users can only be added until the user limit is reached
             user_count = self.__di.user_crud.count()
             if user_count >= config.max_users:
-                self.sprint(f"User limit reached: {user_count}/{config.max_users}")
-                raise ValueError("User limit reached, try again later")
+                raise ValueError(log.e(f"User limit reached: {user_count}/{config.max_users}. Try again later"))
 
         # reset token values to None so that there's no confusion going forward
         def is_empty_secret(secret):
@@ -157,7 +155,7 @@ class TelegramDataResolver(SafePrinterMixin):
         return User.model_validate(self.__di.user_crud.save(mapped_data))
 
     def resolve_chat_message(self, mapped_data: ChatMessageSave) -> ChatMessage:
-        # self.sprint(f"Resolving chat message: {mapped_data}")
+        log.t(f"  Resolving chat message: {mapped_data}")
         old_chat_message_db = self.__di.chat_message_crud.get(mapped_data.chat_id, mapped_data.message_id)
         if old_chat_message_db:
             old_chat_message = ChatMessage.model_validate(old_chat_message_db)
@@ -167,7 +165,7 @@ class TelegramDataResolver(SafePrinterMixin):
         return ChatMessage.model_validate(self.__di.chat_message_crud.save(mapped_data))
 
     def resolve_chat_message_attachment(self, mapped_data: ChatMessageAttachmentSave) -> ChatMessageAttachment:
-        # self.sprint(f"Resolving chat message attachment: {mapped_data}")
+        log.t(f"  Resolving chat message attachment: {mapped_data}")
         old_attachment_db = None
         if mapped_data.ext_id:
             old_attachment_db = self.__di.chat_message_attachment_crud.get_by_ext_id(mapped_data.ext_id)

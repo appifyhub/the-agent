@@ -15,6 +15,7 @@ from features.sponsorships.sponsorship_service import SponsorshipService
 
 
 class CommandProcessorTest(unittest.TestCase):
+
     user: User
     mock_di: DI
     processor: CommandProcessor

@@ -11,6 +11,7 @@ KEY_DELIMITER = "~"
 
 
 class ToolsCacheCRUD:
+
     _db: Session
 
     def __init__(self, db: Session):

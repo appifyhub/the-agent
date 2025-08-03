@@ -5,6 +5,7 @@ from db.schema.price_alert import PriceAlertSave
 
 
 class PriceAlertCRUD:
+
     _db: Session
 
     def __init__(self, db: Session):
