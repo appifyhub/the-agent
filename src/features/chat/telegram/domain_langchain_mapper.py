@@ -70,6 +70,6 @@ class DomainLangchainMapper(SafePrinterMixin):
         if isinstance(message.content, str):
             return message.content
         if isinstance(message.content[0], str):
-            return MULTI_MESSAGE_DELIMITER.join(message.content)
+            return MULTI_MESSAGE_DELIMITER.join(message.content)  # type: ignore
         pretty_dicts = [pretty_print(raw_dict) for raw_dict in message.content]
         return MULTI_MESSAGE_DELIMITER.join(pretty_dicts)
