@@ -10,6 +10,8 @@ from util.singleton import Singleton
 
 class Config(metaclass = Singleton):
 
+    DEV_API_KEY = "0000-1234-5678-0000"
+
     max_sponsorships_per_user: int
     log_level: str
     log_telegram_update: bool
@@ -70,7 +72,7 @@ class Config(metaclass = Singleton):
         def_db_pass: SecretStr = SecretStr("root"),
         def_db_host: SecretStr = SecretStr("localhost"),
         def_db_name: SecretStr = SecretStr("agent"),
-        def_api_key: SecretStr = SecretStr("0000-1234-5678-0000"),
+        def_api_key: SecretStr = SecretStr(DEV_API_KEY),
         def_telegram_auth_key: SecretStr = SecretStr("it_is_really_telegram"),
         def_telegram_bot_token: SecretStr = SecretStr("invalid"),
         def_jwt_secret_key: SecretStr = SecretStr("default"),

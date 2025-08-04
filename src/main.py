@@ -1,8 +1,17 @@
+import multiprocessing
+import os
+import random
+import subprocess
+import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
+from uuid import UUID
 
+import uvicorn
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import SecretStr
 from starlette.responses import RedirectResponse
 
 from api.auth import get_user_id_from_jwt, verify_api_key, verify_jwt_credentials, verify_telegram_auth_key
@@ -19,16 +28,19 @@ from features.chat.telegram.release_summary_responder import respond_with_summar
 from features.chat.telegram.telegram_update_responder import respond_to_update
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util import log
-from util.config import config
+from util.config import Config, config
 
 
 # noinspection PyUnusedLocal
 @asynccontextmanager
 async def lifespan(owner: FastAPI):
-    log.i("Lifecycle: Starting up endpoints...")
+    process_name = multiprocessing.current_process().name
+    worker_type = "main" if process_name == "MainProcess" else "worker"
+    worker_info = f"[{worker_type}-{os.getpid()}] {process_name}"
+    log.i(f"Lifecycle: Starting up {worker_info}")
     initialize_db()
     yield  # this holds the app alive until the server is shut down
-    log.i("Lifecycle: Shutting down...")
+    log.i(f"Lifecycle: Shutting down {worker_info}...")
 
 
 app = FastAPI(
@@ -36,7 +48,7 @@ app = FastAPI(
     redoc_url = None,
     title = "The Agent's API",
     description = "This is the API service for The Agent.",
-    debug = config.log_level in ["trace", "debug"],
+    debug = config.log_level in ["local", "trace", "debug"],
     lifespan = lifespan,
 )
 
@@ -262,3 +274,51 @@ def unsponsor_self(
         return {"settings_link": settings_link}
     except Exception as e:
         raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to unsponsor self", e)})
+
+
+# The main runner
+if __name__ == "__main__":
+    if "--dev" in sys.argv:  # when running locally...
+        os.environ["LOG_LEVEL"] = "debug"
+        config.log_level = "debug"
+        os.environ["API_KEY"] = "developer"
+        config.api_key = SecretStr("developer")
+        workers = 1
+        reload = True
+        print("INFO:     Launching in dev mode...")
+    else:  # when running in production...
+        # generate a random API key to prevent use of the default API key
+        if config.api_key.get_secret_value() == Config.DEV_API_KEY:
+            api_key = str(UUID(int = random.randint(0, 2 ** 128 - 1))).upper()
+            os.environ["API_KEY"] = api_key
+            config.api_key = SecretStr(api_key)
+            print("WARN:     Generated a new API key!", config.api_key.get_secret_value(), file = sys.stderr)
+        workers = 2
+        reload = False
+        # and run the database migrations
+        print("INFO:     Running database migrations...")
+        subprocess.run(["./tools/db_apply_migration.sh", "-y"], check = True)
+        print("INFO:     Launching in production mode...")
+    uvicorn_log_level = "debug" if config.log_level == "local" else config.log_level
+
+    # get the service version
+    if (version_file := Path("./.version")).exists():
+        version_name = version_file.read_text().strip()
+        if version_name:
+            os.environ["VERSION"] = version_name
+            config.version = version_name
+            print("INFO:     Version file found", f"v{config.version}")
+        else:
+            print("ERROR:    Version file empty", file = sys.stderr)
+    else:
+        print("ERROR:    Version file not found, using dev version", file = sys.stderr)
+
+    # finally, start the server
+    uvicorn.run(
+        "main:app",
+        host = "0.0.0.0",
+        port = 80,
+        log_level = uvicorn_log_level,
+        workers = workers,
+        reload = reload,
+    )

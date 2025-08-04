@@ -10,7 +10,6 @@ fi
 
 echoinfo "Installing dependencies in pipenv environment..."
 pipenv install --dev
-pipenv install
 
 # Function to revert the .env files
 revert_env_files() {
