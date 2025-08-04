@@ -5,6 +5,7 @@ from util.singleton import Singleton
 
 
 class SingletonTestClass(metaclass = Singleton):
+
     pass
 
 

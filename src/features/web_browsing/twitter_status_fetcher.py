@@ -11,15 +11,16 @@ from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import TWITTER_API
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
+from util import log
 from util.config import config
-from util.safe_printer_mixin import SafePrinterMixin
 
 CACHE_PREFIX = "twitter-status-fetcher"
 CACHE_TTL = timedelta(weeks = 52)
 RATE_LIMIT_DELAY_S = 2
 
 
-class TwitterStatusFetcher(SafePrinterMixin):
+class TwitterStatusFetcher:
+
     DEFAULT_TWITTER_TOOL: ExternalTool = TWITTER_API
     TWITTER_TOOL_TYPE: ToolType = ToolType.api_twitter
     DEFAULT_VISION_TOOL: ExternalTool = ComputerVisionAnalyzer.DEFAULT_TOOL
@@ -39,7 +40,6 @@ class TwitterStatusFetcher(SafePrinterMixin):
         twitter_enterprise_tool: ConfiguredTool,
         di: DI,
     ):
-        super().__init__(config.verbose)
         self.__tweet_id = tweet_id
         self.__twitter_api_tool = twitter_api_tool
         self.__vision_tool = vision_tool
@@ -47,7 +47,7 @@ class TwitterStatusFetcher(SafePrinterMixin):
         self.__di = di
 
     def execute(self) -> str:
-        self.sprint(f"Fetching content for tweet ID: {self.__tweet_id}")
+        log.t(f"Fetching content for tweet ID: {self.__tweet_id}")
 
         cache_key = self.__di.tools_cache_crud.create_key(CACHE_PREFIX, self.__tweet_id)
         cached_content = self.__get_cached_content(cache_key)
@@ -83,19 +83,19 @@ class TwitterStatusFetcher(SafePrinterMixin):
                 expires_at = datetime.now() + CACHE_TTL,
             ),
         )
-        self.sprint(f"Cache updated for key '{cache_key}'")
+        log.t(f"Cache updated for key '{cache_key}'")
         return resolved_content
 
     def __get_cached_content(self, cache_key: str) -> str | None:
-        self.sprint(f"Fetching cached content for key: '{cache_key}'")
+        log.t(f"Fetching cached content for key: '{cache_key}'")
         cache_entry_db = self.__di.tools_cache_crud.get(cache_key)
         if cache_entry_db:
             cache_entry = ToolsCache.model_validate(cache_entry_db)
             if not cache_entry.is_expired():
-                self.sprint(f"Cache hit for key '{cache_key}'")
+                log.t(f"Cache hit for key '{cache_key}'")
                 return cache_entry.value
-            self.sprint(f"Cache expired for key '{cache_key}'")
-        self.sprint(f"Cache miss for key '{cache_key}'")
+            log.t(f"Cache expired for key '{cache_key}'")
+        log.t(f"Cache miss for key '{cache_key}'")
         return None
 
     def __resolve_content(self, response: Dict[str, Any]) -> str:
@@ -120,12 +120,10 @@ class TwitterStatusFetcher(SafePrinterMixin):
             photo_contents = self.__resolve_photo_contents(tweet, text_contents)
             return "\n".join([text_contents, photo_contents or ""]).strip()
         except Exception as e:
-            message = "Error formatting tweet content"
-            self.sprint(message, e)
-            raise ValueError(f"{message}: {str(e)}")
+            raise ValueError(log.w("Error formatting tweet content", e))
 
     def __resolve_photo_contents(self, tweet: Dict[str, Any], additional_context: str | None) -> str | None:
-        self.sprint(f"Resolving photo contents for tweet {self.__tweet_id}")
+        log.t(f"Resolving photo contents for tweet {self.__tweet_id}")
         attachments = tweet.get("extended_entities") or None
         if not attachments:
             return None
@@ -153,5 +151,5 @@ class TwitterStatusFetcher(SafePrinterMixin):
                     description = analyzer.execute()
                     photo_descriptions.append(f"---\nPhoto [{i + 1}]: {url}\n{description}")
             except Exception as e:
-                self.sprint(f"Error resolving photo {i + 1} from tweet {self.__tweet_id}", e)
+                log.w(f"Error resolving photo {i + 1} from tweet {self.__tweet_id}", e)
         return "\n".join(photo_descriptions) if photo_descriptions else None

@@ -7,12 +7,12 @@ from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import GPT_4_1_MINI
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.prompting import prompt_library
-from util.config import config
-from util.safe_printer_mixin import SafePrinterMixin
+from util import log
 
 
 # Not tested as it's just a proxy
-class ComputerVisionAnalyzer(SafePrinterMixin):
+class ComputerVisionAnalyzer:
+
     DEFAULT_TOOL: ExternalTool = GPT_4_1_MINI
     TOOL_TYPE: ToolType = ToolType.vision
 
@@ -20,7 +20,6 @@ class ComputerVisionAnalyzer(SafePrinterMixin):
     __job_id: str
     __messages: list[BaseMessage]
     __vision_model: BaseChatModel
-    __di: DI
 
     def __init__(
         self,
@@ -32,7 +31,6 @@ class ComputerVisionAnalyzer(SafePrinterMixin):
         image_b64: str | None = None,
         additional_context: str | None = None,
     ):
-        super().__init__(config.verbose)
         self.__job_id = job_id
 
         # validate image input parameters
@@ -50,7 +48,7 @@ class ComputerVisionAnalyzer(SafePrinterMixin):
         else:  # image_b64 is not None
             data_uri = f"data:{image_mime_type};base64,{image_b64}"
             image_content_json["image_url"] = {"url": data_uri}
-        content: list[dict] = []
+        content: list[str | dict] = []
         if additional_context:
             content.append({"type": "text", "text": additional_context})
         content.append(image_content_json)
@@ -60,10 +58,9 @@ class ComputerVisionAnalyzer(SafePrinterMixin):
         self.__messages.append(SystemMessage(prompt_library.observer_computer_vision))
         self.__messages.append(HumanMessage(content = content))
         self.__vision_model = di.chat_langchain_model(configured_tool)
-        self.__di = di
 
     def execute(self) -> str | None:
-        self.sprint(f"Starting computer vision analysis for job '{self.__job_id}'")
+        log.d(f"Starting computer vision analysis for job '{self.__job_id}'")
         self.error = None
         try:
             answer = self.__vision_model.invoke(self.__messages)
@@ -73,6 +70,5 @@ class ComputerVisionAnalyzer(SafePrinterMixin):
                 raise AssertionError(f"Received an unexpected content from the model: {answer}")
             return str(answer.content)
         except Exception as e:
-            self.sprint("Computer vision analysis failed", e)
-            self.error = str(e)
+            self.error = log.e("Computer vision analysis failed", e)
             return None

@@ -6,6 +6,7 @@ from db.schema.chat_message import ChatMessageSave
 
 
 class ChatMessageCRUD:
+
     _db: Session
 
     def __init__(self, db: Session):

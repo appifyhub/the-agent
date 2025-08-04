@@ -19,6 +19,7 @@ from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 
 
 class AuthorizationServiceTest(unittest.TestCase):
+
     invoker_user: User
     invoker_telegram_user: TelegramUser
     chat_config: ChatConfig

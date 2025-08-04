@@ -8,6 +8,7 @@ from db.schema.tools_cache import ToolsCacheSave
 
 
 class ToolsCacheCRUDTest(unittest.TestCase):
+
     sql: SQLUtil
 
     def setUp(self):

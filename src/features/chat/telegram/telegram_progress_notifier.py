@@ -3,8 +3,7 @@ import time
 from threading import Event, Lock, Thread
 
 from di.di import DI
-from util.config import config
-from util.safe_printer_mixin import SafePrinterMixin
+from util import log
 
 DEFAULT_REACTION_INTERVAL_S = 15
 DEFAULT_TEXT_UPDATE_INTERVAL_S = 45
@@ -20,7 +19,8 @@ ESCALATING_REACTIONS = [
 ]
 
 
-class TelegramProgressNotifier(SafePrinterMixin):
+class TelegramProgressNotifier:
+
     __message_id: str
     __last_reaction_time: float
     __last_text_update_time: float
@@ -39,7 +39,6 @@ class TelegramProgressNotifier(SafePrinterMixin):
         reaction_interval_s: int = DEFAULT_REACTION_INTERVAL_S,
         text_update_interval_s: int = DEFAULT_TEXT_UPDATE_INTERVAL_S,
     ):
-        super().__init__(config.verbose)
         self.__di = di
         self.__message_id = message_id
         self.__last_reaction_time = 0
@@ -53,42 +52,42 @@ class TelegramProgressNotifier(SafePrinterMixin):
         self.__text_update_interval_s = text_update_interval_s
         if auto_start:
             self.start()
-        self.sprint(f"Text update interval: {self.__text_update_interval_s}")
+        log.d(f"Text update interval: {self.__text_update_interval_s}")
 
     def start(self):
-        self.sprint("Acquiring start lock...")
+        log.d("Acquiring start lock...")
         if self.__thread and self.__thread.is_alive():
-            self.sprint(f"  Thread {self.__thread.name} is already running (before lock)")
+            log.d(f"  Thread {self.__thread.name} is already running (before lock)")
             return
         with self.__lock:
-            self.sprint("  Acquired")
+            log.t("  Acquired")
             if self.__thread and self.__thread.is_alive():
-                self.sprint(f"  Thread {self.__thread.name} is already running (after lock)")
+                log.d(f"  Thread {self.__thread.name} is already running (after lock)")
                 return
-            self.sprint("  Starting a new thread...")
+            log.t("  Starting a new thread...")
             self.__signal.clear()
             thread_name = f"telegram-progress-notifier-{random.randint(1000, 9999)}"
             self.__thread = Thread(name = thread_name, target = self.__run, daemon = True)
             self.__thread.start()  # fire and forget
-            self.sprint(f"  Started thread {thread_name}")
+            log.t(f"  Started thread {thread_name}")
 
     def stop(self):
-        self.sprint("Acquiring stop lock...")
+        log.t("Acquiring stop lock...")
         if not self.__thread:
-            self.sprint("  No thread running (before lock)")
+            log.t("  No thread running (before lock)")
             return
         with self.__lock:
-            self.sprint("  Acquired")
-            self.sprint(f"  Stopping thread {self.__thread.name}...")
+            log.t("  Acquired")
+            log.t(f"  Stopping thread {self.__thread.name}...")
             self.__signal.set()
             if not self.__thread:
-                self.sprint("  No thread running (after lock)")
+                log.t("  No thread running (after lock)")
                 return
             self.__thread.join(timeout = 1)  # wait for up to 1 second and proceed anyway
             if self.__thread.is_alive():
-                self.sprint("  Thread did not stop in time, proceeding...")
+                log.t("  Thread did not stop in time, proceeding...")
                 self.__total_cycles = MAX_CYCLES
-            self.sprint(f"  Stopped thread {self.__thread.name}")
+            log.t(f"  Stopped thread {self.__thread.name}")
         # noinspection TryExceptPass
         # remove the stale reaction (sometimes fails due to API race condition but doesn't matter)
         try:
@@ -111,7 +110,7 @@ class TelegramProgressNotifier(SafePrinterMixin):
                 elapsed_time_total_s = time.time() - self.__last_text_update_time
                 elapsed_time_m, elapsed_time_s = divmod(int(elapsed_time_total_s), 60)
                 elapse_time_text = f"{elapsed_time_m} min[s] {elapsed_time_s} sec[s]"
-                self.sprint(f"  Text update interval: {elapse_time_text}")
+                log.t(f"  Text update interval: {elapse_time_text}")
                 self.__last_text_update_time = current_time_s
             elif reaction_elapsed_s >= float(self.__reaction_interval_s):
                 # check if reaction update is needed
@@ -126,21 +125,21 @@ class TelegramProgressNotifier(SafePrinterMixin):
 
     def __set_chat_status(self, is_long: bool):
         status = "uploading" if is_long else "typing"
-        self.sprint(f"Setting \"{status}\" status")
+        log.t(f"Setting \"{status}\" status")
         try:
             if is_long:
                 self.__di.telegram_bot_sdk.set_status_uploading_image(self.__di.invoker_chat.chat_id)
             else:
                 self.__di.telegram_bot_sdk.set_status_typing(self.__di.invoker_chat.chat_id)
         except Exception as e:
-            self.sprint(f"Failed to set \"{status}\" status", e)
+            log.w(f"Failed to set \"{status}\" status", e)
 
     def __send_reaction(self):
-        self.sprint("Time for a reaction update")
+        log.t("Time for a reaction update")
         self.__set_chat_status(is_long = False)
         try:
             next_reaction = ESCALATING_REACTIONS[self.__next_reaction_index]
             self.__next_reaction_index = (self.__next_reaction_index + 1) % len(ESCALATING_REACTIONS)
             self.__di.telegram_bot_sdk.set_reaction(self.__di.invoker_chat.chat_id, self.__message_id, next_reaction)
         except Exception as e:
-            self.sprint(f"Failed to send reaction: {e}")
+            log.w(f"Failed to send reaction: {e}")

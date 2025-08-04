@@ -8,6 +8,7 @@ from db.schema.user import UserSave
 
 
 class UserCRUDTest(unittest.TestCase):
+
     sql: SQLUtil
 
     def setUp(self):
@@ -354,11 +355,17 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(updated_user.telegram_username, update_data.telegram_username)
         self.assertEqual(updated_user.telegram_chat_id, update_data.telegram_chat_id)
         self.assertEqual(updated_user.telegram_user_id, update_data.telegram_user_id)
+        assert update_data.open_ai_key is not None
         self.assertEqual(updated_user.open_ai_key, update_data.open_ai_key.get_secret_value())
+        assert update_data.anthropic_key is not None
         self.assertEqual(updated_user.anthropic_key, update_data.anthropic_key.get_secret_value())
+        assert update_data.perplexity_key is not None
         self.assertEqual(updated_user.perplexity_key, update_data.perplexity_key.get_secret_value())
+        assert update_data.replicate_key is not None
         self.assertEqual(updated_user.replicate_key, update_data.replicate_key.get_secret_value())
+        assert update_data.rapid_api_key is not None
         self.assertEqual(updated_user.rapid_api_key, update_data.rapid_api_key.get_secret_value())
+        assert update_data.coinmarketcap_key is not None
         self.assertEqual(updated_user.coinmarketcap_key, update_data.coinmarketcap_key.get_secret_value())
         self.assertEqual(updated_user.tool_choice_copywriting, update_data.tool_choice_copywriting)
         self.assertEqual(updated_user.tool_choice_images_edit, update_data.tool_choice_images_edit)

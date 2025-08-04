@@ -1,7 +1,7 @@
 """
-Custom linting script to enforce spaces around equals signs in function call keyword arguments.
-
-This enforces the style: func(param = value) instead of func(param=value)
+Custom linting script to enforce spacing rules:
+1. Spaces around equals signs in function call keyword arguments: func(param = value)
+2. Exactly one blank line after class declarations: class Foo:\n\n    def __init__(self):
 """
 
 import ast
@@ -12,18 +12,26 @@ from typing import List, Tuple
 
 
 class SpacingChecker(ast.NodeVisitor):
-    """AST visitor to find function calls with keyword arguments."""
+    """AST visitor to find function calls with keyword arguments and class spacing."""
 
     def __init__(self, source_lines: List[str], filename: str):
         self.source_lines = source_lines
         self.filename = filename
         self.violations: List[Tuple[int, int, str]] = []
+        self.class_inheritance_map: dict[str, set[str]] = {}  # class_name -> set of base class names
 
     def visit_Call(self, node: ast.Call) -> None:
         """Visit function call nodes and check keyword argument spacing."""
         for keyword in node.keywords:
             if keyword.arg is not None:  # Skip **kwargs
                 self._check_keyword_spacing(keyword)
+        self.generic_visit(node)
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        """Visit class definition nodes and check for blank line after class declaration."""
+        # Build inheritance map first
+        self._build_inheritance_info(node)
+        self._check_class_spacing(node)
         self.generic_visit(node)
 
     def _check_keyword_spacing(self, keyword: ast.keyword) -> None:
@@ -66,6 +74,128 @@ class SpacingChecker(ast.NodeVisitor):
                 violation_msg = f"Missing spaces around '=' in keyword argument '{keyword.arg}'"
                 self.violations.append((keyword.lineno, col + 1, violation_msg))
 
+    def _check_class_spacing(self, node: ast.ClassDef) -> None:
+        """Check if a class definition has exactly one blank line after the class declaration."""
+        # Skip enum classes and exception classes
+        if self._is_enum_or_exception_class(node):
+            return
+
+        # Find the line with the colon (end of class declaration)
+        class_start_line = node.lineno - 1  # Convert to 0-based index
+
+        # Find the line that ends with a colon (class declaration line)
+        colon_line_idx = None
+        for i in range(class_start_line, min(class_start_line + 3, len(self.source_lines))):
+            if i < len(self.source_lines) and self.source_lines[i].rstrip().endswith(":"):
+                colon_line_idx = i
+                break
+
+        if colon_line_idx is None:
+            return
+
+        # Check if there's exactly one blank line after the class declaration
+        next_line_idx = colon_line_idx + 1
+        if next_line_idx >= len(self.source_lines):
+            return
+
+        # Check if the next line is a docstring (allow zero blank lines in this case)
+        if next_line_idx < len(self.source_lines):
+            next_line = self.source_lines[next_line_idx].strip()
+            if next_line.startswith('"""') or next_line.startswith("'''"):
+                return  # Docstring immediately after class is OK
+            # The next line should be blank for non-docstring content
+            if next_line != "":
+                # No blank line after class declaration
+                violation_msg = f"Expected exactly one blank line after class '{node.name}' declaration"
+                self.violations.append((next_line_idx + 1, 1, violation_msg))
+
+    def _build_inheritance_info(self, node: ast.ClassDef) -> None:
+        """Build inheritance information for this class."""
+        base_names = set()
+        for base in node.bases:
+            if isinstance(base, ast.Name):
+                base_names.add(base.id)
+            elif isinstance(base, ast.Attribute):
+                # Handle cases like pydantic.BaseModel
+                if isinstance(base.value, ast.Name):
+                    base_names.add(f"{base.value.id}.{base.attr}")
+                else:
+                    base_names.add(base.attr)  # Fallback to just the attribute name
+        self.class_inheritance_map[node.name] = base_names
+
+    def _inherits_from_pydantic(self, class_name: str) -> bool:
+        """Check if a class inherits from Pydantic BaseModel, either directly or transitively."""
+        visited = set()
+
+        def check_recursive(cls_name: str) -> bool:
+            if cls_name in visited:
+                return False  # Avoid infinite loops
+            visited.add(cls_name)
+            bases = self.class_inheritance_map.get(cls_name, set())
+
+            # Check direct inheritance
+            for base in bases:
+                if base in {"BaseModel", "pydantic.BaseModel"}:
+                    return True
+
+            # Check transitive inheritance (only within this file)
+            for base in bases:
+                if base in self.class_inheritance_map and check_recursive(base):
+                    return True
+            return False
+
+        return check_recursive(class_name)
+
+    def _is_enum_or_exception_class(self, node: ast.ClassDef) -> bool:
+        """Check if a class is an enum, exception, dataclass, or Pydantic model."""
+        # Check for @dataclass decorator (with or without arguments)
+        for decorator in node.decorator_list:
+            if isinstance(decorator, ast.Name) and decorator.id == "dataclass":
+                return True
+            elif isinstance(decorator, ast.Call):
+                # Handle @dataclass(...) with arguments
+                if isinstance(decorator.func, ast.Name) and decorator.func.id == "dataclass":
+                    return True
+                elif isinstance(decorator.func, ast.Attribute):
+                    # Handle @dataclasses.dataclass(...)
+                    if (
+                        isinstance(decorator.func.value, ast.Name)
+                        and decorator.func.value.id == "dataclasses"
+                        and decorator.func.attr == "dataclass"
+                    ):
+                        return True
+            elif isinstance(decorator, ast.Attribute):
+                # Handle cases like dataclasses.dataclass (without arguments)
+                if (
+                    isinstance(decorator.value, ast.Name)
+                    and decorator.value.id == "dataclasses"
+                    and decorator.attr == "dataclass"
+                ):
+                    return True
+
+        # Check if this class inherits from Pydantic BaseModel (transitively)
+        if self._inherits_from_pydantic(node.name):
+            return True
+
+        # Check base classes for enum and exception patterns
+        for base in node.bases:
+            if isinstance(base, ast.Name):
+                base_name = base.id
+                if base_name in {"Enum", "IntEnum", "Flag", "IntFlag", "Exception", "BaseException"}:
+                    return True
+                if base_name.endswith(("Error", "Exception")):
+                    return True
+            elif isinstance(base, ast.Attribute):
+                # Handle cases like enum.Enum
+                if isinstance(base.value, ast.Name) and base.value.id == "enum":
+                    return True
+
+        # Check if class name suggests it's an exception
+        if node.name.endswith(("Error", "Exception")):
+            return True
+
+        return False
+
 
 def check_file(file_path: Path, fix: bool = False) -> List[Tuple[int, int, str]]:
     """Check a single Python file for spacing violations."""
@@ -104,8 +234,26 @@ def fix_spacing_violations(content: str, violations: List[Tuple[int, int, str]])
     """Fix spacing violations in the content."""
     lines = content.splitlines()
 
-    # Process violations in reverse order to maintain line numbers
-    for line_num, col, _ in sorted(violations, reverse = True):
+    # Separate class spacing violations from keyword spacing violations
+    class_violations = []
+    keyword_violations = []
+
+    for violation in violations:
+        line_num, col, msg = violation
+        if "blank line after class" in msg:
+            class_violations.append(violation)
+        else:
+            keyword_violations.append(violation)
+
+    # Fix class spacing violations first (in reverse order to maintain line numbers)
+    for line_num, col, _ in sorted(class_violations, reverse = True):
+        line_idx = line_num - 1  # Convert to 0-based
+        if line_idx >= 0 and line_idx < len(lines):
+            # Insert a blank line before the current line
+            lines.insert(line_idx, "")
+
+    # Fix keyword spacing violations
+    for line_num, col, _ in sorted(keyword_violations, reverse = True):
         line_idx = line_num - 1  # Convert to 0-based
         if line_idx >= len(lines):
             continue
@@ -141,7 +289,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description = "Check and fix spacing around equals signs in function call keyword arguments",
+        description = "Check and fix spacing rules: equals signs in keyword arguments and blank lines after class declarations",
     )
     parser.add_argument(
         "paths",

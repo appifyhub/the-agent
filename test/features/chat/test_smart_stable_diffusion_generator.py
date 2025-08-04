@@ -10,6 +10,7 @@ from features.external_tools.tool_choice_resolver import ConfiguredTool
 
 
 class SmartStableDiffusionGeneratorTest(unittest.TestCase):
+
     raw_prompt: str
     mock_di: DI
     mock_configured_copywriter_tool: ConfiguredTool

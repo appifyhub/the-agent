@@ -3,40 +3,40 @@ from pydantic import SecretStr
 from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ExternalToolProvider, ToolType
 from features.external_tools.external_tool_library import ALL_EXTERNAL_TOOLS
-from util.config import config
-from util.safe_printer_mixin import SafePrinterMixin
+from util import log
 
 ToolsByProvider = dict[ExternalToolProvider, list[ExternalTool]]
 ConfiguredTool = tuple[ExternalTool, SecretStr, ToolType]
 
 
 class ToolResolutionError(Exception):
+
     def __init__(self, purpose: ToolType, user_id: str):
         message = f"Unable to resolve a tool for '{purpose.value}' for user '{user_id}'. "
         message += "Open your profile settings page to configure your tool choices and tokens."
         super().__init__(message)
 
 
-class ToolChoiceResolver(SafePrinterMixin):
+class ToolChoiceResolver:
+
     __di: DI
 
     def __init__(self, di: DI):
-        super().__init__(config.verbose)
         self.__di = di
 
     def get_tool(self, purpose: ToolType, default_tool: str | ExternalTool | None = None) -> ConfiguredTool | None:
-        self.sprint(f"Resolving tool for type '{purpose.value}' for user '{self.__di.invoker.id.hex}'")
+        log.t(f"Resolving tool for type '{purpose.value}' for user '{self.__di.invoker.id.hex}'")
 
         # 1. find the user's choice for this purpose
         user_choice_tool_id: str | None = self.__get_user_tool_choice(purpose)
         user_choice_tool: ExternalTool | None = None
         if user_choice_tool_id:
-            self.sprint(f"  User's tool choice: '{user_choice_tool_id}'")
+            log.t(f"  User's tool choice: '{user_choice_tool_id}'")
             user_choice_tool = ToolChoiceResolver.find_tool_by_id(user_choice_tool_id)
 
         # 2. get prioritized tools (user choice > default tool > others)
         prioritized_tools = ToolChoiceResolver.get_prioritized_tools(purpose, user_choice_tool, default_tool)
-        self.sprint(f"Finished prioritizing {len(prioritized_tools)} tools")
+        log.t(f"Finished prioritizing {len(prioritized_tools)} tools")
 
         # 3. try tools in order of priority until one with access is found
         for tool in prioritized_tools:
@@ -47,13 +47,13 @@ class ToolChoiceResolver(SafePrinterMixin):
                     if isinstance(default_tool, ExternalTool)
                     else (default_tool if isinstance(default_tool, str) else "<none>")
                 )
-                self.sprint(f"Found available tool '{tool.id}' from provider '{tool.provider.name}'")
-                self.sprint(f"  - Matches user choice '{user_choice_tool_id}'? {'Yes' if tool.id == user_choice_tool else 'No'}")
-                self.sprint(f"  - Matches default tool '{default_tool_id}'? {'Yes' if tool.id == default_tool_id else 'No'}")
+                log.t(f"Found available tool '{tool.id}' from provider '{tool.provider.name}'")
+                log.t(f"  · Matches user choice '{user_choice_tool_id}'? {'Yes' if tool.id == user_choice_tool else 'No'}")
+                log.t(f"  · Matches default tool '{default_tool_id}'? {'Yes' if tool.id == default_tool_id else 'No'}")
                 return tool, access_token, purpose
-            self.sprint(f"No access to tool '{tool.id}' from provider '{tool.provider.name}'")
+            log.t(f"No access to tool '{tool.id}' from provider '{tool.provider.name}'")
 
-        self.sprint(f"No available tools found for type '{purpose.value}'")
+        log.t(f"No available tools found for type '{purpose.value}'")
         return None
 
     def require_tool(self, purpose: ToolType, default_tool: str | ExternalTool | None = None) -> ConfiguredTool:
@@ -94,7 +94,7 @@ class ToolChoiceResolver(SafePrinterMixin):
                 return self.__di.invoker.tool_choice_api_crypto_exchange
             case ToolType.api_twitter:
                 return self.__di.invoker.tool_choice_api_twitter
-        self.sprint(f"Unknown purpose '{purpose.value}'")
+        log.w(f"Unknown purpose '{purpose.value}'")
         return None
 
     @staticmethod
@@ -102,6 +102,7 @@ class ToolChoiceResolver(SafePrinterMixin):
         for tool in ALL_EXTERNAL_TOOLS:
             if tool.id == tool_id:
                 return tool
+        log.w(f"Tool with ID '{tool_id}' not found")
         return None
 
     @staticmethod

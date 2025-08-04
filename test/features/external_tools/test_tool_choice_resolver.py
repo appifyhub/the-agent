@@ -15,6 +15,7 @@ from features.external_tools.tool_choice_resolver import ToolChoiceResolver, Too
 
 
 class ToolChoiceResolverTest(unittest.TestCase):
+
     invoker_user: User
     mock_access_token_resolver: Mock
     mock_di: DI

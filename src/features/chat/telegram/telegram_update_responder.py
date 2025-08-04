@@ -12,14 +12,14 @@ from features.chat.telegram.telegram_chat_bot import TelegramChatBot
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.prompting import prompt_library
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
+from util import log
 from util.config import config
 from util.functions import silent
-from util.safe_printer_mixin import sprint
 
 
 def respond_to_update(update: Update) -> bool:
     if config.log_telegram_update:
-        sprint(f"Received a Telegram update: `{update}`")
+        log.t(f"Received a Telegram update: `{update}`")
 
     with get_detached_session() as db:
         di = DI(db)
@@ -27,6 +27,7 @@ def respond_to_update(update: Update) -> bool:
         def map_to_langchain(message) -> HumanMessage | AIMessage:
             return di.domain_langchain_mapper.map_to_langchain(di.user_crud.get(message.author_id), message)
 
+        assert TELEGRAM_BOT_USER.id is not None
         if not di.user_crud.get(TELEGRAM_BOT_USER.id):
             di.user_crud.save(TELEGRAM_BOT_USER)
 
@@ -40,7 +41,7 @@ def respond_to_update(update: Update) -> bool:
             # store and map to domain models (throws in case of error)
             resolved_domain_data = di.telegram_data_resolver.resolve(domain_update)
             if not resolved_domain_data.author:
-                sprint("Not responding to messages without author")
+                log.d("Not responding to messages without author")
                 return False
             di.inject_invoker(resolved_domain_data.author)
             di.inject_invoker_chat(resolved_domain_data.chat)
@@ -74,7 +75,7 @@ def respond_to_update(update: Update) -> bool:
             )
             answer = telegram_chat_bot.execute()
             if not answer or not answer.content:
-                sprint("Resolved an empty response, skipping bot reply")
+                log.d("Resolved an empty response, skipping bot reply")
                 return False
 
             # send and store the response[s]
@@ -83,11 +84,12 @@ def respond_to_update(update: Update) -> bool:
             for message in domain_messages:
                 di.telegram_bot_sdk.send_text_message(message.chat_id, message.text)
                 sent_messages += 1
-            sprint(f"Finished responding to updates. \n[{TELEGRAM_BOT_USER.full_name}]: {answer.content}")
-            sprint(f"Used {len(past_messages_db)}, sent {sent_messages} messages")
+
+            log.t(f"Finished responding to updates. \n[{TELEGRAM_BOT_USER.full_name}]: {answer.content}")
+            log.i(f"Used {len(past_messages_db)} and sent {sent_messages} messages")
             return True
         except Exception as e:
-            sprint(f"Failed to ingest: {update}", e)
+            log.e(f"Failed to ingest: {update}", e)
             __notify_of_errors(di, resolved_domain_data, e)
             return False
 
@@ -103,4 +105,4 @@ def __notify_of_errors(
         messages = di.domain_langchain_mapper.map_bot_message_to_storage(resolved_domain_data.chat.chat_id, answer)
         for message in messages:
             di.telegram_bot_sdk.send_text_message(message.chat_id, message.text)
-        sprint("Replied with the error")
+        log.t("Replied with the error")

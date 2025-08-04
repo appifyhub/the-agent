@@ -5,15 +5,14 @@ from di.di import DI
 from features.chat.telegram.model.chat_member import ChatMember
 from features.chat.telegram.model.message import Message
 from features.chat.telegram.model.update import Update
-from util.config import config
-from util.safe_printer_mixin import SafePrinterMixin
+from util import log
 
 
-class TelegramBotSDK(SafePrinterMixin):
+class TelegramBotSDK:
+
     __di: DI
 
     def __init__(self, di: DI):
-        super().__init__(config.verbose)
         self.__di = di
 
     def send_text_message(
@@ -86,18 +85,18 @@ class TelegramBotSDK(SafePrinterMixin):
         try:
             return self.__di.telegram_bot_api.get_chat_member(chat_id, user_id)
         except Exception as e:
-            self.sprint(f"Failed to get chat member '{user_id}' from chat '{chat_id}'", e)
+            log.e(f"Failed to get chat member '{user_id}' from chat '{chat_id}'", e)
             return None
 
     def get_chat_administrators(self, chat_id: int | str) -> list[ChatMember] | None:
         try:
             return self.__di.telegram_bot_api.get_chat_administrators(chat_id)
         except Exception as e:
-            self.sprint(f"Failed to get chat administrators for chat '{chat_id}'", e)
+            log.e(f"Failed to get chat administrators for chat '{chat_id}'", e)
             return None
 
     def __store_api_response_as_message(self, raw_api_response: dict) -> ChatMessage:
-        self.sprint("Storing API message data...")
+        log.t("Storing API message data...")
         message = Message(**raw_api_response["result"])
         update = Update(update_id = time.time_ns(), message = message)
         mapping_result = self.__di.telegram_domain_mapper.map_update(update)

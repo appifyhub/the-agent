@@ -14,8 +14,8 @@ from features.chat.llm_tools.base_llm_tool_binder import BaseLLMToolBinder
 from features.chat.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
 from features.support.user_support_service import UserSupportService
 from features.web_browsing.ai_web_search import AIWebSearch
+from util import log
 from util.config import config
-from util.safe_printer_mixin import sprint
 
 TOOL_TRUNCATE_LENGTH = 8192  # to save some tokens
 
@@ -440,21 +440,19 @@ def get_version() -> str:
 
 def __success(content: dict[str, Any] | str) -> str:
     if isinstance(content, str):
-        sprint(f"Tool call succeeded: {content}")
+        log.t(f"Tool call succeeded: {content}")
         return json.dumps({"result": "Success", "information": content})
     else:
-        sprint(f"Tool call succeeded: {str(content)}")
+        log.t(f"Tool call succeeded: {str(content)}")
         return json.dumps({"result": "Success", **content})
 
 
 def __error(message: str | Exception) -> str:
     error_str: str
     if isinstance(message, str):
-        sprint(f"Tool call failed: {message}")
-        error_str = message
+        error_str = log.e(f"Tool call failed: {message}")
     else:
-        sprint("Tool call failed", message)
-        error_str = str(message)
+        error_str = log.e("Tool call failed", message)
     return json.dumps({"result": "Error", "information": error_str})
 
 

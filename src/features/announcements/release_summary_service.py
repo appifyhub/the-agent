@@ -7,12 +7,12 @@ from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_4_SONNET
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.prompting import prompt_library
-from util.config import config
-from util.safe_printer_mixin import SafePrinterMixin
+from util import log
 
 
 # Not tested as it's just a proxy
-class ReleaseSummaryService(SafePrinterMixin):
+class ReleaseSummaryService:
+
     DEFAULT_TOOL: ExternalTool = CLAUDE_4_SONNET
     TOOL_TYPE: ToolType = ToolType.copywriting
 
@@ -27,8 +27,6 @@ class ReleaseSummaryService(SafePrinterMixin):
         configured_tool: ConfiguredTool,
         di: DI,
     ):
-        super().__init__(config.verbose)
-        # compute language configuration
         language_name: str | None = None
         language_iso_code: str | None = None
         if target_chat:
@@ -47,13 +45,13 @@ class ReleaseSummaryService(SafePrinterMixin):
         self.__copywriter = di.chat_langchain_model(configured_tool)
 
     def execute(self) -> AIMessage:
-        self.sprint(f"Starting release summarizer for {str(self.__llm_input[-1].content).replace('\n', ' \\n ')}")
+        log.t(f"Starting release summarizer for {str(self.__llm_input[-1].content).replace('\n', ' \\n ')}")
         try:
             response = self.__copywriter.invoke(self.__llm_input)
             if not isinstance(response, AIMessage):
                 raise AssertionError(f"Received a non-AI message from LLM: {response}")
-            self.sprint(f"Finished summarizing, summary size is {len(response.content)} characters")
+            log.d(f"Finished summarizing, summary size is {len(response.content)} characters")
             return response
         except Exception as e:
-            self.sprint("Release summarization failed", e)
+            log.e("Release summarization failed", e)
             raise e

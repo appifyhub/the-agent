@@ -21,6 +21,7 @@ from util.config import config
 
 
 class ExchangeRateFetcherTest(unittest.TestCase):
+
     cached_rate: str
     user: User
     cache_entry: ToolsCache

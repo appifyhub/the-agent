@@ -11,6 +11,7 @@ from db.schema.user import UserSave
 
 
 class ChatMessageCRUDTest(unittest.TestCase):
+
     sql: SQLUtil
 
     def setUp(self):

@@ -6,6 +6,7 @@ from util.config import Config
 
 
 class ConfigTest(unittest.TestCase):
+
     # noinspection PyTypeHints
     original_env: dict[AnyStr, AnyStr]
 
@@ -22,7 +23,7 @@ class ConfigTest(unittest.TestCase):
     def test_default_config(self):
         config = Config()
 
-        self.assertEqual(config.verbose, False)
+        self.assertEqual(config.log_level, "info")
         self.assertEqual(config.log_telegram_update, False)
         self.assertEqual(config.web_retries, 3)
         self.assertEqual(config.web_retry_delay_s, 1)
@@ -55,7 +56,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.token_encrypt_secret.get_secret_value(), "default")
 
     def test_custom_config(self):
-        os.environ["VERBOSE"] = "true"
+        os.environ["LOG_LEVEL"] = "DEBUG"
         os.environ["LOG_TG_UPDATE"] = "true"
         os.environ["WEB_RETRIES"] = "5"
         os.environ["WEB_RETRY_DELAY_S"] = "2"
@@ -92,7 +93,7 @@ class ConfigTest(unittest.TestCase):
 
         config = Config()
 
-        self.assertEqual(config.verbose, True)
+        self.assertEqual(config.log_level, "debug")
         self.assertEqual(config.log_telegram_update, True)
         self.assertEqual(config.web_retries, 5)
         self.assertEqual(config.web_retry_delay_s, 2)

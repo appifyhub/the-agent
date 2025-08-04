@@ -14,14 +14,13 @@ from features.chat.telegram.model.text_quote import TextQuote
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.model.user import User
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
-from util.config import config
 
 
 class TelegramDomainMapperTest(unittest.TestCase):
+
     mapper: TelegramDomainMapper
 
     def setUp(self):
-        config.verbose = True
         self.mapper = TelegramDomainMapper()
 
     def test_map_update_filled(self):

@@ -9,6 +9,7 @@ from features.web_browsing.html_content_cleaner import CACHE_TTL, HTMLContentCle
 
 
 class HTMLContentCleanerTest(unittest.TestCase):
+
     mock_di: DI
     mock_cache_crud: ToolsCacheCRUD
     sample_html: str

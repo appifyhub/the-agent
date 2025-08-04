@@ -5,24 +5,21 @@ from langchain_core.messages import AIMessage, HumanMessage
 from db.schema.chat_message import ChatMessage, ChatMessageSave
 from db.schema.user import User
 from features.prompting.prompt_library import MULTI_MESSAGE_DELIMITER, TELEGRAM_BOT_USER
-from util.config import config
+from util import log
 from util.functions import construct_bot_message_id, is_the_agent
-from util.safe_printer_mixin import SafePrinterMixin
 
 
-class DomainLangchainMapper(SafePrinterMixin):
-    def __init__(self):
-        super().__init__(config.verbose)
+class DomainLangchainMapper:
 
     def map_to_langchain(self, author: User | None, message: ChatMessage) -> HumanMessage | AIMessage:
-        # self.sprint(f"Mapping {message} by {author} to Langchain message")
+        log.d(f"Mapping {message} by {author} to Langchain message")
         content = self.__map_stored_message_text(author, message)
         if not author or is_the_agent(author):
             return AIMessage(content)
         return HumanMessage(content)
 
     def map_bot_message_to_storage(self, chat_id: str, message: AIMessage) -> list[ChatMessageSave]:
-        # self.sprint(f"Mapping AI message '{message}' to storage message")
+        log.d(f"Mapping AI message '{message}' to storage message")
         result: list[ChatMessageSave] = []
         content = self.__map_bot_message_text(message)
         parts = content.split(MULTI_MESSAGE_DELIMITER)
@@ -55,21 +52,34 @@ class DomainLangchainMapper(SafePrinterMixin):
                 name_tag = " ".join(name_parts)
                 parts.append(f"{name_tag}:")
         parts.append(message.text)
-        # self.sprint(f"Mapped message parts: {parts}, joining...")
+        log.t(f"  Mapped message parts: {parts}, joining...")
         return "\n".join(parts)
 
     # noinspection PyMethodMayBeStatic
     def __map_bot_message_text(self, message: AIMessage) -> str:
-        # self.sprint(f"Mapping AI message {message}")
+        log.t(f"  Mapping AI message {message}")
+
         def pretty_print(raw_dict):
             return "\n".join(f"{key}: {value}" for key, value in raw_dict.items())
 
-        # content can be either a list (of strings or dicts) or a plain string
+        # edge: no content
         if not message.content:
             return ""
+        # main: plain string
         if isinstance(message.content, str):
             return message.content
-        if isinstance(message.content[0], str):
-            return MULTI_MESSAGE_DELIMITER.join(message.content)
-        pretty_dicts = [pretty_print(raw_dict) for raw_dict in message.content]
-        return MULTI_MESSAGE_DELIMITER.join(pretty_dicts)
+        # edge: it's a dict
+        if isinstance(message.content, dict):
+            return pretty_print(message.content)
+        # edge: it's a list
+        if isinstance(message.content, list):
+            messages: list[str] = []
+            for item in message.content:
+                if isinstance(item, str):
+                    messages.append(item)
+                elif isinstance(item, dict):
+                    messages.append(pretty_print(item))
+                else:
+                    messages.append(str(item))
+            return MULTI_MESSAGE_DELIMITER.join(messages)
+        return str(message.content)

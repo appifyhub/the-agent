@@ -10,13 +10,14 @@ from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_4_SONNET
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.prompting import prompt_library
+from util import log
 from util.config import config
-from util.safe_printer_mixin import SafePrinterMixin
 
 GITHUB_BASE_URL = "https://api.github.com"
 
 
-class UserSupportService(SafePrinterMixin):
+class UserSupportService:
+
     DEFAULT_TOOL: ExternalTool = CLAUDE_4_SONNET
     TOOL_TYPE: ToolType = ToolType.copywriting
 
@@ -43,7 +44,6 @@ class UserSupportService(SafePrinterMixin):
         configured_tool: ConfiguredTool,
         di: DI,
     ):
-        super().__init__(config.verbose)
         self.__user_input = user_input
         self.__github_author = github_author
         self.__include_telegram_username = include_telegram_username
@@ -54,22 +54,22 @@ class UserSupportService(SafePrinterMixin):
 
     def __resolve_request_type(self, request_type_str: str | None) -> RequestType:
         request_type_str = request_type_str.lower() if request_type_str else None
-        self.sprint(f"Resolving request type: '{request_type_str}'")
+        log.d(f"Resolving support request type: '{request_type_str}'")
         for request_type in self.RequestType:
             if request_type.name == request_type_str:
                 return request_type
         default = UserSupportService.RequestType.request
-        self.sprint(f"Request type not found, defaulting to {default}")
+        log.w(f"Request type not found, defaulting to {default}")
         return default
 
     def __load_template(self) -> str:
-        self.sprint(f"Loading issue template for: {self.__request_type.value}")
+        log.t(f"Loading issue template for: {self.__request_type.value}")
         path = os.path.join(config.issue_templates_abs_path, f"{self.__request_type.value}.yaml")
         with open(path, "r") as file:
             return file.read()
 
     def __generate_issue_description(self) -> str:
-        self.sprint("Generating issue description")
+        log.t("Generating issue description")
         template_contents = self.__load_template()
         prompt = prompt_library.support_request_generator(self.__request_type.name, template_contents)
         user_info_parts = []
@@ -90,7 +90,7 @@ class UserSupportService(SafePrinterMixin):
         return str(response.content)
 
     def __generate_issue_title(self, description: str) -> str:
-        self.sprint("Generating issue title")
+        log.t("Generating issue title")
         prompt = prompt_library.support_request_title_generator
         message = f"Issue description:\n```\n{description}\n```\n\nIssue type: '{self.__request_type.name}'"
         response = self.__copywriter.invoke([SystemMessage(prompt), HumanMessage(message)])
@@ -99,7 +99,7 @@ class UserSupportService(SafePrinterMixin):
         return str(response.content)
 
     def execute(self) -> str:
-        self.sprint("Creating user support request / issue")
+        log.t("Creating user support request / issue")
 
         issue_description = self.__generate_issue_description()
         issue_title = self.__generate_issue_title(issue_description)
@@ -122,5 +122,5 @@ class UserSupportService(SafePrinterMixin):
 
         issue = response.json()
         issue_url = str(issue["html_url"])
-        self.sprint(f"Issue created successfully. Issue URL: {issue_url}")
+        log.i(f"Issue created successfully. Issue URL: {issue_url}")
         return issue_url

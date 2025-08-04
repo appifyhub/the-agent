@@ -10,15 +10,15 @@ from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import IMAGE_EDITING_FLUX_KONTEXT_PRO
 from features.external_tools.tool_choice_resolver import ConfiguredTool
-from util.config import config
+from util import log
 from util.functions import first_key_with_value
-from util.safe_printer_mixin import SafePrinterMixin
 
 BOOT_AND_RUN_TIMEOUT_S = 120
 
 
 # Not tested as it's just a proxy
-class ImageEditor(SafePrinterMixin):
+class ImageEditor:
+
     DEFAULT_TOOL: ExternalTool = IMAGE_EDITING_FLUX_KONTEXT_PRO
     TOOL_TYPE: ToolType = ToolType.images_edit
 
@@ -36,7 +36,6 @@ class ImageEditor(SafePrinterMixin):
         context: str | None = None,
         mime_type: str | None = None,
     ):
-        super().__init__(config.verbose)
         self.__context = context
         self.__image_url = image_url
         self.__configured_tool = configured_tool
@@ -48,7 +47,7 @@ class ImageEditor(SafePrinterMixin):
         )
 
     def execute(self) -> str | None:
-        self.sprint("Starting photo editing")
+        log.d("Starting photo editing")
         self.error = None
         try:
             # not using the URL directly because it contains the bot token in its path
@@ -70,11 +69,10 @@ class ImageEditor(SafePrinterMixin):
                     result = self.__replicate.run(tool.id, input = input_data)
             if not result:
                 raise ValueError("Failed to edit the image (no output URL)")
-            self.sprint("Image edit successful")
+            log.d("Image edit successful")
             return str(result)
         except Exception as e:
-            self.sprint("Error editing image", e)
-            self.error = str(e)
+            self.error = log.e("Error editing image", e)
             return None
 
     def __get_suffix(self) -> str:
@@ -85,5 +83,5 @@ class ImageEditor(SafePrinterMixin):
             return f".{file_with_extension.lstrip('.')}"
         # if no extension in URL, use MIME type to determine extension
         if self.__mime_type:
-            return first_key_with_value(KNOWN_IMAGE_FORMATS, self.__mime_type)
+            return first_key_with_value(KNOWN_IMAGE_FORMATS, self.__mime_type) or ".none"
         return ""

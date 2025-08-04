@@ -12,6 +12,7 @@ from util.functions import mask_secret
 
 
 class UserMapperTest(unittest.TestCase):
+
     user: User
 
     def setUp(self):

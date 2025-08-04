@@ -10,26 +10,24 @@ from db.schema.user import UserSave
 from features.chat.telegram.model.attachment.file import File
 from features.chat.telegram.model.message import Message
 from features.chat.telegram.model.update import Update
+from util import log
 from util.config import config
 from util.functions import generate_deterministic_short_uuid
-from util.safe_printer_mixin import SafePrinterMixin
 
 
-class TelegramDomainMapper(SafePrinterMixin):
+class TelegramDomainMapper:
+
     class Result(BaseModel):
         chat: ChatConfigSave
         author: UserSave | None
         message: ChatMessageSave
         attachments: List[ChatMessageAttachmentSave]
 
-    def __init__(self):
-        super().__init__(config.verbose)
-
     def map_update(self, update: Update) -> Result | None:
-        # self.sprint(f"Mapping update: {update}")
+        log.t(f"Mapping Telegramupdate: {update}")
         message = update.edited_message or update.message
         if not message:
-            self.sprint(f"Nothing to map in update: {update}")
+            log.w(f"  Nothing to map in update: {update}")
             return None
         result_chat = self.map_chat(message)
         result_author = self.map_author(message)
@@ -43,7 +41,7 @@ class TelegramDomainMapper(SafePrinterMixin):
         )
 
     def map_message(self, message: Message) -> ChatMessageSave:
-        # self.sprint(f"Mapping message: {message}")
+        log.t(f"  Mapping message: {message}")
         return ChatMessageSave(
             chat_id = str(message.chat.id),
             message_id = str(message.message_id),
@@ -55,7 +53,7 @@ class TelegramDomainMapper(SafePrinterMixin):
     def map_author(self, message: Message) -> UserSave | None:
         if not message.from_user:
             return None
-        # self.sprint(f"Mapping author {message.from_user}")
+        log.t(f"  Mapping author {message.from_user}")
         # properties might be updated later when this is stored
         author = message.from_user
         return UserSave(
@@ -74,7 +72,7 @@ class TelegramDomainMapper(SafePrinterMixin):
         attachments_as_text = self.map_attachments_as_text(message)
         if attachments_as_text:
             parts.append(f">>>> 📎 {attachments_as_text}")
-        # self.sprint(f"Mapping reply message text: {parts}")
+        log.t(f"  Mapping reply message text: {parts}")
         return "\n\n".join(parts)
 
     def map_text(self, message: Message) -> str:
@@ -92,12 +90,12 @@ class TelegramDomainMapper(SafePrinterMixin):
         attachments_as_text = self.map_attachments_as_text(message)
         if attachments_as_text:
             parts.append(f"📎 {attachments_as_text}")
-        # self.sprint(f"Mapping message text: {parts}")
+        log.t(f"  Mapping message text: {parts}")
         return "\n\n".join(parts)
 
     def map_chat(self, message: Message) -> ChatConfigSave:
         chat = message.chat
-        # self.sprint(f"Mapping chat: {chat}")
+        log.t(f"  Mapping chat: {chat}")
         title = self.resolve_chat_name(str(chat.id), chat.title, chat.username, chat.first_name, chat.last_name)
         language_code = message.from_user.language_code if message.from_user else None
         return ChatConfigSave(
@@ -129,7 +127,7 @@ class TelegramDomainMapper(SafePrinterMixin):
         if username:
             parts.append(f"@{username}")
         result = " · ".join(parts) if parts else f"#{chat_id}"
-        # self.sprint(f"Resolved chat name {result}")
+        log.t(f"  Resolved chat name {result}")
         return result
 
     def map_attachments_as_text(self, message: Message) -> str | None:
@@ -142,13 +140,13 @@ class TelegramDomainMapper(SafePrinterMixin):
             else f"{attachment.id}"
             for attachment in attachments
         ]
-        # self.sprint(f"Mapping attachments: {formatted_attachments}")
+        log.t(f"  Mapping attachments: {formatted_attachments}")
         return f"[ {', '.join(formatted_attachments)} ]"
 
     def map_attachments(self, message: Message) -> List[ChatMessageAttachmentSave]:
         attachments: List[ChatMessageAttachmentSave] = []
         if message.audio:
-            # self.sprint(f"Mapping audio: {message.audio}")
+            log.t(f"  Mapping audio: {message.audio}")
             dummy_file = File(
                 file_id = message.audio.file_id,
                 file_unique_id = message.audio.file_unique_id,
@@ -163,7 +161,7 @@ class TelegramDomainMapper(SafePrinterMixin):
                 ),
             )
         if message.document:
-            # self.sprint(f"Mapping document: {message.document}")
+            log.t(f"  Mapping document: {message.document}")
             dummy_file = File(
                 file_id = message.document.file_id,
                 file_unique_id = message.document.file_unique_id,
@@ -179,7 +177,7 @@ class TelegramDomainMapper(SafePrinterMixin):
             )
         if message.photo:
             largest_photo = max(message.photo, key = lambda size: size.width * size.height)
-            # self.sprint(f"Mapping photo: {largest_photo}")
+            log.t(f"  Mapping photo: {largest_photo}")
             dummy_file = File(
                 file_id = largest_photo.file_id,
                 file_unique_id = largest_photo.file_unique_id,
@@ -194,7 +192,7 @@ class TelegramDomainMapper(SafePrinterMixin):
                 ),
             )
         if message.voice:
-            # self.sprint(f"Mapping voice: {message.voice}")
+            log.t(f"  Mapping voice: {message.voice}")
             dummy_file = File(
                 file_id = message.voice.file_id,
                 file_unique_id = message.voice.file_unique_id,
@@ -218,7 +216,7 @@ class TelegramDomainMapper(SafePrinterMixin):
         message_id: str,
         mime_type: str | None,
     ) -> ChatMessageAttachmentSave:
-        # self.sprint(f"Creating attachment from file: {file}")
+        log.t(f"    Creating attachment from file: {file}")
         bot_token = config.telegram_bot_token.get_secret_value()
         last_url = f"{config.telegram_api_base_url}/file/bot{bot_token}/{file.file_path}"
         return ChatMessageAttachmentSave(

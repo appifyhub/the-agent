@@ -5,15 +5,15 @@ from readabilipy import simple_json_from_html_string
 
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from di.di import DI
-from util.config import config
+from util import log
 from util.functions import digest_md5
-from util.safe_printer_mixin import SafePrinterMixin
 
 CACHE_PREFIX = "html-content-cleaner"
 CACHE_TTL = timedelta(weeks = 52)
 
 
-class HTMLContentCleaner(SafePrinterMixin):
+class HTMLContentCleaner:
+
     raw_html: str
     plain_text: str
     __di: DI
@@ -23,7 +23,6 @@ class HTMLContentCleaner(SafePrinterMixin):
         raw_html: str,
         di: DI,
     ):
-        super().__init__(config.verbose)
         self.raw_html = raw_html
         self.plain_text = ""
         self.__di = di
@@ -36,16 +35,16 @@ class HTMLContentCleaner(SafePrinterMixin):
         if cache_entry_db:
             cache_entry = ToolsCache.model_validate(cache_entry_db)
             if not cache_entry.is_expired():
-                self.sprint(f"Cache hit for '{cache_key}'")
+                log.t(f"Cache hit for '{cache_key}'")
                 self.plain_text = cache_entry.value
                 return self.plain_text
-            self.sprint(f"Cache expired for '{cache_key}'")
-        self.sprint(f"Cache miss for '{cache_key}'")
+            log.t(f"Cache expired for '{cache_key}'")
+        log.t(f"Cache miss for '{cache_key}'")
 
         content_json = simple_json_from_html_string(self.raw_html)
-        self.sprint(f"Processed HTML, received {len(content_json)} content items")
+        log.t(f"Processed HTML, received {len(content_json)} content items")
         # replace HTML markers with Markdown markers
-        self.plain_text = re.sub(r"<h1>(.*?)</h1>", r"\n# \1\n", content_json["plain_content"])
+        self.plain_text = re.sub(r"<h1>(.*?)</h1>", r"\n# \1\n", str(content_json["plain_content"]))
         self.plain_text = re.sub(r"<h2>(.*?)</h2>", r"\n## \1\n", self.plain_text)
         self.plain_text = re.sub(r"<h3>(.*?)</h3>", r"\n### \1\n", self.plain_text)
         self.plain_text = re.sub(r"<h4>(.*?)</h4>", r"\n#### \1\n", self.plain_text)
@@ -67,7 +66,7 @@ class HTMLContentCleaner(SafePrinterMixin):
                 expires_at = datetime.now() + CACHE_TTL,
             ),
         )
-        self.sprint(f"Cleaned up HTML contents, received {len(self.plain_text)} content items")
+        log.t(f"Cleaned up HTML contents, received {len(self.plain_text)} content items")
         return self.plain_text
 
     @staticmethod

@@ -26,6 +26,7 @@ from features.external_tools.external_tool_provider_library import (
 
 
 class AccessTokenResolverTest(unittest.TestCase):
+
     invoker_user: User
     sponsor_user: User
     sponsorship: Sponsorship

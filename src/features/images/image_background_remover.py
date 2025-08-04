@@ -10,15 +10,15 @@ from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import BACKGROUND_REMOVAL
 from features.external_tools.tool_choice_resolver import ConfiguredTool
-from util.config import config
+from util import log
 from util.functions import first_key_with_value
-from util.safe_printer_mixin import SafePrinterMixin
 
 BOOT_AND_RUN_TIMEOUT_S = 120
 
 
 # Not tested as it's just a proxy
-class ImageBackgroundRemover(SafePrinterMixin):
+class ImageBackgroundRemover:
+
     DEFAULT_TOOL: ExternalTool = BACKGROUND_REMOVAL
     TOOL_TYPE: ToolType = ToolType.images_background_removal
 
@@ -34,7 +34,6 @@ class ImageBackgroundRemover(SafePrinterMixin):
         configured_tool: ConfiguredTool,
         mime_type: str | None = None,
     ):
-        super().__init__(config.verbose)
         self.__image_url = image_url
         self.__configured_tool = configured_tool
         self.__mime_type = mime_type
@@ -45,7 +44,7 @@ class ImageBackgroundRemover(SafePrinterMixin):
         )
 
     def execute(self) -> str | None:
-        self.sprint("Starting background removal")
+        log.t("Starting background removal")
         self.error = None
         try:
             # not using the URL directly because it contains the bot token in its path
@@ -59,11 +58,10 @@ class ImageBackgroundRemover(SafePrinterMixin):
                     result = self.__replicate.run(tool.id, input = input_data)
             if not result:
                 raise ValueError("Failed to remove background (no output URL)")
-            self.sprint("Background removal successful")
+            log.d("Background removal successful")
             return str(result)
         except Exception as e:
-            self.sprint("Error removing background", e)
-            self.error = str(e)
+            self.error = log.w("Error removing background", e)
             return None
 
     def __get_suffix(self) -> str:
@@ -74,5 +72,5 @@ class ImageBackgroundRemover(SafePrinterMixin):
             return f".{file_with_extension.lstrip(".")}"
         # if no extension in URL, use MIME type to determine extension
         if self.__mime_type:
-            return first_key_with_value(KNOWN_IMAGE_FORMATS, self.__mime_type)
+            return first_key_with_value(KNOWN_IMAGE_FORMATS, self.__mime_type) or ".none"
         return ""
