@@ -15,8 +15,7 @@ from features.external_tools.external_tool_provider_library import (
     RAPID_API,
     REPLICATE,
 )
-from util.config import config
-from util.safe_printer_mixin import SafePrinterMixin
+from util import log
 
 
 class TokenResolutionError(Exception):
@@ -29,12 +28,12 @@ class TokenResolutionError(Exception):
         super().__init__(message)
 
 
-class AccessTokenResolver(SafePrinterMixin):
+class AccessTokenResolver:
+
     __di: DI
     __sponsor_cache: dict[str, User | None]
 
     def __init__(self, di: DI):
-        super().__init__(config.verbose)
         self.__di = di
         self.__sponsor_cache = {}
 
@@ -51,63 +50,63 @@ class AccessTokenResolver(SafePrinterMixin):
         return token
 
     def get_access_token_for_tool(self, tool: ExternalTool) -> SecretStr | None:
-        self.sprint(f"Resolving access token for tool '{tool.id}'")
+        log.t(f"Resolving access token for tool '{tool.id}'")
         return self.get_access_token(tool.provider)
 
     def get_access_token(self, provider: ExternalToolProvider) -> SecretStr | None:
-        self.sprint(f"Resolving access token for provider '{provider.id}'")
+        log.t(f"Resolving access token for provider '{provider.id}'")
 
         # check if invoker has a direct token
         user_token = self.__get_user_token_for_provider(self.__di.invoker, provider)
         if user_token:
-            self.sprint(f"Found direct token for provider '{provider.id}'")
+            log.t(f"Found direct token for provider '{provider.id}'")
             return user_token
-        self.sprint("No direct token found for invoker user")
+        log.t("No direct token found for invoker user")
 
         # check if invoker has a sponsorship (with caching)
         sponsor_user = self.__get_sponsor_user(self.__di.invoker.id.hex)
         if not sponsor_user:
-            self.sprint(f"User '{self.__di.invoker.id.hex}' has no sponsor")
+            log.t(f"User '{self.__di.invoker.id.hex}' has no sponsor")
             return None
 
         # check sponsor's token for this provider
         sponsor_token = self.__get_user_token_for_provider(sponsor_user, provider)
         if sponsor_token:
-            self.sprint(f"Found sponsor token for provider '{provider.id}'")
+            log.t(f"Found sponsor token for provider '{provider.id}'")
             return sponsor_token
 
-        self.sprint(f"No token found for provider '{provider.id}'")
+        log.t(f"No token found for provider '{provider.id}'")
         return None
 
     def __get_sponsor_user(self, user_id_hex: str) -> User | None:
         # check cache first
         if user_id_hex in self.__sponsor_cache:
-            self.sprint(f"Using cached sponsor info for user '{user_id_hex}'")
+            log.t(f"Using cached sponsor info for user '{user_id_hex}'")
             return self.__sponsor_cache[user_id_hex]
 
         # cache miss - fetch from database
-        self.sprint(f"Fetching sponsor info for user '{user_id_hex}' from database")
+        log.t(f"Fetching sponsor info for user '{user_id_hex}' from database")
         user_id = UUID(hex = user_id_hex)
         sponsorships_db = self.__di.sponsorship_crud.get_all_by_receiver(user_id, limit = 1)
 
         if not sponsorships_db:
-            self.sprint(f"User '{user_id_hex}' has no sponsorships")
+            log.t(f"User '{user_id_hex}' has no sponsorships")
             self.__sponsor_cache[user_id_hex] = None
             return None
 
         # get sponsor user
-        self.sprint("Checking sponsorships for user now")
+        log.t("Checking sponsorships for user now")
         sponsorship = Sponsorship.model_validate(sponsorships_db[0])
         sponsor_user_db = self.__di.user_crud.get(sponsorship.sponsor_id)
 
         if not sponsor_user_db:
-            self.sprint(f"Sponsor '{sponsorship.sponsor_id.hex}' not found")
+            log.t(f"Sponsor '{sponsorship.sponsor_id.hex}' not found")
             self.__sponsor_cache[user_id_hex] = None
             return None
 
         sponsor_user = User.model_validate(sponsor_user_db)
         self.__sponsor_cache[user_id_hex] = sponsor_user
-        self.sprint(f"Cached sponsor '{sponsor_user.id.hex}' for user '{user_id_hex}'")
+        log.t(f"Cached sponsor '{sponsor_user.id.hex}' for user '{user_id_hex}'")
         return sponsor_user
 
     def __get_user_token_for_provider(self, user: User, provider: ExternalToolProvider) -> SecretStr | None:
@@ -126,5 +125,5 @@ class AccessTokenResolver(SafePrinterMixin):
                 return user.coinmarketcap_key
             case GOOGLE_AI.id:
                 return user.google_ai_key
-        self.sprint(f"Unknown provider '{provider.id}'")
+        log.t(f"Unknown provider '{provider.id}'")
         return None

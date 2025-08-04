@@ -2,6 +2,7 @@ import threading
 
 
 class Singleton(type):
+
     _instances = {}
     _lock = threading.Lock()  # Lock object to ensure thread-safety
 

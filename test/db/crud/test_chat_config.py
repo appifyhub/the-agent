@@ -7,6 +7,7 @@ from db.schema.chat_config import ChatConfigSave
 
 
 class ChatConfigCRUDTest(unittest.TestCase):
+
     sql: SQLUtil
 
     def setUp(self):

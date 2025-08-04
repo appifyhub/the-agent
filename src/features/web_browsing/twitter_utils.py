@@ -1,8 +1,8 @@
 import requests
 
 from features.web_browsing.uri_cleanup import simplify_url
+from util import log
 from util.config import config
-from util.safe_printer_mixin import sprint
 
 
 def resolve_tweet_id(url: str) -> str | None:
@@ -18,5 +18,5 @@ def resolve_tweet_id(url: str) -> str | None:
             if len(parts) > 3 and parts[2] == "status":
                 return parts[3].split("?")[0]
     except Exception as e:
-        sprint("Error resolving tweet ID", e)
+        log.e("Error resolving tweet ID", e)
         return None

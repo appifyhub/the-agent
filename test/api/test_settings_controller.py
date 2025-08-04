@@ -27,6 +27,7 @@ from util.functions import mask_secret
 
 
 class SettingsControllerTest(unittest.TestCase):
+
     invoker_user: User
     invoker_telegram_user: TelegramUser
     chat_config: ChatConfig

@@ -9,12 +9,13 @@ from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import IMAGE_GENERATION_FLUX
 from features.external_tools.external_tool_provider_library import GOOGLE_AI, REPLICATE
 from features.external_tools.tool_choice_resolver import ConfiguredTool
+from util import log
 from util.config import config
-from util.safe_printer_mixin import SafePrinterMixin
 
 
 # Not tested as it's just a proxy
-class SimpleStableDiffusionGenerator(SafePrinterMixin):
+class SimpleStableDiffusionGenerator:
+
     DEFAULT_TOOL: ExternalTool = IMAGE_GENERATION_FLUX
     TOOL_TYPE: ToolType = ToolType.images_gen
 
@@ -31,7 +32,6 @@ class SimpleStableDiffusionGenerator(SafePrinterMixin):
         configured_tool: ConfiguredTool,
         di: DI,
     ):
-        super().__init__(config.verbose)
         self.__di = di
         self.__prompt = prompt
         self.__configured_tool = configured_tool
@@ -55,7 +55,7 @@ class SimpleStableDiffusionGenerator(SafePrinterMixin):
             raise ValueError(f"Unsupported provider: '{tool.provider}'")
 
     def execute(self) -> str | None:
-        self.sprint(f"Starting text-stable-diffusion generator with prompt: '{self.__prompt}'")
+        log.t(f"Starting text-stable-diffusion generator with prompt: '{self.__prompt}'")
         tool, _, _ = self.__configured_tool
         self.error = None
         try:
@@ -66,12 +66,11 @@ class SimpleStableDiffusionGenerator(SafePrinterMixin):
             else:
                 raise ValueError(f"Unsupported provider: '{tool.provider}'")
         except Exception as e:
-            self.sprint("Failed to generate image", e)
-            self.error = str(e)
+            self.error = log.e("Failed to generate image", e)
             return None
 
     def __generate_with_replicate(self) -> str | None:
-        self.sprint("Generating image with Replicate")
+        log.t("Generating image with Replicate")
         tool, _, _ = self.__configured_tool
         if not self.__replicate:
             raise ValueError("Replicate client is not initialized")
@@ -99,7 +98,7 @@ class SimpleStableDiffusionGenerator(SafePrinterMixin):
         raise ValueError("No valid output URL returned from the image generation tool")
 
     def __generate_with_google_ai(self) -> str | None:
-        self.sprint("Generating image with Google AI")
+        log.t("Generating image with Google AI")
         tool, _, _ = self.__configured_tool
         if not self.__google_ai:
             raise ValueError("Google AI client is not initialized")

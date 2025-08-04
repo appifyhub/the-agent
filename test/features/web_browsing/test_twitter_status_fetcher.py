@@ -15,6 +15,7 @@ from util.config import config
 
 
 class TwitterStatusFetcherTest(unittest.TestCase):
+
     tweet_id: str
     api_url: str
     cache_entry: ToolsCache

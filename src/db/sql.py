@@ -7,8 +7,8 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session, sessionmaker
 
 from db.model.base import BaseModel
+from util import log
 from util.config import config
-from util.safe_printer_mixin import sprint
 
 engine: Engine
 LocalSession: sessionmaker
@@ -47,13 +47,11 @@ def __create_db_engine(
             else:
                 created_engine = create_engine(db_url)
             with created_engine.connect():
-                sprint("Database connected")
+                log.i("Database connected")
                 return created_engine
         except OperationalError:
             retries += 1
-            message = f"Database connection attempt {retries} failed. Retrying in {retry_interval_s} seconds..."
-            print(message)
-            sprint(message)
+            log.w(f"Database connection attempt {retries} failed. Retrying in {retry_interval_s} seconds...")
             time.sleep(retry_interval_s)
     raise Exception("Failed to connect to the database after multiple attempts")
 

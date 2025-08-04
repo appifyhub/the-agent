@@ -20,12 +20,12 @@ from util.config import config
 
 
 class TelegramDataResolverTest(unittest.TestCase):
+
     sql: SQLUtil
     mock_di: DI
     resolver: TelegramDataResolver
 
     def setUp(self):
-        config.verbose = True
         self.sql = SQLUtil()
         self.mock_di = Mock(spec = DI)
         # noinspection PyPropertyAccess
@@ -288,7 +288,7 @@ class TelegramDataResolverTest(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             self.resolver.resolve_author(mapped_data)
 
-        self.assertEqual(str(context.exception), "User limit reached, try again later")
+        self.assertEqual(str(context.exception), "User limit reached: 100/100. Try again later")
         mock_count.assert_called_once()
 
     def test_resolve_author_existing(self):

@@ -18,6 +18,7 @@ from features.chat.telegram.telegram_update_responder import respond_to_update
 
 
 class TelegramUpdateResponderTest(unittest.TestCase):
+
     sql: SQLUtil
     update: Update
     di: Mock

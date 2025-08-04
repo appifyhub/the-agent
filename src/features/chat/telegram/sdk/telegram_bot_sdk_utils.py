@@ -6,9 +6,9 @@ from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessage
 from di.di import DI
 from features.chat.supported_files import KNOWN_FILE_FORMATS
 from features.chat.telegram.model.attachment.file import File
+from util import log
 from util.config import config
 from util.functions import first_key_with_value
-from util.safe_printer_mixin import sprint
 
 
 # Must be separated like this for now due to circular imports (thanks Python)
@@ -16,7 +16,7 @@ class TelegramBotSDKUtils:
 
     @staticmethod
     def refresh_attachments_by_ids(di: DI, attachment_ids: list[str]) -> list[ChatMessageAttachment]:
-        sprint(f"Refreshing {len(attachment_ids)} attachments by IDs")
+        log.d(f"Refreshing {len(attachment_ids)} attachments by IDs")
         attachments: list[ChatMessageAttachment] = []
         for attachment_id in attachment_ids:
             attachment_db = di.chat_message_attachment_crud.get(attachment_id)
@@ -27,7 +27,7 @@ class TelegramBotSDKUtils:
 
     @staticmethod
     def refresh_attachment_instances(di: DI, attachments: list[ChatMessageAttachment]) -> list[ChatMessageAttachment]:
-        sprint(f"Refreshing {len(attachments)} attachment instances")
+        log.d(f"Refreshing {len(attachments)} attachment instances")
         return [TelegramBotSDKUtils.refresh_attachment(di, attachment) for attachment in attachments]
 
     @staticmethod
@@ -39,10 +39,10 @@ class TelegramBotSDKUtils:
         # try to resolve the local save instance of the attachment
         instance_save: ChatMessageAttachmentSave
         if attachment:
-            sprint(f"Refreshing attachment '{attachment.id}' (instance)")
+            log.d(f"Refreshing attachment '{attachment.id}' (instance)")
             instance_save = attachment_save or ChatMessageAttachmentSave(**attachment.model_dump())
         elif attachment_save:
-            sprint(f"Refreshing attachment '{attachment_save.id}' (save instance)")
+            log.d(f"Refreshing attachment '{attachment_save.id}' (save instance)")
             instance_db = di.chat_message_attachment_crud.get(
                 str(attachment_save.id),
             ) or di.chat_message_attachment_crud.get_by_ext_id(str(attachment_save.ext_id))
@@ -53,15 +53,15 @@ class TelegramBotSDKUtils:
 
         # check if instance data is already fresh
         if not instance_save.has_stale_data:
-            sprint(f"Attachment '{instance_save.id}': data is already fresh")
+            log.t(f"Attachment '{instance_save.id}': data is already fresh")
             # we store it anyway because it may contain fresh data from the API
             instance_db = di.chat_message_attachment_crud.save(instance_save)
             return ChatMessageAttachment.model_validate(instance_db)
 
         # data is stale or missing, we need to fetch the attachment data from remote
         if not instance_save.ext_id:
-            raise ValueError("No external ID provided for the attachment")
-        sprint(f"Refreshing attachment data for external ID '{instance_save.ext_id}' (ext_id)")
+            raise ValueError(log.e("No external ID provided for the attachment"))
+        log.t(f"Refreshing attachment data for external ID '{instance_save.ext_id}' (ext_id)")
         api_file: File = di.telegram_bot_api.get_file_info(instance_save.ext_id)
 
         # let's populate the attachment with the data from the API
@@ -117,7 +117,7 @@ class TelegramBotSDKUtils:
 
     @staticmethod
     def __detect_and_set_image_format(instance_save: ChatMessageAttachmentSave) -> None:
-        sprint("Both extension and mime_type are None, detecting from content")
+        log.d("Both extension and mime_type are None, detecting from content")
         if not instance_save.last_url:
             return
         try:
@@ -128,14 +128,14 @@ class TelegramBotSDKUtils:
                     # Detected format names match our KNOWN_FILE_FORMATS keys directly
                     instance_save.extension = detected_format
                     instance_save.mime_type = KNOWN_FILE_FORMATS[detected_format]
-                    sprint(f"Detected format: {detected_format} -> {instance_save.mime_type}")
+                    log.t(f"Detected format: {detected_format} -> {instance_save.mime_type}")
         except Exception as e:
-            sprint("Failed to detect image format", e)
+            log.w("Failed to detect image format", e)
 
     @staticmethod
     def __nearest_hour_epoch() -> int:
         now = datetime.now()
         last_hour_mark: datetime = now.replace(minute = 0, second = 0, microsecond = 0)
         next_hour_mark: datetime = last_hour_mark + timedelta(hours = 1)
-        sprint(f"Nearest hour at {now} is {next_hour_mark}")
+        log.t(f"Nearest hour at {now} is {next_hour_mark}")
         return int(next_hour_mark.timestamp())

@@ -1,4 +1,3 @@
-import json
 import re
 
 import requests
@@ -7,21 +6,20 @@ from requests import RequestException, Response
 
 from features.chat.telegram.model.attachment.file import File
 from features.chat.telegram.model.chat_member import ChatMember
+from util import log
 from util.config import config
-from util.safe_printer_mixin import SafePrinterMixin
 
 
-class TelegramBotAPI(SafePrinterMixin):
+class TelegramBotAPI:
     """https://core.telegram.org/bots/api"""
     __bot_api_url: str
 
     def __init__(self):
-        super().__init__(config.verbose)
         bot_token = config.telegram_bot_token.get_secret_value()
         self.__bot_api_url = f"{config.telegram_api_base_url}/bot{bot_token}"
 
     def get_file_info(self, file_id: str) -> File:
-        self.sprint(f"Getting file info for file_id: {file_id}")
+        log.t(f"Getting file info for file_id: {file_id}")
         url = f"{self.__bot_api_url}/getFile"
         response = requests.get(url, params = {"file_id": file_id})
         self.__raise_for_status(response)
@@ -35,7 +33,7 @@ class TelegramBotAPI(SafePrinterMixin):
         disable_notification: bool = False,
         link_preview_options: dict | None = None,
     ) -> dict:
-        self.sprint(f"Sending message to chat #{chat_id}")
+        log.t(f"Sending message to chat #{chat_id}")
         url = f"{self.__bot_api_url}/sendMessage"
         cleaned_text = re.sub(r"(?<!\b)_(?!\b)", r"\\_", text)
         if link_preview_options is None:
@@ -63,7 +61,7 @@ class TelegramBotAPI(SafePrinterMixin):
         parse_mode: str = "markdown",
         disable_notification: bool = False,
     ) -> dict:
-        self.sprint(f"Sending photo to chat #{chat_id}")
+        log.t(f"Sending photo to chat #{chat_id}")
         url = f"{self.__bot_api_url}/sendPhoto"
         payload = {
             "chat_id": chat_id,
@@ -86,7 +84,7 @@ class TelegramBotAPI(SafePrinterMixin):
         caption: str | None = None,
         disable_notification: bool = False,
     ) -> dict:
-        self.sprint(f"Sending document to chat #{chat_id}")
+        log.t(f"Sending document to chat #{chat_id}")
         url = f"{self.__bot_api_url}/sendDocument"
         payload = {
             "chat_id": chat_id,
@@ -167,10 +165,7 @@ class TelegramBotAPI(SafePrinterMixin):
 
     def __raise_for_status(self, response: Response | None):
         if response is None:
-            message = "No API response received"
-            self.sprint(f"  {message}")
-            raise RequestException(message)
+            raise RequestException(log.e("No API response received"))
         if response.status_code < 200 or response.status_code > 299:
-            self.sprint(f"  Status is not '200': HTTP_{response.status_code}!")
-            self.sprint(json.dumps(response.json(), indent = 2))
+            log.e(f"  Status is not '200': HTTP_{response.status_code}!", response.json())
             response.raise_for_status()

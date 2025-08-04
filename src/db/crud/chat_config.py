@@ -5,6 +5,7 @@ from db.schema.chat_config import ChatConfigSave
 
 
 class ChatConfigCRUD:
+
     _db: Session
 
     def __init__(self, db: Session):

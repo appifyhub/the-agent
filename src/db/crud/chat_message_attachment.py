@@ -6,6 +6,7 @@ from util.functions import generate_short_uuid
 
 
 class ChatMessageAttachmentCRUD:
+
     _db: Session
 
     def __init__(self, db: Session):

@@ -7,6 +7,7 @@ from db.schema.sponsorship import SponsorshipSave
 
 
 class SponsorshipCRUD:
+
     _db: Session
 
     def __init__(self, db: Session):

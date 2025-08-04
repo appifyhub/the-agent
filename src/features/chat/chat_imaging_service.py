@@ -6,14 +6,14 @@ from features.chat.telegram.sdk.telegram_bot_sdk_utils import TelegramBotSDKUtil
 from features.images.image_background_remover import ImageBackgroundRemover
 from features.images.image_contents_restorer import ImageContentsRestorer
 from features.images.image_editor import ImageEditor
-from util.config import config
-from util.safe_printer_mixin import SafePrinterMixin
+from util import log
 
 URLList = list[str | None]
 ErrorList = list[str | None]
 
 
-class ChatImagingService(SafePrinterMixin):
+class ChatImagingService:
+
     class Result(Enum):
         success = "success"
         failed = "failed"
@@ -47,7 +47,6 @@ class ChatImagingService(SafePrinterMixin):
         operation_guidance: str | None,
         di: DI,
     ):
-        super().__init__(config.verbose)
         if not attachment_ids:
             raise ValueError("No attachment IDs provided")
         self.__di = di
@@ -56,16 +55,15 @@ class ChatImagingService(SafePrinterMixin):
         self.__operation_guidance = operation_guidance
 
     def __remove_background(self) -> tuple[Result, URLList, ErrorList]:
-        self.sprint(f"Removing background from {len(self.__attachments)} images")
+        log.t(f"Removing background from {len(self.__attachments)} images")
         result = ChatImagingService.Result.success
         urls: URLList = []
         errors: ErrorList = []
         for attachment in self.__attachments:
             try:
                 if not attachment.last_url:
-                    self.sprint(f"Attachment '{attachment.id}' has no URL, skipping")
                     urls.append(None)
-                    errors.append("Attachment has no URL")
+                    errors.append(log.w(f"Attachment '{attachment.id}' has no URL, skipping"))
                     result = ChatImagingService.Result.partial
                     continue
                 configured_tool = self.__di.tool_choice_resolver.require_tool(
@@ -79,42 +77,38 @@ class ChatImagingService(SafePrinterMixin):
                 )
                 image_url = remover.execute()
                 if remover.error:
-                    self.sprint(f"Error removing background from attachment '{attachment.id}': {remover.error}")
                     urls.append(None)
-                    errors.append(remover.error)
+                    errors.append(log.w(f"Error removing background from attachment '{attachment.id}': {remover.error}"))
                     result = ChatImagingService.Result.partial
                     continue
                 if not image_url:
-                    self.sprint(f"Background was not removed from attachment '{attachment.id}'")
                     urls.append(None)
-                    errors.append(remover.error)
+                    errors.append(log.w(f"Background was not removed from attachment '{attachment.id}'"))
                     result = ChatImagingService.Result.partial
                     continue
-                self.sprint(f"Background removed from attachment '{attachment.id}'!")
+                log.t(f"Background removed from attachment '{attachment.id}'!")
                 urls.append(image_url)
                 errors.append(None)
             except Exception as e:
-                self.sprint(f"Failed to remove background from attachment '{attachment.id}'", e)
                 urls.append(None)
-                errors.append(str(e))
+                errors.append(log.w(f"Failed to remove background from attachment '{attachment.id}'", e))
                 result = ChatImagingService.Result.partial
         # set the correct error state if no URLs were returned
         if not urls or all(url is None for url in urls):
-            self.sprint("Failed to remove background from all images")
+            log.w("Failed to remove background from all images")
             result = ChatImagingService.Result.failed
         return result, urls, errors
 
     def __restore_image(self) -> tuple[Result, URLList, ErrorList]:
-        self.sprint(f"Restoring {len(self.__attachments)} images")
+        log.t(f"Restoring {len(self.__attachments)} images")
         result = ChatImagingService.Result.success
         urls: URLList = []
         errors: ErrorList = []
         for attachment in self.__attachments:
             try:
                 if not attachment.last_url:
-                    self.sprint(f"Attachment '{attachment.id}' has no URL, skipping")
                     urls.append(None)
-                    errors.append("Attachment has no URL")
+                    errors.append(log.w(f"Attachment '{attachment.id}' has no URL, skipping"))
                     result = ChatImagingService.Result.partial
                     continue
                 restoration_tool = self.__di.tool_choice_resolver.require_tool(
@@ -134,35 +128,34 @@ class ChatImagingService(SafePrinterMixin):
                 )
                 restoration_result = restorer.execute()
                 if not restoration_result.restored_url and not restoration_result.inpainted_url:
-                    self.sprint(f"Failed to restore image from attachment '{attachment.id}'")
                     urls.append(None)
-                    errors.append(restoration_result.error)
+                    errors.append(
+                        log.w(f"Failed to restore image from attachment '{attachment.id}', error: {restoration_result.error}"),
+                    )
                     result = ChatImagingService.Result.partial
                     continue
-                self.sprint(f"Image from attachment '{attachment.id}' restored!")
+                log.t(f"Image from attachment '{attachment.id}' restored!")
                 urls.append(restoration_result.inpainted_url or restoration_result.restored_url or None)
                 errors.append(restoration_result.error)
             except Exception as e:
-                self.sprint(f"Failed to restore image from attachment '{attachment.id}'", e)
                 urls.append(None)
-                errors.append(str(e))
+                errors.append(log.w(f"Failed to restore image from attachment '{attachment.id}'", e))
                 result = ChatImagingService.Result.partial
         if not urls or all(url is None for url in urls):
-            self.sprint("Failed to restore all images")
+            log.w("Failed to restore all images")
             result = ChatImagingService.Result.failed
         return result, urls, errors
 
     def __edit_image(self) -> tuple[Result, URLList, ErrorList]:
-        self.sprint(f"Editing {len(self.__attachments)} images")
+        log.t(f"Editing {len(self.__attachments)} images")
         result = ChatImagingService.Result.success
         urls: URLList = []
         errors: ErrorList = []
         for attachment in self.__attachments:
             try:
                 if not attachment.last_url:
-                    self.sprint(f"Attachment '{attachment.id}' has no URL, skipping")
                     urls.append(None)
-                    errors.append("Attachment has no URL")
+                    errors.append(log.w(f"Attachment '{attachment.id}' has no URL, skipping"))
                     result = ChatImagingService.Result.partial
                     continue
                 configured_tool = self.__di.tool_choice_resolver.require_tool(ImageEditor.TOOL_TYPE, ImageEditor.DEFAULT_TOOL)
@@ -174,32 +167,29 @@ class ChatImagingService(SafePrinterMixin):
                 )
                 editing_result = editor.execute()
                 if editor.error:
-                    self.sprint(f"Error editing image from attachment '{attachment.id}': {editor.error}")
                     urls.append(None)
-                    errors.append(editor.error)
+                    errors.append(log.w(f"Error editing image from attachment '{attachment.id}': {editor.error}"))
                     result = ChatImagingService.Result.partial
                     continue
                 if not editing_result:
-                    self.sprint(f"Failed to edit image from attachment '{attachment.id}'")
                     urls.append(None)
-                    errors.append(editor.error)
+                    errors.append(log.w(f"Failed to edit image from attachment '{attachment.id}'"))
                     result = ChatImagingService.Result.partial
                     continue
-                self.sprint(f"Image from attachment '{attachment.id}' was edited!")
+                log.t(f"Image from attachment '{attachment.id}' was edited!")
                 urls.append(editing_result)
                 errors.append(None)
             except Exception as e:
-                self.sprint(f"Failed to edit image from attachment '{attachment.id}'", e)
-                result = ChatImagingService.Result.partial
                 urls.append(None)
-                errors.append(str(e))
+                errors.append(log.w(f"Failed to edit image from attachment '{attachment.id}'", e))
+                result = ChatImagingService.Result.partial
         if not urls or all(url is None for url in urls):
-            self.sprint("Failed to edit all images")
+            log.w("Failed to edit all images")
             result = ChatImagingService.Result.failed
         return result, urls, errors
 
     def execute(self) -> tuple[Result, list[dict[str, str | None]]]:
-        self.sprint(f"Editing images for chat '{self.__di.invoker_chat.chat_id}', operation '{self.__operation.value}'")
+        log.t(f"Editing images for chat '{self.__di.invoker_chat.chat_id}', operation '{self.__operation.value}'")
 
         if self.__operation == ChatImagingService.Operation.remove_background:
             result, urls, errors = self.__remove_background()
@@ -209,10 +199,10 @@ class ChatImagingService(SafePrinterMixin):
                 if image_url is None:
                     output.append({"url": None, "error": error})
                     continue
-                self.sprint(f"Sending edited image to chat '{self.__di.invoker_chat.chat_id}'")
+                log.t(f"Sending edited image to chat '{self.__di.invoker_chat.chat_id}'")
                 self.__di.telegram_bot_sdk.send_document(self.__di.invoker_chat.chat_id, image_url, thumbnail = image_url)
                 self.__di.telegram_bot_sdk.send_photo(self.__di.invoker_chat.chat_id, image_url, caption = "📸")
-                self.sprint("Image edited and sent successfully")
+                log.t("Image edited and sent successfully")
                 output.append({"url": image_url, "error": None, "status": "delivered"})
             return result, output
 
@@ -224,10 +214,10 @@ class ChatImagingService(SafePrinterMixin):
                 if image_url is None:
                     output.append({"url": None, "error": error})
                     continue
-                self.sprint(f"Sending restored image to chat '{self.__di.invoker_chat.chat_id}': {image_url}")
+                log.t(f"Sending restored image to chat '{self.__di.invoker_chat.chat_id}': {image_url}")
                 self.__di.telegram_bot_sdk.send_document(self.__di.invoker_chat.chat_id, image_url, thumbnail = image_url)
                 self.__di.telegram_bot_sdk.send_photo(self.__di.invoker_chat.chat_id, image_url, caption = "📸")
-                self.sprint("Image restored and sent successfully")
+                log.t("Image restored and sent successfully")
                 output.append({"url": image_url, "error": None, "status": "delivered"})
             return result, output
 
@@ -239,10 +229,10 @@ class ChatImagingService(SafePrinterMixin):
                 if image_url is None:
                     output.append({"url": None, "error": error})
                     continue
-                self.sprint(f"Sending edited image to chat '{self.__di.invoker_chat.chat_id}': {image_url}")
+                log.t(f"Sending edited image to chat '{self.__di.invoker_chat.chat_id}': {image_url}")
                 self.__di.telegram_bot_sdk.send_document(self.__di.invoker_chat.chat_id, image_url, thumbnail = image_url)
                 self.__di.telegram_bot_sdk.send_photo(self.__di.invoker_chat.chat_id, image_url, caption = "📸")
-                self.sprint("Image edited and sent successfully")
+                log.t("Image edited and sent successfully")
                 output.append({"url": image_url, "error": None, "status": "delivered"})
             return result, output
 

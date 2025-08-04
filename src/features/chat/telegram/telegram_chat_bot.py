@@ -13,14 +13,15 @@ from features.external_tools.external_tool_library import GPT_4_1_MINI
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.prompting import prompt_library
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
+from util import log
 from util.config import config
-from util.safe_printer_mixin import SafePrinterMixin
 
 TMessage = TypeVar("TMessage", bound = BaseMessage)  # Generic message type
 TooledChatModel = Runnable[LanguageModelInput, BaseMessage]
 
 
-class TelegramChatBot(SafePrinterMixin):
+class TelegramChatBot:
+
     DEFAULT_TOOL: ExternalTool = GPT_4_1_MINI
     TOOL_TYPE: ToolType = ToolType.chat
 
@@ -40,7 +41,6 @@ class TelegramChatBot(SafePrinterMixin):
         configured_tool: ConfiguredTool | None,
         di: DI,
     ):
-        super().__init__(config.verbose)
         self.__messages = []
         self.__messages.append(
             SystemMessage(
@@ -73,7 +73,7 @@ class TelegramChatBot(SafePrinterMixin):
         return self.__messages[-1]
 
     def execute(self) -> AIMessage | None:
-        self.sprint(f"Starting chat completion for '{self.__last_message.content}'")
+        log.t(f"Starting chat completion for '{self.__last_message.content}'")
 
         # check if a reply is needed at all
         if not self.should_reply():
@@ -90,7 +90,7 @@ class TelegramChatBot(SafePrinterMixin):
 
         # not a known command, but also no API key found
         if not self.__configured_tool:
-            self.sprint(f"No API key found for #{self.__di.invoker.id.hex}, skipping LLM processing")
+            log.w(f"No API key found for #{self.__di.invoker.id.hex}, skipping LLM processing")
             answer = AIMessage(prompt_library.error_general_problem("Not configured."))
             return answer
 
@@ -101,7 +101,7 @@ class TelegramChatBot(SafePrinterMixin):
         try:
             tools_model = self.__di.llm_tool_library.bind_tools(base_model)
         except Exception as e:
-            self.sprint("Failed to bind tools to the LLM model, using base model", e)
+            log.w("Failed to bind tools to the LLM model, using base model", e)
 
         # main flow: process the messages using the LLM
         try:
@@ -110,17 +110,15 @@ class TelegramChatBot(SafePrinterMixin):
             while True:
                 # don't blow up the costs
                 if iteration > config.max_chatbot_iterations:
-                    message = f"Reached max iterations ({config.max_chatbot_iterations}), finishing"
-                    self.sprint(message)
-                    raise OverflowError(message)
+                    raise OverflowError(log.e(f"Reached max iterations ({config.max_chatbot_iterations}), finishing"))
 
                 # run the actual LLM completion
                 llm_answer = (tools_model or base_model).invoke(self.__messages)
                 answer = self.__add_message(llm_answer)
 
                 # noinspection Pydantic
-                if not answer.tool_calls:
-                    self.sprint(f"Iteration #{iteration} has no tool calls.")
+                if not answer.tool_calls:  # type: ignore
+                    log.d(f"Iteration #{iteration} has no tool calls.")
                     if not isinstance(answer, AIMessage):
                         raise AssertionError(f"Received a non-AI message from LLM: {answer}")
                     system_correction_added = False
@@ -132,7 +130,7 @@ class TelegramChatBot(SafePrinterMixin):
                             or clean_attachment_id in str(answer.content)
                             or truncated_attachment_id in str(answer.content)
                         ):
-                            self.sprint("Found approximate attachment ID in the answer, adding system correction")
+                            log.w("Found approximate attachment ID in the answer, adding system correction")
                             system_correction = SystemMessage(
                                 "Error: Attachment IDs should never be sent to users. "
                                 "You probably meant to call a tool. "
@@ -147,29 +145,29 @@ class TelegramChatBot(SafePrinterMixin):
                     if system_correction_added:
                         iteration += 1
                         continue
-                    self.sprint(f"Finishing chat response with {len(answer.content)} characters")
+                    log.i(f"Finishing chat response with {len(answer.content)} characters")
                     return answer
 
-                self.sprint(f"Iteration #{iteration} has tool calls, processing...")
+                log.d(f"Iteration #{iteration} has tool calls, processing...")
                 iteration += 1
 
                 # noinspection Pydantic
-                for tool_call in answer.tool_calls:
+                for tool_call in answer.tool_calls:  # type: ignore
                     tool_id: Any = tool_call["id"]
                     tool_name: Any = tool_call["name"]
                     tool_args: Any = tool_call["args"]
 
-                    self.sprint(f"  Processing {tool_id} / '{tool_name}' tool call")
+                    log.t(f"  Processing {tool_id} / '{tool_name}' tool call")
                     tool_result: str | None = self.__di.llm_tool_library.invoke(tool_name, tool_args)
                     if not tool_result:
-                        self.sprint(f"Tool {tool_name} not invoked!")
+                        log.w(f"Tool {tool_name} not invoked!")
                         continue
                     self.__add_message(ToolMessage(tool_result, tool_call_id = tool_id))
 
                 if not isinstance(self.__last_message, ToolMessage):
                     raise LookupError("Couldn't find tools to invoke!")
         except Exception as e:
-            self.sprint("Chat completion failed", e)
+            log.e("Chat completion failed", e)
             text = prompt_library.error_general_problem(str(e))
             return AIMessage(text)
         finally:
@@ -177,7 +175,7 @@ class TelegramChatBot(SafePrinterMixin):
 
     def process_commands(self) -> Tuple[AIMessage, CommandProcessor.Result]:
         result = self.__di.command_processor.execute(self.__raw_last_message)
-        self.sprint(f"Command processing result is {result.value}")
+        log.d(f"Command processing result is {result.value}")
         if result == CommandProcessor.Result.unknown or result == CommandProcessor.Result.success:
             text = ""
         elif result == CommandProcessor.Result.failed:
@@ -201,7 +199,7 @@ class TelegramChatBot(SafePrinterMixin):
             is_not_recursive and
             (self.__di.invoker_chat.is_private or is_bot_mentioned or should_reply_at_random)
         )
-        self.sprint(
+        log.d(
             f"Reply decision: {'REPLYING' if should_reply else 'NOT REPLYING'}. Conditions:\n"
             f"  · has_content      = {has_content}\n"
             f"  · is_not_recursive = {is_not_recursive}\n"

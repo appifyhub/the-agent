@@ -17,6 +17,7 @@ DEFAULT_URL = "https://example.com"
 
 
 class WebFetcherTest(unittest.TestCase):
+
     mock_di: DI
     cache_entry_html: ToolsCache
     cache_entry_json: ToolsCache

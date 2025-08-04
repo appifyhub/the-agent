@@ -11,6 +11,7 @@ from db.sql import initialize_db
 
 
 class SQLUtil:
+
     __session: Session
     __is_session_active: bool
 

@@ -6,6 +6,7 @@ from langchain_core.runnables import Runnable
 
 
 class BaseLLMToolBinder:
+
     _llm_tool_map: Dict[str, Callable]
 
     def __init__(self, tools_map: Dict[str, Callable] | None = None):

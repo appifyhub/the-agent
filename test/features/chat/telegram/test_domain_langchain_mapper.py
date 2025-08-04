@@ -8,14 +8,13 @@ from db.schema.chat_message import ChatMessage
 from db.schema.user import User
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
 from features.prompting.prompt_library import MULTI_MESSAGE_DELIMITER, TELEGRAM_BOT_USER
-from util.config import config
 
 
 class DomainLangchainMapperTest(unittest.TestCase):
+
     mapper: DomainLangchainMapper
 
     def setUp(self):
-        config.verbose = True
         self.mapper = DomainLangchainMapper()
 
     def test_map_to_langchain_with_author(self):

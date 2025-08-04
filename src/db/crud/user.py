@@ -7,6 +7,7 @@ from db.schema.user import UserSave
 
 
 class UserCRUD:
+
     _db: Session
 
     def __init__(self, db: Session):

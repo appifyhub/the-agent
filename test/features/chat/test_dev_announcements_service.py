@@ -14,6 +14,7 @@ from features.external_tools.tool_choice_resolver import ConfiguredTool
 
 
 class DevAnnouncementsServiceTest(unittest.TestCase):
+
     raw_announcement: str
     invoker_user_id: UUID
     user: User

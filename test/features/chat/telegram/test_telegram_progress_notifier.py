@@ -7,6 +7,7 @@ from features.chat.telegram.telegram_progress_notifier import TelegramProgressNo
 
 
 class TelegramProgressNotifierTest(unittest.TestCase):
+
     chat_config: ChatConfig
     message_id: str
     mock_di: Mock

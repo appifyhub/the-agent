@@ -21,6 +21,7 @@ from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
 
 
 class CurrencyAlertServiceTest(unittest.TestCase):
+
     mock_user_dao: UserCRUD
     mock_chat_config_dao: ChatConfigCRUD
     mock_price_alert_dao: PriceAlertCRUD

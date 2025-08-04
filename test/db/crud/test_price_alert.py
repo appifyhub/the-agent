@@ -10,6 +10,7 @@ from db.schema.user import UserSave
 
 
 class PriceAlertCRUDTest(unittest.TestCase):
+
     sql: SQLUtil
 
     def setUp(self):

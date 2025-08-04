@@ -5,6 +5,7 @@ from util.config import config
 
 
 class EncryptedString(TypeDecorator):
+
     impl = Text  # Default implementation
     cache_ok = True
 
