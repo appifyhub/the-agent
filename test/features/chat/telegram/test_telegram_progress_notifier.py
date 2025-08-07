@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import Mock, patch
 
+from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
@@ -21,6 +22,7 @@ class TelegramProgressNotifierTest(unittest.TestCase):
             title = "Test Chat",
             is_private = True,
             reply_chance_percent = 100,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.message_id = "test_message_id"
 

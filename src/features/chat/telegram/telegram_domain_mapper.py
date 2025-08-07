@@ -3,6 +3,7 @@ from typing import List
 
 from pydantic import BaseModel
 
+from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfigSave
 from db.schema.chat_message import ChatMessageSave
 from db.schema.chat_message_attachment import ChatMessageAttachmentSave
@@ -103,6 +104,7 @@ class TelegramDomainMapper:
             title = title,
             is_private = chat.type == "private",
             language_iso_code = language_code,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
 
     # noinspection PyMethodMayBeStatic

@@ -10,6 +10,7 @@ from db.crud.price_alert import PriceAlertCRUD
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
+from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.price_alert import PriceAlert
@@ -59,7 +60,8 @@ class CurrencyAlertServiceTest(unittest.TestCase):
             created_at = datetime.now().date(),
         )
         self.mock_di.authorization_service.validate_user.return_value = self.user
-        self.mock_di.authorization_service.validate_chat.return_value = self.chat_config = ChatConfig(chat_id = self.chat_id)
+        self.chat_config = ChatConfig(chat_id = self.chat_id, chat_type = ChatConfigDB.ChatType.telegram)
+        self.mock_di.authorization_service.validate_chat.return_value = self.chat_config
 
     def test_create_alert(self):
         service = CurrencyAlertService(self.chat_id, self.mock_di)

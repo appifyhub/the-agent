@@ -7,6 +7,7 @@ import requests_mock
 from pydantic import SecretStr
 
 import features.chat.telegram.sdk.telegram_bot_sdk_utils
+from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.chat_message_attachment import ChatMessageAttachment
@@ -67,6 +68,7 @@ class AttachmentsDescriberTest(unittest.TestCase):
             chat_id = "1",
             language_name = "Spanish",
             language_iso_code = "es",
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.attachment = ChatMessageAttachment(
             id = "1",

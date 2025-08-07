@@ -44,6 +44,44 @@ class ChatConfigDB(BaseModel):
             }
             return hierarchy[self.value] >= hierarchy[other.value]
 
+    class ChatType(Enum):
+        standalone_web = "standalone_web"
+        standalone_app = "standalone_app"
+        extension_web = "extension_web"
+        telegram = "telegram"
+        whatsapp = "whatsapp"
+
+        @classmethod
+        def lookup(cls, value) -> "ChatConfigDB.ChatType | None":
+            try:
+                return cls(value)
+            except ValueError:
+                return None
+
+        def __lt__(self, other):
+            if not isinstance(other, ChatConfigDB.ChatType):
+                return NotImplemented
+            hierarchy = {
+                "standalone_web": 1,
+                "standalone_app": 2,
+                "extension_web": 3,
+                "telegram": 4,
+                "whatsapp": 5,
+            }
+            return hierarchy[self.value] < hierarchy[other.value]
+
+        def __ge__(self, other):
+            if not isinstance(other, ChatConfigDB.ChatType):
+                return NotImplemented
+            hierarchy = {
+                "standalone_web": 1,
+                "standalone_app": 2,
+                "extension_web": 3,
+                "telegram": 4,
+                "whatsapp": 5,
+            }
+            return hierarchy[self.value] >= hierarchy[other.value]
+
     chat_id = Column(String, primary_key = True)
     language_iso_code = Column(String, nullable = True)
     language_name = Column(String, nullable = True)
@@ -51,3 +89,4 @@ class ChatConfigDB(BaseModel):
     is_private = Column(Boolean, nullable = False)
     reply_chance_percent = Column(Integer, nullable = False)
     release_notifications = Column(EnumSQL(ReleaseNotifications), nullable = False, default = ReleaseNotifications.all)
+    chat_type = Column(EnumSQL(ChatType), nullable = False)

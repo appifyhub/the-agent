@@ -44,7 +44,12 @@ class TelegramDataResolverTest(unittest.TestCase):
         self.sql.end_session()
 
     def test_resolve_no_author(self):
-        chat_config_data = ChatConfigSave(chat_id = "c1", title = "Chat Title", is_private = True)
+        chat_config_data = ChatConfigSave(
+            chat_id = "c1",
+            title = "Chat Title",
+            is_private = True,
+            chat_type = ChatConfigDB.ChatType.telegram,
+        )
         message_data = ChatMessageSave(
             chat_id = chat_config_data.chat_id,
             message_id = "m1",
@@ -80,7 +85,12 @@ class TelegramDataResolverTest(unittest.TestCase):
         self.assertEqual(result.attachments[0].chat_id, attachment_data.chat_id)
 
     def test_resolve_with_author_bot(self):
-        chat_config_data = ChatConfigSave(chat_id = "c1", title = "Chat Title", is_private = True)
+        chat_config_data = ChatConfigSave(
+            chat_id = "c1",
+            title = "Chat Title",
+            is_private = True,
+            chat_type = ChatConfigDB.ChatType.telegram,
+        )
         author_data = UserSave(
             telegram_username = TELEGRAM_BOT_USER.telegram_username,
             telegram_chat_id = chat_config_data.chat_id,
@@ -124,7 +134,12 @@ class TelegramDataResolverTest(unittest.TestCase):
         self.assertEqual(result.attachments[0].chat_id, attachment_data.chat_id)
 
     def test_resolve_with_author_normal(self):
-        chat_config_data = ChatConfigSave(chat_id = "c1", title = "Chat Title", is_private = True)
+        chat_config_data = ChatConfigSave(
+            chat_id = "c1",
+            title = "Chat Title",
+            is_private = True,
+            chat_type = ChatConfigDB.ChatType.telegram,
+        )
         author_data = UserSave(
             telegram_username = "username",
             telegram_chat_id = chat_config_data.chat_id,
@@ -176,6 +191,7 @@ class TelegramDataResolverTest(unittest.TestCase):
             is_private = False,
             reply_chance_percent = 100,
             release_notifications = ChatConfigDB.ReleaseNotifications.major,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         existing_config_db = self.sql.chat_config_crud().save(existing_config_data)
         existing_config = ChatConfig.model_validate(existing_config_db)
@@ -184,6 +200,7 @@ class TelegramDataResolverTest(unittest.TestCase):
             chat_id = "c1",
             title = "New Title",
             is_private = True,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
 
         result = self.resolver.resolve_chat_config(mapped_data)
@@ -204,6 +221,7 @@ class TelegramDataResolverTest(unittest.TestCase):
             chat_id = "c1",
             title = "Title",
             is_private = True,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
 
         result = self.resolver.resolve_chat_config(mapped_data)
@@ -231,7 +249,7 @@ class TelegramDataResolverTest(unittest.TestCase):
         )
 
         result = self.resolver.resolve_author(mapped_data)
-        saved_user_db = self.sql.user_crud().get_by_telegram_user_id(mapped_data.telegram_user_id)
+        saved_user_db = self.sql.user_crud().get_by_telegram_user_id(mapped_data.telegram_user_id or -1)
         saved_user = User.model_validate(saved_user_db)
 
         assert result is not None
@@ -262,6 +280,7 @@ class TelegramDataResolverTest(unittest.TestCase):
         )
 
         result = self.resolver.resolve_author(mapped_data)
+        assert result is not None
         saved_user_db = self.sql.user_crud().get(result.id)
         saved_user = User.model_validate(saved_user_db)
 
@@ -513,7 +532,7 @@ class TelegramDataResolverTest(unittest.TestCase):
         )
 
         result = self.resolver.resolve_chat_message_attachment(mapped_data)
-        saved_attachment_db = self.sql.chat_message_attachment_crud().get(mapped_data.id)
+        saved_attachment_db = self.sql.chat_message_attachment_crud().get(str(mapped_data.id))
         saved_attachment = ChatMessageAttachment.model_validate(saved_attachment_db)
 
         self.assertEqual(result, saved_attachment)
@@ -541,7 +560,7 @@ class TelegramDataResolverTest(unittest.TestCase):
 
         mapped_data = ChatMessageAttachmentSave(id = "i1", chat_id = "c1", message_id = "m1")  # missing file data
         result = self.resolver.resolve_chat_message_attachment(mapped_data)  # injects file data from DB
-        saved_attachment_db = self.sql.chat_message_attachment_crud().get(mapped_data.id)
+        saved_attachment_db = self.sql.chat_message_attachment_crud().get(str(mapped_data.id))
         saved_attachment = ChatMessageAttachment.model_validate(saved_attachment_db)
 
         self.assertEqual(result, saved_attachment)

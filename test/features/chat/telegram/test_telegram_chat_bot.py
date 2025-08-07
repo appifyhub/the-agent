@@ -8,6 +8,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import Runnable
 from pydantic import SecretStr
 
+from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
@@ -46,6 +47,7 @@ class TelegramChatBotTest(unittest.TestCase):
             title = "Test Chat",
             is_private = False,
             reply_chance_percent = 50,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
 
         # Create mock DI with all necessary dependencies

@@ -75,6 +75,7 @@ class SettingsControllerTest(unittest.TestCase):
             reply_chance_percent = 75,
             is_private = False,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
 
         # Create mocks
@@ -221,6 +222,7 @@ class SettingsControllerTest(unittest.TestCase):
             reply_chance_percent = 50,  # Updated value
             is_private = self.chat_config.is_private,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,  # Updated value
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_chat_config_dao.save.return_value = saved_chat_config_db
 
@@ -335,6 +337,7 @@ class SettingsControllerTest(unittest.TestCase):
             reply_chance_percent = 100,
             is_private = True,  # This is the key difference
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_chat_config_dao.get.return_value = private_chat_config
         self.mock_authorization_service.authorize_for_chat.return_value = private_chat_config
@@ -382,6 +385,7 @@ class SettingsControllerTest(unittest.TestCase):
             reply_chance_percent = 75,  # Updated value
             is_private = self.chat_config.is_private,
             release_notifications = ChatConfigDB.ReleaseNotifications.major,  # Updated value
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_chat_config_dao.save.return_value = saved_chat_config_db
 
@@ -409,6 +413,7 @@ class SettingsControllerTest(unittest.TestCase):
             reply_chance_percent = 100,
             is_private = True,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         group_chat_config = ChatConfig(
             chat_id = "group_chat_123",
@@ -417,6 +422,7 @@ class SettingsControllerTest(unittest.TestCase):
             reply_chance_percent = 50,
             is_private = False,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         no_title_chat_config = ChatConfig(
             chat_id = "no_title_chat_456",
@@ -425,6 +431,7 @@ class SettingsControllerTest(unittest.TestCase):
             reply_chance_percent = 75,
             is_private = False,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
 
         self.mock_authorization_service.get_authorized_chats.return_value = [
@@ -621,6 +628,7 @@ class SettingsControllerTest(unittest.TestCase):
             reply_chance_percent = 100,
             is_private = True,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_authorization_service.authorize_for_chat.return_value = custom_chat_config
 

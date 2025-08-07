@@ -254,6 +254,7 @@ class ReleaseSummaryResponderTest(unittest.TestCase):
             is_private = True,
             reply_chance_percent = 100,
             release_notifications = notifications,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
 
     @staticmethod
@@ -272,5 +273,6 @@ class ReleaseSummaryResponderTest(unittest.TestCase):
                 is_private = True,
                 reply_chance_percent = 100,
                 release_notifications = notifications,
+                chat_type = ChatConfigDB.ChatType.telegram,
             ),
         )

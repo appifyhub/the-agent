@@ -64,6 +64,7 @@ class DevAnnouncementsServiceTest(unittest.TestCase):
         mock_chat.is_private = True
         mock_chat.reply_chance_percent = 100
         mock_chat.release_notifications = ChatConfigDB.ReleaseNotifications.all
+        mock_chat.chat_type = ChatConfigDB.ChatType.telegram
         return mock_chat
 
     def test_init_success(self):

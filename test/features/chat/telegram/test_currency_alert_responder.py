@@ -98,6 +98,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
             language_name = "English",
             language_iso_code = "en",
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_scoped_di.chat_config_crud.get.return_value = mock_chat_config_db
 
@@ -169,6 +170,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
             language_name = "English",
             language_iso_code = "en",
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_di.chat_config_crud.get.return_value = mock_chat_config_db
 
@@ -214,6 +216,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
             language_name = "English",
             language_iso_code = "en",
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_scoped_di.chat_config_crud.get.return_value = mock_chat_config_db
 
@@ -258,6 +261,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
             language_name = "English",
             language_iso_code = "en",
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_scoped_di.chat_config_crud.get.return_value = mock_chat_config_db
 
