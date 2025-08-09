@@ -2,6 +2,7 @@ from dataclasses import asdict
 from typing import Annotated, Any, List, Literal, TypeAlias, get_args
 
 from api import auth
+from api.mapper.chat_mapper import domain_to_api as chat_to_api
 from api.mapper.user_mapper import api_to_domain, domain_to_api
 from api.model.chat_settings_payload import ChatSettingsPayload
 from api.model.external_tools_response import ExternalToolProviderResponse, ExternalToolResponse, ExternalToolsResponse
@@ -93,10 +94,8 @@ class SettingsController:
 
     def fetch_chat_settings(self, chat_id: str) -> dict[str, Any]:
         chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, chat_id)
-        output = ChatConfig.model_dump(chat_config)
         invoker_telegram_id = str(self.__di.invoker.telegram_user_id or 0)
-        output["is_own"] = invoker_telegram_id == chat_config.external_id
-        return output
+        return chat_to_api(chat = chat_config, is_own = invoker_telegram_id == chat_config.external_id).model_dump()
 
     def fetch_user_settings(self, user_id_hex: str) -> dict[str, Any]:
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)

@@ -176,12 +176,12 @@ class SettingsControllerTest(unittest.TestCase):
         controller = SettingsController(self.mock_di)
         result = controller.fetch_chat_settings("test_chat_123")
 
-        self.assertEqual(result["chat_id"], self.chat_config.chat_id)
+        self.assertEqual(result["chat_id"], self.chat_config.chat_id.hex)
         self.assertEqual(result["title"], self.chat_config.title)
         self.assertEqual(result["language_iso_code"], self.chat_config.language_iso_code)
         self.assertEqual(result["reply_chance_percent"], self.chat_config.reply_chance_percent)
         self.assertEqual(result["is_private"], self.chat_config.is_private)
-        self.assertEqual(result["release_notifications"], self.chat_config.release_notifications)
+        self.assertEqual(result["release_notifications"], self.chat_config.release_notifications.value)
         self.assertIn("is_own", result)
 
     def test_fetch_user_settings_success(self):
