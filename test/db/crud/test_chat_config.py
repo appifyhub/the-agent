@@ -18,7 +18,7 @@ class ChatConfigCRUDTest(unittest.TestCase):
 
     def test_create_chat_config(self):
         chat_config_data = ChatConfigSave(
-            chat_id = "chat1",
+            external_id = "chat1",
             language_iso_code = "en",
             language_name = "English",
             title = "Chat One",
@@ -30,7 +30,8 @@ class ChatConfigCRUDTest(unittest.TestCase):
 
         chat_config = self.sql.chat_config_crud().create(chat_config_data)
 
-        self.assertEqual(chat_config.chat_id, chat_config_data.chat_id)
+        self.assertIsNotNone(chat_config.chat_id)
+        self.assertEqual(chat_config.external_id, chat_config_data.external_id)
         self.assertEqual(chat_config.language_iso_code, chat_config_data.language_iso_code)
         self.assertEqual(chat_config.language_name, chat_config_data.language_name)
         self.assertEqual(chat_config.title, chat_config_data.title)
@@ -41,7 +42,7 @@ class ChatConfigCRUDTest(unittest.TestCase):
 
     def test_get_chat_config(self):
         chat_config_data = ChatConfigSave(
-            chat_id = "chat1",
+            external_id = "chat1",
             language_iso_code = "en",
             language_name = "English",
             title = "Chat One",
@@ -59,10 +60,10 @@ class ChatConfigCRUDTest(unittest.TestCase):
     def test_get_all_chat_configs(self):
         chat_configs = [
             self.sql.chat_config_crud().create(
-                ChatConfigSave(chat_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram),
+                ChatConfigSave(external_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram),
             ),
             self.sql.chat_config_crud().create(
-                ChatConfigSave(chat_id = "chat2", chat_type = ChatConfigDB.ChatType.telegram),
+                ChatConfigSave(external_id = "chat2", chat_type = ChatConfigDB.ChatType.standalone_app),
             ),
         ]
 
@@ -74,7 +75,7 @@ class ChatConfigCRUDTest(unittest.TestCase):
 
     def test_update_chat_config(self):
         chat_config_data = ChatConfigSave(
-            chat_id = "chat1",
+            external_id = "chat1",
             language_iso_code = "en",
             language_name = "English",
             title = "Chat One",
@@ -107,7 +108,7 @@ class ChatConfigCRUDTest(unittest.TestCase):
 
     def test_save_chat_config(self):
         chat_config_data = ChatConfigSave(
-            chat_id = "chat1",
+            external_id = "chat1",
             language_iso_code = "en",
             language_name = "English",
             title = "Chat One",
@@ -120,7 +121,8 @@ class ChatConfigCRUDTest(unittest.TestCase):
         # First, save should create the record
         saved_chat_config = self.sql.chat_config_crud().save(chat_config_data)
         self.assertIsNotNone(saved_chat_config)
-        self.assertEqual(saved_chat_config.chat_id, chat_config_data.chat_id)
+        self.assertIsNotNone(saved_chat_config.chat_id)
+        self.assertEqual(saved_chat_config.external_id, chat_config_data.external_id)
         self.assertEqual(saved_chat_config.language_iso_code, chat_config_data.language_iso_code)
         self.assertEqual(saved_chat_config.language_name, chat_config_data.language_name)
         self.assertEqual(saved_chat_config.title, chat_config_data.title)
@@ -152,7 +154,7 @@ class ChatConfigCRUDTest(unittest.TestCase):
         self.assertEqual(updated_chat_config.chat_type, update_data.chat_type)
 
     def test_delete_chat_config(self):
-        chat_config_data = ChatConfigSave(chat_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram)
+        chat_config_data = ChatConfigSave(external_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram)
         created_chat_config = self.sql.chat_config_crud().create(chat_config_data)
 
         deleted_chat_config = self.sql.chat_config_crud().delete(created_chat_config.chat_id)

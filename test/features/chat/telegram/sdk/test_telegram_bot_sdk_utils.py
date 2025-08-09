@@ -1,6 +1,7 @@
 import unittest
 from datetime import datetime
 from unittest.mock import Mock, patch
+from uuid import UUID
 
 from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessageAttachmentSave
 from di.di import DI
@@ -19,7 +20,7 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         self.attachment_db = {
             "id": self.attachment_id,
             "ext_id": self.ext_id,
-            "chat_id": "chat_123",
+            "chat_id": UUID(int = 1),
             "message_id": "msg_123",
             "size": 1000,
             "last_url": "http://old.url",
@@ -46,13 +47,13 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
 
         # Mock the get method to return attachment data
         self.mock_di.chat_message_attachment_crud.get.side_effect = [
-            {"id": "short1", "ext_id": "ext1", "chat_id": "chat1", "message_id": "msg1"},
-            {"id": "short2", "ext_id": "ext2", "chat_id": "chat1", "message_id": "msg2"},
+            {"id": "short1", "ext_id": "ext1", "chat_id": UUID(int = 1), "message_id": "msg1"},
+            {"id": "short2", "ext_id": "ext2", "chat_id": UUID(int = 1), "message_id": "msg2"},
         ]
 
         with patch.object(TelegramBotSDKUtils, "refresh_attachment") as mock_refresh:
-            mock_attachment1 = ChatMessageAttachment(id = "short1", ext_id = "ext1", chat_id = "chat1", message_id = "msg1")
-            mock_attachment2 = ChatMessageAttachment(id = "short2", ext_id = "ext2", chat_id = "chat1", message_id = "msg2")
+            mock_attachment1 = ChatMessageAttachment(id = "short1", ext_id = "ext1", chat_id = UUID(int = 1), message_id = "msg1")
+            mock_attachment2 = ChatMessageAttachment(id = "short2", ext_id = "ext2", chat_id = UUID(int = 1), message_id = "msg2")
             mock_refresh.side_effect = [mock_attachment1, mock_attachment2]
 
             result = TelegramBotSDKUtils.refresh_attachments_by_ids(
@@ -68,7 +69,7 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         attachment = ChatMessageAttachment(
             id = self.attachment_id,
             ext_id = self.ext_id,
-            chat_id = "chat_123",
+            chat_id = UUID(int = 1),
             message_id = "msg_123",
             size = 1000,
         )
@@ -94,7 +95,7 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         attachment_save = ChatMessageAttachmentSave(
             id = self.attachment_id,
             ext_id = self.ext_id,
-            chat_id = "chat_123",
+            chat_id = UUID(int = 1),
             message_id = "msg_123",
             size = 500,
         )
@@ -128,7 +129,7 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         attachment = ChatMessageAttachment(
             id = self.attachment_id,
             ext_id = self.ext_id,
-            chat_id = "chat_123",
+            chat_id = UUID(int = 1),
             message_id = "msg_123",
             size = 1000,
             last_url = "http://fresh.url",
@@ -150,7 +151,7 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         attachment_save = ChatMessageAttachmentSave(
             id = self.attachment_id,
             ext_id = None,  # Missing ext_id
-            chat_id = "chat_123",
+            chat_id = UUID(int = 1),
             message_id = "msg_123",
         )
 
@@ -178,7 +179,7 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         attachment = ChatMessageAttachment(
             id = self.attachment_id,
             ext_id = self.ext_id,
-            chat_id = "chat_123",
+            chat_id = UUID(int = 1),
             message_id = "msg_123",
             extension = None,  # No extension initially
             mime_type = None,
@@ -206,8 +207,8 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
 
     def test_refresh_attachment_instances(self):
         attachments = [
-            ChatMessageAttachment(id = "id1", ext_id = "ext1", chat_id = "chat1", message_id = "msg1"),
-            ChatMessageAttachment(id = "id2", ext_id = "ext2", chat_id = "chat1", message_id = "msg2"),
+            ChatMessageAttachment(id = "id1", ext_id = "ext1", chat_id = UUID(int = 1), message_id = "msg1"),
+            ChatMessageAttachment(id = "id2", ext_id = "ext2", chat_id = UUID(int = 1), message_id = "msg2"),
         ]
 
         with patch.object(TelegramBotSDKUtils, "refresh_attachment") as mock_refresh:
@@ -243,7 +244,7 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         attachment_save = ChatMessageAttachmentSave(
             id = "test123",
             ext_id = "telegram456",
-            chat_id = "chat123",
+            chat_id = UUID(int = 1),
             message_id = "msg123",
             last_url = "http://example.com/image.jpg",
             extension = None,
@@ -286,7 +287,7 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         attachment_save = ChatMessageAttachmentSave(
             id = "test123",
             ext_id = "telegram456",
-            chat_id = "chat123",
+            chat_id = UUID(int = 1),
             message_id = "msg123",
             last_url = "http://example.com/image.jpg",
             extension = None,
@@ -324,7 +325,7 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         attachment_save = ChatMessageAttachmentSave(
             id = "test123",
             ext_id = "telegram456",
-            chat_id = "chat123",
+            chat_id = UUID(int = 1),
             message_id = "msg123",
             last_url = "http://example.com/image.jpg",
             extension = None,

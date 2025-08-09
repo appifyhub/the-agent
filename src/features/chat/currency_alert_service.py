@@ -17,7 +17,7 @@ DATETIME_PRINT_FORMAT = "%Y-%m-%d %H:%M %Z"
 class CurrencyAlertService:
 
     class TriggeredAlert(BaseModel):
-        chat_id: str
+        chat_id: UUID
         owner_id: UUID
         base_currency: str
         desired_currency: str
@@ -29,7 +29,7 @@ class CurrencyAlertService:
         price_change_percent: int
 
     class ActiveAlert(BaseModel):
-        chat_id: str
+        chat_id: UUID
         owner_id: UUID
         base_currency: str
         desired_currency: str
@@ -128,7 +128,7 @@ class CurrencyAlertService:
         triggered_alerts: list[CurrencyAlertService.TriggeredAlert] = []
         for alert in active_alerts:
             try:
-                scoped_di = self.__di.clone(invoker_id = alert.owner_id.hex, invoker_chat_id = alert.chat_id)
+                scoped_di = self.__di.clone(invoker_id = alert.owner_id.hex, invoker_chat_id = alert.chat_id.hex)
                 current_rate: float = scoped_di.exchange_rate_fetcher.execute(alert.base_currency, alert.desired_currency)["rate"]
                 price_change_percent: int
                 if alert.last_price == 0:

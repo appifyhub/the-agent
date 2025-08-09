@@ -365,7 +365,7 @@ def configure_settings(
             if not di.invoker.telegram_chat_id:
                 return __error("Author has no private chat with the bot; cannot send settings link")
             di.telegram_bot_sdk.send_button_link(di.invoker.telegram_chat_id, settings_link)
-            if chat_id and chat_id == str(di.invoker.telegram_chat_id or 0):
+            if chat_id and chat_id == di.invoker_chat.chat_id.hex:
                 return __success(
                     {
                         "next_step": "Notify the user to click on the settings link above",
@@ -397,13 +397,13 @@ def read_help_and_features(
     """
     try:
         with get_detached_session() as db:
-            di = DI(db, author_user_id)
+            di = DI(db, author_user_id, chat_id)
             help_link = di.settings_controller.create_help_link()
             # let's send the settings link to the user's private chat, for security and privacy reasons
             if not di.invoker.telegram_chat_id:
                 return __error("Author has no private chat with the bot; cannot send settings link")
             di.telegram_bot_sdk.send_button_link(di.invoker.telegram_chat_id, help_link)
-            if chat_id and chat_id == str(di.invoker.telegram_chat_id or 0):
+            if chat_id and chat_id == di.invoker_chat.chat_id.hex:
                 return __success(
                     {
                         "next_step": "Notify the user to click on the settings link above",

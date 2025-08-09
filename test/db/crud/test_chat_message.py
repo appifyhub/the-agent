@@ -22,7 +22,9 @@ class ChatMessageCRUDTest(unittest.TestCase):
         self.sql.end_session()
 
     def test_create_chat_message(self):
-        chat = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram))
+        chat = self.sql.chat_config_crud().create(
+            ChatConfigSave(external_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram),
+        )
         user = self.sql.user_crud().create(
             UserSave(
                 full_name = "Test User",
@@ -50,7 +52,9 @@ class ChatMessageCRUDTest(unittest.TestCase):
         self.assertEqual(chat_message.text, chat_message_data.text)
 
     def test_get_chat_message(self):
-        chat = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram))
+        chat = self.sql.chat_config_crud().create(
+            ChatConfigSave(external_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram),
+        )
         user = self.sql.user_crud().create(
             UserSave(
                 full_name = "Test User",
@@ -80,8 +84,12 @@ class ChatMessageCRUDTest(unittest.TestCase):
         self.assertEqual(fetched_chat_message.author_id, created_chat_message.author_id)
 
     def test_get_all_chat_messages(self):
-        chat1 = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram))
-        chat2 = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat2", chat_type = ChatConfigDB.ChatType.telegram))
+        chat1 = self.sql.chat_config_crud().create(
+            ChatConfigSave(external_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram),
+        )
+        chat2 = self.sql.chat_config_crud().create(
+            ChatConfigSave(external_id = "chat2", chat_type = ChatConfigDB.ChatType.standalone_app),
+        )
         user = self.sql.user_crud().create(
             UserSave(
                 full_name = "Test User",
@@ -110,8 +118,12 @@ class ChatMessageCRUDTest(unittest.TestCase):
             self.assertEqual(fetched_chat_messages[i].author_id, chat_messages[i].author_id)
 
     def test_get_latest_chat_messages(self):
-        chat1 = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram))
-        chat2 = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat2", chat_type = ChatConfigDB.ChatType.telegram))
+        chat1 = self.sql.chat_config_crud().create(
+            ChatConfigSave(external_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram),
+        )
+        chat2 = self.sql.chat_config_crud().create(
+            ChatConfigSave(external_id = "chat2", chat_type = ChatConfigDB.ChatType.standalone_app),
+        )
         user = self.sql.user_crud().create(
             UserSave(
                 full_name = "Test User",
@@ -162,11 +174,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
             self.assertEqual(limited_chat1_messages[i].text, message.text)
 
         # fetching with pagination
-        paginated_chat1_messages = self.sql.chat_message_crud().get_latest_chat_messages(
-            chat1.chat_id,
-            skip = 2,
-            limit = 2,
-        )
+        paginated_chat1_messages = self.sql.chat_message_crud().get_latest_chat_messages(chat1.chat_id, skip = 2, limit = 2)
         fetched_chat2_messages = self.sql.chat_message_crud().get_latest_chat_messages(chat2.chat_id)
         self.assertEqual(len(paginated_chat1_messages), 2)
         self.assertEqual(len(fetched_chat2_messages), len(chat2_messages))
@@ -180,7 +188,9 @@ class ChatMessageCRUDTest(unittest.TestCase):
             self.assertEqual(fetched_chat2_messages[i].text, message.text)
 
     def test_update_chat_message(self):
-        chat = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram))
+        chat = self.sql.chat_config_crud().create(
+            ChatConfigSave(external_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram),
+        )
         user = self.sql.user_crud().create(
             UserSave(
                 full_name = "Test User",
@@ -214,7 +224,9 @@ class ChatMessageCRUDTest(unittest.TestCase):
         self.assertEqual(updated_chat_message.text, update_data.text)
 
     def test_save_chat_message(self):
-        chat = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram))
+        chat = self.sql.chat_config_crud().create(
+            ChatConfigSave(external_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram),
+        )
         user = self.sql.user_crud().create(
             UserSave(
                 full_name = "Test User",
@@ -259,7 +271,9 @@ class ChatMessageCRUDTest(unittest.TestCase):
         self.assertEqual(updated_chat_message.text, update_data.text)
 
     def test_delete_chat_message(self):
-        chat = self.sql.chat_config_crud().create(ChatConfigSave(chat_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram))
+        chat = self.sql.chat_config_crud().create(
+            ChatConfigSave(external_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram),
+        )
         user = self.sql.user_crud().create(
             UserSave(
                 full_name = "Test User",

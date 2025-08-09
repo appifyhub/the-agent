@@ -21,7 +21,7 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
 
         # Mock DI
         self.mock_di = MagicMock()
-        self.mock_di.invoker_chat.chat_id = "test_chat_id"
+        self.mock_di.invoker_chat.external_id = "1"
         # noinspection PyPropertyAccess
         self.mock_di.telegram_bot_sdk = MagicMock(spec = TelegramBotSDK)
         self.mock_di.telegram_bot_sdk.send_photo.return_value = {"result": {"message_id": 123}}
@@ -69,11 +69,11 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         self.simple_stable_diffusion_generator.execute.assert_called_once()
         # noinspection PyUnresolvedReferences
         self.mock_di.telegram_bot_sdk.send_document.assert_called_once_with(
-            "test_chat_id", "http://example.com/image.png", thumbnail = "http://example.com/image.png",
+            1, "http://example.com/image.png", thumbnail = "http://example.com/image.png",
         )
         # noinspection PyUnresolvedReferences
         self.mock_di.telegram_bot_sdk.send_photo.assert_called_once_with(
-            "test_chat_id", "http://example.com/image.png", caption = "📸",
+            1, "http://example.com/image.png", caption = "📸",
         )
 
     def test_execute_llm_failure(self):

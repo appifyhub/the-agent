@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import Mock, patch
+from uuid import UUID
 
 from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig
@@ -16,7 +17,8 @@ class TelegramProgressNotifierTest(unittest.TestCase):
 
     def setUp(self):
         self.chat_config = ChatConfig(
-            chat_id = "test_chat_id",
+            chat_id = UUID(int = 1),
+            external_id = "test_chat_id",
             language_iso_code = "en",
             language_name = "English",
             title = "Test Chat",
@@ -61,5 +63,5 @@ class TelegramProgressNotifierTest(unittest.TestCase):
         mock_time.return_value = 100
         # noinspection PyUnresolvedReferences
         self.notifier._TelegramProgressNotifier__send_reaction()
-        self.mock_di.telegram_bot_sdk.set_status_typing.assert_called_once_with(self.chat_config.chat_id)
+        self.mock_di.telegram_bot_sdk.set_status_typing.assert_called_once_with(self.chat_config.external_id)
         self.mock_di.telegram_bot_sdk.set_reaction.assert_called_once()

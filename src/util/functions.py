@@ -1,8 +1,8 @@
 import hashlib
 import random
-import uuid
 from datetime import datetime
 from typing import Any, Callable, TypeVar
+from uuid import UUID, uuid4
 
 from pydantic import SecretStr
 
@@ -19,7 +19,7 @@ def is_the_agent(who: User | UserSave | None) -> bool:
     return who.telegram_username == TELEGRAM_BOT_USER.telegram_username
 
 
-def construct_bot_message_id(chat_id: str, sent_at: datetime) -> str:
+def construct_bot_message_id(chat_id: UUID, sent_at: datetime) -> str:
     random_seed = str(random.randint(1000, 9999))
     formatted_time = sent_at.strftime("%y%m%d%H%M%S")
     result = f"{chat_id}-{formatted_time}-{random_seed}"
@@ -27,7 +27,7 @@ def construct_bot_message_id(chat_id: str, sent_at: datetime) -> str:
 
 
 def generate_short_uuid() -> str:
-    return uuid.uuid4().hex[:8]
+    return uuid4().hex[:8]
 
 
 def generate_deterministic_short_uuid(seed: str) -> str:

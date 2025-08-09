@@ -43,6 +43,7 @@ class DevAnnouncementsServiceTest(unittest.TestCase):
         self.mock_di.chat_langchain_model.return_value = MagicMock()
         self.mock_di.user_crud.get_by_telegram_username.return_value = None
         self.mock_di.chat_config_crud.get.return_value = None
+        self.mock_di.chat_config_crud.get_by_external_identifiers.return_value = None
         self.mock_di.chat_config_crud.get_all.return_value = []
         self.mock_di.telegram_bot_sdk.send_text_message.return_value = {"result": {"message_id": 123}}
         self.mock_di.chat_message_crud.save.return_value = MagicMock()
@@ -54,18 +55,18 @@ class DevAnnouncementsServiceTest(unittest.TestCase):
         self.mock_configured_tool = MagicMock(spec = ConfiguredTool)
 
     @staticmethod
-    def __create_mock_chat_config(chat_id: str, language: str = "en"):
-        """Helper to create a properly mocked ChatConfig object"""
-        mock_chat = MagicMock()
-        mock_chat.chat_id = chat_id
-        mock_chat.language_iso_code = language
-        mock_chat.language_name = "English" if language == "en" else "Spanish"
-        mock_chat.title = f"Chat {chat_id}"
-        mock_chat.is_private = True
-        mock_chat.reply_chance_percent = 100
-        mock_chat.release_notifications = ChatConfigDB.ReleaseNotifications.all
-        mock_chat.chat_type = ChatConfigDB.ChatType.telegram
-        return mock_chat
+    def __create_mock_chat_config(external_id: str, language: str = "en"):
+        return ChatConfigDB(
+            chat_id = UUID(int = 1),
+            external_id = external_id,
+            language_iso_code = language,
+            language_name = "English" if language == "en" else "Spanish",
+            title = f"Chat {external_id}",
+            is_private = True,
+            reply_chance_percent = 100,
+            release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            chat_type = ChatConfigDB.ChatType.telegram,
+        )
 
     def test_init_success(self):
         service = DevAnnouncementsService(
@@ -103,8 +104,8 @@ class DevAnnouncementsServiceTest(unittest.TestCase):
         self.mock_di.chat_langchain_model.return_value = mock_llm
 
         self.mock_di.chat_config_crud.get_all.return_value = [
-            self.__create_mock_chat_config("chat1", "en"),
-            self.__create_mock_chat_config("chat2", "es"),
+            self.__create_mock_chat_config("1", "en"),
+            self.__create_mock_chat_config("2", "es"),
         ]
 
         service = DevAnnouncementsService(
@@ -127,7 +128,7 @@ class DevAnnouncementsServiceTest(unittest.TestCase):
         self.mock_di.chat_langchain_model.return_value = mock_llm
 
         self.mock_di.chat_config_crud.get_all.return_value = [
-            self.__create_mock_chat_config("chat1", "en"),
+            self.__create_mock_chat_config("1", "en"),
         ]
         self.mock_di.translations_cache.get.return_value = None  # Force translation attempt
         self.mock_di.translations_cache.save.side_effect = Exception("Translation failed")
@@ -151,7 +152,7 @@ class DevAnnouncementsServiceTest(unittest.TestCase):
         self.mock_di.chat_langchain_model.return_value = mock_llm
 
         self.mock_di.chat_config_crud.get_all.return_value = [
-            self.__create_mock_chat_config("chat1", "en"),
+            self.__create_mock_chat_config("1", "en"),
         ]
         self.mock_di.telegram_bot_sdk.send_text_message.side_effect = Exception("Notification failed")
 
@@ -197,7 +198,7 @@ class DevAnnouncementsServiceTest(unittest.TestCase):
             id = UUID("223e4567-e89b-12d3-a456-426614174000"),
             full_name = "Target User",
             telegram_username = "target_user",
-            telegram_chat_id = "target_chat_id",
+            telegram_chat_id = "12345",
             telegram_user_id = 2,
             open_ai_key = SecretStr("test_api_key"),
             replicate_key = SecretStr("test_replicate_key"),
@@ -207,7 +208,10 @@ class DevAnnouncementsServiceTest(unittest.TestCase):
         )
 
         self.mock_di.user_crud.get_by_telegram_username.return_value = target_user
-        self.mock_di.chat_config_crud.get.return_value = self.__create_mock_chat_config("target_chat_id", "en")
+        self.mock_di.chat_config_crud.get_by_external_identifiers.return_value = self.__create_mock_chat_config(
+            external_id = "12345",
+            language = "en",
+        )
 
         service = DevAnnouncementsService(
             self.raw_announcement,
@@ -276,7 +280,7 @@ class DevAnnouncementsServiceTest(unittest.TestCase):
         )
 
         self.mock_di.user_crud.get_by_telegram_username.return_value = target_user
-        self.mock_di.chat_config_crud.get.return_value = None
+        self.mock_di.chat_config_crud.get_by_external_identifiers.return_value = None
 
         with self.assertRaises(ValueError) as context:
             DevAnnouncementsService(

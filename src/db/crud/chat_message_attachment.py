@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy.orm import Session
 
 from db.model.chat_message_attachment import ChatMessageAttachmentDB
@@ -26,7 +28,7 @@ class ChatMessageAttachmentCRUD:
         # noinspection PyTypeChecker
         return self._db.query(ChatMessageAttachmentDB).offset(skip).limit(limit).all()
 
-    def get_by_message(self, chat_id: str, message_id: str) -> list[ChatMessageAttachmentDB]:
+    def get_by_message(self, chat_id: UUID, message_id: str) -> list[ChatMessageAttachmentDB]:
         # noinspection PyTypeChecker
         return self._db.query(ChatMessageAttachmentDB).filter(
             ChatMessageAttachmentDB.chat_id == chat_id,

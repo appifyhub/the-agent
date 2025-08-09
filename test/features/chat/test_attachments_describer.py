@@ -35,7 +35,7 @@ class AttachmentsDescriberTest(unittest.TestCase):
         self.mock_di.chat_config_crud = self.mock_chat_config_crud
         self.mock_di.chat_message_attachment_crud = self.mock_chat_message_attachment_crud
         self.mock_di.access_token_resolver = self.mock_access_token_resolver
-        self.mock_di.invoker_chat_id = "1"
+        self.mock_di.invoker_chat_id = UUID(int = 1).hex
         self.mock_di.invoker_chat.language_name = "Spanish"
         self.mock_di.invoker_chat.language_iso_code = "es"
         self.mock_di.telegram_bot_api = MagicMock()
@@ -65,7 +65,8 @@ class AttachmentsDescriberTest(unittest.TestCase):
             created_at = datetime.now().date(),
         )
         self.chat_config = ChatConfig(
-            chat_id = "1",
+            chat_id = UUID(int = 1),
+            external_id = "1",
             language_name = "Spanish",
             language_iso_code = "es",
             chat_type = ChatConfigDB.ChatType.telegram,
@@ -73,7 +74,7 @@ class AttachmentsDescriberTest(unittest.TestCase):
         self.attachment = ChatMessageAttachment(
             id = "1",
             ext_id = "telegram_file_1",
-            chat_id = "1",
+            chat_id = UUID(int = 1),
             message_id = "1",
             mime_type = "image/png",
             extension = "png",
@@ -178,7 +179,7 @@ class AttachmentsDescriberTest(unittest.TestCase):
     def test_fetch_text_content_with_audio(self, m: requests_mock.Mocker):
         audio_attachment = ChatMessageAttachment(
             id = "2",
-            chat_id = "1",
+            chat_id = UUID(int = 1),
             message_id = "2",
             mime_type = "audio/mpeg",
             extension = "mp3",
@@ -205,7 +206,7 @@ class AttachmentsDescriberTest(unittest.TestCase):
     def test_fetch_text_content_with_pdf_document(self, m: requests_mock.Mocker):
         pdf_attachment = ChatMessageAttachment(
             id = "4",
-            chat_id = "1",
+            chat_id = UUID(int = 1),
             message_id = "4",
             mime_type = "application/pdf",
             extension = "pdf",
@@ -232,7 +233,7 @@ class AttachmentsDescriberTest(unittest.TestCase):
     def test_fetch_text_content_with_unsupported_type(self, m: requests_mock.Mocker):
         unsupported_attachment = ChatMessageAttachment(
             id = "3",
-            chat_id = "1",
+            chat_id = UUID(int = 1),
             message_id = "3",
             mime_type = "application/xxx",
             extension = "xxx",

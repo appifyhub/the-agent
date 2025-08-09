@@ -69,7 +69,8 @@ class SettingsControllerTest(unittest.TestCase):
             created_at = datetime.now().date(),
         )
         self.chat_config = ChatConfig(
-            chat_id = "test_chat_123",
+            chat_id = UUID(int = 1),
+            external_id = "test_chat_123",
             title = "Test Chat",
             language_iso_code = "en",
             reply_chance_percent = 75,
@@ -149,7 +150,7 @@ class SettingsControllerTest(unittest.TestCase):
         link = controller.create_settings_link("chat", "test_chat_123")
 
         self.assertIn("chat", link)
-        self.assertIn("test_chat_123", link)
+        self.assertIn(self.chat_config.chat_id.hex, link)
         self.assertIn("token=", link)
 
     def test_create_settings_link_failure_invalid_settings_type(self):
@@ -216,6 +217,7 @@ class SettingsControllerTest(unittest.TestCase):
         # Mock the save method to return a proper ChatConfigDB object
         saved_chat_config_db = ChatConfigDB(
             chat_id = self.chat_config.chat_id,
+            external_id = self.chat_config.external_id,
             title = self.chat_config.title,
             language_iso_code = "es",  # Updated value
             language_name = "Spanish",  # Updated value
@@ -331,7 +333,8 @@ class SettingsControllerTest(unittest.TestCase):
     def test_save_chat_settings_failure_reply_chance_private_chat(self):
         self.mock_user_dao.get.return_value = self.invoker_user
         private_chat_config = ChatConfig(
-            chat_id = "private_chat_123",
+            chat_id = UUID(int = 123),
+            external_id = "private_chat_123",
             title = "Private Chat",
             language_iso_code = "en",
             reply_chance_percent = 100,
@@ -407,7 +410,8 @@ class SettingsControllerTest(unittest.TestCase):
     def test_fetch_admin_chats_success(self):
         self.invoker_user.telegram_chat_id = "invoker_chat_id"  # As in setUp
         own_chat_config = ChatConfig(
-            chat_id = str(self.invoker_user.telegram_chat_id),
+            chat_id = UUID(int = 2),
+            external_id = str(self.invoker_user.telegram_chat_id),
             title = "My Notes",
             language_iso_code = "en",
             reply_chance_percent = 100,
@@ -416,7 +420,8 @@ class SettingsControllerTest(unittest.TestCase):
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         group_chat_config = ChatConfig(
-            chat_id = "group_chat_123",
+            chat_id = UUID(int = 3),
+            external_id = "group_chat_123",
             title = "Test Group",
             language_iso_code = "es",
             reply_chance_percent = 50,
@@ -425,7 +430,8 @@ class SettingsControllerTest(unittest.TestCase):
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         no_title_chat_config = ChatConfig(
-            chat_id = "no_title_chat_456",
+            chat_id = UUID(int = 4),
+            external_id = "no_title_chat_456",
             title = None,
             language_iso_code = "fr",
             reply_chance_percent = 75,
@@ -446,17 +452,17 @@ class SettingsControllerTest(unittest.TestCase):
         self.assertEqual(len(result), 3)
 
         # Check own chat
-        own_chat_result = next(r for r in result if r["chat_id"] == own_chat_config.chat_id)
+        own_chat_result = next(r for r in result if r["chat_id"] == own_chat_config.chat_id.hex)
         self.assertEqual(own_chat_result["title"], "My Notes")
         self.assertTrue(own_chat_result["is_own"])
 
         # Check group chat
-        group_chat_result = next(r for r in result if r["chat_id"] == group_chat_config.chat_id)
+        group_chat_result = next(r for r in result if r["chat_id"] == group_chat_config.chat_id.hex)
         self.assertEqual(group_chat_result["title"], "Test Group")
         self.assertFalse(group_chat_result["is_own"])
 
         # Check no title chat
-        no_title_result = next(r for r in result if r["chat_id"] == no_title_chat_config.chat_id)
+        no_title_result = next(r for r in result if r["chat_id"] == no_title_chat_config.chat_id.hex)
         self.assertIsNone(no_title_result["title"])
         self.assertFalse(no_title_result["is_own"])
 
@@ -622,7 +628,8 @@ class SettingsControllerTest(unittest.TestCase):
         mock_create_jwt_token.return_value = "test_jwt_token"
 
         custom_chat_config = ChatConfig(
-            chat_id = str(self.invoker_user.telegram_chat_id),
+            chat_id = UUID(int = 2),
+            external_id = str(self.invoker_user.telegram_chat_id),
             title = "Test Chat",
             language_iso_code = "es",  # Spanish
             reply_chance_percent = 100,

@@ -199,9 +199,10 @@ class ChatImagingService:
                 if image_url is None:
                     output.append({"url": None, "error": error})
                     continue
-                log.t(f"Sending edited image to chat '{self.__di.invoker_chat.chat_id}'")
-                self.__di.telegram_bot_sdk.send_document(self.__di.invoker_chat.chat_id, image_url, thumbnail = image_url)
-                self.__di.telegram_bot_sdk.send_photo(self.__di.invoker_chat.chat_id, image_url, caption = "📸")
+                external_id = str(self.__di.invoker_chat.external_id)
+                log.t(f"Sending edited image to chat '{external_id}'")
+                self.__di.telegram_bot_sdk.send_document(external_id, image_url, thumbnail = image_url)
+                self.__di.telegram_bot_sdk.send_photo(external_id, image_url, caption = "📸")
                 log.t("Image edited and sent successfully")
                 output.append({"url": image_url, "error": None, "status": "delivered"})
             return result, output
@@ -214,9 +215,10 @@ class ChatImagingService:
                 if image_url is None:
                     output.append({"url": None, "error": error})
                     continue
-                log.t(f"Sending restored image to chat '{self.__di.invoker_chat.chat_id}': {image_url}")
-                self.__di.telegram_bot_sdk.send_document(self.__di.invoker_chat.chat_id, image_url, thumbnail = image_url)
-                self.__di.telegram_bot_sdk.send_photo(self.__di.invoker_chat.chat_id, image_url, caption = "📸")
+                external_id = str(self.__di.invoker_chat.external_id)
+                log.t(f"Sending restored image to chat '{external_id}': {image_url}")
+                self.__di.telegram_bot_sdk.send_document(external_id, image_url, thumbnail = image_url)
+                self.__di.telegram_bot_sdk.send_photo(external_id, image_url, caption = "📸")
                 log.t("Image restored and sent successfully")
                 output.append({"url": image_url, "error": None, "status": "delivered"})
             return result, output
@@ -229,9 +231,10 @@ class ChatImagingService:
                 if image_url is None:
                     output.append({"url": None, "error": error})
                     continue
-                log.t(f"Sending edited image to chat '{self.__di.invoker_chat.chat_id}': {image_url}")
-                self.__di.telegram_bot_sdk.send_document(self.__di.invoker_chat.chat_id, image_url, thumbnail = image_url)
-                self.__di.telegram_bot_sdk.send_photo(self.__di.invoker_chat.chat_id, image_url, caption = "📸")
+                external_id = str(self.__di.invoker_chat.external_id)
+                log.t(f"Sending edited image to chat '{external_id}': {image_url}")
+                self.__di.telegram_bot_sdk.send_document(external_id, image_url, thumbnail = image_url)
+                self.__di.telegram_bot_sdk.send_photo(external_id, image_url, caption = "📸")
                 log.t("Image edited and sent successfully")
                 output.append({"url": image_url, "error": None, "status": "delivered"})
             return result, output

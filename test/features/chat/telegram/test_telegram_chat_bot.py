@@ -41,7 +41,8 @@ class TelegramChatBotTest(unittest.TestCase):
             created_at = datetime.now().date(),
         )
         self.chat_config = ChatConfig(
-            chat_id = "12345",
+            chat_id = UUID(int = 1),
+            external_id = "12345",
             language_iso_code = "en",
             language_name = "English",
             title = "Test Chat",

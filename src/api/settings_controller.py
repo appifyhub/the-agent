@@ -52,7 +52,7 @@ class SettingsController:
             if not target_chat_id:
                 raise ValueError(log.e("Chat ID must be provided when requesting chat settings"))
             chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, target_chat_id)
-            resource_id = chat_config.chat_id
+            resource_id = chat_config.chat_id.hex
         else:  # should never happen due to validation, let's explode if it does
             raise ValueError(log.e(f"Invalid settings type '{settings_type}'"))
 
@@ -95,7 +95,7 @@ class SettingsController:
         chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, chat_id)
         output = ChatConfig.model_dump(chat_config)
         invoker_telegram_id = str(self.__di.invoker.telegram_user_id or 0)
-        output["is_own"] = invoker_telegram_id == chat_config.chat_id
+        output["is_own"] = invoker_telegram_id == chat_config.external_id
         return output
 
     def fetch_user_settings(self, user_id_hex: str) -> dict[str, Any]:
@@ -157,9 +157,9 @@ class SettingsController:
         owner_telegram_chat_id = str(user.telegram_chat_id or 0)
         for chat_config in admin_chats:
             record = {
-                "chat_id": chat_config.chat_id,
+                "chat_id": chat_config.chat_id.hex,
                 "title": chat_config.title,
-                "is_own": owner_telegram_chat_id == chat_config.chat_id,
+                "is_own": owner_telegram_chat_id == chat_config.external_id,
             }
             result.append(record)
         return result

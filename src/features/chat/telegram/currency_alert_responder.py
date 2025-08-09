@@ -62,7 +62,7 @@ def respond_with_currency_alerts(di: DI) -> dict:
 
         # now let's send the announcement to each chat
         try:
-            di.telegram_bot_sdk.send_text_message(triggered_alert.chat_id, announcement_text)
+            di.telegram_bot_sdk.send_text_message(str(chat_config.external_id), announcement_text)
             chats_notified += 1
         except Exception as e:
             log.w(f"Chat notification failed for chat #{triggered_alert.chat_id}", e)

@@ -1,11 +1,11 @@
 from datetime import datetime
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
 
 class ChatMessageAttachmentBase(BaseModel):
     ext_id: str | None = None
-    chat_id: str
     message_id: str
     size: int | None = None
     last_url: str | None = None
@@ -22,9 +22,11 @@ class ChatMessageAttachmentBase(BaseModel):
 
 
 class ChatMessageAttachmentSave(ChatMessageAttachmentBase):
-    id: str | None = None  # auto-generated if not provided
+    id: str | None = None
+    chat_id: UUID | None = None
 
 
 class ChatMessageAttachment(ChatMessageAttachmentBase):
     id: str
+    chat_id: UUID
     model_config = ConfigDict(from_attributes = True)

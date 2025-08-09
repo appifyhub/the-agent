@@ -41,6 +41,10 @@ class TelegramDataResolver:
             resolved_author = self.resolve_author(mapping_result.author)
             if resolved_author:
                 mapping_result.message.author_id = resolved_author.id
+        # we need to set the resolved chat's UUID to the message and attachments
+        mapping_result.message.chat_id = resolved_chat_config.chat_id
+        for attachment in mapping_result.attachments:
+            attachment.chat_id = resolved_chat_config.chat_id
         resolved_chat_message = self.resolve_chat_message(mapping_result.message)
         resolved_attachments = [self.resolve_chat_message_attachment(attachment) for attachment in mapping_result.attachments]
         return TelegramDataResolver.Result(
@@ -52,10 +56,14 @@ class TelegramDataResolver:
 
     def resolve_chat_config(self, mapped_data: ChatConfigSave) -> ChatConfig:
         log.t(f"  Resolving chat config: {mapped_data}")
-        old_chat_config_db = self.__di.chat_config_crud.get(mapped_data.chat_id)
+        old_chat_config_db = self.__di.chat_config_crud.get_by_external_identifiers(
+            external_id = str(mapped_data.external_id),
+            chat_type = mapped_data.chat_type,
+        )
         if old_chat_config_db:
             old_chat_config = ChatConfig.model_validate(old_chat_config_db)
             # reset the attributes that are not normally changed through the Telegram API
+            mapped_data.chat_id = old_chat_config.chat_id
             mapped_data.language_iso_code = old_chat_config.language_iso_code
             mapped_data.language_name = old_chat_config.language_name
             mapped_data.is_private = old_chat_config.is_private
@@ -156,10 +164,12 @@ class TelegramDataResolver:
 
     def resolve_chat_message(self, mapped_data: ChatMessageSave) -> ChatMessage:
         log.t(f"  Resolving chat message: {mapped_data}")
+        assert mapped_data.chat_id is not None
         old_chat_message_db = self.__di.chat_message_crud.get(mapped_data.chat_id, mapped_data.message_id)
         if old_chat_message_db:
             old_chat_message = ChatMessage.model_validate(old_chat_message_db)
             # reset the attributes that are not normally changed through the Telegram API
+            mapped_data.chat_id = old_chat_message.chat_id
             mapped_data.author_id = mapped_data.author_id or old_chat_message.author_id
             mapped_data.sent_at = mapped_data.sent_at or old_chat_message.sent_at
         return ChatMessage.model_validate(self.__di.chat_message_crud.save(mapped_data))
@@ -174,6 +184,7 @@ class TelegramDataResolver:
             old_attachment = ChatMessageAttachment.model_validate(old_attachment_db)
             # reset the attributes that are not normally changed through the Telegram API
             mapped_data.id = old_attachment.id
+            mapped_data.chat_id = old_attachment.chat_id
             mapped_data.size = mapped_data.size or old_attachment.size
             mapped_data.last_url = mapped_data.last_url or old_attachment.last_url
             mapped_data.last_url_until = mapped_data.last_url_until or old_attachment.last_url_until
