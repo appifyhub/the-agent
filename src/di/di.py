@@ -370,7 +370,7 @@ class DI:
     def llm_tool_library(self) -> "LLMToolLibrary":
         if self._llm_tool_library is None:
             from features.chat.llm_tools.llm_tool_library import LLMToolLibrary
-            self._llm_tool_library = LLMToolLibrary()
+            self._llm_tool_library = LLMToolLibrary(self)
         return self._llm_tool_library
 
     def telegram_progress_notifier(

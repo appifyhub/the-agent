@@ -13,14 +13,14 @@ from util.functions import construct_bot_message_id, is_the_agent
 class DomainLangchainMapper:
 
     def map_to_langchain(self, author: User | None, message: ChatMessage) -> HumanMessage | AIMessage:
-        log.d(f"Mapping {message} by {author} to Langchain message")
+        log.t(f"Mapping {message.message_id} by {author.id.hex if author else '<unknown>'} to Langchain message")
         content = self.__map_stored_message_text(author, message)
         if not author or is_the_agent(author):
             return AIMessage(content)
         return HumanMessage(content)
 
     def map_bot_message_to_storage(self, chat_id: UUID, message: AIMessage) -> list[ChatMessageSave]:
-        log.d(f"Mapping AI message '{message}' to storage message")
+        log.t(f"Mapping AI message '{message}' to storage message")
         result: list[ChatMessageSave] = []
         content = self.__map_bot_message_text(message)
         parts = content.split(MULTI_MESSAGE_DELIMITER)

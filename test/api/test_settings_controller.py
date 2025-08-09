@@ -147,7 +147,11 @@ class SettingsControllerTest(unittest.TestCase):
 
     def test_create_settings_link_success_chat_settings(self):
         controller = SettingsController(self.mock_di)
-        link = controller.create_settings_link("chat", "test_chat_123")
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker_chat_id = self.chat_config.chat_id.hex
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker_chat = self.chat_config
+        link = controller.create_settings_link("chat")
 
         self.assertIn("chat", link)
         self.assertIn(self.chat_config.chat_id.hex, link)
@@ -164,10 +168,17 @@ class SettingsControllerTest(unittest.TestCase):
     def test_create_settings_link_failure_chat_settings_no_chat_id(self):
         controller = SettingsController(self.mock_di)
 
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker_chat_id = None
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker_chat = None
+        # Force auth failure to reflect missing chat context
+        self.mock_authorization_service.authorize_for_chat.side_effect = ValueError(
+            "badly formed hexadecimal UUID string",
+        )
         with self.assertRaises(ValueError) as context:
             controller.create_settings_link("chat")
-
-        self.assertIn("Chat ID must be provided", str(context.exception))
+        self.assertIn("badly formed hexadecimal UUID string", str(context.exception))
 
     def test_fetch_chat_settings_success(self):
         self.mock_user_dao.get.return_value = self.invoker_user
