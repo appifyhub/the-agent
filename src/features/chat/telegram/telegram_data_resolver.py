@@ -7,7 +7,6 @@ from db.schema.chat_message import ChatMessage, ChatMessageSave
 from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessageAttachmentSave
 from db.schema.user import User, UserSave
 from di.di import DI
-from features.chat.telegram.sdk.telegram_bot_sdk_utils import TelegramBotSDKUtils
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from util import log
 from util.config import config
@@ -191,4 +190,4 @@ class TelegramDataResolver:
             mapped_data.extension = mapped_data.extension or old_attachment.extension
             mapped_data.mime_type = mapped_data.mime_type or old_attachment.mime_type
 
-        return TelegramBotSDKUtils.refresh_attachment(self.__di, attachment_save = mapped_data)
+        return self.__di.telegram_bot_sdk.refresh_attachment(attachment_save = mapped_data)

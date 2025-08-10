@@ -13,6 +13,7 @@ from db.schema.chat_message import ChatMessage, ChatMessageSave
 from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessageAttachmentSave
 from db.schema.user import User, UserSave
 from di.di import DI
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
@@ -38,6 +39,10 @@ class TelegramDataResolverTest(unittest.TestCase):
         self.mock_di.chat_message_attachment_crud = self.sql.chat_message_attachment_crud()
         # noinspection PyPropertyAccess
         self.mock_di.telegram_bot_api = MagicMock()
+        # Ensure resolver uses a real SDK instance rather than an auto-created Mock
+        # so that attachment refresh returns real models instead of Mock objects
+        # noinspection PyPropertyAccess
+        self.mock_di.telegram_bot_sdk = TelegramBotSDK(self.mock_di)
         self.resolver = TelegramDataResolver(self.mock_di)
 
     def tearDown(self):

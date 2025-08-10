@@ -5,7 +5,7 @@ from uuid import UUID
 
 from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessageAttachmentSave
 from di.di import DI
-from features.chat.telegram.sdk.telegram_bot_sdk_utils import TelegramBotSDKUtils
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 
 
 class TelegramBotSDKUtilsTest(unittest.TestCase):
@@ -36,8 +36,8 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         self.mock_di.telegram_bot_api.get_file_info.return_value = self.api_file_info
 
     def test_refresh_attachments_by_ids_empty_list(self):
-        result = TelegramBotSDKUtils.refresh_attachments_by_ids(
-            di = self.mock_di,
+        sdk = TelegramBotSDK(self.mock_di)
+        result = sdk.refresh_attachments_by_ids(
             attachment_ids = [],
         )
         self.assertEqual(result, [])
@@ -51,15 +51,13 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
             {"id": "short2", "ext_id": "ext2", "chat_id": UUID(int = 1), "message_id": "msg2"},
         ]
 
-        with patch.object(TelegramBotSDKUtils, "refresh_attachment") as mock_refresh:
+        sdk = TelegramBotSDK(self.mock_di)
+        with patch.object(TelegramBotSDK, "refresh_attachment") as mock_refresh:
             mock_attachment1 = ChatMessageAttachment(id = "short1", ext_id = "ext1", chat_id = UUID(int = 1), message_id = "msg1")
             mock_attachment2 = ChatMessageAttachment(id = "short2", ext_id = "ext2", chat_id = UUID(int = 1), message_id = "msg2")
             mock_refresh.side_effect = [mock_attachment1, mock_attachment2]
 
-            result = TelegramBotSDKUtils.refresh_attachments_by_ids(
-                di = self.mock_di,
-                attachment_ids = attachment_ids,
-            )
+            result = sdk.refresh_attachments_by_ids(attachment_ids = attachment_ids)
 
             self.assertEqual(len(result), 2)
             self.assertEqual(result[0].id, "short1")
@@ -79,10 +77,8 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
 
         self.mock_di.chat_message_attachment_crud.save.return_value = self.attachment_db
 
-        result = TelegramBotSDKUtils.refresh_attachment(
-            di = self.mock_di,
-            attachment = attachment,
-        )
+        sdk = TelegramBotSDK(self.mock_di)
+        result = sdk.refresh_attachment(attachment = attachment)
 
         self.assertIsNotNone(result)
         self.assertEqual(result.id, self.attachment_id)
@@ -115,10 +111,8 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         self.mock_di.chat_message_attachment_crud.get_by_ext_id.return_value = None
         self.mock_di.chat_message_attachment_crud.save.return_value = self.attachment_db
 
-        result = TelegramBotSDKUtils.refresh_attachment(
-            di = self.mock_di,
-            attachment_save = attachment_save,
-        )
+        sdk = TelegramBotSDK(self.mock_di)
+        result = sdk.refresh_attachment(attachment_save = attachment_save)
 
         self.assertIsNotNone(result)
         self.assertEqual(result.id, self.attachment_id)
@@ -138,10 +132,8 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
 
         self.mock_di.chat_message_attachment_crud.save.return_value = self.attachment_db
 
-        result = TelegramBotSDKUtils.refresh_attachment(
-            di = self.mock_di,
-            attachment = attachment,
-        )
+        sdk = TelegramBotSDK(self.mock_di)
+        result = sdk.refresh_attachment(attachment = attachment)
 
         self.assertIsNotNone(result)
         # API should NOT be called since data is fresh
@@ -158,19 +150,16 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         self.mock_di.chat_message_attachment_crud.get.return_value = None
         self.mock_di.chat_message_attachment_crud.get_by_ext_id.return_value = None
 
+        sdk = TelegramBotSDK(self.mock_di)
         with self.assertRaises(ValueError) as context:
-            TelegramBotSDKUtils.refresh_attachment(
-                di = self.mock_di,
-                attachment_save = attachment_save,
-            )
+            sdk.refresh_attachment(attachment_save = attachment_save)
 
         self.assertIn("No external ID provided", str(context.exception))
 
     def test_refresh_attachment_no_instance_error(self):
+        sdk = TelegramBotSDK(self.mock_di)
         with self.assertRaises(ValueError) as context:
-            TelegramBotSDKUtils.refresh_attachment(
-                di = self.mock_di,
-            )
+            sdk.refresh_attachment()
 
         self.assertIn("No attachment instance provided", str(context.exception))
 
@@ -197,10 +186,8 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
 
         self.mock_di.chat_message_attachment_crud.save.return_value = updated_attachment_db
 
-        result = TelegramBotSDKUtils.refresh_attachment(
-            di = self.mock_di,
-            attachment = attachment,
-        )
+        sdk = TelegramBotSDK(self.mock_di)
+        result = sdk.refresh_attachment(attachment = attachment)
 
         self.assertEqual(result.extension, "png")
         self.assertEqual(result.mime_type, "image/png")
@@ -211,19 +198,17 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
             ChatMessageAttachment(id = "id2", ext_id = "ext2", chat_id = UUID(int = 1), message_id = "msg2"),
         ]
 
-        with patch.object(TelegramBotSDKUtils, "refresh_attachment") as mock_refresh:
+        sdk = TelegramBotSDK(self.mock_di)
+        with patch.object(TelegramBotSDK, "refresh_attachment") as mock_refresh:
             mock_refresh.side_effect = attachments  # Return the same attachments
 
-            result = TelegramBotSDKUtils.refresh_attachment_instances(
-                di = self.mock_di,
-                attachments = attachments,
-            )
+            result = sdk.refresh_attachment_instances(attachments = attachments)
 
             self.assertEqual(len(result), 2)
             self.assertEqual(mock_refresh.call_count, 2)
 
-    @patch("features.chat.telegram.sdk.telegram_bot_sdk_utils.requests.get")
-    @patch.object(TelegramBotSDKUtils, "_TelegramBotSDKUtils__detect_image_format_from_bytes")
+    @patch("features.chat.telegram.sdk.telegram_bot_sdk.requests.get")
+    @patch.object(TelegramBotSDK, "_detect_image_format_from_bytes")
     def test_detect_and_set_image_format_jpeg_success(self, mock_detect_format, mock_requests):
         # Mock successful response with JPEG content
         mock_response = Mock()
@@ -257,15 +242,16 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
 
         self.mock_di.chat_message_attachment_crud.save.side_effect = mock_save
 
-        result = TelegramBotSDKUtils.refresh_attachment(self.mock_di, attachment_save = attachment_save)
+        sdk = TelegramBotSDK(self.mock_di)
+        result = sdk.refresh_attachment(attachment_save = attachment_save)
 
         self.assertEqual(result.extension, "jpeg")
         self.assertEqual(result.mime_type, "image/jpeg")
         mock_requests.assert_called_once_with("http://example.com/image.jpg", timeout = 10)
         mock_detect_format.assert_called_once_with(b"fake_jpeg_content")
 
-    @patch("features.chat.telegram.sdk.telegram_bot_sdk_utils.requests.get")
-    @patch.object(TelegramBotSDKUtils, "_TelegramBotSDKUtils__detect_image_format_from_bytes")
+    @patch("features.chat.telegram.sdk.telegram_bot_sdk.requests.get")
+    @patch.object(TelegramBotSDK, "_detect_image_format_from_bytes")
     def test_refresh_attachment_detects_image_format_when_missing(self, mock_detect_format, mock_requests):
         """Test that refresh_attachment detects image format when extension and mime_type are None"""
         # Mock successful response with JPEG content
@@ -300,7 +286,8 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
 
         self.mock_di.chat_message_attachment_crud.save.side_effect = mock_save
 
-        result = TelegramBotSDKUtils.refresh_attachment(self.mock_di, attachment_save = attachment_save)
+        sdk = TelegramBotSDK(self.mock_di)
+        result = sdk.refresh_attachment(attachment_save = attachment_save)
 
         # Verify image format was detected and set
         self.assertEqual(result.extension, "png")
@@ -308,7 +295,7 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         mock_requests.assert_called_once_with("http://example.com/image.jpg", timeout = 10)
         mock_detect_format.assert_called_once_with(b"fake_jpeg_content")
 
-    @patch("features.chat.telegram.sdk.telegram_bot_sdk_utils.requests.get")
+    @patch("features.chat.telegram.sdk.telegram_bot_sdk.requests.get")
     def test_refresh_attachment_handles_image_detection_failure(self, mock_requests):
         """Test that refresh_attachment handles image detection failures gracefully"""
         # Mock request failure
@@ -339,7 +326,8 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         self.mock_di.chat_message_attachment_crud.save.side_effect = mock_save
 
         # Should not raise exception, just continue with None values
-        result = TelegramBotSDKUtils.refresh_attachment(self.mock_di, attachment_save = attachment_save)
+        sdk = TelegramBotSDK(self.mock_di)
+        result = sdk.refresh_attachment(attachment_save = attachment_save)
 
         # Values should remain None due to detection failure
         self.assertIsNone(result.extension)

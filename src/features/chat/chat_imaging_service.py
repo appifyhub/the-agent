@@ -2,7 +2,6 @@ from enum import Enum
 
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from di.di import DI
-from features.chat.telegram.sdk.telegram_bot_sdk_utils import TelegramBotSDKUtils
 from features.images.image_background_remover import ImageBackgroundRemover
 from features.images.image_contents_restorer import ImageContentsRestorer
 from features.images.image_editor import ImageEditor
@@ -50,7 +49,7 @@ class ChatImagingService:
         if not attachment_ids:
             raise ValueError("No attachment IDs provided")
         self.__di = di
-        self.__attachments = TelegramBotSDKUtils.refresh_attachments_by_ids(self.__di, attachment_ids)
+        self.__attachments = self.__di.telegram_bot_sdk.refresh_attachments_by_ids(attachment_ids)
         self.__operation = ChatImagingService.Operation.resolve(operation_name)
         self.__operation_guidance = operation_guidance
 

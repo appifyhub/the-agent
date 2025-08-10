@@ -1,12 +1,11 @@
 import unittest
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from uuid import UUID
 
 import requests_mock
 from pydantic import SecretStr
 
-import features.chat.telegram.sdk.telegram_bot_sdk_utils
 from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
@@ -14,6 +13,7 @@ from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.tools_cache import ToolsCache
 from db.schema.user import User
 from features.chat.attachments_describer import CACHE_TTL, AttachmentsDescriber
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from util.config import config
 
 
@@ -88,16 +88,8 @@ class AttachmentsDescriberTest(unittest.TestCase):
         self.mock_chat_message_attachment_crud.save.return_value = self.attachment.model_dump()
         self.mock_cache_crud.create_key.return_value = "test_cache_key"
 
-        # Mock TelegramBotSDKUtils refresh methods
-        self.mock_refresh_patcher = patch.object(
-            features.chat.telegram.sdk.telegram_bot_sdk_utils.TelegramBotSDKUtils,
-            "refresh_attachment_instances",
-        )
-        self.mock_refresh = self.mock_refresh_patcher.start()
-        self.mock_refresh.return_value = [self.attachment]
-
-    def tearDown(self):
-        self.mock_refresh_patcher.stop()
+        # Use a real SDK instance so the resolver under test returns real models
+        self.mock_di.telegram_bot_sdk = TelegramBotSDK(self.mock_di)
 
     @requests_mock.Mocker()
     def test_execute_with_cache_hit(self, m: requests_mock.Mocker):
