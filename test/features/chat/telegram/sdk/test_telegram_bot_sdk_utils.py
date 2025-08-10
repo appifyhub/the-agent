@@ -16,10 +16,10 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         self.mock_di.chat_message_attachment_crud = Mock()
 
         self.attachment_id = "short123"  # Short UUID format
-        self.ext_id = "telegram_file_456"  # External Telegram ID
+        self.external_id = "telegram_file_456"  # External Telegram ID
         self.attachment_db = {
             "id": self.attachment_id,
-            "ext_id": self.ext_id,
+            "external_id": self.external_id,
             "chat_id": UUID(int = 1),
             "message_id": "msg_123",
             "size": 1000,
@@ -47,14 +47,24 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
 
         # Mock the get method to return attachment data
         self.mock_di.chat_message_attachment_crud.get.side_effect = [
-            {"id": "short1", "ext_id": "ext1", "chat_id": UUID(int = 1), "message_id": "msg1"},
-            {"id": "short2", "ext_id": "ext2", "chat_id": UUID(int = 1), "message_id": "msg2"},
+            {"id": "short1", "external_id": "ext1", "chat_id": UUID(int = 1), "message_id": "msg1"},
+            {"id": "short2", "external_id": "ext2", "chat_id": UUID(int = 1), "message_id": "msg2"},
         ]
 
         sdk = TelegramBotSDK(self.mock_di)
         with patch.object(TelegramBotSDK, "refresh_attachment") as mock_refresh:
-            mock_attachment1 = ChatMessageAttachment(id = "short1", ext_id = "ext1", chat_id = UUID(int = 1), message_id = "msg1")
-            mock_attachment2 = ChatMessageAttachment(id = "short2", ext_id = "ext2", chat_id = UUID(int = 1), message_id = "msg2")
+            mock_attachment1 = ChatMessageAttachment(
+                id = "short1",
+                external_id = "ext1",
+                chat_id = UUID(int = 1),
+                message_id = "msg1",
+            )
+            mock_attachment2 = ChatMessageAttachment(
+                id = "short2",
+                external_id = "ext2",
+                chat_id = UUID(int = 1),
+                message_id = "msg2",
+            )
             mock_refresh.side_effect = [mock_attachment1, mock_attachment2]
 
             result = sdk.refresh_attachments_by_ids(attachment_ids = attachment_ids)
@@ -66,7 +76,7 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
     def test_refresh_attachment_with_attachment_instance(self):
         attachment = ChatMessageAttachment(
             id = self.attachment_id,
-            ext_id = self.ext_id,
+            external_id = self.external_id,
             chat_id = UUID(int = 1),
             message_id = "msg_123",
             size = 1000,
@@ -82,15 +92,15 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
 
         self.assertIsNotNone(result)
         self.assertEqual(result.id, self.attachment_id)
-        self.assertEqual(result.ext_id, self.ext_id)
+        self.assertEqual(result.external_id, self.external_id)
 
-        # Verify API was called with ext_id
-        self.mock_di.telegram_bot_api.get_file_info.assert_called_with(self.ext_id)
+        # Verify API was called with external_id
+        self.mock_di.telegram_bot_api.get_file_info.assert_called_with(self.external_id)
 
     def test_refresh_attachment_with_save_instance(self):
         attachment_save = ChatMessageAttachmentSave(
             id = self.attachment_id,
-            ext_id = self.ext_id,
+            external_id = self.external_id,
             chat_id = UUID(int = 1),
             message_id = "msg_123",
             size = 500,
@@ -108,7 +118,7 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
 
         mock_db_obj = MockAttachmentDB(self.attachment_db)
         self.mock_di.chat_message_attachment_crud.get.return_value = mock_db_obj
-        self.mock_di.chat_message_attachment_crud.get_by_ext_id.return_value = None
+        self.mock_di.chat_message_attachment_crud.get_by_external_id.return_value = None
         self.mock_di.chat_message_attachment_crud.save.return_value = self.attachment_db
 
         sdk = TelegramBotSDK(self.mock_di)
@@ -116,13 +126,13 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
 
         self.assertIsNotNone(result)
         self.assertEqual(result.id, self.attachment_id)
-        self.assertEqual(result.ext_id, self.ext_id)
+        self.assertEqual(result.external_id, self.external_id)
 
     def test_refresh_attachment_fresh_data(self):
         # Test case where data is fresh and doesn't need API call
         attachment = ChatMessageAttachment(
             id = self.attachment_id,
-            ext_id = self.ext_id,
+            external_id = self.external_id,
             chat_id = UUID(int = 1),
             message_id = "msg_123",
             size = 1000,
@@ -139,16 +149,16 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         # API should NOT be called since data is fresh
         self.mock_di.telegram_bot_api.get_file_info.assert_not_called()
 
-    def test_refresh_attachment_no_ext_id_error(self):
+    def test_refresh_attachment_no_external_id_error(self):
         attachment_save = ChatMessageAttachmentSave(
             id = self.attachment_id,
-            ext_id = None,  # Missing ext_id
+            external_id = None,  # Missing external_id
             chat_id = UUID(int = 1),
             message_id = "msg_123",
         )
 
         self.mock_di.chat_message_attachment_crud.get.return_value = None
-        self.mock_di.chat_message_attachment_crud.get_by_ext_id.return_value = None
+        self.mock_di.chat_message_attachment_crud.get_by_external_id.return_value = None
 
         sdk = TelegramBotSDK(self.mock_di)
         with self.assertRaises(ValueError) as context:
@@ -167,7 +177,7 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         # Test extension inference from API file path
         attachment = ChatMessageAttachment(
             id = self.attachment_id,
-            ext_id = self.ext_id,
+            external_id = self.external_id,
             chat_id = UUID(int = 1),
             message_id = "msg_123",
             extension = None,  # No extension initially
@@ -194,8 +204,8 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
 
     def test_refresh_attachment_instances(self):
         attachments = [
-            ChatMessageAttachment(id = "id1", ext_id = "ext1", chat_id = UUID(int = 1), message_id = "msg1"),
-            ChatMessageAttachment(id = "id2", ext_id = "ext2", chat_id = UUID(int = 1), message_id = "msg2"),
+            ChatMessageAttachment(id = "id1", external_id = "ext1", chat_id = UUID(int = 1), message_id = "msg1"),
+            ChatMessageAttachment(id = "id2", external_id = "ext2", chat_id = UUID(int = 1), message_id = "msg2"),
         ]
 
         sdk = TelegramBotSDK(self.mock_di)
@@ -223,12 +233,12 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
 
         # Mock crud operations to return None (no existing attachment)
         self.mock_di.chat_message_attachment_crud.get.return_value = None
-        self.mock_di.chat_message_attachment_crud.get_by_ext_id.return_value = None
+        self.mock_di.chat_message_attachment_crud.get_by_external_id.return_value = None
 
         # Mock attachment with no extension/mime_type
         attachment_save = ChatMessageAttachmentSave(
             id = "test123",
-            ext_id = "telegram456",
+            external_id = "telegram456",
             chat_id = UUID(int = 1),
             message_id = "msg123",
             last_url = "http://example.com/image.jpg",
@@ -267,12 +277,12 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
 
         # Mock crud operations to return None (no existing attachment)
         self.mock_di.chat_message_attachment_crud.get.return_value = None
-        self.mock_di.chat_message_attachment_crud.get_by_ext_id.return_value = None
+        self.mock_di.chat_message_attachment_crud.get_by_external_id.return_value = None
 
         # Mock attachment with no extension/mime_type (typical Telegram photo)
         attachment_save = ChatMessageAttachmentSave(
             id = "test123",
-            ext_id = "telegram456",
+            external_id = "telegram456",
             chat_id = UUID(int = 1),
             message_id = "msg123",
             last_url = "http://example.com/image.jpg",
@@ -307,11 +317,11 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
 
         # Mock crud operations to return None (no existing attachment)
         self.mock_di.chat_message_attachment_crud.get.return_value = None
-        self.mock_di.chat_message_attachment_crud.get_by_ext_id.return_value = None
+        self.mock_di.chat_message_attachment_crud.get_by_external_id.return_value = None
 
         attachment_save = ChatMessageAttachmentSave(
             id = "test123",
-            ext_id = "telegram456",
+            external_id = "telegram456",
             chat_id = UUID(int = 1),
             message_id = "msg123",
             last_url = "http://example.com/image.jpg",

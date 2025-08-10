@@ -73,7 +73,7 @@ class AttachmentsDescriberTest(unittest.TestCase):
         )
         self.attachment = ChatMessageAttachment(
             id = "1",
-            ext_id = "telegram_file_1",
+            external_id = "telegram_file_1",
             chat_id = UUID(int = 1),
             message_id = "1",
             mime_type = "image/png",

@@ -63,8 +63,8 @@ class TelegramDomainMapperTest(unittest.TestCase):
         assert result.author is not None
         self.assertEqual(result.author.full_name, "First Last")
         self.assertEqual(len(result.attachments), 2)
-        self.assertEqual(result.attachments[0].ext_id, "a1")
-        self.assertEqual(result.attachments[1].ext_id, "d2")
+        self.assertEqual(result.attachments[0].external_id, "a1")
+        self.assertEqual(result.attachments[1].external_id, "d2")
 
     def test_map_update_empty(self):
         update = Update(update_id = 1)
@@ -356,7 +356,7 @@ class TelegramDomainMapperTest(unittest.TestCase):
         # audio
         self.assertEqual(result[0].message_id, str(message.message_id))
         self.assertIsNotNone(result[0].id)
-        self.assertEqual(result[0].ext_id, message.audio.file_id)
+        self.assertEqual(result[0].external_id, message.audio.file_id)
         self.assertIsNone(result[0].chat_id)
         self.assertEqual(result[0].size, message.audio.file_size)
         self.assertEqual(result[0].mime_type, message.audio.mime_type)
@@ -366,7 +366,7 @@ class TelegramDomainMapperTest(unittest.TestCase):
         # document
         self.assertEqual(result[1].message_id, str(message.message_id))
         self.assertIsNotNone(result[1].id)
-        self.assertEqual(result[1].ext_id, message.document.file_id)
+        self.assertEqual(result[1].external_id, message.document.file_id)
         self.assertIsNone(result[1].chat_id)
         self.assertEqual(result[1].size, message.document.file_size)
         self.assertEqual(result[1].mime_type, message.document.mime_type)
@@ -376,7 +376,7 @@ class TelegramDomainMapperTest(unittest.TestCase):
         # photo
         self.assertEqual(result[2].message_id, str(message.message_id))
         self.assertIsNotNone(result[2].id)
-        self.assertEqual(result[2].ext_id, message.photo[1].file_id)
+        self.assertEqual(result[2].external_id, message.photo[1].file_id)
         self.assertIsNone(result[2].chat_id)
         self.assertEqual(result[2].size, message.photo[1].file_size)
         self.assertIsNone(result[2].mime_type)
@@ -386,7 +386,7 @@ class TelegramDomainMapperTest(unittest.TestCase):
         # voice
         self.assertEqual(result[3].message_id, str(message.message_id))
         self.assertIsNotNone(result[3].id)
-        self.assertEqual(result[3].ext_id, message.voice.file_id)
+        self.assertEqual(result[3].external_id, message.voice.file_id)
         self.assertIsNone(result[3].chat_id)
         self.assertEqual(result[3].size, message.voice.file_size)
         self.assertEqual(result[3].mime_type, message.voice.mime_type)
@@ -420,7 +420,7 @@ class TelegramDomainMapperTest(unittest.TestCase):
         result = self.mapper.map_to_attachment(file = file, message_id = message_id, mime_type = mime_type)
 
         self.assertIsNotNone(result.id)
-        self.assertEqual(result.ext_id, file.file_id)
+        self.assertEqual(result.external_id, file.file_id)
         self.assertIsNone(result.chat_id)
         self.assertEqual(result.message_id, message_id)
         self.assertEqual(result.size, file.file_size)
@@ -441,7 +441,7 @@ class TelegramDomainMapperTest(unittest.TestCase):
         result = self.mapper.map_to_attachment(file = file, message_id = message_id, mime_type = None)
 
         self.assertIsNotNone(result.id)
-        self.assertEqual(result.ext_id, file.file_id)
+        self.assertEqual(result.external_id, file.file_id)
         self.assertIsNone(result.chat_id)
         self.assertEqual(result.message_id, message_id)
         self.assertEqual(result.size, file.file_size)
@@ -460,7 +460,7 @@ class TelegramDomainMapperTest(unittest.TestCase):
         result = self.mapper.map_to_attachment(file = file, message_id = message_id, mime_type = None)
 
         self.assertIsNotNone(result.id)
-        self.assertEqual(result.ext_id, file.file_id)
+        self.assertEqual(result.external_id, file.file_id)
         self.assertIsNone(result.chat_id)
         self.assertEqual(result.message_id, message_id)
         self.assertEqual(result.size, file.file_size)

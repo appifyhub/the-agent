@@ -48,7 +48,7 @@ class ImageGeneratorTest(unittest.TestCase):
         # Create a mock ChatMessageAttachmentDB instance
         self.mock_attachment_db = ChatMessageAttachmentDB(
             id = "attachment1",
-            ext_id = "telegram_file_1",
+            external_id = "telegram_file_1",
             chat_id = UUID(int = 1),
             message_id = "message1",
             size = 1024,

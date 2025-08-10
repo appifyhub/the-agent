@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class ChatMessageAttachmentBase(BaseModel):
-    ext_id: str | None = None
+    external_id: str | None = None
     message_id: str
     size: int | None = None
     last_url: str | None = None

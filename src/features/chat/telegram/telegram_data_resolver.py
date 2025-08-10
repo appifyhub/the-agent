@@ -176,8 +176,8 @@ class TelegramDataResolver:
     def resolve_chat_message_attachment(self, mapped_data: ChatMessageAttachmentSave) -> ChatMessageAttachment:
         log.t(f"  Resolving chat message attachment: {mapped_data}")
         old_attachment_db = None
-        if mapped_data.ext_id:
-            old_attachment_db = self.__di.chat_message_attachment_crud.get_by_ext_id(mapped_data.ext_id)
+        if mapped_data.external_id:
+            old_attachment_db = self.__di.chat_message_attachment_crud.get_by_external_id(mapped_data.external_id)
 
         if old_attachment_db:
             old_attachment = ChatMessageAttachment.model_validate(old_attachment_db)

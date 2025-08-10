@@ -217,7 +217,7 @@ class TelegramDomainMapper:
         last_url = f"{config.telegram_api_base_url}/file/bot{bot_token}/{file.file_path}"
         return ChatMessageAttachmentSave(
             id = generate_deterministic_short_uuid(file.file_id),
-            ext_id = file.file_id,
+            external_id = file.file_id,
             message_id = message_id,
             size = file.file_size,
             last_url = last_url if file.file_path else None,

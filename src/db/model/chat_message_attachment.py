@@ -8,7 +8,7 @@ class ChatMessageAttachmentDB(BaseModel):
     __tablename__ = "chat_message_attachments"
 
     id = Column(String, primary_key = True)
-    ext_id = Column(String, nullable = True)
+    external_id = Column(String, nullable = True)
     chat_id = Column(UUID(as_uuid = True), nullable = False)
     message_id = Column(String, nullable = False)
     size = Column(Integer, nullable = True)
@@ -24,5 +24,5 @@ class ChatMessageAttachmentDB(BaseModel):
             ["chat_messages.chat_id", "chat_messages.message_id"],
             name = "chat_message_attachments_message_fkey",
         ),
-        Index("idx_ext_id", ext_id),
+        Index("idx_external_id", external_id),
     )

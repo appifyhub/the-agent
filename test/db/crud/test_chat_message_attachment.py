@@ -33,7 +33,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         chat_message = ChatMessage.model_validate(chat_message_db)
         attachment_data = ChatMessageAttachmentSave(
             id = "attach1",
-            ext_id = "telegram_file_123",
+            external_id = "telegram_file_123",
             chat_id = chat_message.chat_id,
             message_id = chat_message.message_id,
             size = 1024,
@@ -46,7 +46,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         attachment = self.sql.chat_message_attachment_crud().create(attachment_data)
 
         self.assertEqual(attachment.id, attachment_data.id)
-        self.assertEqual(attachment.ext_id, attachment_data.ext_id)
+        self.assertEqual(attachment.external_id, attachment_data.external_id)
         self.assertEqual(attachment.chat_id, attachment_data.chat_id)
         self.assertEqual(attachment.message_id, attachment_data.message_id)
         self.assertEqual(attachment.size, attachment_data.size)
@@ -68,7 +68,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         )
         chat_message = ChatMessage.model_validate(chat_message_db)
         attachment_data = ChatMessageAttachmentSave(
-            ext_id = "telegram_file_auto",
+            external_id = "telegram_file_auto",
             chat_id = chat_message.chat_id,
             message_id = chat_message.message_id,
             size = 512,
@@ -78,12 +78,12 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
 
         self.assertIsNotNone(attachment.id)
         self.assertEqual(len(str(attachment.id)), 8)  # Short UUID is 8 characters
-        self.assertEqual(attachment.ext_id, "telegram_file_auto")
+        self.assertEqual(attachment.external_id, "telegram_file_auto")
         self.assertEqual(attachment.chat_id, chat_message.chat_id)
         self.assertEqual(attachment.message_id, chat_message.message_id)
         self.assertEqual(attachment.size, 512)
 
-    def test_create_with_ext_id_only(self):
+    def test_create_with_external_id_only(self):
         chat = self.sql.chat_config_crud().create(
             ChatConfigSave(external_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram),
         )
@@ -96,7 +96,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         )
         chat_message = ChatMessage.model_validate(chat_message_db)
         attachment_data = ChatMessageAttachmentSave(
-            ext_id = "telegram_file_only_ext",
+            external_id = "telegram_file_only_ext",
             chat_id = chat_message.chat_id,
             message_id = chat_message.message_id,
         )
@@ -104,7 +104,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         attachment = self.sql.chat_message_attachment_crud().create(attachment_data)
 
         self.assertIsNotNone(attachment.id)
-        self.assertEqual(attachment.ext_id, "telegram_file_only_ext")
+        self.assertEqual(attachment.external_id, "telegram_file_only_ext")
         self.assertEqual(attachment.chat_id, chat_message.chat_id)
         self.assertEqual(attachment.message_id, chat_message.message_id)
 
@@ -122,7 +122,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         chat_message = ChatMessage.model_validate(chat_message_db)
         attachment_data = ChatMessageAttachmentSave(
             id = "attach1",
-            ext_id = "telegram_file_get",
+            external_id = "telegram_file_get",
             chat_id = chat_message.chat_id,
             message_id = chat_message.message_id,
         )
@@ -132,11 +132,11 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         assert fetched_attachment is not None
 
         self.assertEqual(fetched_attachment.id, created_attachment.id)
-        self.assertEqual(fetched_attachment.ext_id, created_attachment.ext_id)
+        self.assertEqual(fetched_attachment.external_id, created_attachment.external_id)
         self.assertEqual(fetched_attachment.chat_id, created_attachment.chat_id)
         self.assertEqual(fetched_attachment.message_id, created_attachment.message_id)
 
-    def test_get_by_ext_id(self):
+    def test_get_by_external_id(self):
         chat = self.sql.chat_config_crud().create(
             ChatConfigSave(external_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram),
         )
@@ -150,7 +150,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         chat_message = ChatMessage.model_validate(chat_message_db)
         attachment_data = ChatMessageAttachmentSave(
             id = "attach_ext",
-            ext_id = "telegram_file_unique_ext",
+            external_id = "telegram_file_unique_ext",
             chat_id = chat_message.chat_id,
             message_id = chat_message.message_id,
             size = 2048,
@@ -158,18 +158,18 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         )
         created_attachment = self.sql.chat_message_attachment_crud().create(attachment_data)
 
-        fetched_attachment = self.sql.chat_message_attachment_crud().get_by_ext_id("telegram_file_unique_ext")
+        fetched_attachment = self.sql.chat_message_attachment_crud().get_by_external_id("telegram_file_unique_ext")
         assert fetched_attachment is not None
 
         self.assertEqual(fetched_attachment.id, created_attachment.id)
-        self.assertEqual(fetched_attachment.ext_id, "telegram_file_unique_ext")
+        self.assertEqual(fetched_attachment.external_id, "telegram_file_unique_ext")
         self.assertEqual(fetched_attachment.chat_id, created_attachment.chat_id)
         self.assertEqual(fetched_attachment.message_id, created_attachment.message_id)
         self.assertEqual(fetched_attachment.size, 2048)
         self.assertEqual(fetched_attachment.extension, "png")
 
-    def test_get_by_ext_id_not_found(self):
-        fetched_attachment = self.sql.chat_message_attachment_crud().get_by_ext_id("non_existent_ext_id")
+    def test_get_by_external_id_not_found(self):
+        fetched_attachment = self.sql.chat_message_attachment_crud().get_by_external_id("non_existent_external_id")
         self.assertIsNone(fetched_attachment)
 
     def test_get_all_attachments(self):
@@ -188,7 +188,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
             self.sql.chat_message_attachment_crud().create(
                 ChatMessageAttachmentSave(
                     id = "attach1",
-                    ext_id = "telegram_file_1",
+                    external_id = "telegram_file_1",
                     chat_id = chat_message.chat_id,
                     message_id = chat_message.message_id,
                 ),
@@ -196,7 +196,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
             self.sql.chat_message_attachment_crud().create(
                 ChatMessageAttachmentSave(
                     id = "attach2",
-                    ext_id = "telegram_file_2",
+                    external_id = "telegram_file_2",
                     chat_id = chat_message.chat_id,
                     message_id = chat_message.message_id,
                 ),
@@ -208,7 +208,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         self.assertEqual(len(fetched_attachments), len(attachments))
         for i in range(len(attachments)):
             self.assertEqual(fetched_attachments[i].id, attachments[i].id)
-            self.assertEqual(fetched_attachments[i].ext_id, attachments[i].ext_id)
+            self.assertEqual(fetched_attachments[i].external_id, attachments[i].external_id)
             self.assertEqual(fetched_attachments[i].chat_id, attachments[i].chat_id)
             self.assertEqual(fetched_attachments[i].message_id, attachments[i].message_id)
 
@@ -228,7 +228,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
             self.sql.chat_message_attachment_crud().create(
                 ChatMessageAttachmentSave(
                     id = f"attach{i}",
-                    ext_id = f"telegram_file_{i}",
+                    external_id = f"telegram_file_{i}",
                     chat_id = chat_message.chat_id,
                     message_id = chat_message.message_id,
                     size = 1024 * i,
@@ -249,7 +249,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         self.assertEqual(len(fetched_attachments), len(attachments))
         for created, fetched in zip(attachments, fetched_attachments):
             self.assertEqual(fetched.id, created.id)
-            self.assertEqual(fetched.ext_id, created.ext_id)
+            self.assertEqual(fetched.external_id, created.external_id)
             self.assertEqual(fetched.chat_id, created.chat_id)
             self.assertEqual(fetched.message_id, created.message_id)
             self.assertEqual(fetched.size, created.size)
@@ -278,7 +278,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         chat_message = ChatMessage.model_validate(chat_message_db)
         attachment_data = ChatMessageAttachmentSave(
             id = "att1",
-            ext_id = "telegram_file_update",
+            external_id = "telegram_file_update",
             chat_id = chat_message.chat_id,
             message_id = chat_message.message_id,
         )
@@ -287,7 +287,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
 
         update_data = ChatMessageAttachmentSave(
             id = created_attachment.id,
-            ext_id = "telegram_file_updated",
+            external_id = "telegram_file_updated",
             chat_id = created_attachment.chat_id,
             message_id = created_attachment.message_id,
             size = 2048,
@@ -300,7 +300,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         updated_attachment = ChatMessageAttachment.model_validate(updated_attachment_db)
 
         self.assertEqual(updated_attachment.id, created_attachment.id)
-        self.assertEqual(updated_attachment.ext_id, "telegram_file_updated")
+        self.assertEqual(updated_attachment.external_id, "telegram_file_updated")
         self.assertEqual(updated_attachment.chat_id, created_attachment.chat_id)
         self.assertEqual(updated_attachment.message_id, created_attachment.message_id)
         self.assertEqual(updated_attachment.size, update_data.size)
@@ -323,7 +323,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         chat_message = ChatMessage.model_validate(chat_message_db)
         attachment_data = ChatMessageAttachmentSave(
             id = "attach1",
-            ext_id = "telegram_file_save",
+            external_id = "telegram_file_save",
             chat_id = chat_message.chat_id,
             message_id = chat_message.message_id,
             size = 1024,
@@ -337,7 +337,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         saved_attachment = self.sql.chat_message_attachment_crud().save(attachment_data)
         self.assertIsNotNone(saved_attachment)
         self.assertEqual(saved_attachment.id, attachment_data.id)
-        self.assertEqual(saved_attachment.ext_id, attachment_data.ext_id)
+        self.assertEqual(saved_attachment.external_id, attachment_data.external_id)
         self.assertEqual(saved_attachment.chat_id, attachment_data.chat_id)
         self.assertEqual(saved_attachment.message_id, attachment_data.message_id)
         self.assertEqual(saved_attachment.size, attachment_data.size)
@@ -349,7 +349,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         # Now, save should update the existing record
         update_data = ChatMessageAttachmentSave(
             id = attachment_data.id,
-            ext_id = "telegram_file_save_updated",
+            external_id = "telegram_file_save_updated",
             chat_id = attachment_data.chat_id,
             message_id = attachment_data.message_id,
             last_url = "https://example.com/newfile",
@@ -357,7 +357,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         updated_attachment = self.sql.chat_message_attachment_crud().save(update_data)
         self.assertIsNotNone(updated_attachment)
         self.assertEqual(updated_attachment.id, attachment_data.id)
-        self.assertEqual(updated_attachment.ext_id, "telegram_file_save_updated")
+        self.assertEqual(updated_attachment.external_id, "telegram_file_save_updated")
         self.assertEqual(updated_attachment.chat_id, attachment_data.chat_id)
         self.assertEqual(updated_attachment.message_id, attachment_data.message_id)
         self.assertEqual(updated_attachment.size, update_data.size)
@@ -379,7 +379,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         )
         chat_message = ChatMessage.model_validate(chat_message_db)
         attachment_data = ChatMessageAttachmentSave(
-            ext_id = "telegram_file_save_auto",
+            external_id = "telegram_file_save_auto",
             chat_id = chat_message.chat_id,
             message_id = chat_message.message_id,
             size = 4096,
@@ -391,7 +391,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
 
         self.assertIsNotNone(saved_attachment.id)
         self.assertEqual(len(saved_attachment.id), 8)  # Short UUID
-        self.assertEqual(saved_attachment.ext_id, "telegram_file_save_auto")
+        self.assertEqual(saved_attachment.external_id, "telegram_file_save_auto")
         self.assertEqual(saved_attachment.size, 4096)
 
     def test_delete_attachment(self):
@@ -408,7 +408,7 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         chat_message = ChatMessage.model_validate(chat_message_db)
         attachment_data = ChatMessageAttachmentSave(
             id = "att1",
-            ext_id = "telegram_file_delete",
+            external_id = "telegram_file_delete",
             chat_id = chat_message.chat_id,
             message_id = chat_message.message_id,
         )
@@ -419,13 +419,13 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         deleted_attachment = ChatMessageAttachment.model_validate(deleted_attachment_db)
 
         self.assertEqual(deleted_attachment.id, created_attachment.id)
-        self.assertEqual(deleted_attachment.ext_id, created_attachment.ext_id)
+        self.assertEqual(deleted_attachment.external_id, created_attachment.external_id)
         self.assertEqual(deleted_attachment.chat_id, created_attachment.chat_id)
         self.assertEqual(deleted_attachment.message_id, created_attachment.message_id)
         self.assertIsNone(self.sql.chat_message_attachment_crud().get(created_attachment.id))
 
-    def test_integration_id_and_ext_id_relationship(self):
-        """Test the relationship between id and ext_id fields"""
+    def test_integration_id_and_external_id_relationship(self):
+        """Test the relationship between id and external_id fields"""
         chat = self.sql.chat_config_crud().create(
             ChatConfigSave(external_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram),
         )
@@ -437,10 +437,10 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
             ),
         )
         chat_message = ChatMessage.model_validate(chat_message_db)
-        # Create attachment with both id and ext_id
+        # Create attachment with both id and external_id
         attachment_data = ChatMessageAttachmentSave(
             id = "custom_id_123",
-            ext_id = "telegram_external_456",
+            external_id = "telegram_external_456",
             chat_id = chat_message.chat_id,
             message_id = chat_message.message_id,
             size = 1024,
@@ -452,15 +452,15 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         by_id_db = self.sql.chat_message_attachment_crud().get("custom_id_123")
         by_id = ChatMessageAttachment.model_validate(by_id_db)
 
-        by_ext_id_db = self.sql.chat_message_attachment_crud().get_by_ext_id("telegram_external_456")
-        by_ext_id = ChatMessageAttachment.model_validate(by_ext_id_db)
+        by_external_id_db = self.sql.chat_message_attachment_crud().get_by_external_id("telegram_external_456")
+        by_external_id = ChatMessageAttachment.model_validate(by_external_id_db)
 
         self.assertIsNotNone(by_id)
-        self.assertIsNotNone(by_ext_id)
-        self.assertEqual(by_id.id, by_ext_id.id)
-        self.assertEqual(by_id.ext_id, by_ext_id.ext_id)
-        self.assertEqual(by_id.size, by_ext_id.size)
+        self.assertIsNotNone(by_external_id)
+        self.assertEqual(by_id.id, by_external_id.id)
+        self.assertEqual(by_id.external_id, by_external_id.external_id)
+        self.assertEqual(by_id.size, by_external_id.size)
 
         # Both lookups should return the same record
         self.assertEqual(by_id.id, "custom_id_123")
-        self.assertEqual(by_id.ext_id, "telegram_external_456")
+        self.assertEqual(by_id.external_id, "telegram_external_456")

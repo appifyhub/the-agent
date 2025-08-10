@@ -148,7 +148,7 @@ class TelegramBotSDK:
             log.d(f"Refreshing attachment '{attachment_save.id}' (save instance)")
             instance_db = self.__di.chat_message_attachment_crud.get(
                 str(attachment_save.id),
-            ) or self.__di.chat_message_attachment_crud.get_by_ext_id(str(attachment_save.ext_id))
+            ) or self.__di.chat_message_attachment_crud.get_by_external_id(str(attachment_save.external_id))
             instance = ChatMessageAttachment.model_validate(instance_db) if instance_db else None
             instance_save = ChatMessageAttachmentSave(**instance.model_dump()) if instance else attachment_save
         else:
@@ -162,10 +162,10 @@ class TelegramBotSDK:
             return ChatMessageAttachment.model_validate(instance_db)
 
         # data is stale or missing, we need to fetch the attachment data from remote
-        if not instance_save.ext_id:
+        if not instance_save.external_id:
             raise ValueError(log.e("No external ID provided for the attachment"))
-        log.t(f"Refreshing attachment data for external ID '{instance_save.ext_id}' (ext_id)")
-        api_file: File = self.__di.telegram_bot_api.get_file_info(instance_save.ext_id)
+        log.t(f"Refreshing attachment data for external ID '{instance_save.external_id}'")
+        api_file: File = self.__di.telegram_bot_api.get_file_info(instance_save.external_id)
 
         # let's populate the attachment with the data from the API
         instance_save.size = api_file.file_size or instance_save.size

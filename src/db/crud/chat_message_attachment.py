@@ -19,9 +19,9 @@ class ChatMessageAttachmentCRUD:
             ChatMessageAttachmentDB.id == attachment_id,
         ).first()
 
-    def get_by_ext_id(self, ext_id: str) -> ChatMessageAttachmentDB | None:
+    def get_by_external_id(self, external_id: str) -> ChatMessageAttachmentDB | None:
         return self._db.query(ChatMessageAttachmentDB).filter(
-            ChatMessageAttachmentDB.ext_id == ext_id,
+            ChatMessageAttachmentDB.external_id == external_id,
         ).first()
 
     def get_all(self, skip: int = 0, limit: int = 100) -> list[ChatMessageAttachmentDB]:
