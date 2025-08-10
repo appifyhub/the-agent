@@ -10,7 +10,6 @@ from db.model.user import UserDB
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.user import User
 from features.chat.chat_imaging_service import ChatImagingService
-from features.chat.telegram.sdk.telegram_bot_sdk_utils import TelegramBotSDKUtils
 from features.images.image_contents_restorer import ImageContentsRestorer
 
 
@@ -27,7 +26,7 @@ class ImageGeneratorTest(unittest.TestCase):
         self.mock_di.chat_message_attachment_crud = MagicMock()
         self.mock_di.access_token_resolver = MagicMock()
         self.mock_di.invoker_chat = MagicMock()
-        self.mock_di.invoker_chat.chat_id = "test_chat_id"
+        self.mock_di.invoker_chat.external_id = "test_chat_id"
         self.mock_di.tool_choice_resolver = MagicMock()
         self.mock_di.image_background_remover = MagicMock()
         self.mock_di.image_contents_restorer = MagicMock()
@@ -49,8 +48,8 @@ class ImageGeneratorTest(unittest.TestCase):
         # Create a mock ChatMessageAttachmentDB instance
         self.mock_attachment_db = ChatMessageAttachmentDB(
             id = "attachment1",
-            ext_id = "telegram_file_1",
-            chat_id = "test_chat_id",
+            external_id = "telegram_file_1",
+            chat_id = UUID(int = 1),
             message_id = "message1",
             size = 1024,
             last_url = "http://test.com/image.png",
@@ -61,8 +60,8 @@ class ImageGeneratorTest(unittest.TestCase):
         self.mock_di.chat_message_attachment_crud.get.return_value = self.mock_attachment_db
         self.attachment = ChatMessageAttachment.model_validate(self.mock_attachment_db)
 
-        # Mock the refresh_attachments_by_ids method
-        self.patcher = patch.object(TelegramBotSDKUtils, "refresh_attachments_by_ids")
+        # Mock the SDK refresh_attachments_by_ids method
+        self.patcher = patch.object(self.mock_di.telegram_bot_sdk, "refresh_attachments_by_ids")
         self.mock_refresh = self.patcher.start()
         self.mock_refresh.return_value = [ChatMessageAttachment.model_validate(self.mock_attachment_db)]
 
@@ -70,7 +69,7 @@ class ImageGeneratorTest(unittest.TestCase):
         self.patcher.stop()
 
     def test_init_success(self):
-        with patch.object(TelegramBotSDKUtils, "refresh_attachments_by_ids", return_value = [self.attachment]):
+        with patch.object(self.mock_di.telegram_bot_sdk, "refresh_attachments_by_ids", return_value = [self.attachment]):
             service = ChatImagingService(
                 attachment_ids = self.attachment_ids,
                 operation_name = self.operation_name,
@@ -88,9 +87,8 @@ class ImageGeneratorTest(unittest.TestCase):
                 di = self.mock_di,
             )
 
-    @patch.object(TelegramBotSDKUtils, "refresh_attachments_by_ids")
-    def test_execute_remove_background_partial(self, mock_refresh):
-        mock_refresh.return_value = [self.attachment, self.attachment]
+    def test_execute_remove_background_partial(self):
+        self.mock_di.telegram_bot_sdk.refresh_attachments_by_ids.return_value = [self.attachment, self.attachment]
         mock_remover_instance1 = MagicMock()
         mock_remover_instance1.execute.return_value = "http://test.com/edited_image.png"
         mock_remover_instance1.error = None
@@ -117,14 +115,13 @@ class ImageGeneratorTest(unittest.TestCase):
         self.assertEqual(details, expected_details)
         self.assertEqual(self.mock_di.image_background_remover.call_count, 2)
         self.mock_di.telegram_bot_sdk.send_document.assert_called_once_with(
-            self.mock_di.invoker_chat.chat_id,
+            str(self.mock_di.invoker_chat.external_id),
             "http://test.com/edited_image.png",
             thumbnail = "http://test.com/edited_image.png",
         )
 
-    @patch.object(TelegramBotSDKUtils, "refresh_attachments_by_ids")
-    def test_execute_remove_background_failed(self, mock_refresh):
-        mock_refresh.return_value = [self.attachment]
+    def test_execute_remove_background_failed(self):
+        self.mock_di.telegram_bot_sdk.refresh_attachments_by_ids.return_value = [self.attachment]
         mock_remover_instance = MagicMock()
         mock_remover_instance.execute.return_value = None
         mock_remover_instance.error = "Background removal failed"
@@ -146,9 +143,8 @@ class ImageGeneratorTest(unittest.TestCase):
         mock_remover_instance.execute.assert_called_once()
         self.mock_di.telegram_bot_sdk.send_document.assert_not_called()
 
-    @patch.object(TelegramBotSDKUtils, "refresh_attachments_by_ids")
-    def test_execute_remove_background_exception(self, mock_refresh):
-        mock_refresh.return_value = [self.attachment]
+    def test_execute_remove_background_exception(self):
+        self.mock_di.telegram_bot_sdk.refresh_attachments_by_ids.return_value = [self.attachment]
         mock_remover_instance = MagicMock()
         mock_remover_instance.execute.side_effect = Exception("Test exception")
         mock_remover_instance.error = None
@@ -170,9 +166,8 @@ class ImageGeneratorTest(unittest.TestCase):
         mock_remover_instance.execute.assert_called_once()
         self.mock_di.telegram_bot_sdk.send_document.assert_not_called()
 
-    @patch.object(TelegramBotSDKUtils, "refresh_attachments_by_ids")
-    def test_execute_unknown_operation(self, mock_refresh):
-        mock_refresh.return_value = [self.attachment]
+    def test_execute_unknown_operation(self):
+        self.mock_di.telegram_bot_sdk.refresh_attachments_by_ids.return_value = [self.attachment]
         # Patch Operation.resolve to return a mock operation with value 'unknown-operation'
         with patch.object(ChatImagingService.Operation, "resolve", return_value = MagicMock(value = "unknown-operation")):
             service = ChatImagingService(
@@ -184,9 +179,8 @@ class ImageGeneratorTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 service.execute()
 
-    @patch.object(TelegramBotSDKUtils, "refresh_attachments_by_ids")
-    def test_execute_remove_background_success(self, mock_refresh):
-        mock_refresh.return_value = [self.attachment]
+    def test_execute_remove_background_success(self):
+        self.mock_di.telegram_bot_sdk.refresh_attachments_by_ids.return_value = [self.attachment]
         mock_remover_instance = MagicMock()
         mock_remover_instance.execute.return_value = "http://test.com/edited_image.png"
         mock_remover_instance.error = None
@@ -207,14 +201,13 @@ class ImageGeneratorTest(unittest.TestCase):
         self.assertEqual(details, expected_details)
         mock_remover_instance.execute.assert_called_once()
         self.mock_di.telegram_bot_sdk.send_document.assert_called_once_with(
-            self.mock_di.invoker_chat.chat_id,
+            str(self.mock_di.invoker_chat.external_id),
             "http://test.com/edited_image.png",
             thumbnail = "http://test.com/edited_image.png",
         )
 
-    @patch.object(TelegramBotSDKUtils, "refresh_attachments_by_ids")
-    def test_execute_restore_image_success(self, mock_refresh):
-        mock_refresh.return_value = [self.attachment]
+    def test_execute_restore_image_success(self):
+        self.mock_di.telegram_bot_sdk.refresh_attachments_by_ids.return_value = [self.attachment]
         mock_restorer_instance = MagicMock()
         mock_restorer_instance.execute.return_value = ImageContentsRestorer.Result(
             restored_url = "http://test.com/restored_image.png",

@@ -2,6 +2,7 @@ from dataclasses import asdict
 from typing import Annotated, Any, List, Literal, TypeAlias, get_args
 
 from api import auth
+from api.mapper.chat_mapper import domain_to_api as chat_to_api
 from api.mapper.user_mapper import api_to_domain, domain_to_api
 from api.model.chat_settings_payload import ChatSettingsPayload
 from api.model.external_tools_response import ExternalToolProviderResponse, ExternalToolResponse, ExternalToolsResponse
@@ -36,28 +37,14 @@ class SettingsController:
             raise ValueError(log.e(f"Invalid settings type '{settings_type}'"))
         return settings_type
 
-    def create_settings_link(self, raw_settings_type: str | None = None, target_chat_id: str | None = None) -> str:
-        resource_id: str
-        chat_config: ChatConfig
-        lang_iso_code: str = "en"
+    def create_settings_link(self, raw_settings_type: str | None = None) -> str:
+        if not self.__di.invoker.telegram_chat_id:
+            raise ValueError(log.e("User never sent a private message, cannot create a settings link"))
+
         settings_type = self.__validate_settings_type(raw_settings_type) if raw_settings_type else DEF_SETTINGS_TYPE
-
-        if settings_type == "user":
-            resource_id = self.__di.invoker.id.hex
-            user_chat_id: str | None = self.__di.invoker.telegram_chat_id
-            if not user_chat_id:
-                raise ValueError(log.e("User never sent a private message, cannot create settings link"))
-            chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, user_chat_id)
-        elif settings_type == "chat":
-            if not target_chat_id:
-                raise ValueError(log.e("Chat ID must be provided when requesting chat settings"))
-            chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, target_chat_id)
-            resource_id = chat_config.chat_id
-        else:  # should never happen due to validation, let's explode if it does
-            raise ValueError(log.e(f"Invalid settings type '{settings_type}'"))
-
-        if chat_config.language_iso_code:
-            lang_iso_code = chat_config.language_iso_code
+        chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, self.__di.invoker_chat)
+        resource_id: str = self.__di.invoker.id.hex if settings_type == "user" else chat_config.chat_id.hex
+        lang_iso_code: str = chat_config.language_iso_code or "en"
 
         sponsored_by = self.__resolve_sponsor_name()
         jwt_token = self.__create_jwt_token(sponsored_by)
@@ -70,7 +57,7 @@ class SettingsController:
         lang_iso_code: str = "en"
         if not self.__di.invoker.telegram_chat_id:
             raise ValueError(log.e("User never sent a private message, cannot create settings link"))
-        chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, self.__di.invoker.telegram_chat_id)
+        chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, self.__di.invoker_chat)
         if chat_config.language_iso_code:
             lang_iso_code = chat_config.language_iso_code
 
@@ -93,10 +80,8 @@ class SettingsController:
 
     def fetch_chat_settings(self, chat_id: str) -> dict[str, Any]:
         chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, chat_id)
-        output = ChatConfig.model_dump(chat_config)
         invoker_telegram_id = str(self.__di.invoker.telegram_user_id or 0)
-        output["is_own"] = invoker_telegram_id == chat_config.chat_id
-        return output
+        return chat_to_api(chat = chat_config, is_own = invoker_telegram_id == chat_config.external_id).model_dump()
 
     def fetch_user_settings(self, user_id_hex: str) -> dict[str, Any]:
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
@@ -157,9 +142,9 @@ class SettingsController:
         owner_telegram_chat_id = str(user.telegram_chat_id or 0)
         for chat_config in admin_chats:
             record = {
-                "chat_id": chat_config.chat_id,
+                "chat_id": chat_config.chat_id.hex,
                 "title": chat_config.title,
-                "is_own": owner_telegram_chat_id == chat_config.chat_id,
+                "is_own": owner_telegram_chat_id == chat_config.external_id,
             }
             result.append(record)
         return result

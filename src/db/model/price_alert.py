@@ -7,7 +7,7 @@ from db.model.base import BaseModel
 class PriceAlertDB(BaseModel):
     __tablename__ = "price_alerts"
 
-    chat_id = Column(String, nullable = False)
+    chat_id = Column(UUID(as_uuid = True), nullable = False)
     owner_id = Column(UUID(as_uuid = True), nullable = False)
     base_currency = Column(String, nullable = False)
     desired_currency = Column(String, nullable = False)

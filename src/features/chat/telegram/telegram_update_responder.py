@@ -82,7 +82,7 @@ def respond_to_update(update: Update) -> bool:
             sent_messages: int = 0
             domain_messages = di.domain_langchain_mapper.map_bot_message_to_storage(resolved_domain_data.chat.chat_id, answer)
             for message in domain_messages:
-                di.telegram_bot_sdk.send_text_message(message.chat_id, message.text)
+                di.telegram_bot_sdk.send_text_message(str(resolved_domain_data.chat.external_id), message.text)
                 sent_messages += 1
 
             log.t(f"Finished responding to updates. \n[{TELEGRAM_BOT_USER.full_name}]: {answer.content}")
@@ -104,5 +104,5 @@ def __notify_of_errors(
         answer = AIMessage(prompt_library.error_general_problem(str(error)))
         messages = di.domain_langchain_mapper.map_bot_message_to_storage(resolved_domain_data.chat.chat_id, answer)
         for message in messages:
-            di.telegram_bot_sdk.send_text_message(message.chat_id, message.text)
+            di.telegram_bot_sdk.send_text_message(str(resolved_domain_data.chat.external_id), message.text)
         log.t("Replied with the error")

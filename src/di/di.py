@@ -206,7 +206,7 @@ class DI:
 
     def inject_invoker_chat_id(self, invoker_chat_id: str | None):
         self._invoker_chat_id = invoker_chat_id
-        if self._invoker_chat and self._invoker_chat.chat_id != invoker_chat_id:
+        if self._invoker_chat and self._invoker_chat.chat_id.hex != invoker_chat_id:
             self._invoker_chat = None
 
     def inject_invoker_chat(self, invoker_chat: ChatConfig | None):
@@ -215,8 +215,8 @@ class DI:
             self._invoker_chat_id = None
             return
         self._invoker_chat = invoker_chat
-        if not self._invoker_chat_id or self._invoker_chat_id != invoker_chat.chat_id:
-            self._invoker_chat_id = invoker_chat.chat_id
+        if not self._invoker_chat_id or self._invoker_chat_id != invoker_chat.chat_id.hex:
+            self._invoker_chat_id = invoker_chat.chat_id.hex
 
     # === SDKs ===
 
@@ -370,7 +370,7 @@ class DI:
     def llm_tool_library(self) -> "LLMToolLibrary":
         if self._llm_tool_library is None:
             from features.chat.llm_tools.llm_tool_library import LLMToolLibrary
-            self._llm_tool_library = LLMToolLibrary()
+            self._llm_tool_library = LLMToolLibrary(self)
         return self._llm_tool_library
 
     def telegram_progress_notifier(

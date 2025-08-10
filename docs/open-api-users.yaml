@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: The Agent's user-facing API
   description: The user-facing parts of The Agent's API service (excluding system-level endpoints, chat completion, maintenance endpoints, etc.)
-  version: 3.0.0
+  version: 3.7.0
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -33,7 +33,7 @@ paths:
           required: true
           schema:
             type: string
-          description: User ID (hex) or Chat ID depending on settings_type
+          description: User ID (hex) or Chat ID (hex, UUID without hyphens) depending on settings_type
       responses:
         "200":
           description: Settings retrieved successfully
@@ -97,7 +97,7 @@ paths:
           required: true
           schema:
             type: string
-          description: Chat ID
+          description: Chat ID in hexadecimal format (UUID without hyphens)
       requestBody:
         required: true
         content:
@@ -530,7 +530,7 @@ components:
       properties:
         chat_id:
           type: string
-          description: Chat ID
+          description: Chat ID in hexadecimal format (UUID without hyphens)
         title:
           type: string
           nullable: true
@@ -579,7 +579,7 @@ components:
       properties:
         chat_id:
           type: string
-          description: Chat ID
+          description: Chat ID in hexadecimal format (UUID without hyphens)
         title:
           type: string
           nullable: true

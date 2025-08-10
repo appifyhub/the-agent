@@ -18,34 +18,38 @@ class ChatConfigCRUDTest(unittest.TestCase):
 
     def test_create_chat_config(self):
         chat_config_data = ChatConfigSave(
-            chat_id = "chat1",
+            external_id = "chat1",
             language_iso_code = "en",
             language_name = "English",
             title = "Chat One",
             is_private = True,
             reply_chance_percent = 100,
             release_notifications = ChatConfigDB.ReleaseNotifications.major,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
 
         chat_config = self.sql.chat_config_crud().create(chat_config_data)
 
-        self.assertEqual(chat_config.chat_id, chat_config_data.chat_id)
+        self.assertIsNotNone(chat_config.chat_id)
+        self.assertEqual(chat_config.external_id, chat_config_data.external_id)
         self.assertEqual(chat_config.language_iso_code, chat_config_data.language_iso_code)
         self.assertEqual(chat_config.language_name, chat_config_data.language_name)
         self.assertEqual(chat_config.title, chat_config_data.title)
         self.assertEqual(chat_config.is_private, chat_config_data.is_private)
         self.assertEqual(chat_config.reply_chance_percent, chat_config_data.reply_chance_percent)
         self.assertEqual(chat_config.release_notifications, chat_config_data.release_notifications)
+        self.assertEqual(chat_config.chat_type, chat_config_data.chat_type)
 
     def test_get_chat_config(self):
         chat_config_data = ChatConfigSave(
-            chat_id = "chat1",
+            external_id = "chat1",
             language_iso_code = "en",
             language_name = "English",
             title = "Chat One",
             is_private = True,
             reply_chance_percent = 100,
             release_notifications = ChatConfigDB.ReleaseNotifications.major,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         created_chat_config = self.sql.chat_config_crud().create(chat_config_data)
 
@@ -56,10 +60,10 @@ class ChatConfigCRUDTest(unittest.TestCase):
     def test_get_all_chat_configs(self):
         chat_configs = [
             self.sql.chat_config_crud().create(
-                ChatConfigSave(chat_id = "chat1"),
+                ChatConfigSave(external_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram),
             ),
             self.sql.chat_config_crud().create(
-                ChatConfigSave(chat_id = "chat2"),
+                ChatConfigSave(external_id = "chat2", chat_type = ChatConfigDB.ChatType.standalone_app),
             ),
         ]
 
@@ -71,13 +75,14 @@ class ChatConfigCRUDTest(unittest.TestCase):
 
     def test_update_chat_config(self):
         chat_config_data = ChatConfigSave(
-            chat_id = "chat1",
+            external_id = "chat1",
             language_iso_code = "en",
             language_name = "English",
             title = "Chat One",
             is_private = True,
             reply_chance_percent = 100,
             release_notifications = ChatConfigDB.ReleaseNotifications.major,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         created_chat_config = self.sql.chat_config_crud().create(chat_config_data)
 
@@ -89,6 +94,7 @@ class ChatConfigCRUDTest(unittest.TestCase):
             is_private = False,
             reply_chance_percent = 0,
             release_notifications = ChatConfigDB.ReleaseNotifications.minor,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         updated_chat_config = self.sql.chat_config_crud().update(update_data)
 
@@ -98,28 +104,32 @@ class ChatConfigCRUDTest(unittest.TestCase):
         self.assertEqual(updated_chat_config.title, update_data.title)
         self.assertEqual(updated_chat_config.is_private, update_data.is_private)
         self.assertEqual(updated_chat_config.reply_chance_percent, update_data.reply_chance_percent)
+        self.assertEqual(updated_chat_config.chat_type, update_data.chat_type)
 
     def test_save_chat_config(self):
         chat_config_data = ChatConfigSave(
-            chat_id = "chat1",
+            external_id = "chat1",
             language_iso_code = "en",
             language_name = "English",
             title = "Chat One",
             is_private = True,
             reply_chance_percent = 100,
             release_notifications = ChatConfigDB.ReleaseNotifications.major,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
 
         # First, save should create the record
         saved_chat_config = self.sql.chat_config_crud().save(chat_config_data)
         self.assertIsNotNone(saved_chat_config)
-        self.assertEqual(saved_chat_config.chat_id, chat_config_data.chat_id)
+        self.assertIsNotNone(saved_chat_config.chat_id)
+        self.assertEqual(saved_chat_config.external_id, chat_config_data.external_id)
         self.assertEqual(saved_chat_config.language_iso_code, chat_config_data.language_iso_code)
         self.assertEqual(saved_chat_config.language_name, chat_config_data.language_name)
         self.assertEqual(saved_chat_config.title, chat_config_data.title)
         self.assertEqual(saved_chat_config.is_private, chat_config_data.is_private)
         self.assertEqual(saved_chat_config.reply_chance_percent, chat_config_data.reply_chance_percent)
         self.assertEqual(saved_chat_config.release_notifications, chat_config_data.release_notifications)
+        self.assertEqual(saved_chat_config.chat_type, chat_config_data.chat_type)
 
         # Now, save should update the existing record
         update_data = ChatConfigSave(
@@ -130,6 +140,7 @@ class ChatConfigCRUDTest(unittest.TestCase):
             is_private = False,
             reply_chance_percent = 0,
             release_notifications = ChatConfigDB.ReleaseNotifications.minor,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         updated_chat_config = self.sql.chat_config_crud().save(update_data)
         self.assertIsNotNone(updated_chat_config)
@@ -140,9 +151,10 @@ class ChatConfigCRUDTest(unittest.TestCase):
         self.assertEqual(updated_chat_config.is_private, update_data.is_private)
         self.assertEqual(updated_chat_config.reply_chance_percent, update_data.reply_chance_percent)
         self.assertEqual(updated_chat_config.release_notifications, update_data.release_notifications)
+        self.assertEqual(updated_chat_config.chat_type, update_data.chat_type)
 
     def test_delete_chat_config(self):
-        chat_config_data = ChatConfigSave(chat_id = "chat1")
+        chat_config_data = ChatConfigSave(external_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram)
         created_chat_config = self.sql.chat_config_crud().create(chat_config_data)
 
         deleted_chat_config = self.sql.chat_config_crud().delete(created_chat_config.chat_id)

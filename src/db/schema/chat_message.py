@@ -5,7 +5,6 @@ from pydantic import BaseModel, ConfigDict
 
 
 class ChatMessageBase(BaseModel):
-    chat_id: str
     message_id: str
     author_id: UUID | None = None
     sent_at: datetime = datetime.now()
@@ -13,8 +12,9 @@ class ChatMessageBase(BaseModel):
 
 
 class ChatMessageSave(ChatMessageBase):
-    pass
+    chat_id: UUID | None = None
 
 
 class ChatMessage(ChatMessageBase):
+    chat_id: UUID
     model_config = ConfigDict(from_attributes = True)

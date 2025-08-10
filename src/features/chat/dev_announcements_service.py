@@ -1,11 +1,9 @@
-from datetime import datetime
-
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
+from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
-from db.schema.chat_message import ChatMessageSave
 from db.schema.user import User
 from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ToolType
@@ -14,7 +12,6 @@ from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.prompting import prompt_library
 from features.prompting.prompt_library import TELEGRAM_BOT_USER
 from util import log
-from util.functions import construct_bot_message_id
 
 
 class DevAnnouncementsService:
@@ -53,7 +50,10 @@ class DevAnnouncementsService:
             target_user = User.model_validate(target_user_db)
             if not target_user.telegram_chat_id:
                 raise ValueError(log.d(f"Target user '{target_telegram_username}' has no private chat ID yet"))
-            target_chat_db = self.__di.chat_config_crud.get(target_user.telegram_chat_id)
+            target_chat_db = self.__di.chat_config_crud.get_by_external_identifiers(
+                external_id = str(target_user.telegram_chat_id),
+                chat_type = ChatConfigDB.ChatType.telegram,
+            )
             if not target_chat_db:
                 raise ValueError(log.d(f"Target chat '{target_user.telegram_chat_id}' not found"))
             self.__target_chat = ChatConfig.model_validate(target_chat_db)
@@ -66,13 +66,14 @@ class DevAnnouncementsService:
             target_chats = [self.__target_chat]
         else:
             log.t("  Targeting all chats")
-            invoker_chat_id = str(self.__di.invoker.telegram_chat_id)
-            bot_chat_id = str(TELEGRAM_BOT_USER.telegram_chat_id)
+            # we compare external IDs because user objects contain only those
+            invoker_external_chat_id = str(self.__di.invoker.telegram_chat_id)
+            bot_external_chat_id = str(TELEGRAM_BOT_USER.telegram_chat_id)
             target_chats_db = self.__di.chat_config_crud.get_all(limit = 2048)
             target_chats = [
                 ChatConfig.model_validate(chat)
                 for chat in target_chats_db
-                if chat.chat_id not in [bot_chat_id, invoker_chat_id]
+                if chat.external_id not in [bot_external_chat_id, invoker_external_chat_id]
             ]
 
         summaries_created: int = 0
@@ -95,7 +96,7 @@ class DevAnnouncementsService:
                     answer = self.__create_announcement(chat)
                     summary = translations.save(str(answer.content), chat.language_name, chat.language_iso_code)
                     summaries_created += 1
-                self.__notify_chat(chat, summary)
+                self.__di.telegram_bot_sdk.send_text_message(int(chat.external_id or "-1"), summary)
                 chats_notified += 1
             except Exception as e:
                 log.e(f"Announcement failed for chat #{chat.chat_id}", e)
@@ -127,15 +128,3 @@ class DevAnnouncementsService:
         if not isinstance(response, AIMessage):
             raise AssertionError(f"Received a non-AI message from LLM: {response}")
         return response
-
-    def __notify_chat(self, chat: ChatConfig, summary: str):
-        self.__di.telegram_bot_sdk.send_text_message(chat.chat_id, summary)
-        sent_at = datetime.now()
-        message_to_store = ChatMessageSave(
-            chat_id = chat.chat_id,
-            message_id = construct_bot_message_id(chat.chat_id, sent_at),
-            author_id = prompt_library.TELEGRAM_BOT_USER.id,
-            sent_at = sent_at,
-            text = summary,
-        )
-        self.__di.chat_message_crud.save(message_to_store)

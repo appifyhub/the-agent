@@ -25,13 +25,13 @@ class DomainLangchainMapperTest(unittest.TestCase):
             telegram_username = "john_doe",
             full_name = "John Doe",
         )
-        message = ChatMessage(chat_id = "c1", message_id = "m1", text = "Hello, how are you?")
+        message = ChatMessage(chat_id = UUID(int = 1), message_id = "m1", text = "Hello, how are you?")
         expected_output = HumanMessage("@john_doe [John Doe]:\nHello, how are you?")
         self.assertEqual(self.mapper.map_to_langchain(author, message), expected_output)
 
     def test_map_to_langchain_with_slim_author(self):
         author = User(id = UUID(int = 1), created_at = date.today(), telegram_user_id = 12345)
-        message = ChatMessage(chat_id = "c1", message_id = "m1", text = "Test message")
+        message = ChatMessage(chat_id = UUID(int = 1), message_id = "m1", text = "Test message")
         expected_output = HumanMessage("@12345:\nTest message")
         self.assertEqual(self.mapper.map_to_langchain(author, message), expected_output)
 
@@ -43,18 +43,18 @@ class DomainLangchainMapperTest(unittest.TestCase):
             telegram_user_id = TELEGRAM_BOT_USER.telegram_user_id,
             full_name = TELEGRAM_BOT_USER.full_name,
         )
-        message = ChatMessage(chat_id = "c2", message_id = "m2", text = "I'm an AI assistant.")
+        message = ChatMessage(chat_id = UUID(int = 2), message_id = "m2", text = "I'm an AI assistant.")
         expected_output = AIMessage("I'm an AI assistant.")
         self.assertEqual(self.mapper.map_to_langchain(ai_author, message), expected_output)
 
     def test_map_to_langchain_no_author(self):
-        message = ChatMessage(chat_id = "c1", message_id = "m1", text = "Test message")
+        message = ChatMessage(chat_id = UUID(int = 1), message_id = "m1", text = "Test message")
         expected_output = AIMessage("Test message")
         self.assertEqual(self.mapper.map_to_langchain(None, message), expected_output)
 
     def test_map_bot_message_to_storage_single_message(self):
         message = AIMessage(content = "Test message")
-        chat_id = "test_chat"
+        chat_id = UUID(int = 3)
         result = self.mapper.map_bot_message_to_storage(chat_id, message)
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].text, "Test message")
@@ -63,7 +63,7 @@ class DomainLangchainMapperTest(unittest.TestCase):
 
     def test_map_bot_message_to_storage_multiple_messages(self):
         message = AIMessage(content = f"Message 1{MULTI_MESSAGE_DELIMITER}Message 2{MULTI_MESSAGE_DELIMITER}Message 3")
-        chat_id = "test_chat"
+        chat_id = UUID(int = 3)
         result = self.mapper.map_bot_message_to_storage(chat_id, message)
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0].text, "Message 1")
@@ -75,13 +75,13 @@ class DomainLangchainMapperTest(unittest.TestCase):
 
     def test_map_bot_message_to_storage_empty_message(self):
         message = AIMessage(content = "")
-        chat_id = "test_chat"
+        chat_id = UUID(int = 3)
         result = self.mapper.map_bot_message_to_storage(chat_id, message)
         self.assertEqual(len(result), 0)
 
     def test_map_bot_message_to_storage_list_of_strings(self):
         message = AIMessage(content = ["Message 1", "Message 2", "Message 3"])
-        chat_id = "test_chat"
+        chat_id = UUID(int = 3)
         result = self.mapper.map_bot_message_to_storage(chat_id, message)
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0].text, "Message 1")
@@ -93,7 +93,7 @@ class DomainLangchainMapperTest(unittest.TestCase):
 
     def test_map_bot_message_to_storage_list_of_dicts(self):
         message = AIMessage(content = [{"name": "Mike", "city": "Valencia"}, {"name": "Dirk"}])
-        chat_id = "test_chat"
+        chat_id = UUID(int = 3)
         result = self.mapper.map_bot_message_to_storage(chat_id, message)
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0].text, "name: Mike\ncity: Valencia")
@@ -104,7 +104,7 @@ class DomainLangchainMapperTest(unittest.TestCase):
 
     def test_map_bot_message_to_storage_message_id_uniqueness(self):
         message = AIMessage(content = "Test message")
-        chat_id = "test_chat"
+        chat_id = UUID(int = 3)
         result1 = self.mapper.map_bot_message_to_storage(chat_id, message)
         result2 = self.mapper.map_bot_message_to_storage(chat_id, message)
         self.assertNotEqual(result1[0].message_id, result2[0].message_id)

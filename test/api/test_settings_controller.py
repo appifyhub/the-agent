@@ -69,12 +69,14 @@ class SettingsControllerTest(unittest.TestCase):
             created_at = datetime.now().date(),
         )
         self.chat_config = ChatConfig(
-            chat_id = "test_chat_123",
+            chat_id = UUID(int = 1),
+            external_id = "test_chat_123",
             title = "Test Chat",
             language_iso_code = "en",
             reply_chance_percent = 75,
             is_private = False,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
 
         # Create mocks
@@ -145,10 +147,14 @@ class SettingsControllerTest(unittest.TestCase):
 
     def test_create_settings_link_success_chat_settings(self):
         controller = SettingsController(self.mock_di)
-        link = controller.create_settings_link("chat", "test_chat_123")
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker_chat_id = self.chat_config.chat_id.hex
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker_chat = self.chat_config
+        link = controller.create_settings_link("chat")
 
         self.assertIn("chat", link)
-        self.assertIn("test_chat_123", link)
+        self.assertIn(self.chat_config.chat_id.hex, link)
         self.assertIn("token=", link)
 
     def test_create_settings_link_failure_invalid_settings_type(self):
@@ -162,10 +168,17 @@ class SettingsControllerTest(unittest.TestCase):
     def test_create_settings_link_failure_chat_settings_no_chat_id(self):
         controller = SettingsController(self.mock_di)
 
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker_chat_id = None
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker_chat = None
+        # Force auth failure to reflect missing chat context
+        self.mock_authorization_service.authorize_for_chat.side_effect = ValueError(
+            "badly formed hexadecimal UUID string",
+        )
         with self.assertRaises(ValueError) as context:
             controller.create_settings_link("chat")
-
-        self.assertIn("Chat ID must be provided", str(context.exception))
+        self.assertIn("badly formed hexadecimal UUID string", str(context.exception))
 
     def test_fetch_chat_settings_success(self):
         self.mock_user_dao.get.return_value = self.invoker_user
@@ -174,12 +187,12 @@ class SettingsControllerTest(unittest.TestCase):
         controller = SettingsController(self.mock_di)
         result = controller.fetch_chat_settings("test_chat_123")
 
-        self.assertEqual(result["chat_id"], self.chat_config.chat_id)
+        self.assertEqual(result["chat_id"], self.chat_config.chat_id.hex)
         self.assertEqual(result["title"], self.chat_config.title)
         self.assertEqual(result["language_iso_code"], self.chat_config.language_iso_code)
         self.assertEqual(result["reply_chance_percent"], self.chat_config.reply_chance_percent)
         self.assertEqual(result["is_private"], self.chat_config.is_private)
-        self.assertEqual(result["release_notifications"], self.chat_config.release_notifications)
+        self.assertEqual(result["release_notifications"], self.chat_config.release_notifications.value)
         self.assertIn("is_own", result)
 
     def test_fetch_user_settings_success(self):
@@ -215,12 +228,14 @@ class SettingsControllerTest(unittest.TestCase):
         # Mock the save method to return a proper ChatConfigDB object
         saved_chat_config_db = ChatConfigDB(
             chat_id = self.chat_config.chat_id,
+            external_id = self.chat_config.external_id,
             title = self.chat_config.title,
             language_iso_code = "es",  # Updated value
             language_name = "Spanish",  # Updated value
             reply_chance_percent = 50,  # Updated value
             is_private = self.chat_config.is_private,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,  # Updated value
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_chat_config_dao.save.return_value = saved_chat_config_db
 
@@ -329,12 +344,14 @@ class SettingsControllerTest(unittest.TestCase):
     def test_save_chat_settings_failure_reply_chance_private_chat(self):
         self.mock_user_dao.get.return_value = self.invoker_user
         private_chat_config = ChatConfig(
-            chat_id = "private_chat_123",
+            chat_id = UUID(int = 123),
+            external_id = "private_chat_123",
             title = "Private Chat",
             language_iso_code = "en",
             reply_chance_percent = 100,
             is_private = True,  # This is the key difference
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_chat_config_dao.get.return_value = private_chat_config
         self.mock_authorization_service.authorize_for_chat.return_value = private_chat_config
@@ -382,6 +399,7 @@ class SettingsControllerTest(unittest.TestCase):
             reply_chance_percent = 75,  # Updated value
             is_private = self.chat_config.is_private,
             release_notifications = ChatConfigDB.ReleaseNotifications.major,  # Updated value
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_chat_config_dao.save.return_value = saved_chat_config_db
 
@@ -403,28 +421,34 @@ class SettingsControllerTest(unittest.TestCase):
     def test_fetch_admin_chats_success(self):
         self.invoker_user.telegram_chat_id = "invoker_chat_id"  # As in setUp
         own_chat_config = ChatConfig(
-            chat_id = str(self.invoker_user.telegram_chat_id),
+            chat_id = UUID(int = 2),
+            external_id = str(self.invoker_user.telegram_chat_id),
             title = "My Notes",
             language_iso_code = "en",
             reply_chance_percent = 100,
             is_private = True,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         group_chat_config = ChatConfig(
-            chat_id = "group_chat_123",
+            chat_id = UUID(int = 3),
+            external_id = "group_chat_123",
             title = "Test Group",
             language_iso_code = "es",
             reply_chance_percent = 50,
             is_private = False,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         no_title_chat_config = ChatConfig(
-            chat_id = "no_title_chat_456",
+            chat_id = UUID(int = 4),
+            external_id = "no_title_chat_456",
             title = None,
             language_iso_code = "fr",
             reply_chance_percent = 75,
             is_private = False,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
 
         self.mock_authorization_service.get_authorized_chats.return_value = [
@@ -439,17 +463,17 @@ class SettingsControllerTest(unittest.TestCase):
         self.assertEqual(len(result), 3)
 
         # Check own chat
-        own_chat_result = next(r for r in result if r["chat_id"] == own_chat_config.chat_id)
+        own_chat_result = next(r for r in result if r["chat_id"] == own_chat_config.chat_id.hex)
         self.assertEqual(own_chat_result["title"], "My Notes")
         self.assertTrue(own_chat_result["is_own"])
 
         # Check group chat
-        group_chat_result = next(r for r in result if r["chat_id"] == group_chat_config.chat_id)
+        group_chat_result = next(r for r in result if r["chat_id"] == group_chat_config.chat_id.hex)
         self.assertEqual(group_chat_result["title"], "Test Group")
         self.assertFalse(group_chat_result["is_own"])
 
         # Check no title chat
-        no_title_result = next(r for r in result if r["chat_id"] == no_title_chat_config.chat_id)
+        no_title_result = next(r for r in result if r["chat_id"] == no_title_chat_config.chat_id.hex)
         self.assertIsNone(no_title_result["title"])
         self.assertFalse(no_title_result["is_own"])
 
@@ -615,12 +639,14 @@ class SettingsControllerTest(unittest.TestCase):
         mock_create_jwt_token.return_value = "test_jwt_token"
 
         custom_chat_config = ChatConfig(
-            chat_id = str(self.invoker_user.telegram_chat_id),
+            chat_id = UUID(int = 2),
+            external_id = str(self.invoker_user.telegram_chat_id),
             title = "Test Chat",
             language_iso_code = "es",  # Spanish
             reply_chance_percent = 100,
             is_private = True,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_authorization_service.authorize_for_chat.return_value = custom_chat_config
 

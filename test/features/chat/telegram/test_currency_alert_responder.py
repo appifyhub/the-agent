@@ -71,14 +71,14 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         test_owner_id = UUID(int = 1)
         triggered_alerts = [
             CurrencyAlertService.TriggeredAlert(
-                chat_id = "123", owner_id = test_owner_id,
+                chat_id = UUID(int = 123), owner_id = test_owner_id,
                 base_currency = "BTC", desired_currency = "USD", threshold_percent = 5,
                 old_rate = 10000, old_rate_time = datetime(2023, 1, 1).strftime(DATETIME_PRINT_FORMAT),
                 new_rate = 11000, new_rate_time = datetime(2023, 1, 2).strftime(DATETIME_PRINT_FORMAT),
                 price_change_percent = 10,
             ),
             CurrencyAlertService.TriggeredAlert(
-                chat_id = "456", owner_id = test_owner_id,
+                chat_id = UUID(int = 456), owner_id = test_owner_id,
                 base_currency = "ETH", desired_currency = "EUR", threshold_percent = 3,
                 old_rate = 2000, old_rate_time = datetime(2023, 1, 1).strftime(DATETIME_PRINT_FORMAT),
                 new_rate = 2100, new_rate_time = datetime(2023, 1, 2).strftime(DATETIME_PRINT_FORMAT),
@@ -91,13 +91,15 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
 
         # Mock the chat config responses for scoped DI
         mock_chat_config_db = ChatConfigDB(
-            chat_id = "123",
+            chat_id = UUID(int = 123),
+            external_id = "123",
             title = "Test Chat",
             is_private = False,
             reply_chance_percent = 100,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
             language_name = "English",
             language_iso_code = "en",
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_scoped_di.chat_config_crud.get.return_value = mock_chat_config_db
 
@@ -149,7 +151,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         test_owner_id = UUID(int = 1)
         triggered_alerts = [
             CurrencyAlertService.TriggeredAlert(
-                chat_id = "123", owner_id = test_owner_id,
+                chat_id = UUID(int = 123), owner_id = test_owner_id,
                 base_currency = "BTC", desired_currency = "USD", threshold_percent = 5,
                 old_rate = 10000, old_rate_time = datetime(2023, 1, 1).strftime(DATETIME_PRINT_FORMAT),
                 new_rate = 11000, new_rate_time = datetime(2023, 1, 2).strftime(DATETIME_PRINT_FORMAT),
@@ -162,13 +164,15 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
 
         # Mock the chat config response
         mock_chat_config_db = ChatConfigDB(
-            chat_id = "123",
+            chat_id = UUID(int = 123),
+            external_id = "123",
             title = "Test Chat",
             is_private = False,
             reply_chance_percent = 100,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
             language_name = "English",
             language_iso_code = "en",
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_di.chat_config_crud.get.return_value = mock_chat_config_db
 
@@ -194,7 +198,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         test_owner_id = UUID(int = 1)
         triggered_alerts = [
             CurrencyAlertService.TriggeredAlert(
-                chat_id = "123", owner_id = test_owner_id,
+                chat_id = UUID(int = 123), owner_id = test_owner_id,
                 base_currency = "BTC", desired_currency = "USD", threshold_percent = 5,
                 old_rate = 10000, old_rate_time = datetime(2023, 1, 1).strftime(DATETIME_PRINT_FORMAT),
                 new_rate = 11000, new_rate_time = datetime(2023, 1, 2).strftime(DATETIME_PRINT_FORMAT),
@@ -207,13 +211,15 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
 
         # Mock the chat config response for scoped DI
         mock_chat_config_db = ChatConfigDB(
-            chat_id = "123",
+            chat_id = UUID(int = 123),
+            external_id = "123",
             title = "Test Chat",
             is_private = False,
             reply_chance_percent = 100,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
             language_name = "English",
             language_iso_code = "en",
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_scoped_di.chat_config_crud.get.return_value = mock_chat_config_db
 
@@ -238,7 +244,7 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         test_owner_id = UUID(int = 1)
         triggered_alerts = [
             CurrencyAlertService.TriggeredAlert(
-                chat_id = "123", owner_id = test_owner_id,
+                chat_id = UUID(int = 123), owner_id = test_owner_id,
                 base_currency = "BTC", desired_currency = "USD", threshold_percent = 5,
                 old_rate = 10000, old_rate_time = datetime(2023, 1, 1).strftime(DATETIME_PRINT_FORMAT),
                 new_rate = 11000, new_rate_time = datetime(2023, 1, 2).strftime(DATETIME_PRINT_FORMAT),
@@ -251,13 +257,15 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
 
         # Mock the chat config response for scoped DI
         mock_chat_config_db = ChatConfigDB(
-            chat_id = "123",
+            chat_id = UUID(int = 123),
+            external_id = "123",
             title = "Test Chat",
             is_private = False,
             reply_chance_percent = 100,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
             language_name = "English",
             language_iso_code = "en",
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_scoped_di.chat_config_crud.get.return_value = mock_chat_config_db
 

@@ -48,13 +48,15 @@ class AuthorizationServiceTest(unittest.TestCase):
             language_code = "en",
         )
         self.chat_config = ChatConfig(
-            chat_id = "test_chat_id",
+            chat_id = UUID(int = 1),
+            external_id = "test_chat_id",
             language_iso_code = "en",
             language_name = "English",
             reply_chance_percent = 100,
             title = "Test Chat",
             is_private = False,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.chat_member = self.create_admin_member(self.invoker_telegram_user, is_manager = False)
         self.mock_user_dao = Mock(spec = UserCRUD)
@@ -108,7 +110,7 @@ class AuthorizationServiceTest(unittest.TestCase):
         service = AuthorizationService(self.mock_di)
         with self.assertRaises(ValueError) as context:
             service.validate_chat("wrong_chat_id")
-        self.assertIn("Chat 'wrong_chat_id' not found", str(context.exception))
+        self.assertIn("badly formed hexadecimal UUID string", str(context.exception))
 
     def test_validate_user_success_with_hex_string(self):
         service = AuthorizationService(self.mock_di)
@@ -182,25 +184,31 @@ class AuthorizationServiceTest(unittest.TestCase):
 
     def test_get_authorized_chats_success_user_is_admin(self):
         chat_config_1 = ChatConfig(
-            chat_id = "chat_A_id",
+            chat_id = UUID(int = 10),
+            external_id = "chat_A_id",
             title = "Chat Alpha",
             is_private = False,
             language_iso_code = "en",
             reply_chance_percent = 50,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         chat_config_2 = ChatConfig(
-            chat_id = "chat_B_id",
+            chat_id = UUID(int = 11),
+            external_id = "chat_B_id",
             title = "Chat Bravo",
             is_private = False,
             language_iso_code = "en",
             reply_chance_percent = 50,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         chat_config_3 = ChatConfig(
-            chat_id = "chat_C_id",
+            chat_id = UUID(int = 12),
+            external_id = "chat_C_id",
             title = "Chat Charlie",
             is_private = False,
             language_iso_code = "en",
             reply_chance_percent = 50,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
 
         chat_config_1_db = ChatConfigDB(**chat_config_1.model_dump())
@@ -216,11 +224,11 @@ class AuthorizationServiceTest(unittest.TestCase):
         self.mock_chat_config_dao.get_all.return_value = [chat_config_1_db, chat_config_2_db, chat_config_3_db]
 
         def mock_get_admins(chat_id_param):
-            if chat_id_param == chat_config_1.chat_id:
+            if chat_id_param == chat_config_1.external_id:
                 return [admin_member_invoker, admin_member_other]
-            if chat_id_param == chat_config_2.chat_id:
+            if chat_id_param == chat_config_2.external_id:
                 return [admin_member_other]
-            if chat_id_param == chat_config_3.chat_id:
+            if chat_id_param == chat_config_3.external_id:
                 return [admin_member_invoker]
             return []
 
@@ -237,16 +245,22 @@ class AuthorizationServiceTest(unittest.TestCase):
 
     def test_get_authorized_chats_success_user_administers_multiple_chats(self):
         chat_config1 = ChatConfig(
-            chat_id = "chat_id_1", title = "Admin Chat 1", language_iso_code = "en", reply_chance_percent = 50,
+            chat_id = UUID(int = 21), external_id = "chat_id_1",
+            title = "Admin Chat 1", language_iso_code = "en", reply_chance_percent = 50,
             is_private = False, release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         chat_config2 = ChatConfig(
-            chat_id = "chat_id_2", title = "Non-Admin Chat", language_iso_code = "es", reply_chance_percent = 70,
+            chat_id = UUID(int = 22), external_id = "chat_id_2",
+            title = "Non-Admin Chat", language_iso_code = "es", reply_chance_percent = 70,
             is_private = False, release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         chat_config3 = ChatConfig(
-            chat_id = "chat_id_3", title = "Admin Chat 2", language_iso_code = "fr", reply_chance_percent = 60,
+            chat_id = UUID(int = 23), external_id = "chat_id_3",
+            title = "Admin Chat 2", language_iso_code = "fr", reply_chance_percent = 60,
             is_private = False, release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         all_chat_configs = [chat_config1, chat_config2, chat_config3]
         self.mock_chat_config_dao.get_all.return_value = all_chat_configs
@@ -258,11 +272,11 @@ class AuthorizationServiceTest(unittest.TestCase):
         )
 
         def mock_get_admins(chat_id_param):
-            if chat_id_param == chat_config1.chat_id:
+            if chat_id_param == chat_config1.external_id:
                 return [admin_member, other_admin_member]
-            elif chat_id_param == chat_config2.chat_id:
+            elif chat_id_param == chat_config2.external_id:
                 return [other_admin_member]
-            elif chat_id_param == chat_config3.chat_id:
+            elif chat_id_param == chat_config3.external_id:
                 return [other_admin_member, admin_member]
             return []
 
@@ -296,32 +310,40 @@ class AuthorizationServiceTest(unittest.TestCase):
 
     def test_get_authorized_chats_sorting_order(self):
         private_chat = ChatConfig(
-            chat_id = self.invoker_user.telegram_chat_id or "invoker_chat_id",
+            chat_id = UUID(int = 2),
+            external_id = self.invoker_user.telegram_chat_id or "invoker_chat_id",
             title = "Private Chat",
             is_private = True,
             language_iso_code = "en",
             reply_chance_percent = 100,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         group_chat_z = ChatConfig(
-            chat_id = "group_z_id",
+            chat_id = UUID(int = 3),
+            external_id = "group_z_id",
             title = "Z Group",
             is_private = False,
             language_iso_code = "en",
             reply_chance_percent = 50,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         group_chat_a = ChatConfig(
-            chat_id = "group_a_id",
+            chat_id = UUID(int = 4),
+            external_id = "group_a_id",
             title = "A Group",
             is_private = False,
             language_iso_code = "en",
             reply_chance_percent = 50,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         group_chat_no_title = ChatConfig(
-            chat_id = "group_no_title_id",
+            chat_id = UUID(int = 5),
+            external_id = "group_no_title_id",
             title = None,
             is_private = False,
             language_iso_code = "en",
             reply_chance_percent = 50,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
 
         all_chats_db = [
