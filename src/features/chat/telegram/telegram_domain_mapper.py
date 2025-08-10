@@ -3,6 +3,7 @@ from typing import List
 
 from pydantic import BaseModel
 
+from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfigSave
 from db.schema.chat_message import ChatMessageSave
 from db.schema.chat_message_attachment import ChatMessageAttachmentSave
@@ -43,7 +44,6 @@ class TelegramDomainMapper:
     def map_message(self, message: Message) -> ChatMessageSave:
         log.t(f"  Mapping message: {message}")
         return ChatMessageSave(
-            chat_id = str(message.chat.id),
             message_id = str(message.message_id),
             sent_at = datetime.fromtimestamp(message.edit_date or message.date),
             text = self.map_text(message),
@@ -99,10 +99,11 @@ class TelegramDomainMapper:
         title = self.resolve_chat_name(str(chat.id), chat.title, chat.username, chat.first_name, chat.last_name)
         language_code = message.from_user.language_code if message.from_user else None
         return ChatConfigSave(
-            chat_id = str(chat.id),
+            external_id = str(chat.id),
             title = title,
             is_private = chat.type == "private",
             language_iso_code = language_code,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
 
     # noinspection PyMethodMayBeStatic
@@ -155,7 +156,6 @@ class TelegramDomainMapper:
             attachments.append(
                 self.map_to_attachment(
                     file = dummy_file,
-                    chat_id = str(message.chat.id),
                     message_id = str(message.message_id),
                     mime_type = message.audio.mime_type,
                 ),
@@ -170,7 +170,6 @@ class TelegramDomainMapper:
             attachments.append(
                 self.map_to_attachment(
                     file = dummy_file,
-                    chat_id = str(message.chat.id),
                     message_id = str(message.message_id),
                     mime_type = message.document.mime_type,
                 ),
@@ -186,7 +185,6 @@ class TelegramDomainMapper:
             attachments.append(
                 self.map_to_attachment(
                     file = dummy_file,
-                    chat_id = str(message.chat.id),
                     message_id = str(message.message_id),
                     mime_type = None,
                 ),
@@ -201,7 +199,6 @@ class TelegramDomainMapper:
             attachments.append(
                 self.map_to_attachment(
                     file = dummy_file,
-                    chat_id = str(message.chat.id),
                     message_id = str(message.message_id),
                     mime_type = message.voice.mime_type,
                 ),
@@ -212,7 +209,6 @@ class TelegramDomainMapper:
     def map_to_attachment(
         self,
         file: File,
-        chat_id: str,
         message_id: str,
         mime_type: str | None,
     ) -> ChatMessageAttachmentSave:
@@ -221,8 +217,7 @@ class TelegramDomainMapper:
         last_url = f"{config.telegram_api_base_url}/file/bot{bot_token}/{file.file_path}"
         return ChatMessageAttachmentSave(
             id = generate_deterministic_short_uuid(file.file_id),
-            ext_id = file.file_id,
-            chat_id = chat_id,
+            external_id = file.file_id,
             message_id = message_id,
             size = file.file_size,
             last_url = last_url if file.file_path else None,

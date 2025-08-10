@@ -14,12 +14,13 @@ class AuthorizationService:
     def __init__(self, di: DI):
         self.__di = di
 
-    def validate_chat(self, chat: str | ChatConfig) -> ChatConfig:
+    def validate_chat(self, chat: str | UUID | ChatConfig) -> ChatConfig:
         if isinstance(chat, ChatConfig):
             return chat
 
         log.d(f"Validating chat data for '{chat}'")
-        chat_config_db = self.__di.chat_config_crud.get(chat)
+        chat_uuid = chat if isinstance(chat, UUID) else UUID(hex = chat)
+        chat_config_db = self.__di.chat_config_crud.get(chat_uuid)
         if not chat_config_db:
             raise ValueError(log.e(f"Chat '{chat}' not found"))
         return ChatConfig.model_validate(chat_config_db)
@@ -56,14 +57,14 @@ class AuthorizationService:
             log.t(f"    Checking chat: {chat_config.title} ({chat_config.chat_id})")
             try:
                 if chat_config.is_private:
-                    if user.telegram_chat_id == chat_config.chat_id:
-                        log.t(f"    Chat {chat_config.chat_id} is private and matches invoker's chat ID")
+                    if user.telegram_chat_id == chat_config.external_id:
+                        log.t(f"    Chat {chat_config.chat_id} is private and matches invoker's external chat ID")
                         administered_chats.append(chat_config)
                     else:
-                        log.t(f"    Chat {chat_config.chat_id} is private but does not match invoker's chat ID")
+                        log.t(f"    Chat {chat_config.chat_id} is private but does not match invoker's external chat ID")
                     continue
 
-                administrators = self.__di.telegram_bot_sdk.get_chat_administrators(chat_config.chat_id)
+                administrators = self.__di.telegram_bot_sdk.get_chat_administrators(str(chat_config.external_id))
                 if not administrators:
                     log.t(f"    No administrators returned for chat {chat_config.chat_id}")
                     continue
@@ -82,15 +83,16 @@ class AuthorizationService:
             key = lambda chat: (
                 not chat.is_private,
                 chat.title.lower() if chat.title else "",
-                chat.chat_id,
+                chat.external_id or "",
+                chat.chat_id.hex,
             ),
         )
         log.i(f"  Found {len(administered_chats)} administered chats")
         return administered_chats
 
-    def authorize_for_chat(self, invoker_user: str | UUID | User, target_chat: str | ChatConfig) -> ChatConfig:
+    def authorize_for_chat(self, invoker_user: str | UUID | User, target_chat: str | UUID | ChatConfig) -> ChatConfig:
         invoker_user = self.validate_user(invoker_user)
-        chat_display = target_chat if isinstance(target_chat, str) else target_chat.chat_id
+        chat_display = target_chat if isinstance(target_chat, (str, UUID)) else target_chat.chat_id
         log.d(f"Validating admin rights for invoker in chat '{chat_display}'")
         chat_config = self.validate_chat(target_chat)
         admin_chat_configs = self.get_authorized_chats(invoker_user)

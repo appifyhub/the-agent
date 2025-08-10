@@ -8,7 +8,7 @@ from db.model.base import BaseModel
 class ChatMessageDB(BaseModel):
     __tablename__ = "chat_messages"
 
-    chat_id = Column(String, nullable = False)
+    chat_id = Column(UUID(as_uuid = True), nullable = False)
     author_id = Column(UUID(as_uuid = True), nullable = True)
     message_id = Column(String, nullable = False)
     sent_at = Column(DateTime, default = func.now(), nullable = False)

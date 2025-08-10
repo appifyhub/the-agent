@@ -56,9 +56,8 @@ class TelegramUpdateResponderTest(unittest.TestCase):
             message = Mock(spec = ChatMessage, message_id = "test-message-id", text = "Test message text"),
         )
 
-        author_id = UUID(int = 1)
         author_db = UserDB(
-            id = author_id,
+            id = UUID(int = 1),
             telegram_username = "test_user",
             full_name = "Test User",
             telegram_user_id = 1,
@@ -70,13 +69,15 @@ class TelegramUpdateResponderTest(unittest.TestCase):
         self.di.telegram_data_resolver.resolve.return_value = Mock(
             spec = TelegramDataResolver.Result,
             chat = ChatConfig(
-                chat_id = "123",
+                chat_id = UUID(int = 123),
+                external_id = "123",
                 language_name = "English",
                 language_iso_code = "en",
                 title = "Test Chat",
                 is_private = False,
                 reply_chance_percent = 100,
                 release_notifications = ChatConfigDB.ReleaseNotifications.all,
+                chat_type = ChatConfigDB.ChatType.telegram,
             ),
             author = User.model_validate(author_db),
         )
@@ -136,7 +137,7 @@ class TelegramUpdateResponderTest(unittest.TestCase):
             self.di.telegram_domain_mapper.map_update.return_value = Mock(spec = TelegramDomainMapper.Result)
             resolved_domain_data_mock = Mock(
                 spec = TelegramDataResolver.Result,
-                chat = Mock(spec = ChatConfig, chat_id = "123"),
+                chat = Mock(spec = ChatConfig, chat_id = UUID(int = 123), external_id = "123"),
                 author = Mock(spec = User, id = UUID(int = 1)),
             )
             self.di.telegram_data_resolver.resolve.return_value = resolved_domain_data_mock

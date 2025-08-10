@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
@@ -12,7 +14,7 @@ class ChatMessageCRUD:
     def __init__(self, db: Session):
         self._db = db
 
-    def get(self, chat_id: str, message_id: str) -> ChatMessageDB | None:
+    def get(self, chat_id: UUID, message_id: str) -> ChatMessageDB | None:
         return self._db.query(ChatMessageDB).filter(
             ChatMessageDB.chat_id == chat_id,
             ChatMessageDB.message_id == message_id,
@@ -22,7 +24,7 @@ class ChatMessageCRUD:
         # noinspection PyTypeChecker
         return self._db.query(ChatMessageDB).offset(skip).limit(limit).all()
 
-    def get_latest_chat_messages(self, chat_id: str, skip: int = 0, limit: int = 100) -> list[ChatMessageDB]:
+    def get_latest_chat_messages(self, chat_id: UUID, skip: int = 0, limit: int = 100) -> list[ChatMessageDB]:
         # noinspection PyTypeChecker
         return (
             self._db.query(ChatMessageDB).filter(
@@ -56,7 +58,7 @@ class ChatMessageCRUD:
             return updated_message  # available only if update was successful
         return self.create(data)
 
-    def delete(self, chat_id: str, message_id: str) -> ChatMessageDB | None:
+    def delete(self, chat_id: UUID, message_id: str) -> ChatMessageDB | None:
         chat_message = self.get(chat_id, message_id)
         if chat_message:
             self._db.delete(chat_message)

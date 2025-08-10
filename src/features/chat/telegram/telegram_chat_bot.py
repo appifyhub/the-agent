@@ -51,7 +51,7 @@ class TelegramChatBot:
                         language_iso_code = di.invoker_chat.language_iso_code,
                     ),
                     author = di.invoker,
-                    chat_id = di.invoker_chat.chat_id,
+                    chat_id = di.invoker_chat.chat_id.hex,
                     chat_title = di.invoker_chat.title,
                     available_tools = di.llm_tool_library.tool_names,
                 ),

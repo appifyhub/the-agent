@@ -2,7 +2,6 @@ from enum import Enum
 
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from di.di import DI
-from features.chat.telegram.sdk.telegram_bot_sdk_utils import TelegramBotSDKUtils
 from features.images.image_background_remover import ImageBackgroundRemover
 from features.images.image_contents_restorer import ImageContentsRestorer
 from features.images.image_editor import ImageEditor
@@ -50,7 +49,7 @@ class ChatImagingService:
         if not attachment_ids:
             raise ValueError("No attachment IDs provided")
         self.__di = di
-        self.__attachments = TelegramBotSDKUtils.refresh_attachments_by_ids(self.__di, attachment_ids)
+        self.__attachments = self.__di.telegram_bot_sdk.refresh_attachments_by_ids(attachment_ids)
         self.__operation = ChatImagingService.Operation.resolve(operation_name)
         self.__operation_guidance = operation_guidance
 
@@ -199,9 +198,10 @@ class ChatImagingService:
                 if image_url is None:
                     output.append({"url": None, "error": error})
                     continue
-                log.t(f"Sending edited image to chat '{self.__di.invoker_chat.chat_id}'")
-                self.__di.telegram_bot_sdk.send_document(self.__di.invoker_chat.chat_id, image_url, thumbnail = image_url)
-                self.__di.telegram_bot_sdk.send_photo(self.__di.invoker_chat.chat_id, image_url, caption = "📸")
+                external_id = str(self.__di.invoker_chat.external_id)
+                log.t(f"Sending edited image to chat '{external_id}'")
+                self.__di.telegram_bot_sdk.send_document(external_id, image_url, thumbnail = image_url)
+                self.__di.telegram_bot_sdk.send_photo(external_id, image_url, caption = "📸")
                 log.t("Image edited and sent successfully")
                 output.append({"url": image_url, "error": None, "status": "delivered"})
             return result, output
@@ -214,9 +214,10 @@ class ChatImagingService:
                 if image_url is None:
                     output.append({"url": None, "error": error})
                     continue
-                log.t(f"Sending restored image to chat '{self.__di.invoker_chat.chat_id}': {image_url}")
-                self.__di.telegram_bot_sdk.send_document(self.__di.invoker_chat.chat_id, image_url, thumbnail = image_url)
-                self.__di.telegram_bot_sdk.send_photo(self.__di.invoker_chat.chat_id, image_url, caption = "📸")
+                external_id = str(self.__di.invoker_chat.external_id)
+                log.t(f"Sending restored image to chat '{external_id}': {image_url}")
+                self.__di.telegram_bot_sdk.send_document(external_id, image_url, thumbnail = image_url)
+                self.__di.telegram_bot_sdk.send_photo(external_id, image_url, caption = "📸")
                 log.t("Image restored and sent successfully")
                 output.append({"url": image_url, "error": None, "status": "delivered"})
             return result, output
@@ -229,9 +230,10 @@ class ChatImagingService:
                 if image_url is None:
                     output.append({"url": None, "error": error})
                     continue
-                log.t(f"Sending edited image to chat '{self.__di.invoker_chat.chat_id}': {image_url}")
-                self.__di.telegram_bot_sdk.send_document(self.__di.invoker_chat.chat_id, image_url, thumbnail = image_url)
-                self.__di.telegram_bot_sdk.send_photo(self.__di.invoker_chat.chat_id, image_url, caption = "📸")
+                external_id = str(self.__di.invoker_chat.external_id)
+                log.t(f"Sending edited image to chat '{external_id}': {image_url}")
+                self.__di.telegram_bot_sdk.send_document(external_id, image_url, thumbnail = image_url)
+                self.__di.telegram_bot_sdk.send_photo(external_id, image_url, caption = "📸")
                 log.t("Image edited and sent successfully")
                 output.append({"url": image_url, "error": None, "status": "delivered"})
             return result, output

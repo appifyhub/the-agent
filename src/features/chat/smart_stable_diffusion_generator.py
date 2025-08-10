@@ -78,8 +78,12 @@ class SmartStableDiffusionGenerator:
         # let's send the image to the chat
         try:
             log.t("Starting image sending")
-            self.__di.telegram_bot_sdk.send_document(self.__di.invoker_chat.chat_id, image_url, thumbnail = image_url)
-            self.__di.telegram_bot_sdk.send_photo(self.__di.invoker_chat.chat_id, image_url, caption = "📸")
+            self.__di.telegram_bot_sdk.send_document(
+                int(self.__di.invoker_chat.external_id or "-1"), image_url, thumbnail = image_url,
+            )
+            self.__di.telegram_bot_sdk.send_photo(
+                int(self.__di.invoker_chat.external_id or "-1"), image_url, caption = "📸",
+            )
         except Exception as e:
             self.error = log.e("Error sending image", e)
             return SmartStableDiffusionGenerator.Result.failed

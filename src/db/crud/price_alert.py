@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy.orm import Session
 
 from db.model.price_alert import PriceAlertDB
@@ -11,7 +13,7 @@ class PriceAlertCRUD:
     def __init__(self, db: Session):
         self._db = db
 
-    def get(self, chat_id: str, base_currency: str, desired_currency: str) -> PriceAlertDB | None:
+    def get(self, chat_id: UUID, base_currency: str, desired_currency: str) -> PriceAlertDB | None:
         return self._db.query(PriceAlertDB).filter(
             PriceAlertDB.chat_id == chat_id,
             PriceAlertDB.base_currency == base_currency,
@@ -22,7 +24,7 @@ class PriceAlertCRUD:
         # noinspection PyTypeChecker
         return self._db.query(PriceAlertDB).offset(skip).limit(limit).all()
 
-    def get_alerts_by_chat(self, chat_id: str) -> list[PriceAlertDB]:
+    def get_alerts_by_chat(self, chat_id: UUID) -> list[PriceAlertDB]:
         # noinspection PyTypeChecker
         return self._db.query(PriceAlertDB).filter(
             PriceAlertDB.chat_id == chat_id,
@@ -50,7 +52,7 @@ class PriceAlertCRUD:
             return updated_alert
         return self.create(data)
 
-    def delete(self, chat_id: str, base_currency: str, desired_currency: str) -> PriceAlertDB | None:
+    def delete(self, chat_id: UUID, base_currency: str, desired_currency: str) -> PriceAlertDB | None:
         price_alert = self.get(chat_id, base_currency, desired_currency)
         if price_alert:
             self._db.delete(price_alert)

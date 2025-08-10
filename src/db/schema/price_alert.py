@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class PriceAlertBase(BaseModel):
-    chat_id: str
+    chat_id: UUID
     owner_id: UUID
     base_currency: str
     desired_currency: str

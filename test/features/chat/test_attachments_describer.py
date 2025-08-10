@@ -1,18 +1,19 @@
 import unittest
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from uuid import UUID
 
 import requests_mock
 from pydantic import SecretStr
 
-import features.chat.telegram.sdk.telegram_bot_sdk_utils
+from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.tools_cache import ToolsCache
 from db.schema.user import User
 from features.chat.attachments_describer import CACHE_TTL, AttachmentsDescriber
+from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from util.config import config
 
 
@@ -34,7 +35,7 @@ class AttachmentsDescriberTest(unittest.TestCase):
         self.mock_di.chat_config_crud = self.mock_chat_config_crud
         self.mock_di.chat_message_attachment_crud = self.mock_chat_message_attachment_crud
         self.mock_di.access_token_resolver = self.mock_access_token_resolver
-        self.mock_di.invoker_chat_id = "1"
+        self.mock_di.invoker_chat_id = UUID(int = 1).hex
         self.mock_di.invoker_chat.language_name = "Spanish"
         self.mock_di.invoker_chat.language_iso_code = "es"
         self.mock_di.telegram_bot_api = MagicMock()
@@ -64,14 +65,16 @@ class AttachmentsDescriberTest(unittest.TestCase):
             created_at = datetime.now().date(),
         )
         self.chat_config = ChatConfig(
-            chat_id = "1",
+            chat_id = UUID(int = 1),
+            external_id = "1",
             language_name = "Spanish",
             language_iso_code = "es",
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.attachment = ChatMessageAttachment(
             id = "1",
-            ext_id = "telegram_file_1",
-            chat_id = "1",
+            external_id = "telegram_file_1",
+            chat_id = UUID(int = 1),
             message_id = "1",
             mime_type = "image/png",
             extension = "png",
@@ -85,16 +88,8 @@ class AttachmentsDescriberTest(unittest.TestCase):
         self.mock_chat_message_attachment_crud.save.return_value = self.attachment.model_dump()
         self.mock_cache_crud.create_key.return_value = "test_cache_key"
 
-        # Mock TelegramBotSDKUtils refresh methods
-        self.mock_refresh_patcher = patch.object(
-            features.chat.telegram.sdk.telegram_bot_sdk_utils.TelegramBotSDKUtils,
-            "refresh_attachment_instances",
-        )
-        self.mock_refresh = self.mock_refresh_patcher.start()
-        self.mock_refresh.return_value = [self.attachment]
-
-    def tearDown(self):
-        self.mock_refresh_patcher.stop()
+        # Use a real SDK instance so the resolver under test returns real models
+        self.mock_di.telegram_bot_sdk = TelegramBotSDK(self.mock_di)
 
     @requests_mock.Mocker()
     def test_execute_with_cache_hit(self, m: requests_mock.Mocker):
@@ -176,7 +171,7 @@ class AttachmentsDescriberTest(unittest.TestCase):
     def test_fetch_text_content_with_audio(self, m: requests_mock.Mocker):
         audio_attachment = ChatMessageAttachment(
             id = "2",
-            chat_id = "1",
+            chat_id = UUID(int = 1),
             message_id = "2",
             mime_type = "audio/mpeg",
             extension = "mp3",
@@ -203,7 +198,7 @@ class AttachmentsDescriberTest(unittest.TestCase):
     def test_fetch_text_content_with_pdf_document(self, m: requests_mock.Mocker):
         pdf_attachment = ChatMessageAttachment(
             id = "4",
-            chat_id = "1",
+            chat_id = UUID(int = 1),
             message_id = "4",
             mime_type = "application/pdf",
             extension = "pdf",
@@ -230,7 +225,7 @@ class AttachmentsDescriberTest(unittest.TestCase):
     def test_fetch_text_content_with_unsupported_type(self, m: requests_mock.Mocker):
         unsupported_attachment = ChatMessageAttachment(
             id = "3",
-            chat_id = "1",
+            chat_id = UUID(int = 1),
             message_id = "3",
             mime_type = "application/xxx",
             extension = "xxx",

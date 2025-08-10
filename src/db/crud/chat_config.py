@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy.orm import Session
 
 from db.model.chat_config import ChatConfigDB
@@ -11,7 +13,7 @@ class ChatConfigCRUD:
     def __init__(self, db: Session):
         self._db = db
 
-    def get(self, chat_id: str) -> ChatConfigDB | None:
+    def get(self, chat_id: UUID) -> ChatConfigDB | None:
         return self._db.query(ChatConfigDB).filter(
             ChatConfigDB.chat_id == chat_id,
         ).first()
@@ -26,6 +28,12 @@ class ChatConfigCRUD:
         self._db.commit()
         self._db.refresh(chat_config)
         return chat_config
+
+    def get_by_external_identifiers(self, external_id: str, chat_type: ChatConfigDB.ChatType) -> ChatConfigDB | None:
+        return self._db.query(ChatConfigDB).filter(
+            ChatConfigDB.external_id == external_id,
+            ChatConfigDB.chat_type == chat_type,
+        ).first()
 
     def update(self, update_data: ChatConfigSave) -> ChatConfigDB | None:
         chat_config = self.get(update_data.chat_id)
@@ -42,7 +50,7 @@ class ChatConfigCRUD:
             return updated_config  # available only if update was successful
         return self.create(data)
 
-    def delete(self, chat_id: str) -> ChatConfigDB | None:
+    def delete(self, chat_id: UUID) -> ChatConfigDB | None:
         chat_config = self.get(chat_id)
         if chat_config:
             self._db.delete(chat_config)

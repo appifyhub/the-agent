@@ -116,7 +116,7 @@ def respond_with_summary(payload: ReleaseOutputPayload, di: DI) -> dict:
 
         # we need to notify each chat of the summary
         try:
-            di.telegram_bot_sdk.send_text_message(chat.chat_id, summary)
+            di.telegram_bot_sdk.send_text_message(str(chat.external_id), summary)
             result.chats_notified += 1
         except Exception as e:
             log.w(f"Chat notification failed for chat #{chat.chat_id}", e)

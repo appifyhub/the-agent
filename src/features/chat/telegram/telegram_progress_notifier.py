@@ -91,7 +91,7 @@ class TelegramProgressNotifier:
         # noinspection TryExceptPass
         # remove the stale reaction (sometimes fails due to API race condition but doesn't matter)
         try:
-            self.__di.telegram_bot_sdk.set_reaction(self.__di.invoker_chat.chat_id, self.__message_id, None)
+            self.__di.telegram_bot_sdk.set_reaction(str(self.__di.invoker_chat.external_id), self.__message_id, None)
         except:  # noqa: E722
             pass
 
@@ -128,9 +128,9 @@ class TelegramProgressNotifier:
         log.t(f"Setting \"{status}\" status")
         try:
             if is_long:
-                self.__di.telegram_bot_sdk.set_status_uploading_image(self.__di.invoker_chat.chat_id)
+                self.__di.telegram_bot_sdk.set_status_uploading_image(str(self.__di.invoker_chat.external_id))
             else:
-                self.__di.telegram_bot_sdk.set_status_typing(self.__di.invoker_chat.chat_id)
+                self.__di.telegram_bot_sdk.set_status_typing(str(self.__di.invoker_chat.external_id))
         except Exception as e:
             log.w(f"Failed to set \"{status}\" status", e)
 
@@ -140,6 +140,6 @@ class TelegramProgressNotifier:
         try:
             next_reaction = ESCALATING_REACTIONS[self.__next_reaction_index]
             self.__next_reaction_index = (self.__next_reaction_index + 1) % len(ESCALATING_REACTIONS)
-            self.__di.telegram_bot_sdk.set_reaction(self.__di.invoker_chat.chat_id, self.__message_id, next_reaction)
+            self.__di.telegram_bot_sdk.set_reaction(str(self.__di.invoker_chat.external_id), self.__message_id, next_reaction)
         except Exception as e:
             log.w(f"Failed to send reaction: {e}")

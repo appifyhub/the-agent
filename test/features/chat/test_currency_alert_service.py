@@ -10,6 +10,7 @@ from db.crud.price_alert import PriceAlertCRUD
 from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
+from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.price_alert import PriceAlert
@@ -36,7 +37,7 @@ class CurrencyAlertServiceTest(unittest.TestCase):
     chat_config: ChatConfig
 
     def setUp(self):
-        self.chat_id = "test_chat_id"
+        self.chat_id = UUID(int = 1).hex
         self.user_id = UUID(int = 1).hex
         # Create a DI mock and set required properties
         self.mock_di = MagicMock(spec = DI)
@@ -59,12 +60,17 @@ class CurrencyAlertServiceTest(unittest.TestCase):
             created_at = datetime.now().date(),
         )
         self.mock_di.authorization_service.validate_user.return_value = self.user
-        self.mock_di.authorization_service.validate_chat.return_value = self.chat_config = ChatConfig(chat_id = self.chat_id)
+        self.chat_config = ChatConfig(
+            chat_id = UUID(hex = self.chat_id),
+            external_id = "test_chat_id",
+            chat_type = ChatConfigDB.ChatType.telegram,
+        )
+        self.mock_di.authorization_service.validate_chat.return_value = self.chat_config
 
     def test_create_alert(self):
         service = CurrencyAlertService(self.chat_id, self.mock_di)
         self.mock_di.price_alert_crud.save.return_value = PriceAlert(
-            chat_id = self.chat_id,
+            chat_id = UUID(hex = self.chat_id),
             owner_id = UUID(hex = self.user_id),
             base_currency = "BTC",
             desired_currency = "USD",
@@ -74,7 +80,7 @@ class CurrencyAlertServiceTest(unittest.TestCase):
         )
         self.mock_di.exchange_rate_fetcher.execute.return_value = {"rate": 1.5}
         alert = service.create_alert("BTC", "USD", 5)
-        self.assertEqual(alert.chat_id, self.chat_id)
+        self.assertEqual(alert.chat_id.hex, self.chat_id)
         self.assertEqual(alert.base_currency, "BTC")
         self.assertEqual(alert.desired_currency, "USD")
         self.assertEqual(alert.threshold_percent, 5)
@@ -85,7 +91,7 @@ class CurrencyAlertServiceTest(unittest.TestCase):
         service = CurrencyAlertService(self.chat_id, self.mock_di)
         mock_alerts = [
             PriceAlert(
-                chat_id = self.chat_id,
+                chat_id = UUID(hex = self.chat_id),
                 owner_id = UUID(hex = self.user_id),
                 base_currency = "BTC",
                 desired_currency = "USD",
@@ -94,7 +100,7 @@ class CurrencyAlertServiceTest(unittest.TestCase):
                 last_price_time = datetime.now(),
             ),
             PriceAlert(
-                chat_id = self.chat_id,
+                chat_id = UUID(hex = self.chat_id),
                 owner_id = UUID(hex = self.user_id),
                 base_currency = "ETH",
                 desired_currency = "EUR",
@@ -112,7 +118,7 @@ class CurrencyAlertServiceTest(unittest.TestCase):
     def test_delete_alert(self):
         service = CurrencyAlertService(self.chat_id, self.mock_di)
         mock_deleted_alert = PriceAlert(
-            chat_id = self.chat_id,
+            chat_id = UUID(hex = self.chat_id),
             owner_id = UUID(hex = self.user_id),
             base_currency = "BTC",
             desired_currency = "USD",
@@ -122,7 +128,7 @@ class CurrencyAlertServiceTest(unittest.TestCase):
         )
         self.mock_di.price_alert_crud.delete.return_value = mock_deleted_alert
         deleted_alert = service.delete_alert("BTC", "USD")
-        self.assertIsNotNone(deleted_alert)
+        assert deleted_alert is not None
         self.assertEqual(deleted_alert.base_currency, "BTC")
         self.assertEqual(deleted_alert.desired_currency, "USD")
         self.mock_di.price_alert_crud.delete.assert_called_once()
@@ -131,7 +137,7 @@ class CurrencyAlertServiceTest(unittest.TestCase):
         service = CurrencyAlertService(self.chat_id, self.mock_di)
         mock_alerts = [
             PriceAlert(
-                chat_id = self.chat_id,
+                chat_id = UUID(hex = self.chat_id),
                 owner_id = UUID(hex = self.user_id),
                 base_currency = "BTC",
                 desired_currency = "USD",
@@ -140,7 +146,7 @@ class CurrencyAlertServiceTest(unittest.TestCase):
                 last_price_time = datetime.now(),
             ),
             PriceAlert(
-                chat_id = self.chat_id,
+                chat_id = UUID(hex = self.chat_id),
                 owner_id = UUID(hex = self.user_id),
                 base_currency = "ETH",
                 desired_currency = "EUR",
@@ -154,7 +160,7 @@ class CurrencyAlertServiceTest(unittest.TestCase):
         with patch.object(CurrencyAlertService, "get_triggered_alerts") as mock_get:
             mock_get.return_value = [
                 CurrencyAlertService.TriggeredAlert(
-                    chat_id = self.chat_id,
+                    chat_id = UUID(hex = self.chat_id),
                     owner_id = UUID(hex = self.user_id),
                     base_currency = "BTC",
                     desired_currency = "USD",
@@ -176,7 +182,7 @@ class CurrencyAlertServiceTest(unittest.TestCase):
         service = CurrencyAlertService(self.chat_id, self.mock_di)
         mock_alerts = [
             PriceAlert(
-                chat_id = self.chat_id,
+                chat_id = UUID(hex = self.chat_id),
                 owner_id = UUID(hex = self.user_id),
                 base_currency = "BTC",
                 desired_currency = "USD",
@@ -191,7 +197,7 @@ class CurrencyAlertServiceTest(unittest.TestCase):
         with patch.object(CurrencyAlertService, "get_triggered_alerts") as mock_get:
             mock_get.return_value = [
                 CurrencyAlertService.TriggeredAlert(
-                    chat_id = self.chat_id,
+                    chat_id = UUID(hex = self.chat_id),
                     owner_id = UUID(hex = self.user_id),
                     base_currency = "BTC",
                     desired_currency = "USD",

@@ -3,6 +3,7 @@ import json
 import unittest
 from datetime import datetime
 from unittest.mock import Mock, patch
+from uuid import UUID
 
 from langchain_core.messages import AIMessage
 
@@ -247,13 +248,15 @@ class ReleaseSummaryResponderTest(unittest.TestCase):
         lang_iso: str = "en",
     ) -> ChatConfigDB:
         return ChatConfigDB(
-            chat_id = chat_id,
+            chat_id = UUID(int = 1),
+            external_id = chat_id,
             language_name = lang_name,
             language_iso_code = lang_iso,
             title = "Chat Title",
             is_private = True,
             reply_chance_percent = 100,
             release_notifications = notifications,
+            chat_type = ChatConfigDB.ChatType.telegram,
         )
 
     @staticmethod
@@ -265,12 +268,14 @@ class ReleaseSummaryResponderTest(unittest.TestCase):
     ) -> ChatConfig:
         return ChatConfig.model_validate(
             ChatConfigDB(
-                chat_id = chat_id,
+                chat_id = UUID(int = 1),
+                external_id = chat_id,
                 language_name = lang_name,
                 language_iso_code = lang_iso,
                 title = "Chat Title",
                 is_private = True,
                 reply_chance_percent = 100,
                 release_notifications = notifications,
+                chat_type = ChatConfigDB.ChatType.telegram,
             ),
         )
