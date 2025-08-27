@@ -10,7 +10,7 @@ from util.singleton import Singleton
 
 class Config(metaclass = Singleton):
 
-    DEV_API_KEY = "0000-1234-5678-0000"
+    DEV_API_KEY = "0000-1234-5678-0000"  # needed for local dev mode
 
     max_sponsorships_per_user: int
     log_level: str
@@ -32,6 +32,8 @@ class Config(metaclass = Singleton):
     issue_templates_abs_path: str
     jwt_expires_in_minutes: int
     backoffice_url_base: str
+    main_language_name: str = "English"
+    main_language_iso_code: str = "en"
     version: str
 
     db_url: SecretStr
@@ -43,6 +45,19 @@ class Config(metaclass = Singleton):
     rapid_api_twitter_token: SecretStr
     free_img_host_token: SecretStr
     token_encrypt_secret: SecretStr
+
+    def all_secrets(self) -> list[SecretStr]:
+        return [
+            self.db_url,
+            self.api_key,
+            self.telegram_auth_key,
+            self.telegram_bot_token,
+            self.jwt_secret_key,
+            self.github_issues_token,
+            self.rapid_api_twitter_token,
+            self.free_img_host_token,
+            self.token_encrypt_secret,
+        ]
 
     def __init__(
         self,
@@ -66,6 +81,8 @@ class Config(metaclass = Singleton):
         def_issue_templates_path: str = ".github/ISSUE_TEMPLATE",
         def_jwt_expires_in_minutes: int = 5,
         def_backoffice_url_base: str = "http://127.0.0.1.sslip.io:5173",
+        def_main_language_name: str = "English",
+        def_main_language_iso_code: str = "en",
         def_version: str = "dev",
 
         def_db_user: SecretStr = SecretStr("root"),
@@ -102,6 +119,8 @@ class Config(metaclass = Singleton):
         self.issue_templates_abs_path = self.__env("THE_AGENT_ISSUE_TEMPLATES_PATH", lambda: def_issue_templates_path)
         self.jwt_expires_in_minutes = int(self.__env("JWT_EXPIRES_IN_MINUTES", lambda: str(def_jwt_expires_in_minutes)))
         self.backoffice_url_base = self.__env("BACKOFFICE_URL_BASE", lambda: def_backoffice_url_base)
+        self.main_language_name = self.__env("MAIN_LANGUAGE_NAME", lambda: def_main_language_name)
+        self.main_language_iso_code = self.__env("MAIN_LANGUAGE_ISO_CODE", lambda: def_main_language_iso_code)
         self.version = self.__env("VERSION", lambda: def_version)
 
         self.__set_up_db(def_db_user, def_db_pass, def_db_host, def_db_name)
