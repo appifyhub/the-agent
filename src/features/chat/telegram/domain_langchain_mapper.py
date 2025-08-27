@@ -3,9 +3,11 @@ from uuid import UUID
 
 from langchain_core.messages import AIMessage, HumanMessage
 
+from db.model.chat_config import ChatConfigDB
 from db.schema.chat_message import ChatMessage, ChatMessageSave
 from db.schema.user import User
-from features.prompting.prompt_library import MULTI_MESSAGE_DELIMITER, TELEGRAM_BOT_USER
+from features.integrations.integrations import resolve_agent_user
+from features.prompting.prompt_library import CHAT_MESSAGE_DELIMITER
 from util import log
 from util.functions import construct_bot_message_id, is_the_agent
 
@@ -23,15 +25,17 @@ class DomainLangchainMapper:
         log.t(f"Mapping AI message '{message}' to storage message")
         result: list[ChatMessageSave] = []
         content = self.__map_bot_message_text(message)
-        parts = content.split(MULTI_MESSAGE_DELIMITER)
+        parts = content.split(CHAT_MESSAGE_DELIMITER)
         for part in parts:
             if not part:
                 continue
             sent_at = datetime.now()
+            # TODO don't hard-code Telegram
+            agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
             storage_message = ChatMessageSave(
                 chat_id = chat_id,
                 message_id = construct_bot_message_id(chat_id, sent_at),  # irrelevant outside
-                author_id = TELEGRAM_BOT_USER.id,
+                author_id = agent_user.id,
                 sent_at = sent_at,
                 text = part,
             )
@@ -82,5 +86,6 @@ class DomainLangchainMapper:
                     messages.append(pretty_print(item))
                 else:
                     messages.append(str(item))
-            return MULTI_MESSAGE_DELIMITER.join(messages)
+            return CHAT_MESSAGE_DELIMITER.join(messages)
+        # noinspection PyUnreachableCode
         return str(message.content)

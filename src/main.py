@@ -20,13 +20,14 @@ from api.model.release_output_payload import ReleaseOutputPayload
 from api.model.sponsorship_payload import SponsorshipPayload
 from api.model.user_settings_payload import UserSettingsPayload
 from api.settings_controller import SettingsType
+from db.model.chat_config import ChatConfigDB
 from db.sql import get_session, initialize_db
 from di.di import DI
 from features.chat.telegram.currency_alert_responder import respond_with_currency_alerts
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.release_summary_responder import respond_with_summary
 from features.chat.telegram.telegram_update_responder import respond_to_update
-from features.prompting.prompt_library import TELEGRAM_BOT_USER
+from features.integrations.integrations import resolve_agent_user
 from util import log
 from util.config import Config, config
 
@@ -76,7 +77,7 @@ def health() -> dict:
 async def telegram_chat_update(
     update: Update,
     offloader: BackgroundTasks,
-    _=Depends(verify_telegram_auth_key),
+    _ = Depends(verify_telegram_auth_key),
 ) -> dict:
     offloader.add_task(respond_to_update, update)
     return {"status": "ok"}
@@ -84,29 +85,33 @@ async def telegram_chat_update(
 
 @app.post("/notify/price-alerts")
 def notify_of_currency_alerts(
-    db=Depends(get_session),
-    _=Depends(verify_api_key),
+    db = Depends(get_session),
+    _ = Depends(verify_api_key),
 ) -> dict:
-    assert TELEGRAM_BOT_USER.id is not None
-    di = DI(db, TELEGRAM_BOT_USER.id.hex)
+    # TODO: we should not use Telegram here
+    agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
+    assert agent_user.id is not None
+    di = DI(db, agent_user.id.hex)
     return respond_with_currency_alerts(di)
 
 
 @app.post("/notify/release")
 def notify_of_release(
     payload: ReleaseOutputPayload,
-    db=Depends(get_session),
-    _=Depends(verify_api_key),
+    db = Depends(get_session),
+    _ = Depends(verify_api_key),
 ) -> dict:
-    assert TELEGRAM_BOT_USER.id is not None
-    di = DI(db, TELEGRAM_BOT_USER.id.hex)
+    # TODO: we should not use Telegram here
+    agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
+    assert agent_user.id is not None
+    di = DI(db, agent_user.id.hex)
     return respond_with_summary(payload, di)
 
 
 @app.post("/task/clear-expired-cache")
 def clear_expired_cache(
-    db=Depends(get_session),
-    _=Depends(verify_api_key),
+    db = Depends(get_session),
+    _ = Depends(verify_api_key),
 ) -> dict:
     try:
         di = DI(db)
@@ -121,7 +126,7 @@ def clear_expired_cache(
 def get_settings(
     settings_type: SettingsType,
     resource_id: str,
-    db=Depends(get_session),
+    db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
     try:
@@ -141,7 +146,7 @@ def get_settings(
 def save_user_settings(
     user_id_hex: str,
     payload: UserSettingsPayload,
-    db=Depends(get_session),
+    db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
     try:
@@ -159,7 +164,7 @@ def save_user_settings(
 def save_chat_settings(
     chat_id: str,
     payload: ChatSettingsPayload,
-    db=Depends(get_session),
+    db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
     try:
@@ -176,7 +181,7 @@ def save_chat_settings(
 @app.get("/user/{resource_id}/chats")
 def get_chats(
     resource_id: str,
-    db=Depends(get_session),
+    db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> list[dict]:
     try:
@@ -192,7 +197,7 @@ def get_chats(
 @app.get("/settings/user/{resource_id}/tools")
 def get_tools(
     resource_id: str,
-    db=Depends(get_session),
+    db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
     try:
@@ -208,7 +213,7 @@ def get_tools(
 @app.get("/user/{resource_id}/sponsorships")
 def get_sponsorships(
     resource_id: str,
-    db=Depends(get_session),
+    db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
     try:
@@ -226,7 +231,7 @@ def get_sponsorships(
 def sponsor_user(
     resource_id: str,
     payload: SponsorshipPayload,
-    db=Depends(get_session),
+    db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
     try:
@@ -244,7 +249,7 @@ def sponsor_user(
 def unsponsor_user(
     resource_id: str,
     receiver_telegram_username: str,
-    db=Depends(get_session),
+    db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
     try:
@@ -261,7 +266,7 @@ def unsponsor_user(
 @app.delete("/user/{resource_id}/sponsored")
 def unsponsor_self(
     resource_id: str,
-    db=Depends(get_session),
+    db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
     try:

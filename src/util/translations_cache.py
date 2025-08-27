@@ -1,7 +1,6 @@
 from typing import Dict
 
-DEFAULT_LANGUAGE = "English"
-DEFAULT_ISO_CODE = "en"
+from util.config import config
 
 
 class TranslationsCache:
@@ -19,9 +18,9 @@ class TranslationsCache:
         if language_name and language_iso_code:
             self.__cache[self.__key_of(language_name, language_iso_code)] = value
         if not language_name and not language_iso_code:
-            self.__cache[DEFAULT_LANGUAGE.upper()] = value
-            self.__cache[DEFAULT_ISO_CODE.upper()] = value
-            self.__cache[self.__key_of(DEFAULT_LANGUAGE, DEFAULT_ISO_CODE)] = value
+            self.__cache[config.main_language_name.upper()] = value
+            self.__cache[config.main_language_iso_code.upper()] = value
+            self.__cache[self.__key_of(config.main_language_name, config.main_language_iso_code)] = value
         return value
 
     def get(self, language_name: str | None = None, language_iso_code: str | None = None) -> str | None:
@@ -36,9 +35,9 @@ class TranslationsCache:
         if language_iso_code:
             return self.__cache.get(language_iso_code.upper())
         return (
-            self.__cache.get(self.__key_of(DEFAULT_LANGUAGE, DEFAULT_ISO_CODE))
-            or self.__cache.get(DEFAULT_LANGUAGE.upper())
-            or self.__cache.get(DEFAULT_ISO_CODE.upper())
+            self.__cache.get(self.__key_of(config.main_language_name, config.main_language_iso_code))
+            or self.__cache.get(config.main_language_name.upper())
+            or self.__cache.get(config.main_language_iso_code.upper())
         )
 
     @staticmethod

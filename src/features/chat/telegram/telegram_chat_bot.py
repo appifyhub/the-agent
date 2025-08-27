@@ -6,13 +6,14 @@ from langchain_core.language_models import LanguageModelInput
 from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import Runnable
 
+from db.model.chat_config import ChatConfigDB
 from di.di import DI
 from features.chat.command_processor import CommandProcessor
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import GPT_4_1_MINI
 from features.external_tools.tool_choice_resolver import ConfiguredTool
-from features.prompting import prompt_library
-from features.prompting.prompt_library import TELEGRAM_BOT_USER
+from features.integrations import prompt_resolvers
+from features.integrations.integrations import resolve_agent_user
 from util import log
 from util.config import config
 
@@ -41,22 +42,9 @@ class TelegramChatBot:
         configured_tool: ConfiguredTool | None,
         di: DI,
     ):
+        system_prompt = prompt_resolvers.chat(di.invoker, di.invoker_chat, str(di.llm_tool_library.tool_names))
         self.__messages = []
-        self.__messages.append(
-            SystemMessage(
-                prompt_library.add_metadata(
-                    base_prompt = prompt_library.translator_on_response(
-                        base_prompt = prompt_library.chat_telegram,
-                        language_name = di.invoker_chat.language_name,
-                        language_iso_code = di.invoker_chat.language_iso_code,
-                    ),
-                    author = di.invoker,
-                    chat_id = di.invoker_chat.chat_id.hex,
-                    chat_title = di.invoker_chat.title,
-                    available_tools = di.llm_tool_library.tool_names,
-                ),
-            ),
-        )
+        self.__messages.append(SystemMessage(system_prompt))
         self.__messages.extend(messages)
         self.__raw_last_message = raw_last_message
         self.__last_message_id = last_message_id
@@ -91,13 +79,14 @@ class TelegramChatBot:
         # not a known command, but also no API key found
         if not self.__configured_tool:
             log.w(f"No API key found for #{self.__di.invoker.id.hex}, skipping LLM processing")
-            answer = AIMessage(prompt_library.error_general_problem("Not configured."))
+            message = prompt_resolvers.simple_chat_error("Not configured.")
+            answer = AIMessage(message)
             return answer
 
         # prepare the LLM model and connected tools
         progress_notifier = self.__di.telegram_progress_notifier(self.__last_message_id)
         base_model = self.__di.chat_langchain_model(self.__configured_tool)
-        tools_model: TooledChatModel | None = None
+        tools_model: None | TooledChatModel = None
         try:
             tools_model = self.__di.llm_tool_library.bind_tools(base_model)
         except Exception as e:
@@ -168,26 +157,28 @@ class TelegramChatBot:
                     raise LookupError("Couldn't find tools to invoke!")
         except Exception as e:
             log.e("Chat completion failed", e)
-            text = prompt_library.error_general_problem(str(e))
-            return AIMessage(text)
+            message = prompt_resolvers.simple_chat_error(str(e))
+            return AIMessage(message)
         finally:
             progress_notifier.stop()
 
     def process_commands(self) -> Tuple[AIMessage, CommandProcessor.Result]:
         result = self.__di.command_processor.execute(self.__raw_last_message)
         log.d(f"Command processing result is {result.value}")
+        # noinspection PyUnreachableCode
         if result == CommandProcessor.Result.unknown or result == CommandProcessor.Result.success:
-            text = ""
+            message = ""
         elif result == CommandProcessor.Result.failed:
-            text = prompt_library.error_general_problem("Unknown command.")
+            message = prompt_resolvers.simple_chat_error("Unknown command.")
         else:
             raise NotImplementedError("Wild branch")
-        return AIMessage(text), result
+        return AIMessage(message), result
 
     def should_reply(self) -> bool:
         has_content = bool(self.__raw_last_message.strip())
-        is_not_recursive = self.__di.invoker.telegram_username != TELEGRAM_BOT_USER.telegram_username
-        is_bot_mentioned = f"@{TELEGRAM_BOT_USER.telegram_username}" in self.__raw_last_message
+        agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
+        is_not_recursive = self.__di.invoker.telegram_username != agent_user.telegram_username
+        is_bot_mentioned = f"@{agent_user.telegram_username}" in self.__raw_last_message
         if self.__di.invoker_chat.reply_chance_percent == 100:
             should_reply_at_random = True
         elif self.__di.invoker_chat.reply_chance_percent == 0:

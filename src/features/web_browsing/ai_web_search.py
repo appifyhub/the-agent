@@ -5,7 +5,7 @@ from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import SONAR
 from features.external_tools.tool_choice_resolver import ConfiguredTool
-from features.prompting import prompt_library
+from features.integrations import prompt_resolvers
 from util import log
 
 
@@ -19,10 +19,9 @@ class AIWebSearch:
     __llm: BaseChatModel
 
     def __init__(self, search_query: str, configured_tool: ConfiguredTool, di: DI):
+        system_prompt = prompt_resolvers.sentient_web_search(di.invoker_chat)
+        self.__llm_input = [SystemMessage(system_prompt), HumanMessage(search_query)]
         self.__llm = di.chat_langchain_model(configured_tool)
-        self.__llm_input = []
-        self.__llm_input.append(SystemMessage(prompt_library.sentient_web_explorer))
-        self.__llm_input.append(HumanMessage(search_query))
 
     def execute(self) -> AIMessage:
         content_preview = str(self.__llm_input[-1].content).replace("\n", " \\n ")

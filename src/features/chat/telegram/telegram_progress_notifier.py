@@ -10,7 +10,7 @@ DEFAULT_TEXT_UPDATE_INTERVAL_S = 45
 TYPING_STATUS_INTERVAL_S = 5  # set by Telegram API for auto-clearing
 MAX_CYCLES = int((10 * DEFAULT_TEXT_UPDATE_INTERVAL_S) / TYPING_STATUS_INTERVAL_S)  # announce 10 delays max
 
-# subset of features.prompting.prompt_library.ALLOWED_TELEGRAM_EMOJIS
+# subset of features.integrations.integrations_config.TELEGRAM_REACTIONS
 # sorted by intensity (later ones emote more about the delay)
 ESCALATING_REACTIONS = [
     "🫡", "👨‍💻", "⚡", "🔥", "👀", "🤔", "🤨",
