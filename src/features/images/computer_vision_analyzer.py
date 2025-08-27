@@ -6,7 +6,7 @@ from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import GPT_4_1_MINI
 from features.external_tools.tool_choice_resolver import ConfiguredTool
-from features.prompting import prompt_library
+from features.integrations import prompt_resolvers
 from util import log
 
 
@@ -54,9 +54,8 @@ class ComputerVisionAnalyzer:
         content.append(image_content_json)
 
         # initialize the LLM
-        self.__messages = []
-        self.__messages.append(SystemMessage(prompt_library.observer_computer_vision))
-        self.__messages.append(HumanMessage(content = content))
+        system_prompt = prompt_resolvers.computer_vision(di.invoker_chat.chat_type)
+        self.__messages = [SystemMessage(system_prompt), HumanMessage(content)]
         self.__vision_model = di.chat_langchain_model(configured_tool)
 
     def execute(self) -> str | None:

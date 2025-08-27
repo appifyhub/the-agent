@@ -8,7 +8,7 @@ from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_3_5_HAIKU
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
-from features.prompting import prompt_library
+from features.integrations import prompt_resolvers
 from util import log
 
 
@@ -37,12 +37,11 @@ class SmartStableDiffusionGenerator:
         configured_image_gen_tool: ConfiguredTool,
         di: DI,
     ):
-        self.__di = di
+        system_prompt = prompt_resolvers.copywriting_image_prompt_upscaler(di.invoker_chat.chat_type)
+        self.__llm_input = [SystemMessage(system_prompt), HumanMessage(raw_prompt)]
         self.__copywriter = di.chat_langchain_model(configured_copywriter_tool)
-        self.__llm_input = []
-        self.__llm_input.append(SystemMessage(prompt_library.generator_stable_diffusion))
-        self.__llm_input.append(HumanMessage(raw_prompt))
         self.__image_gen_tool = configured_image_gen_tool
+        self.__di = di
 
     def execute(self) -> Result:
         log.d(f"Generating image for chat '{self.__di.invoker_chat.chat_id}'")
@@ -50,7 +49,7 @@ class SmartStableDiffusionGenerator:
 
         # let's correct/prettify and translate the prompt first
         try:
-            log.t("Starting prompt upsampling")
+            log.t("Starting prompt upscaling")
             response = self.__copywriter.invoke(self.__llm_input)
             if not isinstance(response, AIMessage) or not isinstance(response.content, str):
                 raise AssertionError(f"Received a complex message from LLM: {response}")

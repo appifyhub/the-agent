@@ -16,17 +16,19 @@ from di.di import DI
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
-from features.prompting.prompt_library import TELEGRAM_BOT_USER
+from features.integrations.integrations import resolve_agent_user
 from util.config import config
 
 
 class TelegramDataResolverTest(unittest.TestCase):
 
+    agent_user: UserSave
     sql: SQLUtil
     mock_di: DI
     resolver: TelegramDataResolver
 
     def setUp(self):
+        self.agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
         self.sql = SQLUtil()
         self.mock_di = Mock(spec = DI)
         # noinspection PyPropertyAccess
@@ -95,10 +97,10 @@ class TelegramDataResolverTest(unittest.TestCase):
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         author_data = UserSave(
-            telegram_username = TELEGRAM_BOT_USER.telegram_username,
+            telegram_username = self.agent_user.telegram_username,
             telegram_chat_id = "c1",
-            telegram_user_id = TELEGRAM_BOT_USER.telegram_user_id,
-            full_name = TELEGRAM_BOT_USER.full_name,
+            telegram_user_id = self.agent_user.telegram_user_id,
+            full_name = self.agent_user.full_name,
         )
         message_data = ChatMessageSave(
             message_id = "m1",

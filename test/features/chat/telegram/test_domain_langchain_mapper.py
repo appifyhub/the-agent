@@ -4,17 +4,21 @@ from uuid import UUID
 
 from langchain_core.messages import AIMessage, HumanMessage
 
+from db.model.chat_config import ChatConfigDB
 from db.schema.chat_message import ChatMessage
-from db.schema.user import User
+from db.schema.user import User, UserSave
 from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
-from features.prompting.prompt_library import MULTI_MESSAGE_DELIMITER, TELEGRAM_BOT_USER
+from features.integrations.integrations import resolve_agent_user
+from features.prompting.prompt_library import CHAT_MESSAGE_DELIMITER
 
 
 class DomainLangchainMapperTest(unittest.TestCase):
 
+    agent_user: UserSave
     mapper: DomainLangchainMapper
 
     def setUp(self):
+        self.agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
         self.mapper = DomainLangchainMapper()
 
     def test_map_to_langchain_with_author(self):
@@ -39,9 +43,9 @@ class DomainLangchainMapperTest(unittest.TestCase):
         ai_author = User(
             id = UUID(int = 2),
             created_at = date.today(),
-            telegram_username = TELEGRAM_BOT_USER.telegram_username,
-            telegram_user_id = TELEGRAM_BOT_USER.telegram_user_id,
-            full_name = TELEGRAM_BOT_USER.full_name,
+            telegram_username = self.agent_user.telegram_username,
+            telegram_user_id = self.agent_user.telegram_user_id,
+            full_name = self.agent_user.full_name,
         )
         message = ChatMessage(chat_id = UUID(int = 2), message_id = "m2", text = "I'm an AI assistant.")
         expected_output = AIMessage("I'm an AI assistant.")
@@ -59,10 +63,10 @@ class DomainLangchainMapperTest(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].text, "Test message")
         self.assertEqual(result[0].chat_id, chat_id)
-        self.assertEqual(result[0].author_id, TELEGRAM_BOT_USER.id)
+        self.assertEqual(result[0].author_id, self.agent_user.id)
 
     def test_map_bot_message_to_storage_multiple_messages(self):
-        message = AIMessage(content = f"Message 1{MULTI_MESSAGE_DELIMITER}Message 2{MULTI_MESSAGE_DELIMITER}Message 3")
+        message = AIMessage(content = f"Message 1{CHAT_MESSAGE_DELIMITER}Message 2{CHAT_MESSAGE_DELIMITER}Message 3")
         chat_id = UUID(int = 3)
         result = self.mapper.map_bot_message_to_storage(chat_id, message)
         self.assertEqual(len(result), 3)
@@ -71,7 +75,7 @@ class DomainLangchainMapperTest(unittest.TestCase):
         self.assertEqual(result[2].text, "Message 3")
         for message in result:
             self.assertEqual(message.chat_id, chat_id)
-            self.assertEqual(message.author_id, TELEGRAM_BOT_USER.id)
+            self.assertEqual(message.author_id, self.agent_user.id)
 
     def test_map_bot_message_to_storage_empty_message(self):
         message = AIMessage(content = "")
@@ -89,7 +93,7 @@ class DomainLangchainMapperTest(unittest.TestCase):
         self.assertEqual(result[2].text, "Message 3")
         for message in result:
             self.assertEqual(message.chat_id, chat_id)
-            self.assertEqual(message.author_id, TELEGRAM_BOT_USER.id)
+            self.assertEqual(message.author_id, self.agent_user.id)
 
     def test_map_bot_message_to_storage_list_of_dicts(self):
         message = AIMessage(content = [{"name": "Mike", "city": "Valencia"}, {"name": "Dirk"}])
@@ -100,7 +104,7 @@ class DomainLangchainMapperTest(unittest.TestCase):
         self.assertEqual(result[1].text, "name: Dirk")
         for message in result:
             self.assertEqual(message.chat_id, chat_id)
-            self.assertEqual(message.author_id, TELEGRAM_BOT_USER.id)
+            self.assertEqual(message.author_id, self.agent_user.id)
 
     def test_map_bot_message_to_storage_message_id_uniqueness(self):
         message = AIMessage(content = "Test message")

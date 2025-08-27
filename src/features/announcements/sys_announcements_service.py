@@ -6,7 +6,7 @@ from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_3_5_SONNET
 from features.external_tools.tool_choice_resolver import ConfiguredTool
-from features.prompting import prompt_library
+from features.integrations import prompt_resolvers
 from util import log
 
 
@@ -22,20 +22,16 @@ class SysAnnouncementsService:
     def __init__(
         self,
         raw_information: str,
-        target_chat: str | ChatConfig,
+        target_chat: ChatConfig,
         configured_tool: ConfiguredTool,
         di: DI,
     ):
         target_chat = di.authorization_service.validate_chat(target_chat)
-        prompt = prompt_library.translator_on_response(
-            base_prompt = prompt_library.announcer_event_telegram,
-            language_name = target_chat.language_name,
-            language_iso_code = target_chat.language_iso_code,
-        )
-        self.__copywriter = di.chat_langchain_model(configured_tool)
+        system_prompt = prompt_resolvers.copywriting_new_system_event(target_chat)
         self.__llm_input = []
-        self.__llm_input.append(SystemMessage(prompt))
+        self.__llm_input.append(SystemMessage(system_prompt))
         self.__llm_input.append(HumanMessage(raw_information))
+        self.__copywriter = di.chat_langchain_model(configured_tool)
 
     def execute(self) -> AIMessage:
         log.t(f"Starting information announcer for {str(self.__llm_input[-1].content).replace('\n', ' \\n ')}")

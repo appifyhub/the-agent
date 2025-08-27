@@ -7,6 +7,7 @@ import requests
 from langchain_core.messages import AIMessage
 from pydantic import SecretStr
 
+from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
 from db.schema.user import User
 from di.di import DI
@@ -34,13 +35,11 @@ class UserSupportServiceTest(unittest.TestCase):
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
-
         self.mock_di = Mock(spec = DI)
         self.mock_di.invoker.return_value = self.user
+        self.mock_di.invoker_chat.chat_type = ChatConfigDB.ChatType.telegram
         self.mock_di.chat_langchain_model = Mock()
-
         self.mock_configured_tool = (CLAUDE_4_SONNET, SecretStr("test_key"), ToolType.copywriting)
-
         self.service = UserSupportService(
             user_input = "Test input",
             github_author = "test_github",
@@ -68,14 +67,14 @@ class UserSupportServiceTest(unittest.TestCase):
         self.assertEqual(service._UserSupportService__request_type, UserSupportService.RequestType.request)
 
     @patch("builtins.open", new_callable = mock_open, read_data = "test template")
-    def test_load_template(self, mock_open):
+    def test_load_template(self, mock_open_template):
         # noinspection PyUnresolvedReferences
         template = self.service._UserSupportService__load_template()
         self.assertEqual(template, "test template")
-        mock_open.assert_called_once()
+        mock_open_template.assert_called_once()
 
     @patch("features.support.user_support_service.UserSupportService._UserSupportService__load_template")
-    @patch("features.prompting.prompt_library.support_request_generator")
+    @patch("features.integrations.prompt_resolvers.copywriting_support_request_description")
     def test_generate_issue_description(self, mock_prompt_generator, mock_load_template):
         mock_load_template.return_value = "test template"
         mock_prompt_generator.return_value = "test prompt"
@@ -90,9 +89,9 @@ class UserSupportServiceTest(unittest.TestCase):
         mock_prompt_generator.assert_called_once()
         mock_llm.invoke.assert_called_once()
 
-    @patch("features.prompting.prompt_library")
-    def test_generate_issue_title(self, mock_prompt_library):
-        mock_prompt_library.support_request_title_generator = "test prompt"
+    @patch("features.integrations.prompt_resolvers")
+    def test_generate_issue_title(self, mock_prompt_resolvers):
+        mock_prompt_resolvers.copywriting_support_request_title.return_value = "test prompt"
 
         with patch.object(self.service, "_UserSupportService__copywriter") as mock_llm:
             mock_llm.invoke.return_value = AIMessage("Generated title")

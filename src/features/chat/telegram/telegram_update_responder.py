@@ -3,6 +3,7 @@ from itertools import chain
 from fastapi import HTTPException
 from langchain_core.messages import AIMessage, HumanMessage
 
+from db.model.chat_config import ChatConfigDB
 from db.schema.chat_message import ChatMessage
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.sql import get_detached_session
@@ -10,8 +11,8 @@ from di.di import DI
 from features.chat.telegram.model.update import Update
 from features.chat.telegram.telegram_chat_bot import TelegramChatBot
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
-from features.prompting import prompt_library
-from features.prompting.prompt_library import TELEGRAM_BOT_USER
+from features.integrations import prompt_resolvers
+from features.integrations.integrations import resolve_agent_user
 from util import log
 from util.config import config
 from util.functions import silent
@@ -27,9 +28,10 @@ def respond_to_update(update: Update) -> bool:
         def map_to_langchain(message) -> HumanMessage | AIMessage:
             return di.domain_langchain_mapper.map_to_langchain(di.user_crud.get(message.author_id), message)
 
-        assert TELEGRAM_BOT_USER.id is not None
-        if not di.user_crud.get(TELEGRAM_BOT_USER.id):
-            di.user_crud.save(TELEGRAM_BOT_USER)
+        agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
+        assert agent_user.id is not None
+        if not di.user_crud.get(agent_user.id):
+            di.user_crud.save(agent_user)
 
         resolved_domain_data: TelegramDataResolver.Result | None = None
         try:
@@ -67,11 +69,11 @@ def respond_to_update(update: Update) -> bool:
             # process the update using LLM; get instead of require to allow the first message to be sent
             tool = di.tool_choice_resolver.get_tool(TelegramChatBot.TOOL_TYPE, TelegramChatBot.DEFAULT_TOOL)
             telegram_chat_bot = di.telegram_chat_bot(
-                list(langchain_messages),
-                domain_update.message.text,  # excludes the resolver formatting
-                domain_update.message.message_id,
-                past_attachment_ids,
-                tool,
+                messages = list(langchain_messages),
+                raw_last_message = domain_update.message.text,  # excludes the resolver formatting
+                last_message_id = domain_update.message.message_id,
+                attachment_ids = past_attachment_ids,
+                configured_tool = tool,
             )
             answer = telegram_chat_bot.execute()
             if not answer or not answer.content:
@@ -85,7 +87,7 @@ def respond_to_update(update: Update) -> bool:
                 di.telegram_bot_sdk.send_text_message(str(resolved_domain_data.chat.external_id), message.text)
                 sent_messages += 1
 
-            log.t(f"Finished responding to updates. \n[{TELEGRAM_BOT_USER.full_name}]: {answer.content}")
+            log.t(f"Finished responding to updates. \n[{agent_user.full_name}]: {answer.content}")
             log.i(f"Used {len(past_messages_db)} and sent {sent_messages} messages")
             return True
         except Exception as e:
@@ -101,7 +103,7 @@ def __notify_of_errors(
     error: Exception,
 ):
     if resolved_domain_data:
-        answer = AIMessage(prompt_library.error_general_problem(str(error)))
+        answer = AIMessage(prompt_resolvers.simple_chat_error(str(error)))
         messages = di.domain_langchain_mapper.map_bot_message_to_storage(resolved_domain_data.chat.chat_id, answer)
         for message in messages:
             di.telegram_bot_sdk.send_text_message(str(resolved_domain_data.chat.external_id), message.text)

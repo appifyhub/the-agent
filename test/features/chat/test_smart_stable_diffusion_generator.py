@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 
 from langchain_core.messages import AIMessage
 
+from db.model.chat_config import ChatConfigDB
 from di.di import DI
 from features.chat.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
@@ -22,6 +23,7 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         # Mock DI
         self.mock_di = MagicMock()
         self.mock_di.invoker_chat.external_id = "1"
+        self.mock_di.invoker_chat.chat_type = ChatConfigDB.ChatType.telegram
         # noinspection PyPropertyAccess
         self.mock_di.telegram_bot_sdk = MagicMock(spec = TelegramBotSDK)
         self.mock_di.telegram_bot_sdk.send_photo.return_value = {"result": {"message_id": 123}}

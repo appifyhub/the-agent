@@ -11,19 +11,20 @@ from pydantic import SecretStr
 from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
-from db.schema.user import User
+from db.schema.user import User, UserSave
 from di.di import DI
 from features.chat.command_processor import CommandProcessor
 from features.chat.llm_tools.llm_tool_library import LLMToolLibrary
 from features.chat.telegram.telegram_chat_bot import TelegramChatBot
 from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
 from features.external_tools.tool_choice_resolver import ConfiguredTool
-from features.prompting.prompt_library import TELEGRAM_BOT_USER
+from features.integrations.integrations import resolve_agent_user
 
 
 class TelegramChatBotTest(unittest.TestCase):
 
     user: User
+    agent_user: UserSave
     chat_config: ChatConfig
     mock_di: DI
     configured_tool: ConfiguredTool
@@ -40,6 +41,7 @@ class TelegramChatBotTest(unittest.TestCase):
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
+        self.agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
         self.chat_config = ChatConfig(
             chat_id = UUID(int = 1),
             external_id = "12345",
@@ -130,7 +132,7 @@ class TelegramChatBotTest(unittest.TestCase):
     def test_should_reply_bot_mentioned(self):
         self.chat_config.is_private = False
         self.chat_config.reply_chance_percent = 0
-        self.bot._TelegramChatBot__raw_last_message = f"Hello @{TELEGRAM_BOT_USER.telegram_username}"
+        self.bot._TelegramChatBot__raw_last_message = f"Hello @{self.agent_user.telegram_username}"
 
         self.assertTrue(self.bot.should_reply())
 
@@ -180,7 +182,7 @@ class TelegramChatBotTest(unittest.TestCase):
         self.chat_config.is_private = False
         self.chat_config.reply_chance_percent = 100
         self.bot._TelegramChatBot__raw_last_message = "Hello"
-        self.mock_di.invoker.telegram_username = TELEGRAM_BOT_USER.telegram_username
+        self.mock_di.invoker.telegram_username = self.agent_user.telegram_username
 
         self.assertFalse(self.bot.should_reply())
 
@@ -280,7 +282,7 @@ class TelegramChatBotTest(unittest.TestCase):
         self.mock_di.llm_tool_library.bind_tools.return_value = mock_tools_model
 
         result = self.bot.execute()
-        self.assertIn("⚡", result.content)
+        self.assertIn("🤯", result.content)
         self.assertIn("Test error", result.content)
         self.assertIn("/settings", result.content)
 
@@ -306,6 +308,6 @@ class TelegramChatBotTest(unittest.TestCase):
 
         # The OverflowError should be caught and converted to an AIMessage with error content
         self.assertIsInstance(result, AIMessage)
-        self.assertIn("⚡", result.content)  # Error indicator
+        self.assertIn("🤯", result.content)  # Error indicator
         self.assertIn("Reached max iterations", result.content)
         self.assertIn("2", result.content)  # Should include the max iterations count

@@ -10,7 +10,7 @@ from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_3_7_SONNET, TEXT_EMBEDDING_3_SMALL
 from features.external_tools.tool_choice_resolver import ConfiguredTool
-from features.prompting import prompt_library
+from features.integrations import prompt_resolvers
 from util import log
 
 DEFAULT_QUESTION = "What is this document about?"
@@ -31,6 +31,7 @@ class DocumentSearch:
     __loaded_pages: list[Document]
     __additional_context: str
     __copywriter: BaseChatModel
+    __di: DI
 
     def __init__(
         self,
@@ -50,6 +51,7 @@ class DocumentSearch:
         self.__embeddings = OpenAIEmbeddings(model = embedding_model.id, api_key = embedding_token)
         # noinspection PyArgumentList
         self.__copywriter = di.chat_langchain_model(copywriter_tool)
+        self.__di = di
 
     def execute(self) -> str | None:
         log.d(f"Starting document search for job '{self.__job_id}'")
@@ -60,20 +62,22 @@ class DocumentSearch:
             document_index.add_documents(self.__loaded_pages)
             results = document_index.similarity_search(query = self.__additional_context, k = SEARCH_RESULT_PAGES)
             log.t(f"Document search returned {len(results)} similarity search results")
-            search_results: str = ""
+            search_results: str = "[Raw Document Search Results]\n\n"
+            found_content = False
             if results:
                 for result in results:
-                    page_number = result.metadata.get("page") or "Unknown"
+                    page_number = result.metadata.get("page", "Unknown") or "Unknown"
                     content = result.page_content or "<No result>"
                     search_results += f"[Chunk {page_number}]\n{content}\n\n---\n\n"
+                    found_content = True
                 search_results = search_results.strip()
-            if not search_results:
+            if not found_content:
                 search_results = "<No results>"
 
             # then run the copywriter on the search results
             log.t("Invoking copywriter on search results")
-            copywriter_prompt = prompt_library.document_search_copywriter(self.__additional_context)
-            copywriter_messages = [SystemMessage(copywriter_prompt), HumanMessage(search_results)]
+            system_prompt = prompt_resolvers.document_search_and_response(self.__additional_context, self.__di.invoker_chat)
+            copywriter_messages = [SystemMessage(system_prompt), HumanMessage(search_results)]
             answer = self.__copywriter.invoke(copywriter_messages)
             if not isinstance(answer, AIMessage):
                 raise AssertionError(f"Received a non-AI message from the model: {answer}")

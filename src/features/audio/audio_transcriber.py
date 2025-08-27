@@ -17,7 +17,7 @@ from features.chat.supported_files import (
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_3_5_HAIKU, WHISPER_1
 from features.external_tools.tool_choice_resolver import ConfiguredTool
-from features.prompting import prompt_library
+from features.integrations import prompt_resolvers
 from util import log
 
 
@@ -38,6 +38,7 @@ class AudioTranscriber:
     __language_iso_code: str | None
     __transcriber: OpenAI
     __copywriter: BaseChatModel
+    __di: DI
 
     def __init__(
         self,
@@ -60,6 +61,7 @@ class AudioTranscriber:
         _, transcriber_token, _ = transcriber_tool
         self.__transcriber = OpenAI(api_key = transcriber_token.get_secret_value())
         self.__copywriter = di.chat_langchain_model(copywriter_tool)
+        self.__di = di
 
     def __validate_content(self, audio_url: str, audio_content: bytes | None):
         log.t(f"Fetching and validating audio from URL '{audio_url}'")
@@ -109,17 +111,14 @@ class AudioTranscriber:
             raw_transcription = str(transcript)
 
             # then fix the transcription using the copywriter
-            copywriter_prompt = prompt_library.translator_on_response(
-                base_prompt = prompt_library.transcription_copywriter,
-                language_name = self.__language_name,
-                language_iso_code = self.__language_iso_code,
-            )
-            copywriter_messages = [SystemMessage(copywriter_prompt), HumanMessage(raw_transcription)]
+            system_prompt = prompt_resolvers.copywriting_computer_hearing(self.__di.invoker_chat)
+            copywriter_messages = [SystemMessage(system_prompt), HumanMessage(raw_transcription)]
             answer = self.__copywriter.invoke(copywriter_messages)
             if not isinstance(answer, AIMessage):
                 raise AssertionError(f"Received a non-AI message from the model: {answer}")
             if not answer.content or not isinstance(answer.content, str):
                 raise AssertionError(f"Received an unexpected content from the model: {answer}")
+
             transcription = str(answer.content)
             log.t(f"Raw transcription: `{transcription}`")
             return transcription

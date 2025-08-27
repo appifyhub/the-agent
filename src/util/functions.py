@@ -6,8 +6,9 @@ from uuid import UUID, uuid4
 
 from pydantic import SecretStr
 
+from db.model.chat_config import ChatConfigDB
 from db.schema.user import User, UserSave
-from features.prompting.prompt_library import TELEGRAM_BOT_USER
+from features.integrations.integrations import resolve_agent_user
 
 K = TypeVar("K")
 V = TypeVar("V")
@@ -16,7 +17,9 @@ V = TypeVar("V")
 def is_the_agent(who: User | UserSave | None) -> bool:
     if not who:
         return False
-    return who.telegram_username == TELEGRAM_BOT_USER.telegram_username
+    # TODO don't hard-code Telegram
+    agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
+    return who.telegram_username == agent_user.telegram_username
 
 
 def construct_bot_message_id(chat_id: UUID, sent_at: datetime) -> str:

@@ -9,7 +9,7 @@ from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_4_SONNET
 from features.external_tools.tool_choice_resolver import ConfiguredTool
-from features.prompting import prompt_library
+from features.integrations import prompt_resolvers
 from util import log
 from util.config import config
 
@@ -71,7 +71,9 @@ class UserSupportService:
     def __generate_issue_description(self) -> str:
         log.t("Generating issue description")
         template_contents = self.__load_template()
-        prompt = prompt_library.support_request_generator(self.__request_type.name, template_contents)
+        system_prompt = prompt_resolvers.copywriting_support_request_description(
+            self.__di.invoker_chat.chat_type, self.__request_type.name, template_contents,
+        )
         user_info_parts = []
         if self.__include_telegram_username and self.__di.invoker.telegram_username:
             user_link = f"[{self.__di.invoker.telegram_username}](https://t.me/{self.__di.invoker.telegram_username})"
@@ -84,16 +86,16 @@ class UserSupportService:
             user_info_parts.append(f"User ID: T-{self.__di.invoker.id.hex}")
         user_info = "\n".join(user_info_parts)
         message = f"Reporter:\n{user_info}\n\nRaw reporter input:\n```\n{self.__user_input}\n```\n"
-        response = self.__copywriter.invoke([SystemMessage(prompt), HumanMessage(message)])
+        response = self.__copywriter.invoke([SystemMessage(system_prompt), HumanMessage(message)])
         if not isinstance(response, AIMessage):
             raise AssertionError(f"Received a non-AI message from LLM: {response}")
         return str(response.content)
 
     def __generate_issue_title(self, description: str) -> str:
         log.t("Generating issue title")
-        prompt = prompt_library.support_request_title_generator
+        system_prompt = prompt_resolvers.copywriting_support_request_title(self.__di.invoker_chat.chat_type)
         message = f"Issue description:\n```\n{description}\n```\n\nIssue type: '{self.__request_type.name}'"
-        response = self.__copywriter.invoke([SystemMessage(prompt), HumanMessage(message)])
+        response = self.__copywriter.invoke([SystemMessage(system_prompt), HumanMessage(message)])
         if not isinstance(response, AIMessage):
             raise AssertionError(f"Received a non-AI message from LLM: {response}")
         return str(response.content)

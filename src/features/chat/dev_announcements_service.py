@@ -9,8 +9,8 @@ from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_3_5_SONNET
 from features.external_tools.tool_choice_resolver import ConfiguredTool
-from features.prompting import prompt_library
-from features.prompting.prompt_library import TELEGRAM_BOT_USER
+from features.integrations import prompt_resolvers
+from features.integrations.integrations import resolve_agent_user
 from util import log
 
 
@@ -50,6 +50,7 @@ class DevAnnouncementsService:
             target_user = User.model_validate(target_user_db)
             if not target_user.telegram_chat_id:
                 raise ValueError(log.d(f"Target user '{target_telegram_username}' has no private chat ID yet"))
+            # TODO don't hard-code Telegram
             target_chat_db = self.__di.chat_config_crud.get_by_external_identifiers(
                 external_id = str(target_user.telegram_chat_id),
                 chat_type = ChatConfigDB.ChatType.telegram,
@@ -68,7 +69,9 @@ class DevAnnouncementsService:
             log.t("  Targeting all chats")
             # we compare external IDs because user objects contain only those
             invoker_external_chat_id = str(self.__di.invoker.telegram_chat_id)
-            bot_external_chat_id = str(TELEGRAM_BOT_USER.telegram_chat_id)
+            # TODO don't hard-code Telegram
+            agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
+            bot_external_chat_id = str(agent_user.telegram_chat_id)
             target_chats_db = self.__di.chat_config_crud.get_all(limit = 2048)
             target_chats = [
                 ChatConfig.model_validate(chat)
@@ -109,21 +112,11 @@ class DevAnnouncementsService:
         }
 
     def __create_announcement(self, target_chat: ChatConfig | None) -> AIMessage:
-        target_chat = self.__target_chat if not target_chat else target_chat
-        base_prompt = (
-            prompt_library.developers_announcer_telegram
-            if not target_chat
-            else prompt_library.developers_message_deliverer
-        )
-        prompt = prompt_library.translator_on_response(
-            base_prompt = base_prompt,
-            language_name = target_chat.language_name if target_chat else None,
-            language_iso_code = target_chat.language_iso_code if target_chat else None,
-        )
-        messages = [
-            SystemMessage(prompt),
-            HumanMessage(self.__raw_message),
-        ]
+        target_chat = target_chat or self.__target_chat
+        # TODO don't hard-code Telegram
+        chat_type = ChatConfigDB.ChatType.telegram
+        system_prompt = prompt_resolvers.copywriting_system_announcement(chat_type, target_chat)
+        messages = [SystemMessage(system_prompt), HumanMessage(self.__raw_message)]
         response = self.__copywriter.invoke(messages)
         if not isinstance(response, AIMessage):
             raise AssertionError(f"Received a non-AI message from LLM: {response}")

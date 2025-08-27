@@ -4,7 +4,8 @@ from db.schema.chat_config import ChatConfig
 from di.di import DI
 from features.announcements.sys_announcements_service import SysAnnouncementsService
 from util import log
-from util.translations_cache import DEFAULT_ISO_CODE, DEFAULT_LANGUAGE, TranslationsCache
+from util.config import config
+from util.translations_cache import TranslationsCache
 
 
 def respond_with_currency_alerts(di: DI) -> dict:
@@ -33,8 +34,8 @@ def respond_with_currency_alerts(di: DI) -> dict:
                 translation_caches_all[translations_cache_key] = scoped_di.translations_cache
             translations = translation_caches_all[translations_cache_key]
 
-            language_name = chat_config.language_name or DEFAULT_LANGUAGE
-            language_iso_code = chat_config.language_iso_code or DEFAULT_ISO_CODE
+            language_name = chat_config.language_name or config.main_language_name
+            language_iso_code = chat_config.language_iso_code or config.main_language_iso_code
             announcement_text = translations.get(language_name, language_iso_code)
             if announcement_text:
                 log.t(

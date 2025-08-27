@@ -14,6 +14,7 @@ from db.crud.user import UserCRUD
 from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
+from db.schema.user import UserSave
 from di.di import DI
 from features.announcements.release_summary_service import ReleaseSummaryService
 
@@ -28,16 +29,18 @@ from features.chat.telegram.release_summary_responder import (
 from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.external_tools.tool_choice_resolver import ToolChoiceResolver
-from features.prompting.prompt_library import TELEGRAM_BOT_USER
+from features.integrations.integrations import resolve_agent_user
 from util.translations_cache import TranslationsCache
 
 
 class ReleaseSummaryResponderTest(unittest.TestCase):
 
+    agent_user: UserSave
     mock_di: DI
     payload: ReleaseOutputPayload
 
     def setUp(self):
+        self.agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
         # Create a DI mock and set required properties
         self.mock_di = Mock(spec = DI)
         # noinspection PyPropertyAccess
@@ -65,20 +68,20 @@ class ReleaseSummaryResponderTest(unittest.TestCase):
             release_output_b64 = base64.b64encode(json.dumps(release_output_json).encode()).decode(),
         )
 
-        # Mock the user_dao.get() to return a proper UserDB for TELEGRAM_BOT_USER.id
+        # Mock the user_dao.get() to return a proper UserDB for the agent's user
         mock_user_db = UserDB(
-            id = TELEGRAM_BOT_USER.id,
-            full_name = TELEGRAM_BOT_USER.full_name,
-            telegram_username = TELEGRAM_BOT_USER.telegram_username,
-            telegram_chat_id = TELEGRAM_BOT_USER.telegram_chat_id,
-            telegram_user_id = TELEGRAM_BOT_USER.telegram_user_id,
-            open_ai_key = TELEGRAM_BOT_USER.open_ai_key,
+            id = self.agent_user.id,
+            full_name = self.agent_user.full_name,
+            telegram_username = self.agent_user.telegram_username,
+            telegram_chat_id = self.agent_user.telegram_chat_id,
+            telegram_user_id = self.agent_user.telegram_user_id,
+            open_ai_key = self.agent_user.open_ai_key,
             anthropic_key = "test-anthropic-key",  # Provide a proper test key for the bot
-            perplexity_key = TELEGRAM_BOT_USER.perplexity_key,
-            replicate_key = TELEGRAM_BOT_USER.replicate_key,
-            rapid_api_key = TELEGRAM_BOT_USER.rapid_api_key,
-            coinmarketcap_key = TELEGRAM_BOT_USER.coinmarketcap_key,
-            group = TELEGRAM_BOT_USER.group,
+            perplexity_key = self.agent_user.perplexity_key,
+            replicate_key = self.agent_user.replicate_key,
+            rapid_api_key = self.agent_user.rapid_api_key,
+            coinmarketcap_key = self.agent_user.coinmarketcap_key,
+            group = self.agent_user.group,
             created_at = datetime.now().date(),
         )
         self.mock_di.user_crud.get.return_value = mock_user_db
