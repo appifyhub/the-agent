@@ -119,7 +119,7 @@ class TelegramUpdateResponderTest(unittest.TestCase):
     def test_mapping_error(self):
         self.di.telegram_domain_mapper.map_update.return_value = None
 
-        with patch("features.prompting.prompt_library.error_general_problem", return_value = "Mapping error"):
+        with patch("features.integrations.prompt_resolvers.simple_chat_error", return_value = "Mapping error"):
             self.di.domain_langchain_mapper.map_bot_message_to_storage.return_value = [
                 Mock(chat_id = "123", text = "Mapping error"),
             ]
@@ -150,7 +150,7 @@ class TelegramUpdateResponderTest(unittest.TestCase):
             self.di.domain_langchain_mapper.map_bot_message_to_storage.return_value = error_response
             self.di.telegram_bot_sdk.send_text_message = Mock()
 
-            with patch("features.prompting.prompt_library.error_general_problem") as mock_error:
+            with patch("features.integrations.prompt_resolvers.simple_chat_error") as mock_error:
                 mock_error.return_value = "Error response"
                 result = respond_to_update(self.update)
 

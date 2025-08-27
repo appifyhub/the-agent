@@ -1,6 +1,7 @@
 import unittest
 
-from util.translations_cache import DEFAULT_ISO_CODE, DEFAULT_LANGUAGE, TranslationsCache
+from util.config import config
+from util.translations_cache import TranslationsCache
 
 
 class TranslationsCacheTest(unittest.TestCase):
@@ -28,11 +29,11 @@ class TranslationsCacheTest(unittest.TestCase):
     def test_save_and_get_default(self):
         self.assertEqual(self.cache.save("Hi"), "Hi")
         self.assertEqual(self.cache.get(), "Hi")
-        self.assertEqual(self.cache.get(DEFAULT_LANGUAGE), "Hi")
-        self.assertEqual(self.cache.get(language_iso_code = DEFAULT_ISO_CODE), "Hi")
+        self.assertEqual(self.cache.get(language_name = config.main_language_name), "Hi")
+        self.assertEqual(self.cache.get(language_iso_code = config.main_language_iso_code), "Hi")
 
     def test_get_nonexistent(self):
-        self.assertIsNone(self.cache.get("German"))
+        self.assertIsNone(self.cache.get(language_name = "German"))
         self.assertIsNone(self.cache.get(language_iso_code = "DE"))
 
     def test_get_priority(self):
@@ -40,7 +41,7 @@ class TranslationsCacheTest(unittest.TestCase):
         self.cache.save("Hi", "English")
         self.cache.save("Howdy", language_iso_code = "EN")
         self.assertEqual(self.cache.get("English", "EN"), "Hello")
-        self.assertEqual(self.cache.get("English"), "Hi")
+        self.assertEqual(self.cache.get(language_name = "English"), "Hi")
         self.assertEqual(self.cache.get(language_iso_code = "EN"), "Howdy")
 
     def test_multiple_instances(self):
@@ -61,11 +62,11 @@ class TranslationsCacheTest(unittest.TestCase):
 
     def test_get_with_partial_match(self):
         self.cache.save("Hola", "Spanish", "ES")
-        self.assertEqual(self.cache.get("Spanish"), "Hola")
+        self.assertEqual(self.cache.get(language_name = "Spanish"), "Hola")
         self.assertEqual(self.cache.get(language_iso_code = "ES"), "Hola")
 
     def test_get_default_priority(self):
         self.cache.save("Hello")
-        self.cache.save("Hi", DEFAULT_LANGUAGE)
-        self.cache.save("Hey", language_iso_code = DEFAULT_ISO_CODE)
+        self.cache.save("Hi", language_name = config.main_language_name)
+        self.cache.save("Hey", language_iso_code = config.main_language_iso_code)
         self.assertEqual(self.cache.get(), "Hello")

@@ -43,6 +43,8 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.issue_templates_abs_path, ".github/ISSUE_TEMPLATE")
         self.assertEqual(config.jwt_expires_in_minutes, 5)
         self.assertEqual(config.backoffice_url_base, "http://127.0.0.1.sslip.io:5173")
+        self.assertEqual(config.main_language_name, "English")
+        self.assertEqual(config.main_language_iso_code, "en")
         self.assertEqual(config.version, "dev")
 
         self.assertEqual(config.db_url.get_secret_value(), "postgresql://root:root@localhost:5432/agent")
@@ -76,6 +78,8 @@ class ConfigTest(unittest.TestCase):
         os.environ["THE_AGENT_ISSUE_TEMPLATES_PATH"] = "issue_templates"
         os.environ["JWT_EXPIRES_IN_MINUTES"] = "10"
         os.environ["BACKOFFICE_URL_BASE"] = "https://example.com"
+        os.environ["MAIN_LANGUAGE_NAME"] = "German"
+        os.environ["MAIN_LANGUAGE_ISO_CODE"] = "de"
         os.environ["VERSION"] = "custom"
 
         os.environ["POSTGRES_USER"] = "admin"
@@ -113,6 +117,8 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.issue_templates_abs_path, "issue_templates")
         self.assertEqual(config.jwt_expires_in_minutes, 10)
         self.assertEqual(config.backoffice_url_base, "https://example.com")
+        self.assertEqual(config.main_language_name, "German")
+        self.assertEqual(config.main_language_iso_code, "de")
         self.assertEqual(config.version, "custom")
 
         self.assertEqual(config.db_url.get_secret_value(), "postgresql://admin:admin123@db.example.com:5432/test_db")

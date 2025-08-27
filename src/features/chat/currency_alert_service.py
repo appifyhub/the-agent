@@ -4,11 +4,12 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+from db.model.chat_config import ChatConfigDB
 from db.model.price_alert import PriceAlertDB
 from db.schema.chat_config import ChatConfig
 from db.schema.price_alert import PriceAlert, PriceAlertSave
 from di.di import DI
-from features.prompting.prompt_library import TELEGRAM_BOT_USER
+from features.integrations.integrations import resolve_agent_user
 from util import log
 
 DATETIME_PRINT_FORMAT = "%Y-%m-%d %H:%M %Z"
@@ -52,7 +53,9 @@ class CurrencyAlertService:
         log.d(f"Setting price alert for {base_currency}/{desired_currency} at {threshold_percent}%")
         if not self.__target_chat_config:
             raise ValueError(log.e("Target chat is not set"))
-        if self.__di.invoker.id == TELEGRAM_BOT_USER.id:
+        # TODO don't hard-code Telegram
+        agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
+        if self.__di.invoker.id == agent_user.id:
             raise ValueError(log.e("Bot cannot set price alerts"))
 
         current_rate: float = self.__di.exchange_rate_fetcher.execute(base_currency, desired_currency)["rate"]

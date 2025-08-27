@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
+# noinspection PyUnusedImports
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from sqlalchemy.orm import Session
@@ -590,7 +591,7 @@ class DI:
     def sys_announcements_service(
         self,
         raw_information: str,
-        target_chat: str | ChatConfig,
+        target_chat: ChatConfig,
         configured_tool: ConfiguredTool,
     ) -> "SysAnnouncementsService":
         from features.announcements.sys_announcements_service import SysAnnouncementsService
@@ -599,7 +600,7 @@ class DI:
     def release_summary_service(
         self,
         raw_notes: str,
-        target_chat: str | ChatConfig | None,
+        target_chat: ChatConfig | None,
         configured_tool: ConfiguredTool,
     ) -> "ReleaseSummaryService":
         from features.announcements.release_summary_service import ReleaseSummaryService

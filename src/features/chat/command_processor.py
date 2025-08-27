@@ -1,7 +1,8 @@
 from enum import Enum
 
+from db.model.chat_config import ChatConfigDB
 from di.di import DI
-from features.prompting.prompt_library import TELEGRAM_BOT_USER
+from features.integrations.integrations import resolve_agent_user
 from util import log
 
 COMMAND_START = "start"
@@ -35,7 +36,9 @@ class CommandProcessor:
                 core_command: str
                 if "@" in full_command_with_tag:
                     core_command, bot_tag = full_command_with_tag.split("@")
-                    if bot_tag != TELEGRAM_BOT_USER.telegram_username:
+                    # TODO don't hard-code Telegram
+                    agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
+                    if bot_tag != agent_user.telegram_username:
                         log.d("Unknown bot tagged")
                         return CommandProcessor.Result.unknown
                 else:
