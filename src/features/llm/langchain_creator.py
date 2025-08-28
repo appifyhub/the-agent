@@ -77,15 +77,15 @@ def __normalize_temperature(temperature_percent: float, provider: ExternalToolPr
 def __get_max_tokens(tool_type: ToolType) -> int:
     match tool_type:
         case ToolType.chat:
-            return 600
+            return 2000
         case ToolType.reasoning:
-            return 2000
+            return 4000
         case ToolType.copywriting:
-            return 500
+            return 4000
         case ToolType.vision:
-            return 2000
+            return 3000
         case ToolType.search:
-            return 1000
+            return 4000
     raise ValueError(f"{tool_type} does not support token limits")
 
 
