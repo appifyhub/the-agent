@@ -60,6 +60,7 @@ class ImageEditor:
                         "prompt": self.__context or "",
                         "image": file,
                         "input_image": file,
+                        "image_input": [file],
                         "aspect_ratio": "match_input_image",
                         "output_format": "png",
                         "safety_tolerance": 2,
