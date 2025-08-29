@@ -206,9 +206,9 @@ GEMINI_2_5_PRO = ExternalTool(
     types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
 )
 
-GEMINI_2_IMAGE_PREVIEW = ExternalTool(
-    id = "gemini-2.0-flash-preview-image-generation",
-    name = "Gemini 2.0 Flash (Preview) Image Generation",
+GEMINI_2_5_FLASH_IMAGE = ExternalTool(
+    id = "gemini-2.5-flash-image-preview",
+    name = "Gemini 2.5 Flash Image (Preview)",
     provider = GOOGLE_AI,
     types = [ToolType.images_gen],
 )
@@ -305,6 +305,13 @@ IMAGE_GENERATION_FLUX = ExternalTool(
     types = [ToolType.images_gen],
 )
 
+IMAGE_GENERATION_GEMINI_2_5_FLASH_IMAGE = ExternalTool(
+    id = "google/gemini-2.5-flash-image",
+    name = "Google's Gemini 2.5 Flash Image",
+    provider = REPLICATE,
+    types = [ToolType.images_gen],
+)
+
 IMAGE_EDITING_FLUX_KONTEXT_PRO = ExternalTool(
     id = "black-forest-labs/flux-kontext-pro",
     name = "Black Forest's Flux Kontext Pro",
@@ -315,6 +322,13 @@ IMAGE_EDITING_FLUX_KONTEXT_PRO = ExternalTool(
 IMAGE_EDITING_SEED_EDIT = ExternalTool(
     id = "bytedance/seededit-3.0",
     name = "ByteDance's Seed Edit 3.0",
+    provider = REPLICATE,
+    types = [ToolType.images_edit],
+)
+
+IMAGE_EDITING_GOOGLE_NANO_BANANA = ExternalTool(
+    id = "google/nano-banana",
+    name = "Google's Nano Banana",
     provider = REPLICATE,
     types = [ToolType.images_edit],
 )
@@ -352,7 +366,7 @@ ALL_EXTERNAL_TOOLS = [
     GEMINI_2_5_FLASH_LITE,
     GEMINI_2_5_FLASH,
     GEMINI_2_5_PRO,
-    GEMINI_2_IMAGE_PREVIEW,
+    GEMINI_2_5_FLASH_IMAGE,
     # Perplexity
     SONAR,
     SONAR_PRO,
@@ -369,6 +383,8 @@ ALL_EXTERNAL_TOOLS = [
     IMAGE_RESTORATION,
     IMAGE_INPAINTING,
     IMAGE_GENERATION_FLUX,
+    IMAGE_GENERATION_GEMINI_2_5_FLASH_IMAGE,
     IMAGE_EDITING_FLUX_KONTEXT_PRO,
     IMAGE_EDITING_SEED_EDIT,
+    IMAGE_EDITING_GOOGLE_NANO_BANANA,
 ]
