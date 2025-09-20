@@ -597,12 +597,12 @@
         },
         "google-genai": {
             "hashes": [
-                "sha256:6501f18cbf44488becab6fbff09529ff77e856f1baa65d55686261e4677cec3f",
-                "sha256:bd48d800547cb90e40648178620c89474807305b03f6cd147fb3cc7faab27670"
+                "sha256:363272fc4f677d0be6a1aed7ebabe8adf45e1626a7011a7886a587e9464ca9ec",
+                "sha256:95407425132d42b3fa11bc92b3f5cf61a0fbd8d9add1f0e89aac52c46fbba090"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.9'",
-            "version": "==1.36.0"
+            "version": "==1.38.0"
         },
         "googleapis-common-protos": {
             "hashes": [
