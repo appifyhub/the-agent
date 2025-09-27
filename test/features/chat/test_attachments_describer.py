@@ -36,8 +36,10 @@ class AttachmentsDescriberTest(unittest.TestCase):
         self.mock_di.chat_message_attachment_crud = self.mock_chat_message_attachment_crud
         self.mock_di.access_token_resolver = self.mock_access_token_resolver
         self.mock_di.invoker_chat_id = UUID(int = 1).hex
-        self.mock_di.invoker_chat.language_name = "Spanish"
-        self.mock_di.invoker_chat.language_iso_code = "es"
+        mock_chat = MagicMock()
+        mock_chat.language_name = "Spanish"
+        mock_chat.language_iso_code = "es"
+        self.mock_di.require_invoker_chat = MagicMock(return_value = mock_chat)
         self.mock_di.telegram_bot_api = MagicMock()
         self.mock_di.tool_choice_resolver = MagicMock()
         self.mock_di.computer_vision_analyzer = MagicMock()

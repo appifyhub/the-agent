@@ -2,7 +2,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
 from db.model.chat_config import ChatConfigDB
-from db.schema.chat_config import ChatConfig
+from db.schema.chat_config import ChatConfig, ChatConfigSave
 from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_4_SONNET
@@ -19,17 +19,16 @@ class ReleaseSummaryService:
 
     __llm_input: list[BaseMessage]
     __copywriter: BaseChatModel
-    __di: DI
 
     def __init__(
         self,
         raw_notes: str,
-        target_chat: ChatConfig | None,
+        target_chat: ChatConfig | ChatConfigSave | None,
         configured_tool: ConfiguredTool,
         di: DI,
     ):
-        # TODO: this should not be hard-coded to telegram and should use proper chat instances and types
-        system_prompt = prompt_resolvers.copywriting_new_release_version(ChatConfigDB.ChatType.telegram, target_chat)
+        chat_type = target_chat.chat_type if target_chat else ChatConfigDB.ChatType.github
+        system_prompt = prompt_resolvers.copywriting_new_release_version(chat_type, target_chat)
         self.__llm_input = []
         self.__llm_input.append(SystemMessage(system_prompt))
         self.__llm_input.append(HumanMessage(raw_notes))

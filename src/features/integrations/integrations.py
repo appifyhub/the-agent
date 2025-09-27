@@ -1,10 +1,148 @@
+from db.crud.user import UserCRUD
 from db.model.chat_config import ChatConfigDB
-from db.schema.user import UserSave
-from features.integrations.integration_config import TELEGRAM_AGENT
+from db.model.user import UserDB
+from db.schema.chat_config import ChatConfig
+from db.schema.user import User, UserSave
+from di.di import DI
+from features.integrations.integration_config import BACKGROUND_AGENT, GITHUB_AGENT, TELEGRAM_AGENT
 
 
 def resolve_agent_user(chat_type: ChatConfigDB.ChatType) -> UserSave:
     match chat_type:
         case ChatConfigDB.ChatType.telegram:
             return TELEGRAM_AGENT
-    raise ValueError(f"Unsupported chat type: {chat_type}")
+        case ChatConfigDB.ChatType.background:
+            return BACKGROUND_AGENT
+        case ChatConfigDB.ChatType.github:
+            return GITHUB_AGENT
+
+
+def resolve_external_id(user: User | UserSave, chat_type: ChatConfigDB.ChatType) -> str | None:
+    match chat_type:
+        case ChatConfigDB.ChatType.telegram:
+            return str(user.telegram_user_id) if user.telegram_user_id else None
+        case ChatConfigDB.ChatType.background:
+            return None
+        case ChatConfigDB.ChatType.github:
+            return None
+
+
+def resolve_external_handle(user: User | UserSave, chat_type: ChatConfigDB.ChatType) -> str | None:
+    match chat_type:
+        case ChatConfigDB.ChatType.telegram:
+            return user.telegram_username
+        case ChatConfigDB.ChatType.background:
+            return None
+        case ChatConfigDB.ChatType.github:
+            return None
+
+
+def resolve_any_external_handle(user: User | UserSave) -> tuple[str | None, ChatConfigDB.ChatType | None]:
+    for chat_type in ChatConfigDB.ChatType:
+        handle = resolve_external_handle(user, chat_type)
+        if handle and handle.strip():
+            return handle.strip(), chat_type
+    return None, None
+
+
+def resolve_user_link(user: User | UserSave, chat_type: ChatConfigDB.ChatType) -> str | None:
+    platform_handle = resolve_external_handle(user, chat_type)
+    if not platform_handle:
+        return None
+
+    clean_handle = platform_handle.lstrip("@").lstrip("+").lstrip("/").strip()
+    if not clean_handle:
+        return None
+
+    match chat_type:
+        case ChatConfigDB.ChatType.telegram:
+            return f"[@{clean_handle}](https://t.me/{clean_handle})"
+        case ChatConfigDB.ChatType.background:
+            return None
+        case ChatConfigDB.ChatType.github:
+            return f"[@{clean_handle}](https://github.com/{clean_handle})"
+
+
+def resolve_platform_name(chat_type: ChatConfigDB.ChatType) -> str | None:
+    match chat_type:
+        case ChatConfigDB.ChatType.telegram:
+            return "Telegram"
+        case ChatConfigDB.ChatType.background:
+            return "Pulse"
+        case ChatConfigDB.ChatType.github:
+            return "GitHub"
+
+
+def resolve_private_chat_id(user: User | UserSave, chat_type: ChatConfigDB.ChatType) -> str | None:
+    match chat_type:
+        case ChatConfigDB.ChatType.telegram:
+            return user.telegram_chat_id
+        case ChatConfigDB.ChatType.background:
+            return None
+        case ChatConfigDB.ChatType.github:
+            return None
+
+
+def resolve_user_to_save(handle: str, chat_type: ChatConfigDB.ChatType) -> UserSave | None:
+    match chat_type:
+        case ChatConfigDB.ChatType.telegram:
+            return UserSave(
+                id = None,
+                full_name = None,
+                telegram_username = handle,
+                telegram_chat_id = None,
+                telegram_user_id = None,
+                group = UserDB.Group.standard,
+            )
+        case ChatConfigDB.ChatType.background:
+            return None
+        case ChatConfigDB.ChatType.github:
+            return None
+
+
+def is_the_agent(who: User | UserSave | None, chat_type: ChatConfigDB.ChatType) -> bool:
+    if not who:
+        return False
+    agent_user = resolve_agent_user(chat_type)
+    user_id = resolve_external_id(who, chat_type)
+    agent_id = resolve_external_id(agent_user, chat_type)
+    return user_id is not None and user_id == agent_id
+
+
+def is_own_chat(chat_config: ChatConfig, user: User) -> bool:
+    match chat_config.chat_type:
+        case ChatConfigDB.ChatType.telegram:
+            is_own_chat_configured = (user.telegram_chat_id is not None) and (chat_config.external_id is not None)
+            return chat_config.is_private and is_own_chat_configured and user.telegram_chat_id == chat_config.external_id
+        case ChatConfigDB.ChatType.background:
+            return False
+        case ChatConfigDB.ChatType.github:
+            return False
+
+
+def lookup_user_by_handle(handle: str, chat_type: ChatConfigDB.ChatType, user_crud: UserCRUD) -> UserDB | None:
+    match chat_type:
+        case ChatConfigDB.ChatType.telegram:
+            return user_crud.get_by_telegram_username(handle)
+        case ChatConfigDB.ChatType.background:
+            return None
+        case ChatConfigDB.ChatType.github:
+            return None
+
+
+def lookup_all_admin_chats(chat_config: ChatConfig, user: User, di: DI) -> list[ChatConfig]:
+    match chat_config.chat_type:
+        case ChatConfigDB.ChatType.telegram:
+            administrators = di.telegram_bot_sdk.get_chat_administrators(str(chat_config.external_id))
+            if not administrators:
+                return []
+            result: list[ChatConfig] = []
+            for admin_member in administrators:
+                if admin_member.user and admin_member.user.id == user.telegram_user_id:
+                    result.append(chat_config)
+                    break
+            return result
+        case ChatConfigDB.ChatType.background:
+            return []
+        case ChatConfigDB.ChatType.github:
+            return []

@@ -1,12 +1,13 @@
 import unittest
 from datetime import datetime
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 from uuid import UUID
 
 from api.settings_controller import SettingsController
 from db.crud.user import UserCRUD
 from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
+from db.schema.chat_config import ChatConfig
 from db.schema.user import User, UserSave
 from di.di import DI
 from features.chat.command_processor import COMMAND_HELP, COMMAND_SETTINGS, COMMAND_START, CommandProcessor
@@ -18,6 +19,7 @@ from features.sponsorships.sponsorship_service import SponsorshipService
 class CommandProcessorTest(unittest.TestCase):
 
     user: User
+    chat: ChatConfig
     agent_user: UserSave
     mock_di: DI
     processor: CommandProcessor
@@ -32,12 +34,26 @@ class CommandProcessorTest(unittest.TestCase):
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
+        self.chat = ChatConfig(
+            chat_id = UUID(int = 2),
+            external_id = "test_chat_id",
+            is_private = True,
+            reply_chance_percent = 100,
+            chat_type = ChatConfigDB.ChatType.telegram,
+            release_notifications = ChatConfigDB.ReleaseNotifications.all,
+        )
         self.agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
 
         # Create mock DI with all required dependencies
         self.mock_di = Mock(spec = DI)
         # noinspection PyPropertyAccess
         self.mock_di.invoker = self.user
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker_chat = self.chat
+        # noinspection PyPropertyAccess
+        self.mock_di.invoker_chat_type = ChatConfigDB.ChatType.telegram
+        # noinspection PyPropertyAccess
+        self.mock_di.require_invoker_chat_type = MagicMock(return_value = ChatConfigDB.ChatType.telegram)
 
         # noinspection PyPropertyAccess
         self.mock_di.user_crud = Mock(spec = UserCRUD)

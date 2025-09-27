@@ -14,6 +14,7 @@ from db.schema.user import User
 from di.di import DI
 from features.external_tools.external_tool_library import ALL_EXTERNAL_TOOLS
 from features.external_tools.external_tool_provider_library import ALL_PROVIDERS
+from features.integrations.integrations import is_own_chat, resolve_agent_user, resolve_external_handle, resolve_external_id
 from util import log
 from util.config import config
 
@@ -37,31 +38,52 @@ class SettingsController:
             raise ValueError(log.e(f"Invalid settings type '{settings_type}'"))
         return settings_type
 
-    def create_settings_link(self, raw_settings_type: str | None = None) -> str:
-        if not self.__di.invoker.telegram_chat_id:
+    def create_settings_link(self, raw_settings_type: str | None = None, chat_type: ChatConfigDB.ChatType | None = None) -> str:
+        chat_type = chat_type or self.__di.invoker_chat_type
+        if not chat_type:
+            raise ValueError(log.e("Chat type not provided and invoker_chat is not available"))
+        external_id = resolve_external_id(self.__di.invoker, chat_type)
+        if not external_id:
             raise ValueError(log.e("User never sent a private message, cannot create a settings link"))
 
-        settings_type = self.__validate_settings_type(raw_settings_type) if raw_settings_type else DEF_SETTINGS_TYPE
-        chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, self.__di.invoker_chat)
-        resource_id: str = self.__di.invoker.id.hex if settings_type == "user" else chat_config.chat_id.hex
-        lang_iso_code: str = chat_config.language_iso_code or "en"
+        settings_type: SettingsType
+        lang_iso_code: str
+        resource_id: str
+        if self.__di.invoker_chat:
+            # chat context has additional chat-specific properties we can use
+            settings_type = self.__validate_settings_type(raw_settings_type) if raw_settings_type else DEF_SETTINGS_TYPE
+            chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, self.__di.invoker_chat)
+            resource_id = self.__di.invoker.id.hex if settings_type == "user" else chat_config.chat_id.hex
+            lang_iso_code = chat_config.language_iso_code or "en"
+        else:
+            # API context only supports user settings, we default to the basics
+            settings_type = DEF_SETTINGS_TYPE
+            resource_id = self.__di.invoker.id.hex
+            lang_iso_code = config.main_language_iso_code
 
-        sponsored_by = self.__resolve_sponsor_name()
-        jwt_token = self.__create_jwt_token(sponsored_by)
+        sponsored_by = self.__resolve_sponsor_name(chat_type)
+        jwt_token = self.__create_jwt_token(chat_type, sponsored_by)
 
         page = "sponsorships" if (settings_type == "user" and sponsored_by) else "settings"
         settings_url_base = f"{config.backoffice_url_base}/{lang_iso_code}/{settings_type}/{resource_id}/{page}"
         return f"{settings_url_base}?{SETTINGS_TOKEN_VAR}={jwt_token}"
 
-    def create_help_link(self) -> str:
-        lang_iso_code: str = "en"
-        if not self.__di.invoker.telegram_chat_id:
+    def create_help_link(self, chat_type: ChatConfigDB.ChatType | None = None) -> str:
+        chat_type = chat_type or self.__di.invoker_chat_type
+        if not chat_type:
+            raise ValueError(log.e("Chat type not provided and invoker_chat is not available"))
+        external_id = resolve_external_id(self.__di.invoker, chat_type)
+        if not external_id:
             raise ValueError(log.e("User never sent a private message, cannot create settings link"))
-        chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, self.__di.invoker_chat)
-        if chat_config.language_iso_code:
-            lang_iso_code = chat_config.language_iso_code
 
-        jwt_token = self.__create_jwt_token()
+        lang_iso_code: str
+        if self.__di.invoker_chat:
+            chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, self.__di.invoker_chat)
+            lang_iso_code = chat_config.language_iso_code or config.main_language_iso_code
+        else:
+            lang_iso_code = config.main_language_iso_code
+
+        jwt_token = self.__create_jwt_token(chat_type)
         settings_url_base = f"{config.backoffice_url_base}/{lang_iso_code}/features"
         return f"{settings_url_base}?{SETTINGS_TOKEN_VAR}={jwt_token}"
 
@@ -80,8 +102,7 @@ class SettingsController:
 
     def fetch_chat_settings(self, chat_id: str) -> dict[str, Any]:
         chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, chat_id)
-        invoker_telegram_id = str(self.__di.invoker.telegram_user_id or 0)
-        return chat_to_api(chat = chat_config, is_own = invoker_telegram_id == chat_config.external_id).model_dump()
+        return chat_to_api(chat = chat_config, is_own = is_own_chat(chat_config, self.__di.invoker)).model_dump()
 
     def fetch_user_settings(self, user_id_hex: str) -> dict[str, Any]:
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
@@ -139,17 +160,16 @@ class SettingsController:
         if not admin_chats:
             log.d("  No administered chats found")
             return result
-        owner_telegram_chat_id = str(user.telegram_chat_id or 0)
         for chat_config in admin_chats:
             record = {
                 "chat_id": chat_config.chat_id.hex,
                 "title": chat_config.title,
-                "is_own": owner_telegram_chat_id == chat_config.external_id,
+                "is_own": is_own_chat(chat_config, user),
             }
             result.append(record)
         return result
 
-    def __resolve_sponsor_name(self) -> str | None:
+    def __resolve_sponsor_name(self, chat_type: ChatConfigDB.ChatType) -> str | None:
         sponsored_by: str | None = None
         sponsorships_db = self.__di.sponsorship_crud.get_all_by_receiver(self.__di.invoker.id)
         if sponsorships_db:
@@ -157,18 +177,25 @@ class SettingsController:
             sponsor_db = self.__di.user_crud.get(sponsorship.sponsor_id)
             if sponsor_db:
                 sponsor = User.model_validate(sponsor_db)
-                sponsored_by = sponsor.full_name or sponsor.telegram_username  # or None, transitively
+                sponsor_handle = resolve_external_handle(sponsor, chat_type)  # nullable
+                sponsored_by = sponsor.full_name or sponsor_handle
         return sponsored_by
 
-    def __create_jwt_token(self, sponsored_by: str | None = None) -> str:
-        sponsored_by = sponsored_by or self.__resolve_sponsor_name()
-        telegram_user_id = self.__di.invoker.telegram_user_id
-        telegram_username = self.__di.invoker.telegram_username
+    def __create_jwt_token(self, chat_type: ChatConfigDB.ChatType, sponsored_by: str | None = None) -> str:
+        sponsored_by = sponsored_by or self.__resolve_sponsor_name(chat_type)
+        external_id = resolve_external_id(self.__di.invoker, chat_type)
+        external_handle = resolve_external_handle(self.__di.invoker, chat_type)
+
+        # Get platform-agnostic issuer name
+        agent_user = resolve_agent_user(chat_type)
+        issuer_name = agent_user.full_name or config.background_bot_name  # fallback for backward compatibility
+
         token_payload = {
-            "iss": config.telegram_bot_name,  # issuer, app name
+            "iss": issuer_name,  # issuer, app name
             "sub": self.__di.invoker.id.hex,  # subject, user's unique identifier
-            **({"telegram_user_id": telegram_user_id} if telegram_user_id else {}),
-            **({"telegram_username": telegram_username} if telegram_username else {}),
+            "platform": chat_type.value,  # origin of the token
+            **({"platform_id": external_id} if external_id else {}),
+            **({"platform_handle": external_handle} if external_handle else {}),
             **({"sponsored_by": sponsored_by} if sponsored_by else {}),
         }
         return auth.create_jwt_token(token_payload, config.jwt_expires_in_minutes)

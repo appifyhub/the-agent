@@ -47,11 +47,9 @@ class ChatConfigDB(BaseModel):
             return hierarchy[self.value] >= hierarchy[other.value]
 
     class ChatType(Enum):
-        standalone_web = "standalone_web"
-        standalone_app = "standalone_app"
-        extension_web = "extension_web"
         telegram = "telegram"
-        whatsapp = "whatsapp"
+        github = "github"
+        background = "background"
 
         @classmethod
         def lookup(cls, value) -> "ChatConfigDB.ChatType | None":
@@ -64,11 +62,9 @@ class ChatConfigDB(BaseModel):
             if not isinstance(other, ChatConfigDB.ChatType):
                 return NotImplemented
             hierarchy = {
-                "standalone_web": 1,
-                "standalone_app": 2,
-                "extension_web": 3,
-                "telegram": 4,
-                "whatsapp": 5,
+                "telegram": 1,
+                "github": 2,
+                "background": 3,
             }
             return hierarchy[self.value] < hierarchy[other.value]
 
@@ -76,11 +72,9 @@ class ChatConfigDB(BaseModel):
             if not isinstance(other, ChatConfigDB.ChatType):
                 return NotImplemented
             hierarchy = {
-                "standalone_web": 1,
-                "standalone_app": 2,
-                "extension_web": 3,
-                "telegram": 4,
-                "whatsapp": 5,
+                "telegram": 1,
+                "github": 2,
+                "background": 3,
             }
             return hierarchy[self.value] >= hierarchy[other.value]
 

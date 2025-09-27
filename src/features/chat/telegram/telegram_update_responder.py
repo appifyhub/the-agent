@@ -8,8 +8,8 @@ from db.schema.chat_message import ChatMessage
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.sql import get_detached_session
 from di.di import DI
+from features.chat.chat_agent import ChatAgent
 from features.chat.telegram.model.update import Update
-from features.chat.telegram.telegram_chat_bot import TelegramChatBot
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.integrations import prompt_resolvers
 from features.integrations.integrations import resolve_agent_user
@@ -26,12 +26,11 @@ def respond_to_update(update: Update) -> bool:
         di = DI(db)
 
         def map_to_langchain(message) -> HumanMessage | AIMessage:
-            return di.domain_langchain_mapper.map_to_langchain(di.user_crud.get(message.author_id), message)
-
-        agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
-        assert agent_user.id is not None
-        if not di.user_crud.get(agent_user.id):
-            di.user_crud.save(agent_user)
+            return di.domain_langchain_mapper.map_to_langchain(
+                author = di.user_crud.get(message.author_id),
+                message = message,
+                chat_type = ChatConfigDB.ChatType.telegram,
+            )
 
         resolved_domain_data: TelegramDataResolver.Result | None = None
         try:
@@ -67,27 +66,28 @@ def respond_to_update(update: Update) -> bool:
             langchain_messages = [map_to_langchain(message) for message in past_messages][::-1]
 
             # process the update using LLM; get instead of require to allow the first message to be sent
-            tool = di.tool_choice_resolver.get_tool(TelegramChatBot.TOOL_TYPE, TelegramChatBot.DEFAULT_TOOL)
-            telegram_chat_bot = di.telegram_chat_bot(
+            tool = di.tool_choice_resolver.get_tool(ChatAgent.TOOL_TYPE, ChatAgent.DEFAULT_TOOL)
+            chat_agent = di.chat_agent(
                 messages = list(langchain_messages),
                 raw_last_message = domain_update.message.text,  # excludes the resolver formatting
                 last_message_id = domain_update.message.message_id,
                 attachment_ids = past_attachment_ids,
                 configured_tool = tool,
             )
-            answer = telegram_chat_bot.execute()
+            answer = chat_agent.execute()
             if not answer or not answer.content:
                 log.d("Resolved an empty response, skipping bot reply")
                 return False
 
             # send and store the response[s]
             sent_messages: int = 0
-            domain_messages = di.domain_langchain_mapper.map_bot_message_to_storage(resolved_domain_data.chat.chat_id, answer)
+            domain_messages = di.domain_langchain_mapper.map_bot_message_to_storage(resolved_domain_data.chat, answer)
             for message in domain_messages:
                 di.telegram_bot_sdk.send_text_message(str(resolved_domain_data.chat.external_id), message.text)
                 sent_messages += 1
 
-            log.t(f"Finished responding to updates. \n[{agent_user.full_name}]: {answer.content}")
+            agent = resolve_agent_user(resolved_domain_data.chat.chat_type)
+            log.t(f"Finished responding to updates. \n[{agent.full_name}]: {answer.content}")
             log.i(f"Used {len(past_messages_db)} and sent {sent_messages} messages")
             return True
         except Exception as e:
@@ -104,7 +104,7 @@ def __notify_of_errors(
 ):
     if resolved_domain_data:
         answer = AIMessage(prompt_resolvers.simple_chat_error(str(error)))
-        messages = di.domain_langchain_mapper.map_bot_message_to_storage(resolved_domain_data.chat.chat_id, answer)
+        messages = di.domain_langchain_mapper.map_bot_message_to_storage(resolved_domain_data.chat, answer)
         for message in messages:
             di.telegram_bot_sdk.send_text_message(str(resolved_domain_data.chat.external_id), message.text)
         log.t("Replied with the error")

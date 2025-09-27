@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 from uuid import UUID
 
 from pydantic import SecretStr
@@ -93,7 +93,11 @@ class SettingsControllerTest(unittest.TestCase):
         # Create mock DI container
         self.mock_di = MagicMock(spec = DI)
         # noinspection PyPropertyAccess
-        self.mock_di.invoker = self.invoker_user
+        type(self.mock_di).invoker = PropertyMock(return_value = self.invoker_user)
+        # noinspection PyPropertyAccess
+        type(self.mock_di).invoker_chat = PropertyMock(return_value = self.chat_config)
+        # noinspection PyPropertyAccess
+        type(self.mock_di).invoker_chat_type = PropertyMock(return_value = ChatConfigDB.ChatType.telegram)
         # noinspection PyPropertyAccess
         self.mock_di.user_crud = self.mock_user_dao
         # noinspection PyPropertyAccess
@@ -518,7 +522,7 @@ class SettingsControllerTest(unittest.TestCase):
             full_name = self.invoker_user.full_name,
             telegram_username = self.invoker_user.telegram_username,
             telegram_chat_id = None,  # No chat ID
-            telegram_user_id = self.invoker_user.telegram_user_id,
+            telegram_user_id = None,  # No user ID
             open_ai_key = self.invoker_user.open_ai_key,
             anthropic_key = self.invoker_user.anthropic_key,
             perplexity_key = self.invoker_user.perplexity_key,
@@ -535,13 +539,13 @@ class SettingsControllerTest(unittest.TestCase):
         )
 
         # noinspection PyPropertyAccess
-        self.mock_di.invoker = user_without_chat
+        type(self.mock_di).invoker = PropertyMock(return_value = user_without_chat)
         controller = SettingsController(self.mock_di)
 
         with self.assertRaises(ValueError) as context:
             controller.create_settings_link()
 
-        self.assertIn("User never sent a private message", str(context.exception))
+        self.assertIn("User never sent a private message, cannot create a settings link", str(context.exception))
 
     def test_fetch_external_tools_success_mixed_configuration(self):
         # Create mock tools and providers
@@ -664,7 +668,7 @@ class SettingsControllerTest(unittest.TestCase):
             full_name = self.invoker_user.full_name,
             telegram_username = self.invoker_user.telegram_username,
             telegram_chat_id = None,  # No chat ID
-            telegram_user_id = self.invoker_user.telegram_user_id,
+            telegram_user_id = None,  # No user ID
             open_ai_key = self.invoker_user.open_ai_key,
             anthropic_key = self.invoker_user.anthropic_key,
             perplexity_key = self.invoker_user.perplexity_key,
@@ -681,10 +685,10 @@ class SettingsControllerTest(unittest.TestCase):
         )
 
         # noinspection PyPropertyAccess
-        self.mock_di.invoker = user_without_chat
+        type(self.mock_di).invoker = PropertyMock(return_value = user_without_chat)
         controller = SettingsController(self.mock_di)
 
         with self.assertRaises(ValueError) as context:
             controller.create_help_link()
 
-        self.assertIn("User never sent a private message", str(context.exception))
+        self.assertIn("User never sent a private message, cannot create settings link", str(context.exception))

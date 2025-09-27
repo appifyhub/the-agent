@@ -54,7 +54,7 @@ class ComputerVisionAnalyzer:
         content.append(image_content_json)
 
         # initialize the LLM
-        system_prompt = prompt_resolvers.computer_vision(di.invoker_chat.chat_type)
+        system_prompt = prompt_resolvers.computer_vision(di.require_invoker_chat_type())
         self.__messages = [SystemMessage(system_prompt), HumanMessage(content)]
         self.__vision_model = di.chat_langchain_model(configured_tool)
 

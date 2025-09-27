@@ -2,10 +2,17 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
+from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
 from db.schema.sponsorship import Sponsorship, SponsorshipSave
-from db.schema.user import User, UserSave
+from db.schema.user import User
 from di.di import DI
+from features.integrations.integrations import (
+    lookup_user_by_handle,
+    resolve_external_handle,
+    resolve_external_id,
+    resolve_user_to_save,
+)
 from util import log
 from util.config import config
 
@@ -21,8 +28,10 @@ class SponsorshipService:
     def __init__(self, di: DI):
         self.__di = di
 
-    def sponsor_user(self, sponsor_user_id_hex: str, receiver_telegram_username: str) -> tuple[Result, str]:
-        log.d(f"Sponsor '{sponsor_user_id_hex}' is sponsoring '@{receiver_telegram_username}'")
+    def sponsor_user(
+        self, sponsor_user_id_hex: str, receiver_handle: str, chat_type: ChatConfigDB.ChatType,
+    ) -> tuple[Result, str]:
+        log.d(f"Sponsor '{sponsor_user_id_hex}' is sponsoring {chat_type.value}/'@{receiver_handle}'")
 
         # check if sponsor exists
         sponsor_user_db = self.__di.user_crud.get(UUID(hex = sponsor_user_id_hex))
@@ -34,10 +43,11 @@ class SponsorshipService:
         sponsor_user = User.model_validate(sponsor_user_db)
 
         # check if sponsor is sponsoring themselves
-        if sponsor_user.telegram_username == receiver_telegram_username:
+        sponsor_handle = resolve_external_handle(sponsor_user, chat_type)
+        if sponsor_handle == receiver_handle:
             return (
                 SponsorshipService.Result.failure,
-                log.d(f"Sponsor '@{receiver_telegram_username}' cannot sponsor themselves"),
+                log.d(f"Sponsor {chat_type.value}/'@{receiver_handle}' cannot sponsor themselves"),
             )
 
         # check if sponsor has exceeded the maximum number of sponsorships
@@ -65,7 +75,7 @@ class SponsorshipService:
             )
 
         # check if receiver already has a sponsorship
-        receiver_user_db = self.__di.user_crud.get_by_telegram_username(receiver_telegram_username)
+        receiver_user_db = lookup_user_by_handle(receiver_handle, chat_type, self.__di.user_crud)
         receiver_user: User
         if receiver_user_db:
             receiver_user = User.model_validate(receiver_user_db)
@@ -74,38 +84,37 @@ class SponsorshipService:
             if all_receiver_sponsorships:
                 return (
                     SponsorshipService.Result.failure,
-                    log.d(f"Receiver '@{receiver_telegram_username}' already has a sponsorship"),
+                    log.d(f"Receiver '@{receiver_handle}' already has a sponsorship"),
                 )
             # check if receiver already has API keys - we don't want to override them
             if receiver_user.has_any_api_key():
                 return (
                     SponsorshipService.Result.failure,
-                    log.d(f"Receiver '@{receiver_telegram_username}' already has API keys configured"),
+                    log.d(f"Receiver '@{receiver_handle}' already has API keys configured"),
                 )
             # receiver is eligible to be sponsored
-            if receiver_user.telegram_chat_id:
-                log.t(f"Receiver '@{receiver_telegram_username}' already has already messaged the bot")
+            external_id = resolve_external_id(receiver_user, chat_type)
+            if external_id:
+                log.t(f"Receiver '@{receiver_handle}' already has already messaged the bot")
                 accepted_at = datetime.now()
             else:
-                log.t(f"Receiver '@{receiver_telegram_username}' has yet to message the bot")
+                log.t(f"Receiver '@{receiver_handle}' has yet to message the bot")
                 accepted_at = None
-            message = f"Activated! Send a welcome message to user '@{receiver_user.telegram_username}'"
+            receiver_handle_display = resolve_external_handle(receiver_user, chat_type) or receiver_handle
+            message = f"Activated! Send a welcome message to user '@{receiver_handle_display}'"
         else:
             # create a new user for the receiver
-            log.t(f"Creating new user for receiver '@{receiver_telegram_username}'")
-            receiver_user_db = self.__di.user_crud.save(
-                UserSave(
-                    id = None,
-                    full_name = None,
-                    telegram_username = receiver_telegram_username,
-                    telegram_chat_id = None,
-                    telegram_user_id = None,
-                    group = UserDB.Group.standard,
-                ),
-            )
+            log.t(f"Creating new user for receiver {chat_type.value}/'@{receiver_handle}'")
+            receiver_user_to_save = resolve_user_to_save(receiver_handle, chat_type)
+            if not receiver_user_to_save:
+                return (
+                    SponsorshipService.Result.failure,
+                    log.d(f"User creation not supported for platform {chat_type.value}"),
+                )
+            receiver_user_db = self.__di.user_crud.save(receiver_user_to_save)
             receiver_user = User.model_validate(receiver_user_db)
             accepted_at = None
-            message = f"Sponsorship sent! Waiting for '{receiver_user.telegram_username}' to send the first message"
+            message = f"Sponsorship sent! Waiting for '{receiver_handle}' to send the first message"
 
         # finally, create a sponsorship to track the relationship
         sponsorship_db = self.__di.sponsorship_crud.save(
@@ -119,8 +128,10 @@ class SponsorshipService:
         log.i(f"Sponsorship created from '{sponsorship.sponsor_id}' to '{sponsorship.receiver_id}'")
         return SponsorshipService.Result.success, message
 
-    def unsponsor_user(self, sponsor_user_id_hex: str, receiver_telegram_username: str) -> tuple[Result, str]:
-        log.d(f"Sponsor '{sponsor_user_id_hex}' is unsponsoring receiver '@{receiver_telegram_username}'")
+    def unsponsor_user(
+        self, sponsor_user_id_hex: str, receiver_handle: str, chat_type: ChatConfigDB.ChatType,
+    ) -> tuple[Result, str]:
+        log.d(f"Sponsor '{sponsor_user_id_hex}' is unsponsoring receiver {chat_type.value}/'@{receiver_handle}'")
 
         # check if sponsor exists
         sponsor_user_db = self.__di.user_crud.get(UUID(hex = sponsor_user_id_hex))
@@ -132,11 +143,11 @@ class SponsorshipService:
         sponsor_user = User.model_validate(sponsor_user_db)
 
         # check if receiver exists
-        receiver_user_db = self.__di.user_crud.get_by_telegram_username(receiver_telegram_username)
+        receiver_user_db = lookup_user_by_handle(receiver_handle, chat_type, self.__di.user_crud)
         if not receiver_user_db:
             return (
                 SponsorshipService.Result.failure,
-                log.d(f"Receiver '@{receiver_telegram_username}' not found"),
+                log.d(f"Receiver '@{receiver_handle}' not found"),
             )
         receiver_user = User.model_validate(receiver_user_db)
 
@@ -152,12 +163,13 @@ class SponsorshipService:
         # delete the sponsorship
         self.__di.sponsorship_crud.delete(sponsor_user.id, receiver_user.id)
         log.d(f"Sponsorship from '{sponsorship.sponsor_id}' to '{sponsorship.receiver_id}' deleted")
+        receiver_handle_display = resolve_external_handle(receiver_user, chat_type) or receiver_handle
         return (
             SponsorshipService.Result.success,
-            f"Sponsorship revoked! Send a thanks/goodbye message to user '@{receiver_user.telegram_username}'",
+            f"Sponsorship revoked! Send a thanks/goodbye message to user '@{receiver_handle_display}'",
         )
 
-    def unsponsor_self(self, user_id_hex: str) -> tuple[Result, str]:
+    def unsponsor_self(self, user_id_hex: str, chat_type: ChatConfigDB.ChatType) -> tuple[Result, str]:
         log.d(f"User '{user_id_hex}' is unsponsoring themselves")
 
         # check if user exists
@@ -180,12 +192,13 @@ class SponsorshipService:
         sponsorship = Sponsorship.model_validate(sponsorships_db[0])
 
         # find the sponsor and call unsponsor_user
-        if not user.telegram_username:
+        platform_handle = resolve_external_handle(user, chat_type)
+        if not platform_handle:
             return (
                 SponsorshipService.Result.failure,
-                log.d(f"User '{user.id}' has no telegram username"),
+                log.d(f"User '{user.id}' has no platform handle for {chat_type.value}"),
             )
-        return self.unsponsor_user(sponsorship.sponsor_id.hex, user.telegram_username)
+        return self.unsponsor_user(sponsorship.sponsor_id.hex, platform_handle, chat_type)
 
     def accept_sponsorship(self, receiver: User) -> bool:
         log.d(f"User '{receiver.id}' is trying to accept a sponsorship")

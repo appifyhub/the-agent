@@ -2,15 +2,16 @@ from typing import List
 
 from pydantic import BaseModel
 
+from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig, ChatConfigSave
 from db.schema.chat_message import ChatMessage, ChatMessageSave
 from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessageAttachmentSave
 from db.schema.user import User, UserSave
 from di.di import DI
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
+from features.integrations.integrations import is_the_agent
 from util import log
 from util.config import config
-from util.functions import is_the_agent
 
 
 class TelegramDataResolver:
@@ -35,7 +36,7 @@ class TelegramDataResolver:
         resolved_chat_config = self.resolve_chat_config(mapping_result.chat)
         resolved_author: User | None = None
         if mapping_result.author:
-            if is_the_agent(mapping_result.author):
+            if is_the_agent(mapping_result.author, ChatConfigDB.ChatType.telegram):
                 mapping_result.author.telegram_chat_id = None  # bot has no private chat
             resolved_author = self.resolve_author(mapping_result.author)
             if resolved_author:
@@ -127,37 +128,53 @@ class TelegramDataResolver:
         for field_name in api_key_fields:
             field_value = getattr(mapped_data, field_name)
             if is_empty_secret(field_value):
+                log.w(f"Resetting {field_name} to None because it is empty")
                 setattr(mapped_data, field_name, None)
-        # reset tool choice values to None if they are empty strings
-        if not mapped_data.tool_choice_chat or not mapped_data.tool_choice_chat.strip():
+        # reset tool choice values to None if they are empty strings (not if already None)
+        if mapped_data.tool_choice_chat is not None and not mapped_data.tool_choice_chat.strip():
+            log.w("Resetting tool_choice_chat to None because it is empty")
             mapped_data.tool_choice_chat = None
-        if not mapped_data.tool_choice_reasoning or not mapped_data.tool_choice_reasoning.strip():
+        if mapped_data.tool_choice_reasoning is not None and not mapped_data.tool_choice_reasoning.strip():
+            log.w("Resetting tool_choice_reasoning to None because it is empty")
             mapped_data.tool_choice_reasoning = None
-        if not mapped_data.tool_choice_copywriting or not mapped_data.tool_choice_copywriting.strip():
+        if mapped_data.tool_choice_copywriting is not None and not mapped_data.tool_choice_copywriting.strip():
+            log.w("Resetting tool_choice_copywriting to None because it is empty")
             mapped_data.tool_choice_copywriting = None
-        if not mapped_data.tool_choice_vision or not mapped_data.tool_choice_vision.strip():
+        if mapped_data.tool_choice_vision is not None and not mapped_data.tool_choice_vision.strip():
+            log.w("Resetting tool_choice_vision to None because it is empty")
             mapped_data.tool_choice_vision = None
-        if not mapped_data.tool_choice_hearing or not mapped_data.tool_choice_hearing.strip():
+        if mapped_data.tool_choice_hearing is not None and not mapped_data.tool_choice_hearing.strip():
+            log.w("Resetting tool_choice_hearing to None because it is empty")
             mapped_data.tool_choice_hearing = None
-        if not mapped_data.tool_choice_images_gen or not mapped_data.tool_choice_images_gen.strip():
+        if mapped_data.tool_choice_images_gen is not None and not mapped_data.tool_choice_images_gen.strip():
+            log.w("Resetting tool_choice_images_gen to None because it is empty")
             mapped_data.tool_choice_images_gen = None
-        if not mapped_data.tool_choice_images_edit or not mapped_data.tool_choice_images_edit.strip():
+        if mapped_data.tool_choice_images_edit is not None and not mapped_data.tool_choice_images_edit.strip():
+            log.w("Resetting tool_choice_images_edit to None because it is empty")
             mapped_data.tool_choice_images_edit = None
-        if not mapped_data.tool_choice_images_restoration or not mapped_data.tool_choice_images_restoration.strip():
+        if mapped_data.tool_choice_images_restoration is not None and not mapped_data.tool_choice_images_restoration.strip():
+            log.w("Resetting tool_choice_images_restoration to None because it is empty")
             mapped_data.tool_choice_images_restoration = None
-        if not mapped_data.tool_choice_images_inpainting or not mapped_data.tool_choice_images_inpainting.strip():
+        if mapped_data.tool_choice_images_inpainting is not None and not mapped_data.tool_choice_images_inpainting.strip():
+            log.w("Resetting tool_choice_images_inpainting to None because it is empty")
             mapped_data.tool_choice_images_inpainting = None
-        if not mapped_data.tool_choice_images_background_removal or not mapped_data.tool_choice_images_background_removal.strip():
+        if mapped_data.tool_choice_images_background_removal is not None and not mapped_data.tool_choice_images_background_removal.strip():  # noqa: E501
+            log.w("Resetting tool_choice_images_background_removal to None because it is empty")
             mapped_data.tool_choice_images_background_removal = None
-        if not mapped_data.tool_choice_search or not mapped_data.tool_choice_search.strip():
+        if mapped_data.tool_choice_search is not None and not mapped_data.tool_choice_search.strip():
+            log.w("Resetting tool_choice_search to None because it is empty")
             mapped_data.tool_choice_search = None
-        if not mapped_data.tool_choice_embedding or not mapped_data.tool_choice_embedding.strip():
+        if mapped_data.tool_choice_embedding is not None and not mapped_data.tool_choice_embedding.strip():
+            log.w("Resetting tool_choice_embedding to None because it is empty")
             mapped_data.tool_choice_embedding = None
-        if not mapped_data.tool_choice_api_fiat_exchange or not mapped_data.tool_choice_api_fiat_exchange.strip():
+        if mapped_data.tool_choice_api_fiat_exchange is not None and not mapped_data.tool_choice_api_fiat_exchange.strip():
+            log.w("Resetting tool_choice_api_fiat_exchange to None because it is empty")
             mapped_data.tool_choice_api_fiat_exchange = None
-        if not mapped_data.tool_choice_api_crypto_exchange or not mapped_data.tool_choice_api_crypto_exchange.strip():
+        if mapped_data.tool_choice_api_crypto_exchange is not None and not mapped_data.tool_choice_api_crypto_exchange.strip():
+            log.w("Resetting tool_choice_api_crypto_exchange to None because it is empty")
             mapped_data.tool_choice_api_crypto_exchange = None
-        if not mapped_data.tool_choice_api_twitter or not mapped_data.tool_choice_api_twitter.strip():
+        if mapped_data.tool_choice_api_twitter is not None and not mapped_data.tool_choice_api_twitter.strip():
+            log.w("Resetting tool_choice_api_twitter to None because it is empty")
             mapped_data.tool_choice_api_twitter = None
         return User.model_validate(self.__di.user_crud.save(mapped_data))
 
