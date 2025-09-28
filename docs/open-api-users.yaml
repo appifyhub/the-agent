@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: The Agent's user-facing API
   description: The user-facing parts of The Agent's API service (excluding system-level endpoints, chat completion, maintenance endpoints, etc.)
-  version: 3.9.0
+  version: 3.9.3
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -608,6 +608,11 @@ components:
           type: string
           nullable: true
           description: Chat title
+        platform:
+          type: string
+          nullable: false
+          enum: [telegram]
+          description: Platform type of this chat
         language_name:
           type: string
           nullable: true
@@ -637,6 +642,7 @@ components:
           description: Whether the chat belongs to the requesting user
       required:
         - chat_id
+        - platform
         - reply_chance_percent
         - release_notifications
         - is_private
@@ -669,19 +675,19 @@ components:
           type: string
           nullable: true
           description: Chat title
-        is_own:
-          type: boolean
-          nullable: false
-          description: Whether the chat belongs to the requesting user (e.g., private chat)
         platform:
           type: string
           nullable: false
           enum: [telegram]
           description: Platform type of this chat
+        is_own:
+          type: boolean
+          nullable: false
+          description: Whether the chat belongs to the requesting user (e.g., private chat)
       required:
         - chat_id
-        - is_own
         - platform
+        - is_own
 
     ExternalToolsResponse:
       type: object
