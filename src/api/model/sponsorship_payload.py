@@ -2,4 +2,5 @@ from pydantic import BaseModel
 
 
 class SponsorshipPayload(BaseModel):
-    receiver_telegram_username: str
+    platform_handle: str
+    platform: str

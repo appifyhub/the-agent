@@ -1,6 +1,5 @@
 import os
 import unittest
-from typing import AnyStr
 
 from util.config import Config
 
@@ -8,7 +7,7 @@ from util.config import Config
 class ConfigTest(unittest.TestCase):
 
     # noinspection PyTypeHints
-    original_env: dict[AnyStr, AnyStr]
+    original_env: dict
 
     def setUp(self):
         self.original_env = os.environ.copy()
@@ -33,6 +32,11 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.max_chatbot_iterations, 20)
         self.assertEqual(config.website_url, "https://agent.appifyhub.com")
         self.assertEqual(config.parent_organization, "AppifyHub")
+        self.assertEqual(config.background_bot_name, "The Agent's Pulse")
+        self.assertEqual(config.background_bot_username, "the_agent_pulse")
+        self.assertEqual(config.github_bot_username, "the-agent")
+        self.assertEqual(config.github_bot_name, "The Agent")
+        self.assertEqual(config.github_bot_id, 1234567890)
         self.assertEqual(config.telegram_bot_username, "the_agent")
         self.assertEqual(config.telegram_bot_name, "The Agent")
         self.assertEqual(config.telegram_bot_id, 1234567890)
@@ -68,6 +72,11 @@ class ConfigTest(unittest.TestCase):
         os.environ["MAX_CHATBOT_ITERATIONS"] = "15"
         os.environ["WEBSITE_URL"] = "https://new.agent.appifyhub.com"
         os.environ["PARENT_ORGANIZATION"] = "New"
+        os.environ["BACKGROUND_BOT_NAME"] = "The New Agent's Pulse"
+        os.environ["BACKGROUND_BOT_USERNAME"] = "the_new_agent_pulse"
+        os.environ["GITHUB_BOT_USERNAME"] = "the-new-agent"
+        os.environ["GITHUB_BOT_NAME"] = "The New Agent"
+        os.environ["GITHUB_BOT_ID"] = "1234"
         os.environ["TELEGRAM_BOT_USERNAME"] = "the_new_agent"
         os.environ["TELEGRAM_BOT_NAME"] = "The New Agent"
         os.environ["TELEGRAM_BOT_ID"] = "1234"
@@ -107,6 +116,11 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.max_chatbot_iterations, 15)
         self.assertEqual(config.website_url, "https://new.agent.appifyhub.com")
         self.assertEqual(config.parent_organization, "New")
+        self.assertEqual(config.background_bot_name, "The New Agent's Pulse")
+        self.assertEqual(config.background_bot_username, "the_new_agent_pulse")
+        self.assertEqual(config.github_bot_username, "the-new-agent")
+        self.assertEqual(config.github_bot_name, "The New Agent")
+        self.assertEqual(config.github_bot_id, 1234)
         self.assertEqual(config.telegram_bot_username, "the_new_agent")
         self.assertEqual(config.telegram_bot_name, "The New Agent")
         self.assertEqual(config.telegram_bot_id, 1234)

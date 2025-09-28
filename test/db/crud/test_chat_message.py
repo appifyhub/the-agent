@@ -88,7 +88,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
             ChatConfigSave(external_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram),
         )
         chat2 = self.sql.chat_config_crud().create(
-            ChatConfigSave(external_id = "chat2", chat_type = ChatConfigDB.ChatType.standalone_app),
+            ChatConfigSave(external_id = "chat2", chat_type = ChatConfigDB.ChatType.background),
         )
         user = self.sql.user_crud().create(
             UserSave(
@@ -122,7 +122,7 @@ class ChatMessageCRUDTest(unittest.TestCase):
             ChatConfigSave(external_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram),
         )
         chat2 = self.sql.chat_config_crud().create(
-            ChatConfigSave(external_id = "chat2", chat_type = ChatConfigDB.ChatType.standalone_app),
+            ChatConfigSave(external_id = "chat2", chat_type = ChatConfigDB.ChatType.background),
         )
         user = self.sql.user_crud().create(
             UserSave(

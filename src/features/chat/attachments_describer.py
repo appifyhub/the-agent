@@ -170,8 +170,8 @@ class AttachmentsDescriber:
                 copywriter_tool = copywriter_tool,
                 def_extension = attachment.extension,
                 audio_content = contents,
-                language_name = self.__di.invoker_chat.language_name,
-                language_iso_code = self.__di.invoker_chat.language_iso_code,
+                language_name = self.__di.require_invoker_chat().language_name,
+                language_iso_code = self.__di.require_invoker_chat().language_iso_code,
             ).execute()
 
         # handle documents

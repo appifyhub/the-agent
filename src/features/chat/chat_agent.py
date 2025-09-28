@@ -6,14 +6,13 @@ from langchain_core.language_models import LanguageModelInput
 from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import Runnable
 
-from db.model.chat_config import ChatConfigDB
 from di.di import DI
 from features.chat.command_processor import CommandProcessor
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import GPT_4_1_MINI
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.integrations import prompt_resolvers
-from features.integrations.integrations import resolve_agent_user
+from features.integrations.integrations import resolve_agent_user, resolve_external_handle
 from util import log
 from util.config import config
 
@@ -21,7 +20,7 @@ TMessage = TypeVar("TMessage", bound = BaseMessage)  # Generic message type
 TooledChatModel = Runnable[LanguageModelInput, BaseMessage]
 
 
-class TelegramChatBot:
+class ChatAgent:
 
     DEFAULT_TOOL: ExternalTool = GPT_4_1_MINI
     TOOL_TYPE: ToolType = ToolType.chat
@@ -42,7 +41,7 @@ class TelegramChatBot:
         configured_tool: ConfiguredTool | None,
         di: DI,
     ):
-        system_prompt = prompt_resolvers.chat(di.invoker, di.invoker_chat, str(di.llm_tool_library.tool_names))
+        system_prompt = prompt_resolvers.chat(di.invoker, di.require_invoker_chat(), str(di.llm_tool_library.tool_names))
         self.__messages = []
         self.__messages.append(SystemMessage(system_prompt))
         self.__messages.extend(messages)
@@ -84,7 +83,7 @@ class TelegramChatBot:
             return answer
 
         # prepare the LLM model and connected tools
-        progress_notifier = self.__di.telegram_progress_notifier(self.__last_message_id)
+        progress_notifier = self.__di.telegram_progress_notifier(self.__last_message_id)  # TODO: not just Telegram
         base_model = self.__di.chat_langchain_model(self.__configured_tool)
         tools_model: None | TooledChatModel = None
         try:
@@ -176,27 +175,31 @@ class TelegramChatBot:
 
     def should_reply(self) -> bool:
         has_content = bool(self.__raw_last_message.strip())
-        agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
-        is_not_recursive = self.__di.invoker.telegram_username != agent_user.telegram_username
-        is_bot_mentioned = f"@{agent_user.telegram_username}" in self.__raw_last_message
-        if self.__di.invoker_chat.reply_chance_percent == 100:
+        chat_type = self.__di.require_invoker_chat_type()
+        agent_user = resolve_agent_user(chat_type)
+        invoker_handle = resolve_external_handle(self.__di.invoker, chat_type)
+        agent_handle = resolve_external_handle(agent_user, chat_type)
+        is_not_recursive = invoker_handle != agent_handle
+        is_bot_mentioned = f"@{agent_handle}" in self.__raw_last_message
+        invoker_chat = self.__di.require_invoker_chat()
+        if invoker_chat.reply_chance_percent == 100:
             should_reply_at_random = True
-        elif self.__di.invoker_chat.reply_chance_percent == 0:
+        elif invoker_chat.reply_chance_percent == 0:
             should_reply_at_random = False
         else:
-            should_reply_at_random = random.randint(0, 100) <= self.__di.invoker_chat.reply_chance_percent
+            should_reply_at_random = random.randint(0, 100) <= invoker_chat.reply_chance_percent
         should_reply = (
             has_content and
             is_not_recursive and
-            (self.__di.invoker_chat.is_private or is_bot_mentioned or should_reply_at_random)
+            (invoker_chat.is_private or is_bot_mentioned or should_reply_at_random)
         )
         log.d(
             f"Reply decision: {'REPLYING' if should_reply else 'NOT REPLYING'}. Conditions:\n"
             f"  · has_content      = {has_content}\n"
             f"  · is_not_recursive = {is_not_recursive}\n"
-            f"  · is_private_chat  = {self.__di.invoker_chat.is_private}\n"
+            f"  · is_private_chat  = {invoker_chat.is_private}\n"
             f"  · is_bot_mentioned = {is_bot_mentioned}\n"
             f"  · reply_at_random  = {should_reply_at_random}\n"
-            f"  · reply_chance     = {self.__di.invoker_chat.reply_chance_percent}%",
+            f"  · reply_chance     = {invoker_chat.reply_chance_percent}%",
         )
         return should_reply

@@ -98,6 +98,16 @@ def copywriting_new_release_version(
                 )
                 .add_variables((PromptVar.agent_username, agent_user.telegram_username or PLACEHOLDER_NO_DATA))
             ).render()
+        case ChatConfigDB.ChatType.github:
+            return (
+                composer
+                .add_fragments(
+                    prompt_library.styles.copywriting_new_release_version_github,
+                    prompt_library.formats.post_github,
+                    prompt_library.formats.copywriting_new_release_version_github,
+                )
+                .add_variables((PromptVar.agent_username, config.github_bot_username or PLACEHOLDER_NO_DATA))
+            ).render()
     raise ValueError(f"Unsupported chat type: {chat_type}")
 
 

@@ -71,6 +71,12 @@ def get_user_id_from_jwt(token_claims: Dict[str, Any] | None) -> str:
     return user_id
 
 
+def get_chat_type_from_jwt(token_claims: Dict[str, Any] | None) -> str | None:
+    if not token_claims:
+        return None
+    return token_claims.get("platform")
+
+
 def create_jwt_token(payload: Dict[str, Any], expires_in_minutes: int) -> str:
     now = datetime.now(timezone.utc)
     expires_in = timedelta(minutes = expires_in_minutes)

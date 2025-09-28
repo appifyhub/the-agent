@@ -25,8 +25,9 @@ class ImageGeneratorTest(unittest.TestCase):
         self.mock_di.user_dao = MagicMock()
         self.mock_di.chat_message_attachment_crud = MagicMock()
         self.mock_di.access_token_resolver = MagicMock()
-        self.mock_di.invoker_chat = MagicMock()
-        self.mock_di.invoker_chat.external_id = "test_chat_id"
+        mock_chat = MagicMock()
+        mock_chat.external_id = "test_chat_id"
+        self.mock_di.require_invoker_chat = MagicMock(return_value = mock_chat)
         self.mock_di.tool_choice_resolver = MagicMock()
         self.mock_di.image_background_remover = MagicMock()
         self.mock_di.image_contents_restorer = MagicMock()
@@ -115,7 +116,7 @@ class ImageGeneratorTest(unittest.TestCase):
         self.assertEqual(details, expected_details)
         self.assertEqual(self.mock_di.image_background_remover.call_count, 2)
         self.mock_di.telegram_bot_sdk.send_document.assert_called_once_with(
-            str(self.mock_di.invoker_chat.external_id),
+            "test_chat_id",
             "http://test.com/edited_image.png",
             thumbnail = "http://test.com/edited_image.png",
         )
@@ -201,7 +202,7 @@ class ImageGeneratorTest(unittest.TestCase):
         self.assertEqual(details, expected_details)
         mock_remover_instance.execute.assert_called_once()
         self.mock_di.telegram_bot_sdk.send_document.assert_called_once_with(
-            str(self.mock_di.invoker_chat.external_id),
+            "test_chat_id",
             "http://test.com/edited_image.png",
             thumbnail = "http://test.com/edited_image.png",
         )

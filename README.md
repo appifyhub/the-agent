@@ -17,9 +17,9 @@ The service covers for the majority of daily user-facing features, such as askin
 
 See the rest of this document for a developer's overview and information on how to use it yourself.
 
-### Access
+#### Access
 
-This service currently powers several Telegram bots. For privacy reasons, we're not listing each bot here individually – but you can run the service locally on your machine and connect it to your own bot.
+This service currently powers several production-level bots. For privacy reasons, we're not listing each bot here individually – but you can definitely run the service locally on your machine (for free) and connect it to your own bot. You're also welcome to use the service as a standalone backend for your own projects, assuming you have the necessary infrastructure to host it.
 
 ## ⚠️ Before you continue…
 

@@ -22,8 +22,11 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
 
         # Mock DI
         self.mock_di = MagicMock()
-        self.mock_di.invoker_chat.external_id = "1"
-        self.mock_di.invoker_chat.chat_type = ChatConfigDB.ChatType.telegram
+        mock_chat = MagicMock()
+        mock_chat.external_id = "1"
+        self.mock_di.require_invoker_chat = MagicMock(return_value = mock_chat)
+        self.mock_di.invoker_chat_type = ChatConfigDB.ChatType.telegram
+        self.mock_di.require_invoker_chat_type = MagicMock(return_value = ChatConfigDB.ChatType.telegram)
         # noinspection PyPropertyAccess
         self.mock_di.telegram_bot_sdk = MagicMock(spec = TelegramBotSDK)
         self.mock_di.telegram_bot_sdk.send_photo.return_value = {"result": {"message_id": 123}}
