@@ -193,6 +193,7 @@ class SettingsControllerTest(unittest.TestCase):
 
         self.assertEqual(result["chat_id"], self.chat_config.chat_id.hex)
         self.assertEqual(result["title"], self.chat_config.title)
+        self.assertEqual(result["platform"], self.chat_config.chat_type.value)
         self.assertEqual(result["language_iso_code"], self.chat_config.language_iso_code)
         self.assertEqual(result["reply_chance_percent"], self.chat_config.reply_chance_percent)
         self.assertEqual(result["is_private"], self.chat_config.is_private)
