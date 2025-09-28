@@ -165,6 +165,7 @@ class SettingsController:
                 "chat_id": chat_config.chat_id.hex,
                 "title": chat_config.title,
                 "is_own": is_own_chat(chat_config, user),
+                "platform": chat_config.chat_type.value,
             }
             result.append(record)
         return result

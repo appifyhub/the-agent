@@ -470,16 +470,19 @@ class SettingsControllerTest(unittest.TestCase):
         own_chat_result = next(r for r in result if r["chat_id"] == own_chat_config.chat_id.hex)
         self.assertEqual(own_chat_result["title"], "My Notes")
         self.assertTrue(own_chat_result["is_own"])
+        self.assertEqual(own_chat_result["platform"], "telegram")
 
         # Check group chat
         group_chat_result = next(r for r in result if r["chat_id"] == group_chat_config.chat_id.hex)
         self.assertEqual(group_chat_result["title"], "Test Group")
         self.assertFalse(group_chat_result["is_own"])
+        self.assertEqual(group_chat_result["platform"], "telegram")
 
         # Check no title chat
         no_title_result = next(r for r in result if r["chat_id"] == no_title_chat_config.chat_id.hex)
         self.assertIsNone(no_title_result["title"])
         self.assertFalse(no_title_result["is_own"])
+        self.assertEqual(no_title_result["platform"], "telegram")
 
     def test_fetch_admin_chats_no_chats_found(self):
         self.mock_authorization_service.get_authorized_chats.return_value = []
