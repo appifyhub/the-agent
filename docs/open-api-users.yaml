@@ -673,9 +673,15 @@ components:
           type: boolean
           nullable: false
           description: Whether the chat belongs to the requesting user (e.g., private chat)
+        platform:
+          type: string
+          nullable: false
+          enum: [telegram]
+          description: Platform type of this chat
       required:
         - chat_id
         - is_own
+        - platform
 
     ExternalToolsResponse:
       type: object
