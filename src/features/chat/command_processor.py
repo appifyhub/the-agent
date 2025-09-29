@@ -1,8 +1,7 @@
 from enum import Enum
 
-from db.model.chat_config import ChatConfigDB
 from di.di import DI
-from features.integrations.integrations import resolve_agent_user
+from features.integrations.integrations import resolve_agent_user, resolve_external_handle, resolve_private_chat_id
 from util import log
 
 COMMAND_START = "start"
@@ -35,11 +34,12 @@ class CommandProcessor:
                 full_command_with_tag = command_parts[0]  # discard command arguments
                 core_command: str
                 if "@" in full_command_with_tag:
+                    chat_type = self.__di.require_invoker_chat_type()
                     core_command, bot_tag = full_command_with_tag.split("@")
-                    # TODO don't hard-code Telegram
-                    agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
-                    if bot_tag != agent_user.telegram_username:
-                        log.d("Unknown bot tagged")
+                    agent_user = resolve_agent_user(chat_type)
+                    agent_handle = resolve_external_handle(agent_user, chat_type)
+                    if bot_tag != agent_handle:
+                        log.d(f"Unknown bot tagged: '{bot_tag}'")
                         return CommandProcessor.Result.unknown
                 else:
                     core_command = full_command_with_tag
@@ -64,14 +64,16 @@ class CommandProcessor:
                         return CommandProcessor.Result.success
                 # no sponsorship accepted, so let's share the settings link
                 settings_url = self.__di.settings_controller.create_settings_link()
-                self.__di.telegram_bot_sdk.send_button_link(self.__di.invoker.telegram_chat_id or "-1", settings_url)
+                platform_private_chat_id = resolve_private_chat_id(self.__di.invoker, self.__di.require_invoker_chat_type())
+                self.__di.telegram_bot_sdk.send_button_link(platform_private_chat_id or "-1", settings_url)
                 log.t("Shared the settings link with the user")
                 return CommandProcessor.Result.success
 
             if command_name == COMMAND_HELP:
                 # share the help link
                 help_url = self.__di.settings_controller.create_help_link()
-                self.__di.telegram_bot_sdk.send_button_link(self.__di.invoker.telegram_chat_id or "-1", help_url)
+                platform_private_chat_id = resolve_private_chat_id(self.__di.invoker, self.__di.require_invoker_chat_type())
+                self.__di.telegram_bot_sdk.send_button_link(platform_private_chat_id or "-1", help_url)
                 log.t("Shared the help link with the user")
                 return CommandProcessor.Result.success
 

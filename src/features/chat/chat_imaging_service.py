@@ -188,7 +188,8 @@ class ChatImagingService:
         return result, urls, errors
 
     def execute(self) -> tuple[Result, list[dict[str, str | None]]]:
-        log.t(f"Editing images for chat '{self.__di.invoker_chat.chat_id}', operation '{self.__operation.value}'")
+        invoker_chat = self.__di.require_invoker_chat()
+        log.t(f"Editing images for chat '{invoker_chat.chat_id}', operation '{self.__operation.value}'")
 
         if self.__operation == ChatImagingService.Operation.remove_background:
             result, urls, errors = self.__remove_background()
@@ -198,7 +199,7 @@ class ChatImagingService:
                 if image_url is None:
                     output.append({"url": None, "error": error})
                     continue
-                external_id = str(self.__di.invoker_chat.external_id)
+                external_id = str(invoker_chat.external_id)
                 log.t(f"Sending edited image to chat '{external_id}'")
                 self.__di.telegram_bot_sdk.send_document(external_id, image_url, thumbnail = image_url)
                 self.__di.telegram_bot_sdk.send_photo(external_id, image_url, caption = "📸")
@@ -214,7 +215,7 @@ class ChatImagingService:
                 if image_url is None:
                     output.append({"url": None, "error": error})
                     continue
-                external_id = str(self.__di.invoker_chat.external_id)
+                external_id = str(invoker_chat.external_id)
                 log.t(f"Sending restored image to chat '{external_id}': {image_url}")
                 self.__di.telegram_bot_sdk.send_document(external_id, image_url, thumbnail = image_url)
                 self.__di.telegram_bot_sdk.send_photo(external_id, image_url, caption = "📸")
@@ -230,7 +231,7 @@ class ChatImagingService:
                 if image_url is None:
                     output.append({"url": None, "error": error})
                     continue
-                external_id = str(self.__di.invoker_chat.external_id)
+                external_id = str(invoker_chat.external_id)
                 log.t(f"Sending edited image to chat '{external_id}': {image_url}")
                 self.__di.telegram_bot_sdk.send_document(external_id, image_url, thumbnail = image_url)
                 self.__di.telegram_bot_sdk.send_photo(external_id, image_url, caption = "📸")

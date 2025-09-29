@@ -1,32 +1,11 @@
 import hashlib
-import random
-from datetime import datetime
 from typing import Any, Callable, TypeVar
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from pydantic import SecretStr
 
-from db.model.chat_config import ChatConfigDB
-from db.schema.user import User, UserSave
-from features.integrations.integrations import resolve_agent_user
-
 K = TypeVar("K")
 V = TypeVar("V")
-
-
-def is_the_agent(who: User | UserSave | None) -> bool:
-    if not who:
-        return False
-    # TODO don't hard-code Telegram
-    agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
-    return who.telegram_username == agent_user.telegram_username
-
-
-def construct_bot_message_id(chat_id: UUID, sent_at: datetime) -> str:
-    random_seed = str(random.randint(1000, 9999))
-    formatted_time = sent_at.strftime("%y%m%d%H%M%S")
-    result = f"{chat_id}-{formatted_time}-{random_seed}"
-    return result
 
 
 def generate_short_uuid() -> str:
@@ -70,10 +49,6 @@ def mask_secret(secret: str | SecretStr | None = None, mask: str = "*") -> str |
         return secret[0] + (mask * (len(secret) - 2)) + secret[-1:]
     # long strings: show 3 chars on each end with 5 masks in the middle
     return secret[:3] + (mask * 5) + secret[-3:]
-
-
-###           U N T E S T E D           ###
-# No idea how to test other than manually #
 
 
 def digest_md5(content: str) -> str:

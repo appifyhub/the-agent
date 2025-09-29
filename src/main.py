@@ -14,7 +14,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import SecretStr
 from starlette.responses import RedirectResponse
 
-from api.auth import get_user_id_from_jwt, verify_api_key, verify_jwt_credentials, verify_telegram_auth_key
+from api.auth import (
+    get_chat_type_from_jwt,
+    get_user_id_from_jwt,
+    verify_api_key,
+    verify_jwt_credentials,
+    verify_telegram_auth_key,
+)
 from api.model.chat_settings_payload import ChatSettingsPayload
 from api.model.release_output_payload import ReleaseOutputPayload
 from api.model.sponsorship_payload import SponsorshipPayload
@@ -88,8 +94,7 @@ def notify_of_currency_alerts(
     db = Depends(get_session),
     _ = Depends(verify_api_key),
 ) -> dict:
-    # TODO: we should not use Telegram here
-    agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
+    agent_user = resolve_agent_user(ChatConfigDB.ChatType.background)
     assert agent_user.id is not None
     di = DI(db, agent_user.id.hex)
     return respond_with_currency_alerts(di)
@@ -101,8 +106,7 @@ def notify_of_release(
     db = Depends(get_session),
     _ = Depends(verify_api_key),
 ) -> dict:
-    # TODO: we should not use Telegram here
-    agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
+    agent_user = resolve_agent_user(ChatConfigDB.ChatType.background)
     assert agent_user.id is not None
     di = DI(db, agent_user.id.hex)
     return respond_with_summary(payload, di)
@@ -239,16 +243,17 @@ def sponsor_user(
         invoker_id_hex = get_user_id_from_jwt(token)
         log.d(f"  Invoker ID: {invoker_id_hex}")
         di = DI(db, invoker_id_hex)
-        di.sponsorships_controller.sponsor_user(resource_id, payload.receiver_telegram_username)
+        di.sponsorships_controller.sponsor_user(resource_id, payload)
         return {"status": "OK"}
     except Exception as e:
         raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to sponsor user", e)})
 
 
-@app.delete("/user/{resource_id}/sponsorships/{receiver_telegram_username}")
+@app.delete("/user/{resource_id}/sponsorships/{platform}/{platform_handle}")
 def unsponsor_user(
     resource_id: str,
-    receiver_telegram_username: str,
+    platform: str,
+    platform_handle: str,
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
@@ -257,7 +262,7 @@ def unsponsor_user(
         invoker_id_hex = get_user_id_from_jwt(token)
         log.d(f"  Invoker ID: {invoker_id_hex}")
         di = DI(db, invoker_id_hex)
-        di.sponsorships_controller.unsponsor_user(resource_id, receiver_telegram_username)
+        di.sponsorships_controller.unsponsor_user(resource_id, platform, platform_handle)
         return {"status": "OK"}
     except Exception as e:
         raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to unsponsor user", e)})
@@ -275,7 +280,12 @@ def unsponsor_self(
         log.d(f"  Invoker ID: {invoker_id_hex}")
         di = DI(db, invoker_id_hex)
         di.sponsorships_controller.unsponsor_self(resource_id)
-        settings_link = di.settings_controller.create_settings_link()
+        # Extract chat_type from JWT token
+        chat_type_str = get_chat_type_from_jwt(token)
+        chat_type = ChatConfigDB.ChatType.lookup(chat_type_str)
+        if not chat_type:
+            raise ValueError(f"Invalid chat type in the access token: {chat_type_str}")
+        settings_link = di.settings_controller.create_settings_link(chat_type = chat_type)
         return {"settings_link": settings_link}
     except Exception as e:
         raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to unsponsor self", e)})

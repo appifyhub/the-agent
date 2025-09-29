@@ -303,6 +303,9 @@ class AuthorizationServiceTest(unittest.TestCase):
             created_at = datetime.now().date(),
         )
 
+        # Mock chat_config_crud.get_all to return empty list
+        self.mock_chat_config_dao.get_all.return_value = []
+
         service = AuthorizationService(self.mock_di)
         admin_chats = service.get_authorized_chats(user_without_telegram_id)
 

@@ -37,3 +37,4 @@ alwaysApply: true
 - Version is managed through `.version` file in project root
 - You can see other rules in `.cursor` directory, if you need those rules
 - You can see the CI/CD pipeline in `.github/workflows` directory
+- You can see the API docs in `docs/` directory (keep it updated!)

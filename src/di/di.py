@@ -8,6 +8,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from sqlalchemy.orm import Session
 
+from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
 
@@ -26,6 +27,7 @@ if TYPE_CHECKING:
     from features.announcements.sys_announcements_service import SysAnnouncementsService
     from features.audio.audio_transcriber import AudioTranscriber
     from features.chat.attachments_describer import AttachmentsDescriber
+    from features.chat.chat_agent import ChatAgent
     from features.chat.chat_imaging_service import ChatImagingService
     from features.chat.command_processor import CommandProcessor
     from features.chat.currency_alert_service import CurrencyAlertService
@@ -35,7 +37,6 @@ if TYPE_CHECKING:
     from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
     from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
     from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
-    from features.chat.telegram.telegram_chat_bot import TelegramChatBot
     from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
     from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
     from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
@@ -181,13 +182,29 @@ class DI:
         return self._invoker
 
     @property
-    def invoker_chat(self) -> ChatConfig:
-        if self._invoker_chat is None:
+    def invoker_chat(self) -> ChatConfig | None:
+        if self._invoker_chat_id is not None and self._invoker_chat is None:
             try:
                 self._invoker_chat = self.authorization_service.validate_chat(self.invoker_chat_id)
             except Exception as e:
                 raise ConstructorDependencyNotMetError(f"Invoker chat validation failed: {e}")
         return self._invoker_chat
+
+    @property
+    def invoker_chat_type(self) -> ChatConfigDB.ChatType | None:
+        if self.invoker_chat is not None:
+            return self.invoker_chat.chat_type
+        return None
+
+    def require_invoker_chat(self) -> ChatConfig:
+        if self.invoker_chat is None:
+            raise ConstructorDependencyNotMetError("Chat context is required for this operation")
+        return self.invoker_chat
+
+    def require_invoker_chat_type(self) -> ChatConfigDB.ChatType:
+        if self.invoker_chat_type is None:
+            raise ConstructorDependencyNotMetError("Chat type is required for this operation")
+        return self.invoker_chat_type
 
     # === Dynamic injections ===
 
@@ -397,16 +414,16 @@ class DI:
             self._command_processor = CommandProcessor(self)
         return self._command_processor
 
-    def telegram_chat_bot(
+    def chat_agent(
         self,
         messages: list[BaseMessage],
         raw_last_message: str,
         last_message_id: str,
         attachment_ids: list[str],
         configured_tool: ConfiguredTool | None,
-    ) -> "TelegramChatBot":
-        from features.chat.telegram.telegram_chat_bot import TelegramChatBot
-        return TelegramChatBot(messages, raw_last_message, last_message_id, attachment_ids, configured_tool, self)
+    ) -> "ChatAgent":
+        from features.chat.chat_agent import ChatAgent
+        return ChatAgent(messages, raw_last_message, last_message_id, attachment_ids, configured_tool, self)
 
     def web_fetcher(
         self,
@@ -582,11 +599,11 @@ class DI:
     def dev_announcements_service(
         self,
         raw_message: str,
-        target_telegram_username: str | None,
+        target_handle: str | None,
         configured_tool: ConfiguredTool,
     ) -> "DevAnnouncementsService":
         from features.chat.dev_announcements_service import DevAnnouncementsService
-        return DevAnnouncementsService(raw_message, target_telegram_username, configured_tool, self)
+        return DevAnnouncementsService(raw_message, target_handle, configured_tool, self)
 
     def sys_announcements_service(
         self,
@@ -610,7 +627,7 @@ class DI:
         self,
         user_input: str,
         github_author: str | None,
-        include_telegram_username: bool,
+        include_platform_handle: bool,
         include_full_name: bool,
         request_type_str: str | None,
         configured_tool: ConfiguredTool,
@@ -618,6 +635,6 @@ class DI:
         from features.support.user_support_service import UserSupportService
         return UserSupportService(
             user_input, github_author,
-            include_telegram_username, include_full_name,
+            include_platform_handle, include_full_name,
             request_type_str, configured_tool, self,
         )

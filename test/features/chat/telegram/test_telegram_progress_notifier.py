@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 from uuid import UUID
 
 from db.model.chat_config import ChatConfigDB
@@ -32,6 +32,7 @@ class TelegramProgressNotifierTest(unittest.TestCase):
         self.mock_di = Mock()
         # noinspection PyPropertyAccess
         self.mock_di.invoker_chat = self.chat_config
+        self.mock_di.require_invoker_chat = MagicMock(return_value = self.chat_config)
         # noinspection PyPropertyAccess
         self.mock_di.telegram_bot_sdk = Mock(spec = TelegramBotSDK)
 

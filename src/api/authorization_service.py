@@ -3,6 +3,7 @@ from uuid import UUID
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
 from di.di import DI
+from features.integrations.integrations import is_own_chat, lookup_all_admin_chats
 from util import log
 from util.config import config
 
@@ -38,10 +39,6 @@ class AuthorizationService:
         user = self.validate_user(user)
         log.d(f"Getting administered chats for user {user.id.hex}")
 
-        if not user.telegram_user_id:
-            log.i(f"  User {user.id.hex} has no telegram_user_id")
-            return []
-
         log.t("  Validating chat configurations")
         max_chats = config.max_users * 10  # assuming each user administers 10 chats
         all_chat_configs_db = self.__di.chat_config_crud.get_all(limit = max_chats)
@@ -54,27 +51,30 @@ class AuthorizationService:
         log.t("  Checking admin status in each chat")
         administered_chats: list[ChatConfig] = []
         for chat_config in all_chat_configs:
-            log.t(f"    Checking chat: {chat_config.title} ({chat_config.chat_id})")
+            log.t(f"    Checking {chat_config.chat_type.value} chat: {chat_config.title} ({chat_config.chat_id})")
             try:
+                # first we check if this is user's private chat with the agent
+                is_private_admin = is_own_chat(chat_config, user)
+                if is_private_admin:
+                    log.t(f"    Chat {chat_config.chat_id} is private and matches invoker's external chat ID")
+                    administered_chats.append(chat_config)
+                    continue
+                else:
+                    log.t(f"    Chat {chat_config.chat_id} does not match invoker's external chat ID")
+
+                # it's not the user's private admin chat at this point.
+                # now, if it's a private chat, we can continue without checking platform admin status
                 if chat_config.is_private:
-                    if user.telegram_chat_id == chat_config.external_id:
-                        log.t(f"    Chat {chat_config.chat_id} is private and matches invoker's external chat ID")
-                        administered_chats.append(chat_config)
-                    else:
-                        log.t(f"    Chat {chat_config.chat_id} is private but does not match invoker's external chat ID")
                     continue
 
-                administrators = self.__di.telegram_bot_sdk.get_chat_administrators(str(chat_config.external_id))
-                if not administrators:
-                    log.t(f"    No administrators returned for chat {chat_config.chat_id}")
+                # it's not a private chat at this point. we can check if the user is admin on the platform
+                platform_admin_chats = lookup_all_admin_chats(chat_config, user, self.__di)
+                if platform_admin_chats:
+                    log.t(f"    User {user.id.hex} is platform admin for chat {chat_config.chat_id}")
+                    administered_chats.extend(platform_admin_chats)
                     continue
-                for admin_member in administrators:
-                    if admin_member.user and admin_member.user.id == user.telegram_user_id:
-                        log.t(f"    User {admin_member.user.id} IS admin in '{chat_config.chat_id}'")
-                        administered_chats.append(chat_config)
-                        break
                 else:
-                    log.t(f"    User {user.telegram_user_id} is NOT admin in '{chat_config.chat_id}'")
+                    log.t(f"    User {user.id.hex} is not platform admin for chat {chat_config.chat_id}")
             except Exception as e:
                 log.t(f"    Error checking administrators for '{chat_config.chat_id}'", e)
 
@@ -82,6 +82,7 @@ class AuthorizationService:
         administered_chats.sort(
             key = lambda chat: (
                 not chat.is_private,
+                chat.chat_type.value,
                 chat.title.lower() if chat.title else "",
                 chat.external_id or "",
                 chat.chat_id.hex,

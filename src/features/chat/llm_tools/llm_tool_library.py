@@ -15,6 +15,7 @@ from features.chat.attachments_describer import AttachmentsDescriber
 from features.chat.chat_imaging_service import ChatImagingService
 from features.chat.dev_announcements_service import DevAnnouncementsService
 from features.chat.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
+from features.integrations.integrations import resolve_private_chat_id
 from features.support.user_support_service import UserSupportService
 from features.web_browsing.ai_web_search import AIWebSearch
 from util import log
@@ -224,20 +225,20 @@ def announce_maintenance_or_news(di: DI, raw_announcement: str) -> str:
         return __error(e)
 
 
-def deliver_message(di: DI, message: str, target_telegram_username: str) -> str:
+def deliver_message(di: DI, message: str, target_handle: str) -> str:
     """
     [Developers-only] Delivers a personalized message from developers to a specific user.
 
     Args:
         message: [mandatory] The message to deliver to the target user
-        target_telegram_username: [mandatory] Telegram username of the target user to send the message to, without '@'
+        target_handle: [mandatory] The full social handle (e.g. username, phone, email) of the target user to send the message to, without '@' or '+'
     """
     try:
         configured_tool = di.tool_choice_resolver.require_tool(
             DevAnnouncementsService.TOOL_TYPE,
             DevAnnouncementsService.DEFAULT_TOOL,
         )
-        results = di.dev_announcements_service(message, target_telegram_username, configured_tool).execute()
+        results = di.dev_announcements_service(message, target_handle, configured_tool).execute()
         return __success(
             {
                 "summary": results,
@@ -253,18 +254,18 @@ def request_feature_bug_or_support(
     user_request_details: str,
     request_type: str | None = None,
     include_full_name: bool = False,
-    include_telegram_username: bool = False,
+    include_platform_handle: bool = False,
     author_github_username: str | None = None,
 ) -> str:
     """
     Allows the user to request a feature, report a bug, or ask for support. As a result, a GitHub issue is created.
-    You are allowed to converse with the user to gather more details (based on this function arguments) before creating.
-    Make sure to explicitly call this function once the user is ready to submit the request.
+    Conversing with the user helps gather more details (based on this function's arguments).
+    This function must be explicitly called once the user is ready to submit the request.
 
     Args:
         user_request_details: [mandatory] The raw text of the user's request, bug report, or support question
         include_full_name: [mandatory] Whether to include the user's full name in the GitHub issue
-        include_telegram_username: [mandatory] Whether to include the user's Telegram username in the GitHub issue
+        include_platform_handle: [mandatory] Whether to include the current platform's handle in the GitHub issue (username, phone, email)
         request_type: [optional] The type of the request: [ 'feature', 'bug', 'request' ]
         author_github_username: [optional] The GitHub username of the author, if available and shared
     """
@@ -275,7 +276,7 @@ def request_feature_bug_or_support(
         )
         service = di.user_support_service(
             user_request_details, author_github_username,
-            include_telegram_username, include_full_name,
+            include_platform_handle, include_full_name,
             request_type, configured_tool,
         )
         issue_url = service.execute()
@@ -297,17 +298,18 @@ def configure_settings(
     Launches the configuration screen. Configurations allow various profile settings, payments, API tokens/keys,
     current chat's settings, language, response rate, release notifications, model options, etc. Profile settings also
     serve as the initial setup for the agent (bot). In private chats, user settings are the default. The user will
-    probably not know which settings they need, so you must choose for them or ask them.
+    probably not know which settings they need, so they must either be chosen for, or asked.
 
     Args:
         raw_settings_type: [mandatory] The type of settings the user wants: [ 'user', 'chat' ]
     """
     try:
         settings_link = di.settings_controller.create_settings_link(raw_settings_type)
-        if not di.invoker.telegram_chat_id:
-            return __error("Author has no private chat with the bot; cannot send settings link")
-        di.telegram_bot_sdk.send_button_link(di.invoker.telegram_chat_id, settings_link)
-        if di.invoker_chat.is_private:
+        platform_private_chat_id = resolve_private_chat_id(di.invoker, di.require_invoker_chat_type())
+        if not platform_private_chat_id:
+            return __error("Author has no private chat with the agent; cannot send settings link")
+        di.telegram_bot_sdk.send_button_link(platform_private_chat_id, settings_link)
+        if di.require_invoker_chat().is_private:
             return __success({"next_step": "Notify the user to click on the settings link above"})
         else:
             return __success({"next_step": "Notify the user that the link was sent to their private chat"})
@@ -328,9 +330,10 @@ def read_help_and_features(
     """
     try:
         help_link = di.settings_controller.create_help_link()
-        if not di.invoker.telegram_chat_id:
-            return __error("Author has no private chat with the bot; cannot send settings link")
-        di.telegram_bot_sdk.send_button_link(di.invoker.telegram_chat_id, help_link)
+        platform_private_chat_id = resolve_private_chat_id(di.invoker, di.require_invoker_chat_type())
+        if not platform_private_chat_id:
+            return __error("Author has no private chat with the agent; cannot send settings link")
+        di.telegram_bot_sdk.send_button_link(platform_private_chat_id, help_link)
         return __success({"next_step": "Notify the user that the link was sent to their private chat"})
     except Exception as e:
         return __error(e)
@@ -338,7 +341,7 @@ def read_help_and_features(
 
 def get_version(di: DI) -> str:
     """
-    Checks the current version of the bot (the latest version available to the users).
+    Checks the current version of the agent (the latest version available to the users).
     """
     try:
         log.t(f"Getting version for chat '{di.invoker_chat_id}'")

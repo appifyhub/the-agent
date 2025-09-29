@@ -53,8 +53,7 @@ class CurrencyAlertService:
         log.d(f"Setting price alert for {base_currency}/{desired_currency} at {threshold_percent}%")
         if not self.__target_chat_config:
             raise ValueError(log.e("Target chat is not set"))
-        # TODO don't hard-code Telegram
-        agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
+        agent_user = resolve_agent_user(ChatConfigDB.ChatType.background)
         if self.__di.invoker.id == agent_user.id:
             raise ValueError(log.e("Bot cannot set price alerts"))
 

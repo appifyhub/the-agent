@@ -22,6 +22,11 @@ class Config(metaclass = Singleton):
     max_chatbot_iterations: int
     website_url: str
     parent_organization: str
+    background_bot_name: str
+    background_bot_username: str
+    github_bot_username: str
+    github_bot_name: str
+    github_bot_id: int
     telegram_bot_username: str
     telegram_bot_name: str
     telegram_bot_id: int
@@ -71,6 +76,11 @@ class Config(metaclass = Singleton):
         def_max_chatbot_iterations: int = 20,
         def_website_url: str = "https://agent.appifyhub.com",
         def_parent_organization: str = "AppifyHub",
+        def_background_bot_name: str = "The Agent's Pulse",
+        def_background_bot_username: str = "the_agent_pulse",
+        def_github_bot_username: str = "the-agent",
+        def_github_bot_name: str = "The Agent",
+        def_github_bot_id: int = 1234567890,
         def_telegram_bot_username: str = "the_agent",
         def_telegram_bot_name: str = "The Agent",
         def_telegram_bot_id: int = 1234567890,
@@ -109,6 +119,11 @@ class Config(metaclass = Singleton):
         self.max_chatbot_iterations = int(self.__env("MAX_CHATBOT_ITERATIONS", lambda: str(def_max_chatbot_iterations)))
         self.website_url = self.__env("WEBSITE_URL", lambda: def_website_url)
         self.parent_organization = self.__env("PARENT_ORGANIZATION", lambda: def_parent_organization)
+        self.background_bot_name = self.__env("BACKGROUND_BOT_NAME", lambda: def_background_bot_name)
+        self.background_bot_username = self.__env("BACKGROUND_BOT_USERNAME", lambda: def_background_bot_username)
+        self.github_bot_username = self.__env("GITHUB_BOT_USERNAME", lambda: def_github_bot_username)
+        self.github_bot_name = self.__env("GITHUB_BOT_NAME", lambda: def_github_bot_name)
+        self.github_bot_id = int(self.__env("GITHUB_BOT_ID", lambda: str(def_github_bot_id)))
         self.telegram_bot_username = self.__env("TELEGRAM_BOT_USERNAME", lambda: def_telegram_bot_username)
         self.telegram_bot_name = self.__env("TELEGRAM_BOT_NAME", lambda: def_telegram_bot_name)
         self.telegram_bot_id = int(self.__env("TELEGRAM_BOT_ID", lambda: str(def_telegram_bot_id)))

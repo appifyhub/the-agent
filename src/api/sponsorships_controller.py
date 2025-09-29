@@ -1,9 +1,12 @@
 from typing import Any
 
+from api.model.sponsorship_payload import SponsorshipPayload
+from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
 from db.schema.sponsorship import Sponsorship
 from db.schema.user import User
 from di.di import DI
+from features.integrations.integrations import resolve_any_external_handle
 from features.sponsorships.sponsorship_service import SponsorshipService
 from util import log
 from util.config import config
@@ -40,10 +43,12 @@ class SponsorshipsController:
                 log.t(f"  Receiver user with id {sponsorship.receiver_id} not found, skipping.")
                 continue
             receiver_user = User.model_validate(receiver_user_db)
+            platform_handle, platform_type = resolve_any_external_handle(receiver_user)
             output_sponsorships.append(
                 {
                     "full_name": receiver_user.full_name,
-                    "telegram_username": receiver_user.telegram_username,
+                    "platform_handle": platform_handle,
+                    "platform": platform_type.value if platform_type else None,
                     "sponsored_at": sponsorship.sponsored_at.isoformat(),
                     "accepted_at": sponsorship.accepted_at.isoformat() if sponsorship.accepted_at else None,
                 },
@@ -53,32 +58,52 @@ class SponsorshipsController:
             "max_sponsorships": max_sponsorships,
         }
 
-    def sponsor_user(self, sponsor_user_id_hex: str, receiver_telegram_username: str):
+    def sponsor_user(self, sponsor_user_id_hex: str, payload: SponsorshipPayload):
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, sponsor_user_id_hex)
-        log.d(f"Sponsoring user '@{receiver_telegram_username}' by '{self.__di.invoker.id.hex}'")
+        log.d(f"Sponsoring user {payload.platform}/'@{payload.platform_handle}' by '{self.__di.invoker.id.hex}'")
+        chat_type = ChatConfigDB.ChatType.lookup(payload.platform)
+        if not chat_type:
+            raise ValueError(f"Unsupported platform: {payload.platform}")
         result, message = self.__di.sponsorship_service.sponsor_user(
             sponsor_user_id_hex = user.id.hex,
-            receiver_telegram_username = receiver_telegram_username,
+            receiver_handle = payload.platform_handle,
+            chat_type = chat_type,
         )
         if result == SponsorshipService.Result.failure:
             raise ValueError(message)
-        log.i(f"  Successfully sponsored '@{receiver_telegram_username}'")
+        log.i(f"  Successfully sponsored '@{payload.platform_handle}'")
 
-    def unsponsor_user(self, sponsor_user_id_hex: str, receiver_telegram_username: str):
+    def unsponsor_user(self, sponsor_user_id_hex: str, platform: str, platform_handle: str):
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, sponsor_user_id_hex)
-        log.d(f"Unsponsoring user '@{receiver_telegram_username}' by '{self.__di.invoker.id.hex}'")
+        log.d(f"Unsponsoring user {platform}/'@{platform_handle}' by '{self.__di.invoker.id.hex}'")
+        chat_type = ChatConfigDB.ChatType.lookup(platform)
+        if not chat_type:
+            raise ValueError(f"Unsupported platform: {platform}")
         result, message = self.__di.sponsorship_service.unsponsor_user(
             sponsor_user_id_hex = user.id.hex,
-            receiver_telegram_username = receiver_telegram_username,
+            receiver_handle = platform_handle,
+            chat_type = chat_type,
         )
         if result == SponsorshipService.Result.failure:
             raise ValueError(message)
-        log.i(f"  Successfully unsponsored '@{receiver_telegram_username}'")
+        log.i(f"  Successfully unsponsored '@{platform_handle}'")
 
     def unsponsor_self(self, user_id_hex: str):
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
         log.d(f"User '{user.id.hex}' is unsponsoring themselves")
-        result, message = self.__di.sponsorship_service.unsponsor_self(user.id.hex)
-        if result == SponsorshipService.Result.failure:
-            raise ValueError(message)
-        log.i("  Successfully unsponsored self")
+        all_chats = self.__di.authorization_service.get_authorized_chats(user)
+        if not all_chats:
+            raise ValueError("No authorized chats found")
+        failure_messages: list[str] = []
+        successes = 0
+        for chat in all_chats:
+            result, message = self.__di.sponsorship_service.unsponsor_self(user.id.hex, chat.chat_type)
+            if result == SponsorshipService.Result.failure:
+                failure_messages.append(message)
+                continue
+            successes += 1
+        if failure_messages:
+            log.w(f"Failed to unsponsor self in {len(failure_messages)} chats:\n{'\n  '.join(failure_messages)}")
+            if not successes:
+                raise ValueError("Failed to unsponsor self in all chats")
+        log.i(f"  Successfully unsponsored self in {successes} chats, failed in {len(failure_messages)} chats")

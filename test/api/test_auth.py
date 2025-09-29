@@ -9,6 +9,7 @@ from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_403_FORBIDDEN
 
 from api.auth import (
     create_jwt_token,
+    get_chat_type_from_jwt,
     get_user_id_from_jwt,
     verify_api_key,
     verify_jwt_credentials,
@@ -123,3 +124,17 @@ class AuthTest(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             get_user_id_from_jwt(claims)
         self.assertIn("No user ID in token", str(context.exception))
+
+    def test_get_chat_type_from_jwt_valid(self):
+        claims = {"platform": "telegram"}
+        chat_type = get_chat_type_from_jwt(claims)
+        self.assertEqual(chat_type, "telegram")
+
+    def test_get_chat_type_from_jwt_none_claims(self):
+        chat_type = get_chat_type_from_jwt(None)
+        self.assertIsNone(chat_type)
+
+    def test_get_chat_type_from_jwt_missing_platform(self):
+        claims = {"sub": "user-123"}
+        chat_type = get_chat_type_from_jwt(claims)
+        self.assertIsNone(chat_type)

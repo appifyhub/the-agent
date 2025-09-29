@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime
-from unittest.mock import Mock, mock_open, patch
+from unittest.mock import MagicMock, Mock, mock_open, patch
 from uuid import UUID
 
 import requests
@@ -37,13 +37,14 @@ class UserSupportServiceTest(unittest.TestCase):
         )
         self.mock_di = Mock(spec = DI)
         self.mock_di.invoker.return_value = self.user
-        self.mock_di.invoker_chat.chat_type = ChatConfigDB.ChatType.telegram
+        self.mock_di.invoker_chat_type = ChatConfigDB.ChatType.telegram
+        self.mock_di.require_invoker_chat_type = MagicMock(return_value = ChatConfigDB.ChatType.telegram)
         self.mock_di.chat_langchain_model = Mock()
         self.mock_configured_tool = (CLAUDE_4_SONNET, SecretStr("test_key"), ToolType.copywriting)
         self.service = UserSupportService(
             user_input = "Test input",
             github_author = "test_github",
-            include_telegram_username = True,
+            include_platform_handle = True,
             include_full_name = True,
             request_type_str = "bug",
             configured_tool = self.mock_configured_tool,
@@ -57,7 +58,7 @@ class UserSupportServiceTest(unittest.TestCase):
         service = UserSupportService(
             user_input = "Test input",
             github_author = "test_github",
-            include_telegram_username = True,
+            include_platform_handle = True,
             include_full_name = True,
             request_type_str = "invalid_type",
             configured_tool = self.mock_configured_tool,
