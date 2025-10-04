@@ -56,3 +56,20 @@ def digest_md5(content: str) -> str:
     hash_object = hashlib.md5()
     hash_object.update(content.encode("utf-8"))
     return hash_object.hexdigest()
+
+
+def extract_url_from_replicate_result(result: Any) -> str:
+    if isinstance(result, list):
+        if not result:
+            raise ValueError("Empty result list from Replicate")
+        first_item = result[0]
+        if hasattr(first_item, "url"):
+            return first_item.url
+        elif isinstance(first_item, str):
+            return first_item
+        raise ValueError(f"Unexpected result type in list: {type(first_item)}")
+    elif hasattr(result, "url"):
+        return result.url  # type: ignore
+    elif isinstance(result, str):
+        return result
+    raise ValueError(f"Unexpected result type from Replicate: {type(result)}")

@@ -11,7 +11,7 @@ from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import IMAGE_EDITING_FLUX_KONTEXT_PRO
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from util import log
-from util.functions import first_key_with_value
+from util.functions import extract_url_from_replicate_result, first_key_with_value
 
 BOOT_AND_RUN_TIMEOUT_S = 120
 
@@ -65,13 +65,16 @@ class ImageEditor:
                         "output_format": "png",
                         "safety_tolerance": 2,
                         "guidance_scale": 5.5,
+                        "size": "4K",
+                        "max_images": 1,
+                        "sequential_image_generation": "disabled",
                     }
                     tool, _, _ = self.__configured_tool
                     result = self.__replicate.run(tool.id, input = input_data)
             if not result:
-                raise ValueError("Failed to edit the image (no output URL)")
+                raise ValueError("Failed to edit the image (no result returned)")
             log.d("Image edit successful")
-            return str(result)
+            return extract_url_from_replicate_result(result)
         except Exception as e:
             self.error = log.e("Error editing image", e)
             return None

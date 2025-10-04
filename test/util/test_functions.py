@@ -1,6 +1,7 @@
 import unittest
 
 from util.functions import (
+    extract_url_from_replicate_result,
     first_key_with_value,
     generate_short_uuid,
     mask_secret,
@@ -161,3 +162,42 @@ class FunctionsTest(unittest.TestCase):
         # Should be valid format
         self.assertEqual(len(result1), 8)
         self.assertRegex(result1, r"^[0-9a-f]{8}$")
+
+    def test_extract_url_from_replicate_result_list_with_file_output(self):
+        class MockFileOutput:
+
+            url = "https://example.com/image.png"
+
+        result = extract_url_from_replicate_result([MockFileOutput()])
+        self.assertEqual(result, "https://example.com/image.png")
+
+    def test_extract_url_from_replicate_result_list_with_string(self):
+        result = extract_url_from_replicate_result(["https://example.com/image.png"])
+        self.assertEqual(result, "https://example.com/image.png")
+
+    def test_extract_url_from_replicate_result_single_file_output(self):
+        class MockFileOutput:
+
+            url = "https://example.com/image.png"
+
+        result = extract_url_from_replicate_result(MockFileOutput())
+        self.assertEqual(result, "https://example.com/image.png")
+
+    def test_extract_url_from_replicate_result_single_string(self):
+        result = extract_url_from_replicate_result("https://example.com/image.png")
+        self.assertEqual(result, "https://example.com/image.png")
+
+    def test_extract_url_from_replicate_result_empty_list(self):
+        with self.assertRaises(ValueError) as context:
+            extract_url_from_replicate_result([])
+        self.assertIn("Empty result list", str(context.exception))
+
+    def test_extract_url_from_replicate_result_unexpected_type_in_list(self):
+        with self.assertRaises(ValueError) as context:
+            extract_url_from_replicate_result([12345])
+        self.assertIn("Unexpected result type in list", str(context.exception))
+
+    def test_extract_url_from_replicate_result_unexpected_type(self):
+        with self.assertRaises(ValueError) as context:
+            extract_url_from_replicate_result(12345)
+        self.assertIn("Unexpected result type from Replicate", str(context.exception))
