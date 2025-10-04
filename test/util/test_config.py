@@ -42,6 +42,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.telegram_bot_id, 1234567890)
         self.assertEqual(config.telegram_api_base_url, "https://api.telegram.org")
         self.assertEqual(config.telegram_must_auth, False)
+        self.assertEqual(config.whatsapp_must_auth, False)
         self.assertEqual(config.chat_history_depth, 30)
         self.assertEqual(config.github_issues_repo, "appifyhub/the-agent")
         self.assertEqual(config.issue_templates_abs_path, ".github/ISSUE_TEMPLATE")
@@ -55,6 +56,7 @@ class ConfigTest(unittest.TestCase):
         self.assertTrue(config.api_key.get_secret_value())  # Check if API key is generated
         self.assertEqual(config.telegram_auth_key.get_secret_value(), "it_is_really_telegram")
         self.assertEqual(config.telegram_bot_token.get_secret_value(), "invalid")
+        self.assertEqual(config.whatsapp_auth_key.get_secret_value(), "it_is_really_whatsapp")
         self.assertEqual(config.jwt_secret_key.get_secret_value(), "default")
         self.assertEqual(config.github_issues_token.get_secret_value(), "invalid")
         self.assertEqual(config.rapid_api_twitter_token.get_secret_value(), "invalid")
@@ -81,7 +83,8 @@ class ConfigTest(unittest.TestCase):
         os.environ["TELEGRAM_BOT_NAME"] = "The New Agent"
         os.environ["TELEGRAM_BOT_ID"] = "1234"
         os.environ["TELEGRAM_API_BASE_URL"] = "https://new.api.telegram.org"
-        os.environ["TELEGRAM_AUTH_ON"] = "true"
+        os.environ["TELEGRAM_AUTH_ON"] = "True"
+        os.environ["WHATSAPP_AUTH_ON"] = "True"
         os.environ["CHAT_HISTORY_DEPTH"] = "10"
         os.environ["THE_AGENT_ISSUES_REPO"] = "appifyhub/the-new-agent"
         os.environ["THE_AGENT_ISSUE_TEMPLATES_PATH"] = "issue_templates"
@@ -98,6 +101,7 @@ class ConfigTest(unittest.TestCase):
         os.environ["API_KEY"] = "1111-2222-3333-4444"
         os.environ["TELEGRAM_API_UPDATE_AUTH_TOKEN"] = "abcd1234"
         os.environ["TELEGRAM_BOT_TOKEN"] = "id:sha"
+        os.environ["WHATSAPP_API_UPDATE_AUTH_TOKEN"] = "efgh5678"
         os.environ["JWT_SECRET_KEY"] = "custom"
         os.environ["THE_AGENT_ISSUES_TOKEN"] = "sk-gi-valid"
         os.environ["RAPID_API_TWITTER_TOKEN"] = "sk-rt-valid"
@@ -126,6 +130,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.telegram_bot_id, 1234)
         self.assertEqual(config.telegram_api_base_url, "https://new.api.telegram.org")
         self.assertEqual(config.telegram_must_auth, True)
+        self.assertEqual(config.whatsapp_must_auth, True)
         self.assertEqual(config.chat_history_depth, 10)
         self.assertEqual(config.github_issues_repo, "appifyhub/the-new-agent")
         self.assertEqual(config.issue_templates_abs_path, "issue_templates")
@@ -139,6 +144,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.api_key.get_secret_value(), "1111-2222-3333-4444")
         self.assertEqual(config.telegram_auth_key.get_secret_value(), "abcd1234")
         self.assertEqual(config.telegram_bot_token.get_secret_value(), "id:sha")
+        self.assertEqual(config.whatsapp_auth_key.get_secret_value(), "efgh5678")
         self.assertEqual(config.jwt_secret_key.get_secret_value(), "custom")
         self.assertEqual(config.github_issues_token.get_secret_value(), "sk-gi-valid")
         self.assertEqual(config.rapid_api_twitter_token.get_secret_value(), "sk-rt-valid")

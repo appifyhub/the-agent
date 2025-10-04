@@ -13,7 +13,7 @@ from features.chat.chat_imaging_service import ChatImagingService
 from features.images.image_contents_restorer import ImageContentsRestorer
 
 
-class ImageGeneratorTest(unittest.TestCase):
+class ChatImagingServiceTest(unittest.TestCase):
 
     def setUp(self):
         self.attachment_ids = ["attachment1", "attachment2"]
