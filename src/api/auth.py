@@ -13,6 +13,7 @@ __JWT_ALGORITHM = "HS256"
 
 api_key_header = APIKeyHeader(name = "X-API-Key", auto_error = True)
 telegram_auth_key_header = APIKeyHeader(name = "X-Telegram-Bot-Api-Secret-Token", auto_error = False)
+whatsapp_auth_key_header = APIKeyHeader(name = "X-WhatsApp-Bot-Api-Secret-Token", auto_error = False)
 jwt_header = HTTPBearer(bearerFormat = "JWT", auto_error = True)
 
 
@@ -25,6 +26,12 @@ def verify_api_key(api_key: str = Security(api_key_header)) -> str:
 def verify_telegram_auth_key(auth_key: str = Security(telegram_auth_key_header)) -> str:
     if config.telegram_must_auth and auth_key != config.telegram_auth_key.get_secret_value():
         raise HTTPException(status_code = HTTP_403_FORBIDDEN, detail = "Could not validate the Telegram auth token")
+    return auth_key
+
+
+def verify_whatsapp_auth_key(auth_key: str = Security(whatsapp_auth_key_header)) -> str:
+    if config.whatsapp_must_auth and auth_key != config.whatsapp_auth_key.get_secret_value():
+        raise HTTPException(status_code = HTTP_403_FORBIDDEN, detail = "Could not validate the WhatsApp auth token")
     return auth_key
 
 

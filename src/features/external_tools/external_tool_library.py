@@ -169,6 +169,13 @@ CLAUDE_4_SONNET = ExternalTool(
     types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
 )
 
+CLAUDE_4_5_SONNET = ExternalTool(
+    id = "claude-sonnet-4-5",
+    name = "Claude 4.5 Sonnet",
+    provider = ANTHROPIC,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+)
+
 ###  Google AI  ###
 
 GEMINI_2_FLASH_LITE = ExternalTool(
@@ -321,9 +328,16 @@ IMAGE_EDITING_FLUX_KONTEXT_PRO = ExternalTool(
 
 IMAGE_EDITING_SEED_EDIT = ExternalTool(
     id = "bytedance/seededit-3.0",
-    name = "ByteDance's Seed Edit 3.0",
+    name = "ByteDance's SeedEdit v3",
     provider = REPLICATE,
     types = [ToolType.images_edit],
+)
+
+IMAGE_GENERATION_EDITING_SEEDREAM_4 = ExternalTool(
+    id = "bytedance/seedream-4",
+    name = "ByteDance's SeeDream v4",
+    provider = REPLICATE,
+    types = [ToolType.images_gen, ToolType.images_edit],
 )
 
 IMAGE_EDITING_GOOGLE_NANO_BANANA = ExternalTool(
@@ -360,6 +374,7 @@ ALL_EXTERNAL_TOOLS = [
     CLAUDE_3_5_SONNET,
     CLAUDE_3_7_SONNET,
     CLAUDE_4_SONNET,
+    CLAUDE_4_5_SONNET,
     # Google AI
     GEMINI_2_FLASH_LITE,
     GEMINI_2_FLASH,
@@ -386,5 +401,6 @@ ALL_EXTERNAL_TOOLS = [
     IMAGE_GENERATION_GEMINI_2_5_FLASH_IMAGE,
     IMAGE_EDITING_FLUX_KONTEXT_PRO,
     IMAGE_EDITING_SEED_EDIT,
+    IMAGE_GENERATION_EDITING_SEEDREAM_4,
     IMAGE_EDITING_GOOGLE_NANO_BANANA,
 ]

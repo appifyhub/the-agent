@@ -11,6 +11,7 @@ from features.external_tools.external_tool_provider_library import GOOGLE_AI, RE
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from util import log
 from util.config import config
+from util.functions import extract_url_from_replicate_result
 
 
 # Not tested as it's just a proxy
@@ -85,17 +86,15 @@ class SimpleStableDiffusionGenerator:
                 "num_inference_steps": 30,
                 "safety_tolerance": 5,
                 "num_outputs": 1,
+                "size": "4K",
+                "max_images": 1,
+                "sequential_image_generation": "disabled",
             },
         )
-        if isinstance(result, list):
-            if result and isinstance(result[0], str):
-                return result[0]
-            raise ValueError("Expected a list of string URLs, but got something else")
-        elif isinstance(result, str):
-            return result
-        elif result is not None:
-            return str(result)
-        raise ValueError("No valid output URL returned from the image generation tool")
+        log.d("Result", result)
+        if not result:
+            raise ValueError("No result returned from image generation")
+        return extract_url_from_replicate_result(result)
 
     def __generate_with_google_ai(self) -> str | None:
         log.t("Generating image with Google AI")
