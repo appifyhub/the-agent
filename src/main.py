@@ -20,6 +20,7 @@ from api.auth import (
     verify_api_key,
     verify_jwt_credentials,
     verify_telegram_auth_key,
+    verify_whatsapp_auth_key,
 )
 from api.model.chat_settings_payload import ChatSettingsPayload
 from api.model.release_output_payload import ReleaseOutputPayload
@@ -86,6 +87,15 @@ async def telegram_chat_update(
     _ = Depends(verify_telegram_auth_key),
 ) -> dict:
     offloader.add_task(respond_to_update, update)
+    return {"status": "ok"}
+
+
+@app.post("/whatsapp/chat-update")
+async def whatsapp_chat_update(
+    update: dict,
+    _ = Depends(verify_whatsapp_auth_key),
+) -> dict:
+    log.d("Received WhatsApp update", update)
     return {"status": "ok"}
 
 

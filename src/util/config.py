@@ -32,6 +32,7 @@ class Config(metaclass = Singleton):
     telegram_bot_id: int
     telegram_api_base_url: str
     telegram_must_auth: bool
+    whatsapp_must_auth: bool
     chat_history_depth: int
     github_issues_repo: str
     issue_templates_abs_path: str
@@ -45,6 +46,7 @@ class Config(metaclass = Singleton):
     api_key: SecretStr
     telegram_auth_key: SecretStr
     telegram_bot_token: SecretStr
+    whatsapp_auth_key: SecretStr
     jwt_secret_key: SecretStr
     github_issues_token: SecretStr
     rapid_api_twitter_token: SecretStr
@@ -57,6 +59,7 @@ class Config(metaclass = Singleton):
             self.api_key,
             self.telegram_auth_key,
             self.telegram_bot_token,
+            self.whatsapp_auth_key,
             self.jwt_secret_key,
             self.github_issues_token,
             self.rapid_api_twitter_token,
@@ -86,6 +89,7 @@ class Config(metaclass = Singleton):
         def_telegram_bot_id: int = 1234567890,
         def_telegram_api_base_url: str = "https://api.telegram.org",
         def_telegram_must_auth: bool = False,
+        def_whatsapp_must_auth: bool = False,
         def_chat_history_depth: int = 30,
         def_github_issues_repo: str = "appifyhub/the-agent",
         def_issue_templates_path: str = ".github/ISSUE_TEMPLATE",
@@ -102,6 +106,7 @@ class Config(metaclass = Singleton):
         def_api_key: SecretStr = SecretStr(DEV_API_KEY),
         def_telegram_auth_key: SecretStr = SecretStr("it_is_really_telegram"),
         def_telegram_bot_token: SecretStr = SecretStr("invalid"),
+        def_whatsapp_auth_key: SecretStr = SecretStr("it_is_really_whatsapp"),
         def_jwt_secret_key: SecretStr = SecretStr("default"),
         def_github_issues_token: SecretStr = SecretStr("invalid"),
         def_rapid_api_twitter_token: SecretStr = SecretStr("invalid"),
@@ -129,6 +134,7 @@ class Config(metaclass = Singleton):
         self.telegram_bot_id = int(self.__env("TELEGRAM_BOT_ID", lambda: str(def_telegram_bot_id)))
         self.telegram_api_base_url = self.__env("TELEGRAM_API_BASE_URL", lambda: def_telegram_api_base_url)
         self.telegram_must_auth = self.__env("TELEGRAM_AUTH_ON", lambda: str(def_telegram_must_auth)).lower() == "true"
+        self.whatsapp_must_auth = self.__env("WHATSAPP_AUTH_ON", lambda: str(def_whatsapp_must_auth)).lower() == "true"
         self.chat_history_depth = int(self.__env("CHAT_HISTORY_DEPTH", lambda: str(def_chat_history_depth)))
         self.github_issues_repo = self.__env("THE_AGENT_ISSUES_REPO", lambda: def_github_issues_repo)
         self.issue_templates_abs_path = self.__env("THE_AGENT_ISSUE_TEMPLATES_PATH", lambda: def_issue_templates_path)
@@ -142,6 +148,7 @@ class Config(metaclass = Singleton):
         self.api_key = self.__senv("API_KEY", lambda: def_api_key)
         self.telegram_auth_key = self.__senv("TELEGRAM_API_UPDATE_AUTH_TOKEN", lambda: def_telegram_auth_key)
         self.telegram_bot_token = self.__senv("TELEGRAM_BOT_TOKEN", lambda: def_telegram_bot_token)
+        self.whatsapp_auth_key = self.__senv("WHATSAPP_API_UPDATE_AUTH_TOKEN", lambda: def_whatsapp_auth_key)
         self.jwt_secret_key = self.__senv("JWT_SECRET_KEY", lambda: def_jwt_secret_key)
         self.github_issues_token = self.__senv("THE_AGENT_ISSUES_TOKEN", lambda: def_github_issues_token)
         self.rapid_api_twitter_token = self.__senv("RAPID_API_TWITTER_TOKEN", lambda: def_rapid_api_twitter_token)
