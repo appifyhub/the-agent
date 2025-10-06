@@ -47,6 +47,7 @@ class Config(metaclass = Singleton):
     telegram_auth_key: SecretStr
     telegram_bot_token: SecretStr
     whatsapp_auth_key: SecretStr
+    whatsapp_app_secret: SecretStr
     jwt_secret_key: SecretStr
     github_issues_token: SecretStr
     rapid_api_twitter_token: SecretStr
@@ -60,6 +61,7 @@ class Config(metaclass = Singleton):
             self.telegram_auth_key,
             self.telegram_bot_token,
             self.whatsapp_auth_key,
+            self.whatsapp_app_secret,
             self.jwt_secret_key,
             self.github_issues_token,
             self.rapid_api_twitter_token,
@@ -107,6 +109,7 @@ class Config(metaclass = Singleton):
         def_telegram_auth_key: SecretStr = SecretStr("it_is_really_telegram"),
         def_telegram_bot_token: SecretStr = SecretStr("invalid"),
         def_whatsapp_auth_key: SecretStr = SecretStr("it_is_really_whatsapp"),
+        def_whatsapp_app_secret: SecretStr = SecretStr("invalid"),
         def_jwt_secret_key: SecretStr = SecretStr("default"),
         def_github_issues_token: SecretStr = SecretStr("invalid"),
         def_rapid_api_twitter_token: SecretStr = SecretStr("invalid"),
@@ -149,6 +152,7 @@ class Config(metaclass = Singleton):
         self.telegram_auth_key = self.__senv("TELEGRAM_API_UPDATE_AUTH_TOKEN", lambda: def_telegram_auth_key)
         self.telegram_bot_token = self.__senv("TELEGRAM_BOT_TOKEN", lambda: def_telegram_bot_token)
         self.whatsapp_auth_key = self.__senv("WHATSAPP_API_UPDATE_AUTH_TOKEN", lambda: def_whatsapp_auth_key)
+        self.whatsapp_app_secret = self.__senv("WHATSAPP_APP_SECRET", lambda: def_whatsapp_app_secret)
         self.jwt_secret_key = self.__senv("JWT_SECRET_KEY", lambda: def_jwt_secret_key)
         self.github_issues_token = self.__senv("THE_AGENT_ISSUES_TOKEN", lambda: def_github_issues_token)
         self.rapid_api_twitter_token = self.__senv("RAPID_API_TWITTER_TOKEN", lambda: def_rapid_api_twitter_token)
