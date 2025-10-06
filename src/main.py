@@ -12,7 +12,7 @@ import uvicorn
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import SecretStr
-from starlette.responses import RedirectResponse
+from starlette.responses import PlainTextResponse, RedirectResponse
 
 from api.auth import (
     get_chat_type_from_jwt,
@@ -96,8 +96,9 @@ async def whatsapp_webhook_verification(
     hub_mode: str = Query(alias = "hub.mode"),
     hub_challenge: str = Query(alias = "hub.challenge"),
     hub_verify_token: str = Query(alias = "hub.verify_token"),
-) -> str:
-    return verify_whatsapp_webhook_challenge(hub_mode, hub_challenge, hub_verify_token)
+) -> PlainTextResponse:
+    challenge = verify_whatsapp_webhook_challenge(hub_mode, hub_challenge, hub_verify_token)
+    return PlainTextResponse(content = challenge)
 
 
 @app.post("/whatsapp/chat-update")
