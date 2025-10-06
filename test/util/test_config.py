@@ -57,6 +57,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.telegram_auth_key.get_secret_value(), "it_is_really_telegram")
         self.assertEqual(config.telegram_bot_token.get_secret_value(), "invalid")
         self.assertEqual(config.whatsapp_auth_key.get_secret_value(), "it_is_really_whatsapp")
+        self.assertEqual(config.whatsapp_app_secret.get_secret_value(), "invalid")
         self.assertEqual(config.jwt_secret_key.get_secret_value(), "default")
         self.assertEqual(config.github_issues_token.get_secret_value(), "invalid")
         self.assertEqual(config.rapid_api_twitter_token.get_secret_value(), "invalid")
@@ -102,6 +103,7 @@ class ConfigTest(unittest.TestCase):
         os.environ["TELEGRAM_API_UPDATE_AUTH_TOKEN"] = "abcd1234"
         os.environ["TELEGRAM_BOT_TOKEN"] = "id:sha"
         os.environ["WHATSAPP_API_UPDATE_AUTH_TOKEN"] = "efgh5678"
+        os.environ["WHATSAPP_APP_SECRET"] = "ijkl9012"
         os.environ["JWT_SECRET_KEY"] = "custom"
         os.environ["THE_AGENT_ISSUES_TOKEN"] = "sk-gi-valid"
         os.environ["RAPID_API_TWITTER_TOKEN"] = "sk-rt-valid"
@@ -145,6 +147,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.telegram_auth_key.get_secret_value(), "abcd1234")
         self.assertEqual(config.telegram_bot_token.get_secret_value(), "id:sha")
         self.assertEqual(config.whatsapp_auth_key.get_secret_value(), "efgh5678")
+        self.assertEqual(config.whatsapp_app_secret.get_secret_value(), "ijkl9012")
         self.assertEqual(config.jwt_secret_key.get_secret_value(), "custom")
         self.assertEqual(config.github_issues_token.get_secret_value(), "sk-gi-valid")
         self.assertEqual(config.rapid_api_twitter_token.get_secret_value(), "sk-rt-valid")

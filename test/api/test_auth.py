@@ -14,6 +14,8 @@ from api.auth import (
     verify_api_key,
     verify_jwt_credentials,
     verify_telegram_auth_key,
+    verify_whatsapp_signature,
+    verify_whatsapp_webhook_challenge,
 )
 from util.config import config
 
@@ -138,3 +140,74 @@ class AuthTest(unittest.TestCase):
         claims = {"sub": "user-123"}
         chat_type = get_chat_type_from_jwt(claims)
         self.assertIsNone(chat_type)
+
+    @patch("api.auth.config")
+    def test_whatsapp_webhook_challenge_success(self, mock_config: MagicMock):
+        mock_config.whatsapp_must_auth = True
+        mock_config.whatsapp_auth_key = SecretStr("test-token")
+        challenge = verify_whatsapp_webhook_challenge("subscribe", "test-challenge", "test-token")
+        self.assertEqual(challenge, "test-challenge")
+
+    @patch("api.auth.config")
+    def test_whatsapp_webhook_challenge_invalid_token(self, mock_config: MagicMock):
+        mock_config.whatsapp_must_auth = True
+        mock_config.whatsapp_auth_key = SecretStr("correct-token")
+        with self.assertRaises(HTTPException) as context:
+            verify_whatsapp_webhook_challenge("subscribe", "test-challenge", "wrong-token")
+        self.assertEqual(context.exception.status_code, HTTP_403_FORBIDDEN)
+        self.assertEqual(context.exception.detail, "Webhook verification failed")
+
+    @patch("api.auth.config")
+    def test_whatsapp_webhook_challenge_invalid_mode(self, mock_config: MagicMock):
+        mock_config.whatsapp_must_auth = True
+        mock_config.whatsapp_auth_key = SecretStr("test-token")
+        with self.assertRaises(HTTPException) as context:
+            verify_whatsapp_webhook_challenge("unsubscribe", "test-challenge", "test-token")
+        self.assertEqual(context.exception.status_code, HTTP_403_FORBIDDEN)
+        self.assertEqual(context.exception.detail, "Webhook verification failed")
+
+    def test_whatsapp_webhook_challenge_auth_disabled(self):
+        challenge = verify_whatsapp_webhook_challenge("subscribe", "test-challenge", "any-token")
+        self.assertEqual(challenge, "test-challenge")
+
+    @patch("api.auth.config")
+    def test_whatsapp_signature_verification_success(self, mock_config: MagicMock):
+        import hashlib
+        import hmac
+        mock_config.whatsapp_must_auth = True
+        mock_config.whatsapp_app_secret = SecretStr("test-secret")
+        payload = b'{"test": "data"}'
+        signature = hmac.new(b"test-secret", payload, hashlib.sha256).hexdigest()
+        verify_whatsapp_signature(payload, f"sha256={signature}")
+
+    @patch("api.auth.config")
+    def test_whatsapp_signature_verification_invalid_signature(self, mock_config: MagicMock):
+        mock_config.whatsapp_must_auth = True
+        mock_config.whatsapp_app_secret = SecretStr("test-secret")
+        payload = b'{"test": "data"}'
+        with self.assertRaises(HTTPException) as context:
+            verify_whatsapp_signature(payload, "sha256=wrong-signature")
+        self.assertEqual(context.exception.status_code, HTTP_403_FORBIDDEN)
+        self.assertEqual(context.exception.detail, "Invalid signature")
+
+    @patch("api.auth.config")
+    def test_whatsapp_signature_verification_missing_header(self, mock_config: MagicMock):
+        mock_config.whatsapp_must_auth = True
+        payload = b'{"test": "data"}'
+        with self.assertRaises(HTTPException) as context:
+            verify_whatsapp_signature(payload, None)
+        self.assertEqual(context.exception.status_code, HTTP_403_FORBIDDEN)
+        self.assertEqual(context.exception.detail, "Missing signature header")
+
+    @patch("api.auth.config")
+    def test_whatsapp_signature_verification_invalid_format(self, mock_config: MagicMock):
+        mock_config.whatsapp_must_auth = True
+        payload = b'{"test": "data"}'
+        with self.assertRaises(HTTPException) as context:
+            verify_whatsapp_signature(payload, "invalid-format")
+        self.assertEqual(context.exception.status_code, HTTP_403_FORBIDDEN)
+        self.assertEqual(context.exception.detail, "Invalid signature format")
+
+    def test_whatsapp_signature_verification_auth_disabled(self):
+        payload = b'{"test": "data"}'
+        verify_whatsapp_signature(payload, None)
