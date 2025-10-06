@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
 
@@ -13,7 +15,6 @@ __JWT_ALGORITHM = "HS256"
 
 api_key_header = APIKeyHeader(name = "X-API-Key", auto_error = True)
 telegram_auth_key_header = APIKeyHeader(name = "X-Telegram-Bot-Api-Secret-Token", auto_error = False)
-whatsapp_auth_key_header = APIKeyHeader(name = "X-WhatsApp-Bot-Api-Secret-Token", auto_error = False)
 jwt_header = HTTPBearer(bearerFormat = "JWT", auto_error = True)
 
 
@@ -29,10 +30,35 @@ def verify_telegram_auth_key(auth_key: str = Security(telegram_auth_key_header))
     return auth_key
 
 
-def verify_whatsapp_auth_key(auth_key: str = Security(whatsapp_auth_key_header)) -> str:
-    if config.whatsapp_must_auth and auth_key != config.whatsapp_auth_key.get_secret_value():
-        raise HTTPException(status_code = HTTP_403_FORBIDDEN, detail = "Could not validate the WhatsApp auth token")
-    return auth_key
+def verify_whatsapp_webhook_challenge(mode: str, challenge: str, verify_token: str) -> str:
+    if not config.whatsapp_must_auth:
+        log.i("WhatsApp webhook verification skipped (auth disabled)")
+        return challenge
+    token_valid = verify_token == config.whatsapp_auth_key.get_secret_value()
+    if mode == "subscribe" and token_valid:
+        log.i("WhatsApp webhook verified successfully")
+        return challenge
+    else:
+        log.w(f"WhatsApp webhook verification failed: mode={mode}, token_match={token_valid}")
+        raise HTTPException(status_code = HTTP_403_FORBIDDEN, detail = "Webhook verification failed")
+
+
+def verify_whatsapp_signature(payload: bytes, signature_header: str | None) -> None:
+    if not config.whatsapp_must_auth:
+        log.i("WhatsApp signature verification skipped (auth disabled)")
+        return
+    if not signature_header:
+        log.w("WhatsApp signature verification failed: missing X-Hub-Signature-256 header")
+        raise HTTPException(status_code = HTTP_403_FORBIDDEN, detail = "Missing signature header")
+    if not signature_header.startswith("sha256="):
+        log.w(f"WhatsApp signature verification failed: invalid header format: {signature_header}")
+        raise HTTPException(status_code = HTTP_403_FORBIDDEN, detail = "Invalid signature format")
+    received_signature = signature_header[7:]
+    expected_signature = hmac.new(config.whatsapp_app_secret.get_secret_value().encode(), payload, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected_signature, received_signature):
+        log.w("WhatsApp signature verification failed: signature mismatch")
+        raise HTTPException(status_code = HTTP_403_FORBIDDEN, detail = "Invalid signature")
+    log.i("WhatsApp signature verified successfully")
 
 
 def verify_jwt_credentials(authorization: HTTPAuthorizationCredentials = Security(jwt_header)) -> Dict[str, Any]:

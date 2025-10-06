@@ -9,10 +9,10 @@ from typing import Any
 from uuid import UUID
 
 import uvicorn
-from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import SecretStr
-from starlette.responses import RedirectResponse
+from starlette.responses import PlainTextResponse, RedirectResponse
 
 from api.auth import (
     get_chat_type_from_jwt,
@@ -20,7 +20,8 @@ from api.auth import (
     verify_api_key,
     verify_jwt_credentials,
     verify_telegram_auth_key,
-    verify_whatsapp_auth_key,
+    verify_whatsapp_signature,
+    verify_whatsapp_webhook_challenge,
 )
 from api.model.chat_settings_payload import ChatSettingsPayload
 from api.model.release_output_payload import ReleaseOutputPayload
@@ -90,12 +91,25 @@ async def telegram_chat_update(
     return {"status": "ok"}
 
 
+@app.get("/whatsapp/chat-update")
+async def whatsapp_webhook_verification(
+    hub_mode: str = Query(alias = "hub.mode"),
+    hub_challenge: str = Query(alias = "hub.challenge"),
+    hub_verify_token: str = Query(alias = "hub.verify_token"),
+) -> PlainTextResponse:
+    challenge = verify_whatsapp_webhook_challenge(hub_mode, hub_challenge, hub_verify_token)
+    return PlainTextResponse(content = challenge)
+
+
 @app.post("/whatsapp/chat-update")
 async def whatsapp_chat_update(
-    update: dict,
-    _ = Depends(verify_whatsapp_auth_key),
+    request: Request,
+    x_hub_signature_256: str | None = Header(default = None),
 ) -> dict:
-    log.d("Received WhatsApp update", update)
+    body = await request.body()
+    verify_whatsapp_signature(body, x_hub_signature_256)
+    update = await request.json()
+    log.d(f"Received WhatsApp update: {update}")
     return {"status": "ok"}
 
 
