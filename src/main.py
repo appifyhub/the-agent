@@ -32,9 +32,10 @@ from db.model.chat_config import ChatConfigDB
 from db.sql import get_session, initialize_db
 from di.di import DI
 from features.chat.telegram.currency_alert_responder import respond_with_currency_alerts
-from features.chat.telegram.model.update import Update
+from features.chat.telegram.model.update import Update as TelegramUpdate
 from features.chat.telegram.release_summary_responder import respond_with_summary
 from features.chat.telegram.telegram_update_responder import respond_to_update
+from features.chat.whatsapp.model.update import Update as WhatsAppUpdate
 from features.integrations.integrations import resolve_agent_user
 from util import log
 from util.config import Config, config
@@ -83,7 +84,7 @@ def health() -> dict:
 
 @app.post("/telegram/chat-update")
 async def telegram_chat_update(
-    update: Update,
+    update: TelegramUpdate,
     offloader: BackgroundTasks,
     _ = Depends(verify_telegram_auth_key),
 ) -> dict:
@@ -108,7 +109,8 @@ async def whatsapp_chat_update(
 ) -> dict:
     body = await request.body()
     verify_whatsapp_signature(body, x_hub_signature_256)
-    update = await request.json()
+    update_dict = await request.json()
+    update = WhatsAppUpdate.model_validate(update_dict)
     log.d(f"Received WhatsApp update: {update}")
     return {"status": "ok"}
 
