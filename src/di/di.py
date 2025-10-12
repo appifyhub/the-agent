@@ -40,6 +40,7 @@ if TYPE_CHECKING:
     from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
     from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
     from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
+    from features.chat.whatsapp.sdk.whatsapp_bot_api import WhatsAppBotAPI
     from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
     from features.documents.document_search import DocumentSearch
     from features.external_tools.access_token_resolver import AccessTokenResolver
@@ -73,6 +74,7 @@ class DI:
     # SDKs
     _telegram_bot_api: "TelegramBotAPI | None"
     _telegram_bot_sdk: "TelegramBotSDK | None"
+    _whatsapp_bot_api: "WhatsAppBotAPI | None"
     # Repositories
     _user_crud: "UserCRUD | None"
     _chat_config_crud: "ChatConfigCRUD | None"
@@ -113,6 +115,7 @@ class DI:
         # SDKs
         self._telegram_bot_api = None
         self._telegram_bot_sdk = None
+        self._whatsapp_bot_api = None
         # Repositories
         self._user_crud = None
         self._chat_config_crud = None
@@ -251,6 +254,13 @@ class DI:
             from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
             self._telegram_bot_sdk = TelegramBotSDK(self)
         return self._telegram_bot_sdk
+
+    @property
+    def whatsapp_bot_api(self) -> "WhatsAppBotAPI":
+        if self._whatsapp_bot_api is None:
+            from features.chat.whatsapp.sdk.whatsapp_bot_api import WhatsAppBotAPI
+            self._whatsapp_bot_api = WhatsAppBotAPI()
+        return self._whatsapp_bot_api
 
     # === Repositories ===
 

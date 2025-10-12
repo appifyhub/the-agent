@@ -40,3 +40,12 @@ TELEGRAM_REACTIONS: list[str] = [
     "😇", "😨", "🤝", "✍", "🤗", "🫡", "🎅", "🎄", "☃", "💅", "🤪", "🗿", "🆒", "💘", "🙉", "🦄",
     "😘", "💊", "🙊", "😎", "👾", "🤷‍♂️", "😡",
 ]
+
+
+# === WhatsApp Tasks ===
+
+WHATSAPP_AGENT = UserSave(
+    id = uuid.uuid5(uuid.NAMESPACE_DNS, config.whatsapp_bot_phone_number),
+    full_name = config.whatsapp_bot_name,
+    group = UserDB.Group.standard,
+)
