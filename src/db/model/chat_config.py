@@ -48,6 +48,7 @@ class ChatConfigDB(BaseModel):
 
     class ChatType(Enum):
         telegram = "telegram"
+        whatsapp = "whatsapp"
         github = "github"
         background = "background"
 
@@ -63,8 +64,9 @@ class ChatConfigDB(BaseModel):
                 return NotImplemented
             hierarchy = {
                 "telegram": 1,
-                "github": 2,
-                "background": 3,
+                "whatsapp": 2,
+                "github": 3,
+                "background": 4,
             }
             return hierarchy[self.value] < hierarchy[other.value]
 
@@ -73,8 +75,9 @@ class ChatConfigDB(BaseModel):
                 return NotImplemented
             hierarchy = {
                 "telegram": 1,
-                "github": 2,
-                "background": 3,
+                "whatsapp": 2,
+                "github": 3,
+                "background": 4,
             }
             return hierarchy[self.value] >= hierarchy[other.value]
 

@@ -35,6 +35,16 @@ class UserCRUD:
             UserDB.telegram_username == telegram_username,
         ).first()
 
+    def get_by_whatsapp_user_id(self, whatsapp_user_id: str) -> UserDB | None:
+        return self._db.query(UserDB).filter(
+            UserDB.whatsapp_user_id == whatsapp_user_id,
+        ).first()
+
+    def get_by_whatsapp_phone_number(self, whatsapp_phone_number: str) -> UserDB | None:
+        return self._db.query(UserDB).filter(
+            UserDB.whatsapp_phone_number == whatsapp_phone_number,
+        ).first()
+
     def create(self, create_data: UserSave) -> UserDB:
         user = UserDB(**create_data.model_dump())
         self._db.add(user)

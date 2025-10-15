@@ -13,6 +13,9 @@ class UserBase(BaseModel):
     telegram_chat_id: str | None = None
     telegram_user_id: int | None = None
 
+    whatsapp_user_id: str | None = None
+    whatsapp_phone_number: SecretStr | None = None
+
     open_ai_key: SecretStr | None = None
     anthropic_key: SecretStr | None = None
     google_ai_key: SecretStr | None = None

@@ -58,6 +58,12 @@ def digest_md5(content: str) -> str:
     return hash_object.hexdigest()
 
 
+def normalize_phone_number(phone: str | None) -> str | None:
+    if phone is None:
+        return None
+    return "".join(c for c in phone if c.isdigit())
+
+
 def extract_url_from_replicate_result(result: Any) -> str:
     if isinstance(result, list):
         if not result:
