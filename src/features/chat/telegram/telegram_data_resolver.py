@@ -85,7 +85,10 @@ class TelegramDataResolver:
             old_user = User.model_validate(old_user_db)
             # reset the attributes that are not normally changed through the Telegram API
             mapped_data.id = old_user.id
+            mapped_data.full_name = mapped_data.full_name or old_user.full_name
             mapped_data.telegram_chat_id = mapped_data.telegram_chat_id or old_user.telegram_chat_id
+            mapped_data.whatsapp_user_id = old_user.whatsapp_user_id
+            mapped_data.whatsapp_phone_number = old_user.whatsapp_phone_number
             mapped_data.open_ai_key = old_user.open_ai_key
             mapped_data.anthropic_key = old_user.anthropic_key
             mapped_data.google_ai_key = old_user.google_ai_key

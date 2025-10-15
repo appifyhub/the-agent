@@ -388,6 +388,39 @@ class TelegramDataResolverTest(unittest.TestCase):
         self.assertEqual(result.tool_choice_api_crypto_exchange, existing_user.tool_choice_api_crypto_exchange)
         self.assertEqual(result.tool_choice_api_twitter, existing_user.tool_choice_api_twitter)
 
+    def test_resolve_author_preserves_name_when_empty(self):
+        existing_user_data = UserSave(
+            telegram_user_id = 1,
+            full_name = "Existing User",
+            telegram_chat_id = "c1",
+        )
+        existing_user_db = self.sql.user_crud().save(existing_user_data)
+        existing_user = User.model_validate(existing_user_db)
+
+        # Test with None full_name
+        mapped_data_none = UserSave(
+            telegram_user_id = 1,
+            full_name = None,
+            telegram_chat_id = "c2",
+        )
+
+        result = self.resolver.resolve_author(mapped_data_none)
+        assert result is not None
+        self.assertEqual(result.id, existing_user.id)
+        self.assertEqual(result.full_name, existing_user.full_name)  # Should preserve existing name
+
+        # Test with empty string full_name
+        mapped_data_empty = UserSave(
+            telegram_user_id = 1,
+            full_name = "",
+            telegram_chat_id = "c3",
+        )
+
+        result = self.resolver.resolve_author(mapped_data_empty)
+        assert result is not None
+        self.assertEqual(result.id, existing_user.id)
+        self.assertEqual(result.full_name, existing_user.full_name)  # Should preserve existing name
+
     @patch("db.crud.user.UserCRUD.get_by_telegram_user_id")
     @patch("db.crud.user.UserCRUD.get_by_telegram_username")
     def test_resolve_author_api_key_reset(self, mock_get_by_username, mock_get_by_user_id):
