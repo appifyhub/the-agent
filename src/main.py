@@ -36,6 +36,7 @@ from features.chat.telegram.model.update import Update as TelegramUpdate
 from features.chat.telegram.release_summary_responder import respond_with_summary
 from features.chat.telegram.telegram_update_responder import respond_to_update
 from features.chat.whatsapp.model.update import Update as WhatsAppUpdate
+from features.chat.whatsapp.whatsapp_update_responder import respond_to_update as respond_to_whatsapp_update
 from features.integrations.integrations import resolve_agent_user
 from util import log
 from util.config import Config, config
@@ -105,6 +106,7 @@ async def whatsapp_webhook_verification(
 @app.post("/whatsapp/chat-update")
 async def whatsapp_chat_update(
     request: Request,
+    offloader: BackgroundTasks,
     x_hub_signature_256: str | None = Header(default = None),
 ) -> dict:
     body = await request.body()
@@ -112,6 +114,7 @@ async def whatsapp_chat_update(
     update_dict = await request.json()
     update = WhatsAppUpdate.model_validate(update_dict)
     log.d(f"Received WhatsApp update: {update}")
+    offloader.add_task(respond_to_whatsapp_update, update)
     return {"status": "ok"}
 
 

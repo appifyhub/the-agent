@@ -1,6 +1,7 @@
 import requests
 from requests import RequestException, Response
 
+from features.chat.whatsapp.model.media_info import MediaInfo
 from features.chat.whatsapp.model.response import MarkAsReadResponse, MessageResponse
 from util import log
 from util.config import config
@@ -96,12 +97,11 @@ class WhatsAppBotAPI:
         response = self.__post_request(payload)
         return MarkAsReadResponse(**response)
 
-    def download_media(
+    def get_media_info(
         self,
         media_id: str,
-    ) -> bytes | None:
-        log.t(f"Downloading media #{media_id}")
-        # Step 1: Get media URL
+    ) -> MediaInfo | None:
+        log.t(f"Getting media info for #{media_id}")
         media_url = f"https://graph.facebook.com/{API_VERSION}/{media_id}"
         headers = {"Authorization": f"Bearer {config.whatsapp_bot_token.get_secret_value()}"}
         response = requests.get(media_url, headers = headers, timeout = config.web_timeout_s)
@@ -110,9 +110,15 @@ class WhatsAppBotAPI:
         if "url" not in media_data:
             log.e(f"No URL found in media response: {media_data}")
             return None
-        # Step 2: Download the actual media file
-        media_file_url = media_data["url"]
-        file_response = requests.get(media_file_url, headers = headers, timeout = config.web_timeout_s)
+        return MediaInfo.model_validate(media_data)
+
+    def download_media_bytes(
+        self,
+        media_url: str,
+    ) -> bytes | None:
+        log.t("Downloading media bytes from URL")
+        headers = {"Authorization": f"Bearer {config.whatsapp_bot_token.get_secret_value()}"}
+        file_response = requests.get(media_url, headers = headers, timeout = config.web_timeout_s)
         self.__raise_for_status(file_response)
         log.t(f"Media downloaded successfully ({len(file_response.content)} bytes)")
         return file_response.content
@@ -124,19 +130,15 @@ class WhatsAppBotAPI:
         content: dict | None = None,
     ) -> dict:
         payload = {"messaging_product": "whatsapp"}
-
         if recipient_id:
             payload.update({
                 "recipient_type": "individual",
                 "to": recipient_id,
             })
-
         if message_type:
             payload["type"] = message_type
-
         if content:
             payload.update(content)
-
         return payload
 
     def __post_request(self, payload: dict) -> dict:

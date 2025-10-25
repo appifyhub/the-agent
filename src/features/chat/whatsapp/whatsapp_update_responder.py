@@ -9,8 +9,8 @@ from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.sql import get_detached_session
 from di.di import DI
 from features.chat.chat_agent import ChatAgent
-from features.chat.telegram.model.update import Update
-from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
+from features.chat.whatsapp.model.update import Update
+from features.chat.whatsapp.whatsapp_data_resolver import WhatsAppDataResolver
 from features.integrations import prompt_resolvers
 from features.integrations.integrations import resolve_agent_user
 from util import log
@@ -19,8 +19,8 @@ from util.functions import silent
 
 
 def respond_to_update(update: Update) -> bool:
-    if config.log_telegram_update:
-        log.t(f"Received a Telegram update: `{update}`")
+    if config.log_whatsapp_update:
+        log.t(f"Received a WhatsApp update: `{update}`")
 
     with get_detached_session() as db:
         di = DI(db)
@@ -29,21 +29,26 @@ def respond_to_update(update: Update) -> bool:
             return di.domain_langchain_mapper.map_to_langchain(
                 author = di.user_crud.get(message.author_id),
                 message = message,
-                chat_type = ChatConfigDB.ChatType.telegram,
+                chat_type = ChatConfigDB.ChatType.whatsapp,
             )
 
-        resolved_domain_data: TelegramDataResolver.Result | None = None
+        resolved_domain_data_all: list[WhatsAppDataResolver.Result] = []
+        resolved_domain_data: WhatsAppDataResolver.Result | None = None
         try:
             # map to storage models for persistence
-            domain_update = di.telegram_domain_mapper.map_update(update)
+            domain_update = di.whatsapp_domain_mapper.map_update(update)
             if not domain_update:
-                raise HTTPException(status_code = 422, detail = "Unable to map the Telegram update")
+                raise HTTPException(status_code = 422, detail = "Unable to map the WhatsApp update")
 
             # store and map to domain models (throws in case of error)
-            resolved_domain_data = di.telegram_data_resolver.resolve(domain_update)
-            if not resolved_domain_data.author:
-                log.d("Not responding to messages without author")
+            resolved_domain_data_all = di.whatsapp_data_resolver.resolve_all(domain_update)
+            # filter out messages without authors
+            resolved_domain_data_all = [message for message in resolved_domain_data_all if message.author]
+            if not resolved_domain_data_all:
+                log.d("Not responding to messages without authors")
                 return False
+            # we inject DI context for the latest message only, so let's sort by timestamp
+            resolved_domain_data = max(resolved_domain_data_all, key = lambda r: r.message.sent_at)
             di.inject_invoker(resolved_domain_data.author)
             di.inject_invoker_chat(resolved_domain_data.chat)
 
@@ -69,8 +74,8 @@ def respond_to_update(update: Update) -> bool:
             tool = di.tool_choice_resolver.get_tool(ChatAgent.TOOL_TYPE, ChatAgent.DEFAULT_TOOL)
             chat_agent = di.chat_agent(
                 messages = list(langchain_messages),
-                raw_last_message = domain_update.message.text,  # excludes the resolver formatting
-                last_message_id = domain_update.message.message_id,
+                raw_last_message = resolved_domain_data.message.text,  # excludes the resolver formatting
+                last_message_id = resolved_domain_data.message.message_id,
                 attachment_ids = past_attachment_ids,
                 configured_tool = tool,
             )
@@ -83,7 +88,7 @@ def respond_to_update(update: Update) -> bool:
             sent_messages: int = 0
             domain_messages = di.domain_langchain_mapper.map_bot_message_to_storage(resolved_domain_data.chat, answer)
             for message in domain_messages:
-                di.telegram_bot_sdk.send_text_message(str(resolved_domain_data.chat.external_id), message.text)
+                di.whatsapp_bot_sdk.send_text_message(str(resolved_domain_data.chat.external_id), message.text)
                 sent_messages += 1
 
             agent = resolve_agent_user(resolved_domain_data.chat.chat_type)
@@ -99,12 +104,12 @@ def respond_to_update(update: Update) -> bool:
 @silent
 def __notify_of_errors(
     di: DI,
-    resolved_domain_data: TelegramDataResolver.Result | None,
+    resolved_domain_data: WhatsAppDataResolver.Result | None,
     error: Exception,
 ):
     if resolved_domain_data:
         answer = AIMessage(prompt_resolvers.simple_chat_error(str(error)))
         messages = di.domain_langchain_mapper.map_bot_message_to_storage(resolved_domain_data.chat, answer)
         for message in messages:
-            di.telegram_bot_sdk.send_text_message(str(resolved_domain_data.chat.external_id), message.text)
+            di.whatsapp_bot_sdk.send_text_message(str(resolved_domain_data.chat.external_id), message.text)
         log.t("Replied with the error")

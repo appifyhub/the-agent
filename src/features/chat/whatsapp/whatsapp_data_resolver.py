@@ -2,19 +2,17 @@ from typing import List
 
 from pydantic import BaseModel
 
-from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig, ChatConfigSave
 from db.schema.chat_message import ChatMessage, ChatMessageSave
 from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessageAttachmentSave
 from db.schema.user import User, UserSave
 from di.di import DI
-from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
-from features.integrations.integrations import is_the_agent
+from features.chat.whatsapp.whatsapp_domain_mapper import WhatsAppDomainMapper
 from util import log
 from util.config import config
 
 
-class TelegramDataResolver:
+class WhatsAppDataResolver:
     """
     Resolves the final set of data attributes ready to be used by the service.
     If needed, this resolver will fetch more data from the API or the database.
@@ -31,13 +29,17 @@ class TelegramDataResolver:
     def __init__(self, di: DI):
         self.__di = di
 
-    def resolve(self, mapping_result: TelegramDomainMapper.Result) -> Result:
+    def resolve_all(self, mapping_results: list[WhatsAppDomainMapper.Result]) -> list[Result]:
+        log.t(f"Resolving all {len(mapping_results)} mapping results")
+        # Sort by timestamp (oldest first) so replied-to messages are processed before replies
+        sorted_results = sorted(mapping_results, key = lambda r: r.message.sent_at)
+        return [self.resolve(mapping_result) for mapping_result in sorted_results]
+
+    def resolve(self, mapping_result: WhatsAppDomainMapper.Result) -> Result:
         log.t(f"Resolving mapping result: {mapping_result}")
         resolved_chat_config = self.resolve_chat_config(mapping_result.chat)
         resolved_author: User | None = None
         if mapping_result.author:
-            if is_the_agent(mapping_result.author, ChatConfigDB.ChatType.telegram):
-                mapping_result.author.telegram_chat_id = None  # bot has no private chat
             resolved_author = self.resolve_author(mapping_result.author)
             if resolved_author:
                 mapping_result.message.author_id = resolved_author.id
@@ -45,9 +47,21 @@ class TelegramDataResolver:
         mapping_result.message.chat_id = resolved_chat_config.chat_id
         for attachment in mapping_result.attachments:
             attachment.chat_id = resolved_chat_config.chat_id
+        # Handle replied-to message (WhatsApp doesn't provide content, so we fetch from DB)
+        if mapping_result.replied_to_message_id:
+            replied_message_db = self.__di.chat_message_crud.get(
+                chat_id = resolved_chat_config.chat_id,
+                message_id = mapping_result.replied_to_message_id,
+            )
+            if replied_message_db:
+                replied_message = ChatMessage.model_validate(replied_message_db)
+                quoted_text = self.__format_quoted_message(replied_message.text)
+                mapping_result.message.text = f"{quoted_text}\n\n{mapping_result.message.text}"
+            else:
+                log.w(f"  Replied-to message '{mapping_result.replied_to_message_id}' not found in DB")
         resolved_chat_message = self.resolve_chat_message(mapping_result.message)
         resolved_attachments = [self.resolve_chat_message_attachment(attachment) for attachment in mapping_result.attachments]
-        return TelegramDataResolver.Result(
+        return WhatsAppDataResolver.Result(
             chat = resolved_chat_config,
             author = resolved_author,
             message = resolved_chat_message,
@@ -62,7 +76,7 @@ class TelegramDataResolver:
         )
         if old_chat_config_db:
             old_chat_config = ChatConfig.model_validate(old_chat_config_db)
-            # reset the attributes that are not normally changed through the Telegram API
+            # reset the attributes that are not normally changed through the WhatsApp API
             mapped_data.chat_id = old_chat_config.chat_id
             mapped_data.language_iso_code = old_chat_config.language_iso_code
             mapped_data.language_name = old_chat_config.language_name
@@ -76,19 +90,21 @@ class TelegramDataResolver:
         if not mapped_data:
             return None
         log.t(f"  Resolving user: {mapped_data}")
+        whatsapp_phone_number = mapped_data.whatsapp_phone_number.get_secret_value() if mapped_data.whatsapp_phone_number else ""
         old_user_db = (
-            self.__di.user_crud.get_by_telegram_user_id(mapped_data.telegram_user_id or -1) or
-            self.__di.user_crud.get_by_telegram_username(mapped_data.telegram_username or "")
+            self.__di.user_crud.get_by_whatsapp_user_id(mapped_data.whatsapp_user_id or "") or
+            self.__di.user_crud.get_by_whatsapp_phone_number(whatsapp_phone_number or "")
         )
 
         if old_user_db:
             old_user = User.model_validate(old_user_db)
-            # reset the attributes that are not normally changed through the Telegram API
+            # reset the attributes that are not normally changed through the WhatsApp API
             mapped_data.id = old_user.id
             mapped_data.full_name = mapped_data.full_name or old_user.full_name
-            mapped_data.telegram_chat_id = mapped_data.telegram_chat_id or old_user.telegram_chat_id
-            mapped_data.whatsapp_user_id = old_user.whatsapp_user_id
-            mapped_data.whatsapp_phone_number = old_user.whatsapp_phone_number
+            mapped_data.whatsapp_phone_number = mapped_data.whatsapp_phone_number or old_user.whatsapp_phone_number
+            mapped_data.telegram_chat_id = old_user.telegram_chat_id
+            mapped_data.telegram_user_id = old_user.telegram_user_id
+            mapped_data.telegram_username = old_user.telegram_username
             mapped_data.open_ai_key = old_user.open_ai_key
             mapped_data.anthropic_key = old_user.anthropic_key
             mapped_data.google_ai_key = old_user.google_ai_key
@@ -187,7 +203,7 @@ class TelegramDataResolver:
         old_chat_message_db = self.__di.chat_message_crud.get(mapped_data.chat_id, mapped_data.message_id)
         if old_chat_message_db:
             old_chat_message = ChatMessage.model_validate(old_chat_message_db)
-            # reset the attributes that are not normally changed through the Telegram API
+            # reset the attributes that are not normally changed through the WhatsApp API
             mapped_data.chat_id = old_chat_message.chat_id
             mapped_data.author_id = mapped_data.author_id or old_chat_message.author_id
             mapped_data.sent_at = mapped_data.sent_at or old_chat_message.sent_at
@@ -201,7 +217,7 @@ class TelegramDataResolver:
 
         if old_attachment_db:
             old_attachment = ChatMessageAttachment.model_validate(old_attachment_db)
-            # reset the attributes that are not normally changed through the Telegram API
+            # reset the attributes that are not normally changed through the WhatsApp API
             mapped_data.id = old_attachment.id
             mapped_data.chat_id = old_attachment.chat_id
             mapped_data.size = mapped_data.size or old_attachment.size
@@ -210,4 +226,10 @@ class TelegramDataResolver:
             mapped_data.extension = mapped_data.extension or old_attachment.extension
             mapped_data.mime_type = mapped_data.mime_type or old_attachment.mime_type
 
-        return self.__di.telegram_bot_sdk.refresh_attachment(attachment_save = mapped_data)
+        return self.__di.whatsapp_bot_sdk.refresh_attachment(attachment_save = mapped_data)
+
+    # noinspection PyMethodMayBeStatic
+    def __format_quoted_message(self, text: str) -> str:
+        all_lines = text.split("\n")
+        prefixed_lines = [f">>>> {line}" for line in all_lines]
+        return "\n".join(prefixed_lines)

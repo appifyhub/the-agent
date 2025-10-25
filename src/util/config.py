@@ -15,6 +15,7 @@ class Config(metaclass = Singleton):
     max_sponsorships_per_user: int
     log_level: str
     log_telegram_update: bool
+    log_whatsapp_update: bool
     web_retries: int
     web_retry_delay_s: int
     web_timeout_s: int
@@ -43,6 +44,8 @@ class Config(metaclass = Singleton):
     backoffice_url_base: str
     main_language_name: str = "English"
     main_language_iso_code: str = "en"
+    uploadcare_public_key: str
+    uploadcare_cdn_id: str
     version: str
 
     db_url: SecretStr
@@ -57,6 +60,7 @@ class Config(metaclass = Singleton):
     rapid_api_twitter_token: SecretStr
     free_img_host_token: SecretStr
     token_encrypt_secret: SecretStr
+    uploadcare_private_key: SecretStr
 
     def all_secrets(self) -> list[SecretStr]:
         return [
@@ -72,6 +76,7 @@ class Config(metaclass = Singleton):
             self.rapid_api_twitter_token,
             self.free_img_host_token,
             self.token_encrypt_secret,
+            self.uploadcare_private_key,
         ]
 
     def __init__(
@@ -79,6 +84,7 @@ class Config(metaclass = Singleton):
         def_max_sponsorships_per_user: int = 2,
         def_log_level: str = "INFO",
         def_log_telegram_update: bool = False,
+        def_log_whatsapp_update: bool = False,
         def_web_retries: int = 3,
         def_web_retry_delay_s: int = 1,
         def_web_timeout_s: int = 10,
@@ -107,6 +113,8 @@ class Config(metaclass = Singleton):
         def_backoffice_url_base: str = "http://127.0.0.1.sslip.io:5173",
         def_main_language_name: str = "English",
         def_main_language_iso_code: str = "en",
+        def_uploadcare_public_key: str = "invalid",
+        def_uploadcare_cdn_id: str = "invalid",
         def_version: str = "dev",
 
         def_db_user: SecretStr = SecretStr("root"),
@@ -124,11 +132,13 @@ class Config(metaclass = Singleton):
         def_rapid_api_twitter_token: SecretStr = SecretStr("invalid"),
         def_free_img_host_token: SecretStr = SecretStr("invalid"),
         def_token_encrypt_secret: SecretStr = SecretStr("default"),
+        def_uploadcare_private_key: SecretStr = SecretStr("invalid"),
     ):
         # @formatter:off
         self.max_sponsorships_per_user = int(self.__env("MAX_SPONSORSHIPS_PER_USER", lambda: str(def_max_sponsorships_per_user)))
         self.log_level = self.__env("LOG_LEVEL", lambda: def_log_level).lower()
         self.log_telegram_update = self.__env("LOG_TG_UPDATE", lambda: str(def_log_telegram_update)).lower() == "true"
+        self.log_whatsapp_update = self.__env("LOG_WA_UPDATE", lambda: str(def_log_whatsapp_update)).lower() == "true"
         self.web_retries = int(self.__env("WEB_RETRIES", lambda: str(def_web_retries)))
         self.web_retry_delay_s = int(self.__env("WEB_RETRY_DELAY_S", lambda: str(def_web_retry_delay_s)))
         self.web_timeout_s = int(self.__env("WEB_TIMEOUT_S", lambda: str(def_web_timeout_s)))
@@ -157,6 +167,8 @@ class Config(metaclass = Singleton):
         self.backoffice_url_base = self.__env("BACKOFFICE_URL_BASE", lambda: def_backoffice_url_base)
         self.main_language_name = self.__env("MAIN_LANGUAGE_NAME", lambda: def_main_language_name)
         self.main_language_iso_code = self.__env("MAIN_LANGUAGE_ISO_CODE", lambda: def_main_language_iso_code)
+        self.uploadcare_public_key = self.__env("UPLOADCARE_PUBLIC_KEY", lambda: def_uploadcare_public_key)
+        self.uploadcare_cdn_id = self.__env("UPLOADCARE_CDN_ID", lambda: def_uploadcare_cdn_id)
         self.version = self.__env("VERSION", lambda: def_version)
 
         self.__set_up_db(def_db_user, def_db_pass, def_db_host, def_db_name)
@@ -171,6 +183,7 @@ class Config(metaclass = Singleton):
         self.rapid_api_twitter_token = self.__senv("RAPID_API_TWITTER_TOKEN", lambda: def_rapid_api_twitter_token)
         self.free_img_host_token = self.__senv("FREE_IMG_HOST_TOKEN", lambda: def_free_img_host_token)
         self.token_encrypt_secret = self.__senv("TOKEN_ENCRYPT_SECRET", lambda: def_token_encrypt_secret)
+        self.uploadcare_private_key = self.__senv("UPLOADCARE_PRIVATE_KEY", lambda: def_uploadcare_private_key)
         # @formatter:on
 
     def __set_up_db(self, def_db_user: SecretStr, def_db_pass: SecretStr, def_db_host: SecretStr, def_db_name: SecretStr):

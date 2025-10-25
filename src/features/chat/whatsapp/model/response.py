@@ -1,20 +1,20 @@
 from pydantic import BaseModel
 
 
-class Contact(BaseModel):
+class ContactResponse(BaseModel):
     input: str
     wa_id: str
 
 
-class Message(BaseModel):
+class SentMessageResponse(BaseModel):
     id: str
     message_status: str | None = None
 
 
 class MessageResponse(BaseModel):
     messaging_product: str
-    contacts: list[Contact]
-    messages: list[Message]
+    contacts: list[ContactResponse]
+    messages: list[SentMessageResponse]
 
 
 class MediaUploadResponse(BaseModel):

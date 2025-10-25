@@ -53,6 +53,8 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.backoffice_url_base, "http://127.0.0.1.sslip.io:5173")
         self.assertEqual(config.main_language_name, "English")
         self.assertEqual(config.main_language_iso_code, "en")
+        self.assertEqual(config.uploadcare_public_key, "invalid")
+        self.assertEqual(config.uploadcare_cdn_id, "invalid")
         self.assertEqual(config.version, "dev")
 
         self.assertEqual(config.db_url.get_secret_value(), "postgresql://root:root@localhost:5432/agent")
@@ -66,6 +68,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.rapid_api_twitter_token.get_secret_value(), "invalid")
         self.assertEqual(config.free_img_host_token.get_secret_value(), "invalid")
         self.assertEqual(config.token_encrypt_secret.get_secret_value(), "default")
+        self.assertEqual(config.uploadcare_private_key.get_secret_value(), "invalid")
 
     def test_custom_config(self):
         os.environ["LOG_LEVEL"] = "DEBUG"
@@ -99,6 +102,8 @@ class ConfigTest(unittest.TestCase):
         os.environ["BACKOFFICE_URL_BASE"] = "https://example.com"
         os.environ["MAIN_LANGUAGE_NAME"] = "German"
         os.environ["MAIN_LANGUAGE_ISO_CODE"] = "de"
+        os.environ["UPLOADCARE_PUBLIC_KEY"] = "public-key-123"
+        os.environ["UPLOADCARE_CDN_ID"] = "cdn-id-123"
         os.environ["VERSION"] = "custom"
 
         os.environ["POSTGRES_USER"] = "admin"
@@ -116,6 +121,7 @@ class ConfigTest(unittest.TestCase):
         os.environ["RAPID_API_TWITTER_TOKEN"] = "sk-rt-valid"
         os.environ["FREE_IMG_HOST_TOKEN"] = "sk-im-valid"
         os.environ["TOKEN_ENCRYPT_SECRET"] = "custom-encryption-key"
+        os.environ["UPLOADCARE_PRIVATE_KEY"] = "private-key-123"
 
         config = Config()
 
@@ -150,6 +156,8 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.backoffice_url_base, "https://example.com")
         self.assertEqual(config.main_language_name, "German")
         self.assertEqual(config.main_language_iso_code, "de")
+        self.assertEqual(config.uploadcare_public_key, "public-key-123")
+        self.assertEqual(config.uploadcare_cdn_id, "cdn-id-123")
         self.assertEqual(config.version, "custom")
 
         self.assertEqual(config.db_url.get_secret_value(), "postgresql://admin:admin123@db.example.com:5432/test_db")
@@ -164,3 +172,4 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.rapid_api_twitter_token.get_secret_value(), "sk-rt-valid")
         self.assertEqual(config.free_img_host_token.get_secret_value(), "sk-im-valid")
         self.assertEqual(config.token_encrypt_secret.get_secret_value(), "custom-encryption-key")
+        self.assertEqual(config.uploadcare_private_key.get_secret_value(), "private-key-123")

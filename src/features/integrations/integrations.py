@@ -143,8 +143,8 @@ def is_own_chat(chat_config: ChatConfig, user: User) -> bool:
             is_own_chat_configured = (user.telegram_chat_id is not None) and (chat_config.external_id is not None)
             return chat_config.is_private and is_own_chat_configured and user.telegram_chat_id == chat_config.external_id
         case ChatConfigDB.ChatType.whatsapp:
-            is_own_chat_configured = (user.whatsapp_user_id is not None) and (chat_config.external_id is not None)
-            return chat_config.is_private and is_own_chat_configured and user.whatsapp_user_id == chat_config.external_id
+            # WhatsApp Business API: all chats are 1-1 conversations with the business
+            return True
         case ChatConfigDB.ChatType.background:
             return False
         case ChatConfigDB.ChatType.github:
