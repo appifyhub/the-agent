@@ -64,6 +64,12 @@ def normalize_phone_number(phone: str | None) -> str | None:
     return "".join(c for c in phone if c.isdigit())
 
 
+def normalize_username(username: str | None) -> str | None:
+    if username is None:
+        return None
+    return username.replace("@", "").replace("+", "").replace(" ", "").strip()
+
+
 def extract_url_from_replicate_result(result: Any) -> str:
     if isinstance(result, list):
         if not result:

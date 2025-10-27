@@ -192,6 +192,24 @@ class IntegrationsTest(TestCase):
         self.assertIsNone(result)
         mock_user_crud.get_by_telegram_username.assert_called_once_with("nonexistent_user")
 
+    def test_lookup_user_by_handle_telegram_with_at(self):
+        mock_user_crud = Mock(spec = UserCRUD)
+        mock_user_db = UserDB(
+            id = UUID(int = 1),
+            full_name = "Test User",
+            telegram_username = "test_user",
+            telegram_chat_id = "test_chat",
+            telegram_user_id = 123456789,
+            group = UserDB.Group.standard,
+            created_at = date.today(),
+        )
+        mock_user_crud.get_by_telegram_username.return_value = mock_user_db
+
+        result = lookup_user_by_handle("@test_user", ChatConfigDB.ChatType.telegram, mock_user_crud)
+
+        self.assertEqual(result, mock_user_db)
+        mock_user_crud.get_by_telegram_username.assert_called_once_with("test_user")
+
     def test_lookup_user_by_handle_unsupported_platform(self):
         mock_user_crud = Mock(spec = UserCRUD)
 
@@ -210,20 +228,22 @@ class IntegrationsTest(TestCase):
             group = UserDB.Group.standard,
             created_at = date.today(),
         )
-        mock_user_crud.get_by_whatsapp_phone_number.return_value = mock_user_db
+        mock_user_crud.get_by_whatsapp_user_id.return_value = mock_user_db
 
         result = lookup_user_by_handle("+1 (555) 123-4567", ChatConfigDB.ChatType.whatsapp, mock_user_crud)
 
         self.assertEqual(result, mock_user_db)
-        mock_user_crud.get_by_whatsapp_phone_number.assert_called_once_with("15551234567")
+        mock_user_crud.get_by_whatsapp_user_id.assert_called_once_with("15551234567")
 
     def test_lookup_user_by_handle_whatsapp_not_found(self):
         mock_user_crud = Mock(spec = UserCRUD)
+        mock_user_crud.get_by_whatsapp_user_id.return_value = None
         mock_user_crud.get_by_whatsapp_phone_number.return_value = None
 
         result = lookup_user_by_handle("+1 (555) 999-9999", ChatConfigDB.ChatType.whatsapp, mock_user_crud)
 
         self.assertIsNone(result)
+        mock_user_crud.get_by_whatsapp_user_id.assert_called_once_with("15559999999")
         mock_user_crud.get_by_whatsapp_phone_number.assert_called_once_with("15559999999")
 
     def test_resolve_user_to_save_telegram_success(self):
@@ -237,6 +257,20 @@ class IntegrationsTest(TestCase):
         self.assertIsNone(result.telegram_chat_id)
         self.assertIsNone(result.telegram_user_id)
         self.assertEqual(result.group, UserDB.Group.standard)
+
+    def test_resolve_user_to_save_telegram_with_at(self):
+        result = resolve_user_to_save("@test_user", ChatConfigDB.ChatType.telegram)
+
+        assert result is not None
+        self.assertIsInstance(result, UserSave)
+        self.assertEqual(result.telegram_username, "test_user")
+
+    def test_resolve_user_to_save_telegram_with_spaces_and_symbols(self):
+        result = resolve_user_to_save("@ test user +", ChatConfigDB.ChatType.telegram)
+
+        assert result is not None
+        self.assertIsInstance(result, UserSave)
+        self.assertEqual(result.telegram_username, "testuser")
 
     def test_resolve_user_to_save_unsupported_platform(self):
         result = resolve_user_to_save("test_user", ChatConfigDB.ChatType.background)

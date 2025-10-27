@@ -7,7 +7,7 @@ from db.schema.chat_config import ChatConfig
 from db.schema.user import User, UserSave
 from di.di import DI
 from features.integrations.integration_config import BACKGROUND_AGENT, THE_AGENT
-from util.functions import normalize_phone_number
+from util.functions import normalize_phone_number, normalize_username
 
 
 def resolve_agent_user(chat_type: ChatConfigDB.ChatType) -> UserSave:
@@ -101,10 +101,11 @@ def resolve_private_chat_id(user: User | UserSave, chat_type: ChatConfigDB.ChatT
 def resolve_user_to_save(handle: str, chat_type: ChatConfigDB.ChatType) -> UserSave | None:
     match chat_type:
         case ChatConfigDB.ChatType.telegram:
+            normalized_username = (normalize_username(handle) or "").strip()
             return UserSave(
                 id = None,
                 full_name = None,
-                telegram_username = handle,
+                telegram_username = normalized_username,
                 telegram_chat_id = None,
                 telegram_user_id = None,
                 group = UserDB.Group.standard,
@@ -150,10 +151,15 @@ def is_own_chat(chat_config: ChatConfig, user: User) -> bool:
 def lookup_user_by_handle(handle: str, chat_type: ChatConfigDB.ChatType, user_crud: UserCRUD) -> UserDB | None:
     match chat_type:
         case ChatConfigDB.ChatType.telegram:
-            return user_crud.get_by_telegram_username(handle)
+            normalized_username = (normalize_username(handle) or "").strip()
+            return user_crud.get_by_telegram_username(normalized_username)
         case ChatConfigDB.ChatType.whatsapp:
             normalized_phone = (normalize_phone_number(handle) or "").strip()
-            return user_crud.get_by_whatsapp_phone_number(normalized_phone)
+            # Try by whatsapp_user_id first (not encrypted, faster), then fall back to phone number
+            user = user_crud.get_by_whatsapp_user_id(normalized_phone)
+            if not user:
+                user = user_crud.get_by_whatsapp_phone_number(normalized_phone)
+            return user
         case ChatConfigDB.ChatType.background:
             return None
         case ChatConfigDB.ChatType.github:
