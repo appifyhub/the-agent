@@ -30,7 +30,7 @@ class IntegrationsTest(TestCase):
         agent = resolve_agent_user(ChatConfigDB.ChatType.telegram)
         self.assertEqual(agent.telegram_username, config.telegram_bot_username)
         self.assertEqual(agent.telegram_user_id, config.telegram_bot_id)
-        self.assertEqual(agent.full_name, config.telegram_bot_name)
+        self.assertEqual(agent.full_name, "The Agent")
 
     def test_resolve_agent_user_background(self):
         agent = resolve_agent_user(ChatConfigDB.ChatType.background)
@@ -40,16 +40,16 @@ class IntegrationsTest(TestCase):
 
     def test_resolve_agent_user_github(self):
         agent = resolve_agent_user(ChatConfigDB.ChatType.github)
-        self.assertEqual(agent.full_name, config.github_bot_name)
-        self.assertIsNone(agent.telegram_username)
-        self.assertIsNone(agent.telegram_user_id)
+        self.assertEqual(agent.full_name, "The Agent")
+        self.assertEqual(agent.telegram_username, config.telegram_bot_username)
+        self.assertEqual(agent.telegram_user_id, config.telegram_bot_id)
 
     def test_resolve_agent_user_whatsapp(self):
         agent = resolve_agent_user(ChatConfigDB.ChatType.whatsapp)
         self.assertEqual(agent.whatsapp_user_id, config.whatsapp_phone_number_id)
         assert agent.whatsapp_phone_number is not None
         self.assertEqual(agent.whatsapp_phone_number.get_secret_value(), config.whatsapp_bot_phone_number)
-        self.assertEqual(agent.full_name, config.whatsapp_bot_name)
+        self.assertEqual(agent.full_name, "The Agent")
 
     def test_resolve_external_id_telegram_success(self):
         user = User(

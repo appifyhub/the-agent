@@ -417,6 +417,23 @@ class _FormatLibrary:
         ).strip(),
     )
 
+    chat_whatsapp = PromptFragment(
+        id = "chat_whatsapp",
+        section = PromptSection.format,
+        content = (
+            "You are messaging an informal WhatsApp chat, where a couple of good human friends are talking. "
+            "Structure your replies accordingly and use *WhatsApp's* markdown flavor for formatting. "
+            "Messages sent to you are formatted programatically, and you should not mirror the input formatting - "
+            "especially when it comes to quotes and attachments. Follow the flow and format of the chat accordingly. "
+            "Note that while doing so, no headers `#` nor dividers `---` work in the WhatsApp context. "
+            "Unless a language preference is specified, adapt to the dominant language of the chat. "
+            "Translate messages both ways when necessary. It's important to keep the conversation flowing. "
+            "You may mention your name and website when appropriate, but don't advertise or be intrusive. "
+            "In case of an error, format and communicate the error reason in a human-friendly, easy to understand way. "
+            "Formatting is important! Remember to use emojis and plenty of spaces/newlines, when appropriate. "
+        ).strip(),
+    )
+
     post_github = PromptFragment(
         id = "post_github",
         section = PromptSection.format,
@@ -484,7 +501,17 @@ class _FormatLibrary:
         content = (
             "Your input is coming from a Telegram chat. It might contain *Telegram*-flavored markdown formatting, or links. "
             "Chat messages sometimes contain quotations ('>>') or attachment IDs ('📎'). "
-            "Attachment IDs can be safely ignored, while the quoted text could provide additional context for you. "
+            "Attachment IDs can be safely ignored in replies, while the quoted text could provide additional context for you. "
+        ).strip(),
+    )
+
+    origin_whatsapp = PromptFragment(
+        id = "origin_whatsapp",
+        section = PromptSection.format,
+        content = (
+            "Your input is coming from a WhatsApp chat. It might contain *WhatsApp*-flavored markdown formatting, or links. "
+            "Chat messages sometimes contain quotations ('>>') or attachment IDs ('📎'). "
+            "Attachment IDs can be safely ignored in replies, while the quoted text could provide additional context for you. "
         ).strip(),
     )
 

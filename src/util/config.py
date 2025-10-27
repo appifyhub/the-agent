@@ -23,20 +23,18 @@ class Config(metaclass = Singleton):
     max_chatbot_iterations: int
     website_url: str
     parent_organization: str
+    agent_bot_name: str
     background_bot_name: str
     background_bot_username: str
     github_bot_username: str
-    github_bot_name: str
     github_bot_id: int
     telegram_bot_username: str
-    telegram_bot_name: str
     telegram_bot_id: int
     telegram_api_base_url: str
     telegram_must_auth: bool
     whatsapp_must_auth: bool
     whatsapp_phone_number_id: str
     whatsapp_bot_phone_number: str
-    whatsapp_bot_name: str
     chat_history_depth: int
     github_issues_repo: str
     issue_templates_abs_path: str
@@ -92,20 +90,18 @@ class Config(metaclass = Singleton):
         def_max_chatbot_iterations: int = 20,
         def_website_url: str = "https://agent.appifyhub.com",
         def_parent_organization: str = "AppifyHub",
+        def_agent_bot_name: str = "The Agent",
         def_background_bot_name: str = "The Agent's Pulse",
         def_background_bot_username: str = "the_agent_pulse",
         def_github_bot_username: str = "the-agent",
-        def_github_bot_name: str = "The Agent",
         def_github_bot_id: int = 1234567890,
         def_telegram_bot_username: str = "the_agent",
-        def_telegram_bot_name: str = "The Agent",
         def_telegram_bot_id: int = 1234567890,
         def_telegram_api_base_url: str = "https://api.telegram.org",
         def_telegram_must_auth: bool = False,
         def_whatsapp_must_auth: bool = False,
         def_whatsapp_phone_number_id: str = "invalid",
         def_whatsapp_bot_phone_number: str = "11234567890",
-        def_whatsapp_bot_name: str = "The Agent",
         def_chat_history_depth: int = 30,
         def_github_issues_repo: str = "appifyhub/the-agent",
         def_issue_templates_path: str = ".github/ISSUE_TEMPLATE",
@@ -146,20 +142,18 @@ class Config(metaclass = Singleton):
         self.max_chatbot_iterations = int(self.__env("MAX_CHATBOT_ITERATIONS", lambda: str(def_max_chatbot_iterations)))
         self.website_url = self.__env("WEBSITE_URL", lambda: def_website_url)
         self.parent_organization = self.__env("PARENT_ORGANIZATION", lambda: def_parent_organization)
+        self.agent_bot_name = self.__env("AGENT_BOT_NAME", lambda: def_agent_bot_name)
         self.background_bot_name = self.__env("BACKGROUND_BOT_NAME", lambda: def_background_bot_name)
         self.background_bot_username = self.__env("BACKGROUND_BOT_USERNAME", lambda: def_background_bot_username)
         self.github_bot_username = self.__env("GITHUB_BOT_USERNAME", lambda: def_github_bot_username)
-        self.github_bot_name = self.__env("GITHUB_BOT_NAME", lambda: def_github_bot_name)
         self.github_bot_id = int(self.__env("GITHUB_BOT_ID", lambda: str(def_github_bot_id)))
         self.telegram_bot_username = self.__env("TELEGRAM_BOT_USERNAME", lambda: def_telegram_bot_username)
-        self.telegram_bot_name = self.__env("TELEGRAM_BOT_NAME", lambda: def_telegram_bot_name)
         self.telegram_bot_id = int(self.__env("TELEGRAM_BOT_ID", lambda: str(def_telegram_bot_id)))
         self.telegram_api_base_url = self.__env("TELEGRAM_API_BASE_URL", lambda: def_telegram_api_base_url)
         self.telegram_must_auth = self.__env("TELEGRAM_AUTH_ON", lambda: str(def_telegram_must_auth)).lower() == "true"
         self.whatsapp_must_auth = self.__env("WHATSAPP_AUTH_ON", lambda: str(def_whatsapp_must_auth)).lower() == "true"
         self.whatsapp_phone_number_id = self.__env("WHATSAPP_PHONE_NUMBER_ID", lambda: def_whatsapp_phone_number_id)
         self.whatsapp_bot_phone_number = self.__env("WHATSAPP_BOT_PHONE_NUMBER", lambda: def_whatsapp_bot_phone_number)
-        self.whatsapp_bot_name = self.__env("WHATSAPP_BOT_NAME", lambda: def_whatsapp_bot_name)
         self.chat_history_depth = int(self.__env("CHAT_HISTORY_DEPTH", lambda: str(def_chat_history_depth)))
         self.github_issues_repo = self.__env("THE_AGENT_ISSUES_REPO", lambda: def_github_issues_repo)
         self.issue_templates_abs_path = self.__env("THE_AGENT_ISSUE_TEMPLATES_PATH", lambda: def_issue_templates_path)

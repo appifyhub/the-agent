@@ -83,7 +83,7 @@ class ChatAgent:
             return answer
 
         # prepare the LLM model and connected tools
-        progress_notifier = self.__di.telegram_progress_notifier(self.__last_message_id)  # TODO: not just Telegram
+        progress_notifier = self.__di.chat_progress_notifier(self.__last_message_id)
         base_model = self.__di.chat_langchain_model(self.__configured_tool)
         tools_model: None | TooledChatModel = None
         try:

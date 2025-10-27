@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from features.chat.attachments_describer import AttachmentsDescriber
     from features.chat.chat_agent import ChatAgent
     from features.chat.chat_imaging_service import ChatImagingService
+    from features.chat.chat_progress_notifier import ChatProgressNotifier
     from features.chat.command_processor import CommandProcessor
     from features.chat.currency_alert_service import CurrencyAlertService
     from features.chat.dev_announcements_service import DevAnnouncementsService
@@ -39,7 +40,6 @@ if TYPE_CHECKING:
     from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
     from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
     from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
-    from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
     from features.chat.whatsapp.sdk.whatsapp_bot_api import WhatsAppBotAPI
     from features.chat.whatsapp.sdk.whatsapp_bot_sdk import WhatsAppBotSDK
     from features.chat.whatsapp.whatsapp_data_resolver import WhatsAppDataResolver
@@ -54,6 +54,7 @@ if TYPE_CHECKING:
     from features.images.image_editor import ImageEditor
     from features.images.image_uploader import ImageUploader
     from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
+    from features.integrations.platform_bot_sdk import PlatformBotSDK
     from features.sponsorships.sponsorship_service import SponsorshipService
     from features.support.user_support_service import UserSupportService
     from features.web_browsing.ai_web_search import AIWebSearch
@@ -432,21 +433,25 @@ class DI:
             self._llm_tool_library = LLMToolLibrary(self)
         return self._llm_tool_library
 
-    def telegram_progress_notifier(
+    def platform_bot_sdk(self) -> "PlatformBotSDK":
+        from features.integrations.platform_bot_sdk import PlatformBotSDK
+        return PlatformBotSDK(di = self)
+
+    def chat_progress_notifier(
         self,
         message_id: str,
         auto_start: bool = False,
         reaction_interval_s: int | None = None,
         text_update_interval_s: int | None = None,
-    ) -> "TelegramProgressNotifier":
-        from features.chat.telegram.telegram_progress_notifier import (
+    ) -> "ChatProgressNotifier":
+        from features.chat.chat_progress_notifier import (
             DEFAULT_REACTION_INTERVAL_S,
             DEFAULT_TEXT_UPDATE_INTERVAL_S,
-            TelegramProgressNotifier,
+            ChatProgressNotifier,
         )
         reaction_interval_s = reaction_interval_s or DEFAULT_REACTION_INTERVAL_S
         text_update_interval_s = text_update_interval_s or DEFAULT_TEXT_UPDATE_INTERVAL_S
-        return TelegramProgressNotifier(message_id, self, auto_start, reaction_interval_s, text_update_interval_s)
+        return ChatProgressNotifier(message_id, self, auto_start, reaction_interval_s, text_update_interval_s)
 
     @property
     def command_processor(self) -> "CommandProcessor":

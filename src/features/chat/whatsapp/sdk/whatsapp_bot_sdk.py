@@ -11,7 +11,7 @@ from di.di import DI
 from features.chat.supported_files import KNOWN_FILE_FORMATS
 from features.chat.whatsapp.model.media_info import MediaInfo
 from features.chat.whatsapp.model.response import MessageResponse
-from features.integrations.integration_config import WHATSAPP_AGENT
+from features.integrations.integration_config import THE_AGENT
 from util import log
 from util.config import config
 from util.functions import first_key_with_value
@@ -85,6 +85,9 @@ class WhatsAppBotSDK:
             emoji = reaction or "",
         )
 
+    def mark_as_read(self, message_id: str) -> None:
+        self.__di.whatsapp_bot_api.mark_as_read(message_id = message_id)
+
     def send_button_link(self, chat_id: int | str, link_url: str, button_text: str = "⚙️") -> ChatMessage:
         text = f"{button_text} {link_url}"
         sent_message = self.__di.whatsapp_bot_api.send_text_message(
@@ -132,7 +135,7 @@ class WhatsAppBotSDK:
         message_save = ChatMessageSave(
             message_id = first_message.id,
             chat_id = chat_config.chat_id,
-            author_id = WHATSAPP_AGENT.id,
+            author_id = THE_AGENT.id,
             sent_at = datetime.now(),
             text = text,
         )

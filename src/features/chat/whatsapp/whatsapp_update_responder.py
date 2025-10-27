@@ -6,6 +6,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from db.model.chat_config import ChatConfigDB
 from db.schema.chat_message import ChatMessage
 from db.schema.chat_message_attachment import ChatMessageAttachment
+from db.schema.user import User
 from db.sql import get_detached_session
 from di.di import DI
 from features.chat.chat_agent import ChatAgent
@@ -26,8 +27,10 @@ def respond_to_update(update: Update) -> bool:
         di = DI(db)
 
         def map_to_langchain(message) -> HumanMessage | AIMessage:
+            author_db = di.user_crud.get(message.author_id)
+            author = User.model_validate(author_db) if author_db else None
             return di.domain_langchain_mapper.map_to_langchain(
-                author = di.user_crud.get(message.author_id),
+                author = author,
                 message = message,
                 chat_type = ChatConfigDB.ChatType.whatsapp,
             )
@@ -81,7 +84,7 @@ def respond_to_update(update: Update) -> bool:
             )
             answer = chat_agent.execute()
             if not answer or not answer.content:
-                log.d("Resolved an empty response, skipping bot reply")
+                log.d("No LLM response needed (command handled or no reply required)")
                 return False
 
             # send and store the response[s]
@@ -90,6 +93,9 @@ def respond_to_update(update: Update) -> bool:
             for message in domain_messages:
                 di.whatsapp_bot_sdk.send_text_message(str(resolved_domain_data.chat.external_id), message.text)
                 sent_messages += 1
+
+            # mark the incoming message as read
+            di.whatsapp_bot_sdk.mark_as_read(resolved_domain_data.message.message_id)
 
             agent = resolve_agent_user(resolved_domain_data.chat.chat_type)
             log.t(f"Finished responding to updates. \n[{agent.full_name}]: {answer.content}")

@@ -6,20 +6,16 @@ from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User, UserSave
 from di.di import DI
-from features.integrations.integration_config import BACKGROUND_AGENT, GITHUB_AGENT, TELEGRAM_AGENT, WHATSAPP_AGENT
+from features.integrations.integration_config import BACKGROUND_AGENT, THE_AGENT
 from util.functions import normalize_phone_number
 
 
 def resolve_agent_user(chat_type: ChatConfigDB.ChatType) -> UserSave:
     match chat_type:
-        case ChatConfigDB.ChatType.telegram:
-            return TELEGRAM_AGENT
-        case ChatConfigDB.ChatType.whatsapp:
-            return WHATSAPP_AGENT
+        case ChatConfigDB.ChatType.telegram | ChatConfigDB.ChatType.whatsapp | ChatConfigDB.ChatType.github:
+            return THE_AGENT
         case ChatConfigDB.ChatType.background:
             return BACKGROUND_AGENT
-        case ChatConfigDB.ChatType.github:
-            return GITHUB_AGENT
 
 
 def resolve_external_id(user: User | UserSave, chat_type: ChatConfigDB.ChatType) -> str | None:

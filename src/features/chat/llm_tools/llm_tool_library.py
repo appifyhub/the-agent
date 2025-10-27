@@ -308,7 +308,7 @@ def configure_settings(
         platform_private_chat_id = resolve_private_chat_id(di.invoker, di.require_invoker_chat_type())
         if not platform_private_chat_id:
             return __error("Author has no private chat with the agent; cannot send settings link")
-        di.telegram_bot_sdk.send_button_link(platform_private_chat_id, settings_link)
+        di.platform_bot_sdk().send_button_link(platform_private_chat_id, settings_link)
         if di.require_invoker_chat().is_private:
             return __success({"next_step": "Notify the user to click on the settings link above"})
         else:
@@ -333,7 +333,7 @@ def read_help_and_features(
         platform_private_chat_id = resolve_private_chat_id(di.invoker, di.require_invoker_chat_type())
         if not platform_private_chat_id:
             return __error("Author has no private chat with the agent; cannot send settings link")
-        di.telegram_bot_sdk.send_button_link(platform_private_chat_id, help_link)
+        di.platform_bot_sdk().send_button_link(platform_private_chat_id, help_link)
         return __success({"next_step": "Notify the user that the link was sent to their private chat"})
     except Exception as e:
         return __error(e)
