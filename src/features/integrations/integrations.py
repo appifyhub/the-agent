@@ -166,6 +166,15 @@ def lookup_user_by_handle(handle: str, chat_type: ChatConfigDB.ChatType, user_cr
             return None
 
 
+def add_messaging_frequency_warning(response_data: dict, chat_type: ChatConfigDB.ChatType | None) -> None:
+    if chat_type == ChatConfigDB.ChatType.whatsapp:
+        response_data["warning"] = (
+            "WhatsApp's 24-hour messaging window: Notifications will only be delivered if "
+            "you've messaged the agent within the last 24 hours. If you haven't sent a message "
+            "recently, you won't receive this alert notification."
+        )
+
+
 def lookup_all_admin_chats(chat_config: ChatConfig, user: User, di: DI) -> list[ChatConfig]:
     match chat_config.chat_type:
         case ChatConfigDB.ChatType.telegram:

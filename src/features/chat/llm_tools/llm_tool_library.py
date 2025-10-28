@@ -15,7 +15,7 @@ from features.chat.attachments_describer import AttachmentsDescriber
 from features.chat.chat_imaging_service import ChatImagingService
 from features.chat.dev_announcements_service import DevAnnouncementsService
 from features.chat.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
-from features.integrations.integrations import resolve_private_chat_id
+from features.integrations.integrations import add_messaging_frequency_warning, resolve_private_chat_id
 from features.support.user_support_service import UserSupportService
 from features.web_browsing.ai_web_search import AIWebSearch
 from util import log
@@ -147,7 +147,9 @@ def set_up_currency_price_alert(
     try:
         service = di.currency_alert_service(di.invoker_chat_id)
         alert = service.create_alert(base_currency, desired_currency, threshold_percent)
-        return __success({"created_alert_data": alert.model_dump(mode = "json")})
+        response_data: dict[str, Any] = {"created_alert_data": alert.model_dump(mode = "json")}
+        add_messaging_frequency_warning(response_data, di.invoker_chat_type)
+        return __success(response_data)
     except Exception as e:
         return __error(e)
 
