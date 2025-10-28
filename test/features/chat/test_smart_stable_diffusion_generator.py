@@ -6,8 +6,8 @@ from langchain_core.messages import AIMessage
 from db.model.chat_config import ChatConfigDB
 from di.di import DI
 from features.chat.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
-from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.external_tools.tool_choice_resolver import ConfiguredTool
+from features.integrations.platform_bot_sdk import PlatformBotSDK
 
 
 class SmartStableDiffusionGeneratorTest(unittest.TestCase):
@@ -24,13 +24,15 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         self.mock_di = MagicMock()
         mock_chat = MagicMock()
         mock_chat.external_id = "1"
+        mock_chat.chat_type = ChatConfigDB.ChatType.telegram
         self.mock_di.require_invoker_chat = MagicMock(return_value = mock_chat)
         self.mock_di.invoker_chat_type = ChatConfigDB.ChatType.telegram
         self.mock_di.require_invoker_chat_type = MagicMock(return_value = ChatConfigDB.ChatType.telegram)
         # noinspection PyPropertyAccess
-        self.mock_di.telegram_bot_sdk = MagicMock(spec = TelegramBotSDK)
-        self.mock_di.telegram_bot_sdk.send_photo.return_value = {"result": {"message_id": 123}}
-        self.mock_di.telegram_bot_sdk.send_document.return_value = {"result": {"message_id": 124}}
+        self.mock_platform_sdk = MagicMock(spec = PlatformBotSDK)
+        self.mock_di.platform_bot_sdk = MagicMock(return_value = self.mock_platform_sdk)
+        self.mock_platform_sdk.send_photo.return_value = {"result": {"message_id": 123}}
+        self.mock_platform_sdk.send_document.return_value = {"result": {"message_id": 124}}
 
         # Mock text_stable_diffusion_generator method
         self.simple_stable_diffusion_generator = MagicMock()
@@ -73,11 +75,11 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         mock_llm.invoke.assert_called_once()
         self.simple_stable_diffusion_generator.execute.assert_called_once()
         # noinspection PyUnresolvedReferences
-        self.mock_di.telegram_bot_sdk.send_document.assert_called_once_with(
+        self.mock_platform_sdk.send_document.assert_called_once_with(
             1, "http://example.com/image.png", thumbnail = "http://example.com/image.png",
         )
         # noinspection PyUnresolvedReferences
-        self.mock_di.telegram_bot_sdk.send_photo.assert_called_once_with(
+        self.mock_platform_sdk.send_photo.assert_called_once_with(
             1, "http://example.com/image.png", caption = "📸",
         )
 
@@ -99,9 +101,9 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         # noinspection PyUnresolvedReferences
         self.simple_stable_diffusion_generator.execute.assert_not_called()
         # noinspection PyUnresolvedReferences
-        self.mock_di.telegram_bot_sdk.send_document.assert_not_called()
+        self.mock_platform_sdk.send_document.assert_not_called()
         # noinspection PyUnresolvedReferences
-        self.mock_di.telegram_bot_sdk.send_photo.assert_not_called()
+        self.mock_platform_sdk.send_photo.assert_not_called()
 
     def test_execute_image_generation_failure(self):
         mock_llm = MagicMock()
@@ -124,9 +126,9 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         mock_llm.invoke.assert_called_once()
         self.simple_stable_diffusion_generator.execute.assert_called_once()
         # noinspection PyUnresolvedReferences
-        self.mock_di.telegram_bot_sdk.send_document.assert_not_called()
+        self.mock_platform_sdk.send_document.assert_not_called()
         # noinspection PyUnresolvedReferences
-        self.mock_di.telegram_bot_sdk.send_photo.assert_not_called()
+        self.mock_platform_sdk.send_photo.assert_not_called()
 
     def test_execute_send_photo_failure(self):
         mock_llm = MagicMock()
@@ -136,7 +138,7 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         self.simple_stable_diffusion_generator.execute.return_value = "http://example.com/image.png"
         # Make sure no error is set on the image generator
         self.simple_stable_diffusion_generator.error = None
-        self.mock_di.telegram_bot_sdk.send_photo.side_effect = Exception("Send photo error")
+        self.mock_platform_sdk.send_photo.side_effect = Exception("Send photo error")
 
         generator = SmartStableDiffusionGenerator(
             self.raw_prompt,
@@ -150,9 +152,9 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         mock_llm.invoke.assert_called_once()
         self.simple_stable_diffusion_generator.execute.assert_called_once()
         # noinspection PyUnresolvedReferences
-        self.mock_di.telegram_bot_sdk.send_document.assert_called_once()
+        self.mock_platform_sdk.send_document.assert_called_once()
         # noinspection PyUnresolvedReferences
-        self.mock_di.telegram_bot_sdk.send_photo.assert_called_once()
+        self.mock_platform_sdk.send_photo.assert_called_once()
 
     def test_execute_non_ai_message(self):
         mock_llm = MagicMock()
@@ -170,6 +172,6 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         self.assertEqual(result, SmartStableDiffusionGenerator.Result.failed)
         mock_llm.invoke.assert_called_once()
         # noinspection PyUnresolvedReferences
-        self.mock_di.telegram_bot_sdk.send_document.assert_not_called()
+        self.mock_platform_sdk.send_document.assert_not_called()
         # noinspection PyUnresolvedReferences
-        self.mock_di.telegram_bot_sdk.send_photo.assert_not_called()
+        self.mock_platform_sdk.send_photo.assert_not_called()

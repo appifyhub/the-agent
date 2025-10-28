@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from features.chat.attachments_describer import AttachmentsDescriber
     from features.chat.chat_agent import ChatAgent
     from features.chat.chat_imaging_service import ChatImagingService
+    from features.chat.chat_progress_notifier import ChatProgressNotifier
     from features.chat.command_processor import CommandProcessor
     from features.chat.currency_alert_service import CurrencyAlertService
     from features.chat.dev_announcements_service import DevAnnouncementsService
@@ -39,7 +40,10 @@ if TYPE_CHECKING:
     from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
     from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
     from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
-    from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
+    from features.chat.whatsapp.sdk.whatsapp_bot_api import WhatsAppBotAPI
+    from features.chat.whatsapp.sdk.whatsapp_bot_sdk import WhatsAppBotSDK
+    from features.chat.whatsapp.whatsapp_data_resolver import WhatsAppDataResolver
+    from features.chat.whatsapp.whatsapp_domain_mapper import WhatsAppDomainMapper
     from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
     from features.documents.document_search import DocumentSearch
     from features.external_tools.access_token_resolver import AccessTokenResolver
@@ -48,7 +52,9 @@ if TYPE_CHECKING:
     from features.images.image_background_remover import ImageBackgroundRemover
     from features.images.image_contents_restorer import ImageContentsRestorer
     from features.images.image_editor import ImageEditor
+    from features.images.image_uploader import ImageUploader
     from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
+    from features.integrations.platform_bot_sdk import PlatformBotSDK
     from features.sponsorships.sponsorship_service import SponsorshipService
     from features.support.user_support_service import UserSupportService
     from features.web_browsing.ai_web_search import AIWebSearch
@@ -72,7 +78,9 @@ class DI:
     _invoker_chat: ChatConfig | None
     # SDKs
     _telegram_bot_api: "TelegramBotAPI | None"
+    _whatsapp_bot_api: "WhatsAppBotAPI | None"
     _telegram_bot_sdk: "TelegramBotSDK | None"
+    _whatsapp_bot_sdk: "WhatsAppBotSDK | None"
     # Repositories
     _user_crud: "UserCRUD | None"
     _chat_config_crud: "ChatConfigCRUD | None"
@@ -90,9 +98,11 @@ class DI:
     # Internal tools
     _access_token_resolver: "AccessTokenResolver | None"
     _tool_choice_resolver: "ToolChoiceResolver | None"
-    _telegram_domain_mapper: "TelegramDomainMapper | None"
     _domain_langchain_mapper: "DomainLangchainMapper | None"
+    _telegram_domain_mapper: "TelegramDomainMapper | None"
+    _whatsapp_domain_mapper: "WhatsAppDomainMapper | None"
     _telegram_data_resolver: "TelegramDataResolver | None"
+    _whatsapp_data_resolver: "WhatsAppDataResolver | None"
     # Features
     _llm_tool_library: "LLMToolLibrary | None"
     _command_processor: "CommandProcessor | None"
@@ -112,7 +122,9 @@ class DI:
         self._invoker_chat = None
         # SDKs
         self._telegram_bot_api = None
+        self._whatsapp_bot_api = None
         self._telegram_bot_sdk = None
+        self._whatsapp_bot_sdk = None
         # Repositories
         self._user_crud = None
         self._chat_config_crud = None
@@ -130,9 +142,11 @@ class DI:
         # Internal tools
         self._access_token_resolver = None
         self._tool_choice_resolver = None
-        self._telegram_domain_mapper = None
         self._domain_langchain_mapper = None
+        self._telegram_domain_mapper = None
+        self._whatsapp_domain_mapper = None
         self._telegram_data_resolver = None
+        self._whatsapp_data_resolver = None
         # Features
         self._llm_tool_library = None
         self._command_processor = None
@@ -246,11 +260,25 @@ class DI:
         return self._telegram_bot_api
 
     @property
+    def whatsapp_bot_api(self) -> "WhatsAppBotAPI":
+        if self._whatsapp_bot_api is None:
+            from features.chat.whatsapp.sdk.whatsapp_bot_api import WhatsAppBotAPI
+            self._whatsapp_bot_api = WhatsAppBotAPI()
+        return self._whatsapp_bot_api
+
+    @property
     def telegram_bot_sdk(self) -> "TelegramBotSDK":
         if self._telegram_bot_sdk is None:
             from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
             self._telegram_bot_sdk = TelegramBotSDK(self)
         return self._telegram_bot_sdk
+
+    @property
+    def whatsapp_bot_sdk(self) -> "WhatsAppBotSDK":
+        if self._whatsapp_bot_sdk is None:
+            from features.chat.whatsapp.sdk.whatsapp_bot_sdk import WhatsAppBotSDK
+            self._whatsapp_bot_sdk = WhatsAppBotSDK(self)
+        return self._whatsapp_bot_sdk
 
     # === Repositories ===
 
@@ -357,13 +385,6 @@ class DI:
         return TranslationsCache()
 
     @property
-    def telegram_domain_mapper(self) -> "TelegramDomainMapper":
-        if self._telegram_domain_mapper is None:
-            from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
-            self._telegram_domain_mapper = TelegramDomainMapper()
-        return self._telegram_domain_mapper
-
-    @property
     def domain_langchain_mapper(self) -> "DomainLangchainMapper":
         if self._domain_langchain_mapper is None:
             from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
@@ -371,11 +392,32 @@ class DI:
         return self._domain_langchain_mapper
 
     @property
+    def telegram_domain_mapper(self) -> "TelegramDomainMapper":
+        if self._telegram_domain_mapper is None:
+            from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
+            self._telegram_domain_mapper = TelegramDomainMapper()
+        return self._telegram_domain_mapper
+
+    @property
+    def whatsapp_domain_mapper(self) -> "WhatsAppDomainMapper":
+        if self._whatsapp_domain_mapper is None:
+            from features.chat.whatsapp.whatsapp_domain_mapper import WhatsAppDomainMapper
+            self._whatsapp_domain_mapper = WhatsAppDomainMapper()
+        return self._whatsapp_domain_mapper
+
+    @property
     def telegram_data_resolver(self) -> "TelegramDataResolver":
         if self._telegram_data_resolver is None:
             from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
             self._telegram_data_resolver = TelegramDataResolver(self)
         return self._telegram_data_resolver
+
+    @property
+    def whatsapp_data_resolver(self) -> "WhatsAppDataResolver":
+        if self._whatsapp_data_resolver is None:
+            from features.chat.whatsapp.whatsapp_data_resolver import WhatsAppDataResolver
+            self._whatsapp_data_resolver = WhatsAppDataResolver(self)
+        return self._whatsapp_data_resolver
 
     # === Features ===
 
@@ -391,21 +433,25 @@ class DI:
             self._llm_tool_library = LLMToolLibrary(self)
         return self._llm_tool_library
 
-    def telegram_progress_notifier(
+    def platform_bot_sdk(self) -> "PlatformBotSDK":
+        from features.integrations.platform_bot_sdk import PlatformBotSDK
+        return PlatformBotSDK(di = self)
+
+    def chat_progress_notifier(
         self,
         message_id: str,
         auto_start: bool = False,
         reaction_interval_s: int | None = None,
         text_update_interval_s: int | None = None,
-    ) -> "TelegramProgressNotifier":
-        from features.chat.telegram.telegram_progress_notifier import (
+    ) -> "ChatProgressNotifier":
+        from features.chat.chat_progress_notifier import (
             DEFAULT_REACTION_INTERVAL_S,
             DEFAULT_TEXT_UPDATE_INTERVAL_S,
-            TelegramProgressNotifier,
+            ChatProgressNotifier,
         )
         reaction_interval_s = reaction_interval_s or DEFAULT_REACTION_INTERVAL_S
         text_update_interval_s = text_update_interval_s or DEFAULT_TEXT_UPDATE_INTERVAL_S
-        return TelegramProgressNotifier(message_id, self, auto_start, reaction_interval_s, text_update_interval_s)
+        return ChatProgressNotifier(message_id, self, auto_start, reaction_interval_s, text_update_interval_s)
 
     @property
     def command_processor(self) -> "CommandProcessor":
@@ -497,9 +543,19 @@ class DI:
         binary_image: bytes | None = None,
         base64_image: str | None = None,
         expiration_s: int | None = None,
-    ):
+        name: str | None = None,
+    ) -> "ImageUploader":
         from features.images.image_uploader import ImageUploader
-        return ImageUploader(binary_image, base64_image, expiration_s)
+        return ImageUploader(binary_image, base64_image, expiration_s, name)
+
+    # noinspection PyMethodMayBeStatic
+    def file_uploader(
+        self,
+        content: bytes,
+        filename: str,
+    ):
+        from features.files.file_uploader import FileUploader
+        return FileUploader(content, filename)
 
     def chat_imaging_service(
         self,

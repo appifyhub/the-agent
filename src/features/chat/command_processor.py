@@ -65,7 +65,7 @@ class CommandProcessor:
                 # no sponsorship accepted, so let's share the settings link
                 settings_url = self.__di.settings_controller.create_settings_link()
                 platform_private_chat_id = resolve_private_chat_id(self.__di.invoker, self.__di.require_invoker_chat_type())
-                self.__di.telegram_bot_sdk.send_button_link(platform_private_chat_id or "-1", settings_url)
+                self.__di.platform_bot_sdk().send_button_link(platform_private_chat_id or "-1", settings_url)
                 log.t("Shared the settings link with the user")
                 return CommandProcessor.Result.success
 
@@ -73,7 +73,7 @@ class CommandProcessor:
                 # share the help link
                 help_url = self.__di.settings_controller.create_help_link()
                 platform_private_chat_id = resolve_private_chat_id(self.__di.invoker, self.__di.require_invoker_chat_type())
-                self.__di.telegram_bot_sdk.send_button_link(platform_private_chat_id or "-1", help_url)
+                self.__di.platform_bot_sdk().send_button_link(platform_private_chat_id or "-1", help_url)
                 log.t("Shared the help link with the user")
                 return CommandProcessor.Result.success
 

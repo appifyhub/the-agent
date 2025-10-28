@@ -77,6 +77,11 @@ def domain_to_api(user: User) -> UserSettingsResponse:
         telegram_username = user.telegram_username,
         telegram_chat_id = user.telegram_chat_id,
         telegram_user_id = user.telegram_user_id,
+        whatsapp_user_id = user.whatsapp_user_id,
+        whatsapp_phone_number = (
+            user.whatsapp_phone_number.get_secret_value()
+            if user.whatsapp_phone_number else None
+        ),
         open_ai_key = mask_secret(user.open_ai_key.get_secret_value() if user.open_ai_key else None),
         anthropic_key = mask_secret(user.anthropic_key.get_secret_value() if user.anthropic_key else None),
         google_ai_key = mask_secret(user.google_ai_key.get_secret_value() if user.google_ai_key else None),

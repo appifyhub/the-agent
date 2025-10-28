@@ -55,6 +55,15 @@ def chat(
                     (PromptVar.author_username, invoker.telegram_username or PLACEHOLDER_NO_DATA),
                 )
             ).render()
+        case ChatConfigDB.ChatType.whatsapp:
+            return (
+                composer
+                .add_fragments(prompt_library.formats.chat_whatsapp)
+                .add_variables(
+                    (PromptVar.agent_username, agent_user.whatsapp_user_id or PLACEHOLDER_NO_DATA),
+                    (PromptVar.author_username, invoker.whatsapp_user_id or PLACEHOLDER_NO_DATA),
+                )
+            ).render()
     raise ValueError(f"Unsupported chat type: {target_chat.chat_type}")
 
 
@@ -98,6 +107,16 @@ def copywriting_new_release_version(
                 )
                 .add_variables((PromptVar.agent_username, agent_user.telegram_username or PLACEHOLDER_NO_DATA))
             ).render()
+        case ChatConfigDB.ChatType.whatsapp:
+            return (
+                composer
+                .add_fragments(
+                    prompt_library.styles.copywriting_new_release_version_chat,
+                    prompt_library.formats.chat_whatsapp,
+                    prompt_library.formats.copywriting_new_release_version_chat,
+                )
+                .add_variables((PromptVar.agent_username, agent_user.whatsapp_user_id or PLACEHOLDER_NO_DATA))
+            ).render()
         case ChatConfigDB.ChatType.github:
             return (
                 composer
@@ -138,6 +157,12 @@ def copywriting_new_system_event(target_chat: ChatConfig | ChatConfigSave) -> st
                 composer
                 .add_fragments(prompt_library.formats.chat_telegram)
                 .add_variables((PromptVar.agent_username, agent_user.telegram_username or PLACEHOLDER_NO_DATA))
+            ).render()
+        case ChatConfigDB.ChatType.whatsapp:
+            return (
+                composer
+                .add_fragments(prompt_library.formats.chat_whatsapp)
+                .add_variables((PromptVar.agent_username, agent_user.whatsapp_user_id or PLACEHOLDER_NO_DATA))
             ).render()
     raise ValueError(f"Unsupported chat type: {target_chat.chat_type}")
 
@@ -185,6 +210,12 @@ def copywriting_system_announcement(
                 .add_fragments(prompt_library.formats.chat_telegram)
                 .add_variables((PromptVar.agent_username, agent_user.telegram_username or PLACEHOLDER_NO_DATA))
             ).render()
+        case ChatConfigDB.ChatType.whatsapp:
+            return (
+                composer
+                .add_fragments(prompt_library.formats.chat_whatsapp)
+                .add_variables((PromptVar.agent_username, agent_user.whatsapp_user_id or PLACEHOLDER_NO_DATA))
+            ).render()
     raise ValueError(f"Unsupported chat type: {chat_type}")
 
 
@@ -212,6 +243,15 @@ def sentient_web_search(target_chat: ChatConfig | ChatConfigSave) -> str:
                     prompt_library.personalities.chat_abot,
                 )
                 .add_variables((PromptVar.agent_username, agent_user.telegram_username or PLACEHOLDER_NO_DATA))
+            ).render()
+        case ChatConfigDB.ChatType.whatsapp:
+            return (
+                composer
+                .add_fragments(
+                    prompt_library.formats.chat_whatsapp,
+                    prompt_library.personalities.chat_abot,
+                )
+                .add_variables((PromptVar.agent_username, agent_user.whatsapp_user_id or PLACEHOLDER_NO_DATA))
             ).render()
     raise ValueError(f"Unsupported chat type: {target_chat.chat_type}")
 
@@ -269,6 +309,11 @@ def copywriting_computer_hearing(target_chat: ChatConfig | ChatConfigSave) -> st
             return (
                 composer
                 .add_variables((PromptVar.agent_username, agent_user.telegram_username or PLACEHOLDER_NO_DATA))
+            ).render()
+        case ChatConfigDB.ChatType.whatsapp:
+            return (
+                composer
+                .add_variables((PromptVar.agent_username, agent_user.whatsapp_user_id or PLACEHOLDER_NO_DATA))
             ).render()
     raise ValueError(f"Unsupported chat type: {target_chat.chat_type}")
 
@@ -343,6 +388,12 @@ def copywriting_support_request_description(
                 composer
                 .add_fragments(prompt_library.formats.origin_telegram)
                 .add_variables((PromptVar.agent_username, agent_user.telegram_username or PLACEHOLDER_NO_DATA))
+            ).render()
+        case ChatConfigDB.ChatType.whatsapp:
+            return (
+                composer
+                .add_fragments(prompt_library.formats.origin_whatsapp)
+                .add_variables((PromptVar.agent_username, agent_user.whatsapp_user_id or PLACEHOLDER_NO_DATA))
             ).render()
     raise ValueError(f"Unsupported chat type: {chat_type}")
 

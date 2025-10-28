@@ -85,7 +85,10 @@ class TelegramDataResolver:
             old_user = User.model_validate(old_user_db)
             # reset the attributes that are not normally changed through the Telegram API
             mapped_data.id = old_user.id
+            mapped_data.full_name = mapped_data.full_name or old_user.full_name
             mapped_data.telegram_chat_id = mapped_data.telegram_chat_id or old_user.telegram_chat_id
+            mapped_data.whatsapp_user_id = old_user.whatsapp_user_id
+            mapped_data.whatsapp_phone_number = old_user.whatsapp_phone_number
             mapped_data.open_ai_key = old_user.open_ai_key
             mapped_data.anthropic_key = old_user.anthropic_key
             mapped_data.google_ai_key = old_user.google_ai_key
@@ -124,8 +127,8 @@ class TelegramDataResolver:
             return not secret.strip() if isinstance(secret, str) else False
 
         # reset all SecretStr fields that are empty
-        api_key_fields = mapped_data._get_secret_str_fields()
-        for field_name in api_key_fields:
+        secret_fields = mapped_data._get_secret_str_fields()
+        for field_name in secret_fields:
             field_value = getattr(mapped_data, field_name)
             if is_empty_secret(field_value):
                 log.w(f"Resetting {field_name} to None because it is empty")

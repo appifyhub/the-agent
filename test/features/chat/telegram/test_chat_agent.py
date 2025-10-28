@@ -14,9 +14,9 @@ from db.schema.chat_config import ChatConfig
 from db.schema.user import User, UserSave
 from di.di import DI
 from features.chat.chat_agent import ChatAgent
+from features.chat.chat_progress_notifier import ChatProgressNotifier
 from features.chat.command_processor import CommandProcessor
 from features.chat.llm_tools.llm_tool_library import LLMToolLibrary
-from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.integrations.integrations import resolve_agent_user
 
@@ -68,7 +68,7 @@ class ChatAgentTest(unittest.TestCase):
         # noinspection PyPropertyAccess
         self.mock_di.llm_tool_library = Mock(spec = LLMToolLibrary)
         # noinspection PyPropertyAccess
-        self.mock_di.telegram_progress_notifier = Mock(return_value = Mock(spec = TelegramProgressNotifier))
+        self.mock_di.chat_progress_notifier = Mock(return_value = Mock(spec = ChatProgressNotifier))
         # noinspection PyPropertyAccess
         self.mock_di.chat_langchain_model = Mock(return_value = Mock(spec = BaseChatModel))
 

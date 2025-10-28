@@ -60,7 +60,7 @@ class AttachmentsDescriber:
                     log.d(f"Malformed LLM Input Error: Attachment '{attachment_id}' not found in DB. You may retry only once!"),
                 )
             attachments.append(ChatMessageAttachment.model_validate(attachment_db))
-        self.__attachments = self.__di.telegram_bot_sdk.refresh_attachment_instances(attachments)
+        self.__attachments = self.__di.platform_bot_sdk().refresh_attachment_instances(attachments)
 
     @property
     def __resolution_status(self) -> Result:

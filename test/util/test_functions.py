@@ -201,3 +201,47 @@ class FunctionsTest(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             extract_url_from_replicate_result(12345)
         self.assertIn("Unexpected result type from Replicate", str(context.exception))
+
+    def test_normalize_phone_number_none(self):
+        from util.functions import normalize_phone_number
+        self.assertIsNone(normalize_phone_number(None))
+
+    def test_normalize_phone_number_empty(self):
+        from util.functions import normalize_phone_number
+        self.assertEqual(normalize_phone_number(""), "")
+
+    def test_normalize_phone_number_plus_and_dashes(self):
+        from util.functions import normalize_phone_number
+        self.assertEqual(normalize_phone_number("+1-234-567-8900"), "12345678900")
+
+    def test_normalize_phone_number_spaces_parentheses(self):
+        from util.functions import normalize_phone_number
+        self.assertEqual(normalize_phone_number("(123) 456 7890"), "1234567890")
+
+    def test_normalize_phone_number_mixed_chars(self):
+        from util.functions import normalize_phone_number
+        self.assertEqual(normalize_phone_number("wa:+38 044-123-45-67 ext.89"), "38044123456789")
+
+    def test_normalize_username_none(self):
+        from util.functions import normalize_username
+        self.assertIsNone(normalize_username(None))
+
+    def test_normalize_username_empty(self):
+        from util.functions import normalize_username
+        self.assertEqual(normalize_username(""), "")
+
+    def test_normalize_username_with_at(self):
+        from util.functions import normalize_username
+        self.assertEqual(normalize_username("@username"), "username")
+
+    def test_normalize_username_with_plus(self):
+        from util.functions import normalize_username
+        self.assertEqual(normalize_username("+username"), "username")
+
+    def test_normalize_username_with_spaces(self):
+        from util.functions import normalize_username
+        self.assertEqual(normalize_username("user name"), "username")
+
+    def test_normalize_username_mixed_chars(self):
+        from util.functions import normalize_username
+        self.assertEqual(normalize_username("@ +user name+"), "username")

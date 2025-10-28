@@ -12,7 +12,7 @@ class ChatConfigBase(BaseModel):
     title: str | None = None
     is_private: bool = False
     reply_chance_percent: int = 100
-    release_notifications: ChatConfigDB.ReleaseNotifications = ChatConfigDB.ReleaseNotifications.all
+    release_notifications: ChatConfigDB.ReleaseNotifications = ChatConfigDB.ReleaseNotifications.major
     chat_type: ChatConfigDB.ChatType
 
 

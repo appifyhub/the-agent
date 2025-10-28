@@ -13,6 +13,9 @@ class UserBase(BaseModel):
     telegram_chat_id: str | None = None
     telegram_user_id: int | None = None
 
+    whatsapp_user_id: str | None = None
+    whatsapp_phone_number: SecretStr | None = None
+
     open_ai_key: SecretStr | None = None
     anthropic_key: SecretStr | None = None
     google_ai_key: SecretStr | None = None
@@ -60,8 +63,8 @@ class UserSave(UserBase):
     def model_dump(self, **kwargs) -> dict:
         # we override to automatically convert SecretStr fields for database storage
         data = super().model_dump(**kwargs)
-        api_key_fields = self._get_secret_str_fields()
-        for field in api_key_fields:
+        secret_fields = self._get_secret_str_fields()
+        for field in secret_fields:
             if data.get(field) is not None:
                 data[field] = data[field].get_secret_value() if hasattr(data[field], "get_secret_value") else data[field]
         return data
@@ -73,5 +76,5 @@ class User(UserBase):
     model_config = ConfigDict(from_attributes = True)
 
     def has_any_api_key(self) -> bool:
-        api_key_fields = self._get_secret_str_fields()
-        return any(getattr(self, field) is not None for field in api_key_fields)
+        secret_fields = self._get_secret_str_fields()
+        return any(getattr(self, field) is not None for field in secret_fields)
