@@ -132,6 +132,16 @@ class WhatsAppUpdateResponderTest(unittest.TestCase):
         self.di.whatsapp_bot_sdk.send_text_message.assert_not_called()
         self.di.chat_message_crud.save.assert_not_called()
 
+    def test_empty_update_no_messages(self):
+        self.di.whatsapp_domain_mapper.map_update.return_value = []
+
+        result = respond_to_update(self.update)
+
+        self.assertFalse(result)
+        self.di.whatsapp_data_resolver.resolve_all.assert_not_called()
+        self.di.whatsapp_bot_sdk.send_text_message.assert_not_called()
+        self.di.chat_message_crud.save.assert_not_called()
+
     def test_general_exception(self):
         from collections import namedtuple
         with patch("features.chat.whatsapp.whatsapp_update_responder.silent", lambda f: f):
