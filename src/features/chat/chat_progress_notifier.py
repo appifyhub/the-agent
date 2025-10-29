@@ -1,8 +1,11 @@
 import random
 import time
 from threading import Event, Lock, Thread
+from typing import Literal
 
+from db.model.chat_config import ChatConfigDB
 from di.di import DI
+from features.integrations.integration_config import TELEGRAM_REACTIONS, WHATSAPP_REACTIONS
 from util import log
 
 DEFAULT_REACTION_INTERVAL_S = 15
@@ -10,7 +13,7 @@ DEFAULT_TEXT_UPDATE_INTERVAL_S = 45
 TYPING_STATUS_INTERVAL_S = 5  # set by Telegram API for auto-clearing
 MAX_CYCLES = int((10 * DEFAULT_TEXT_UPDATE_INTERVAL_S) / TYPING_STATUS_INTERVAL_S)  # announce 10 delays max
 
-# subset of features.integrations.integrations_config.TELEGRAM_REACTIONS
+# subset of features.integrations.integration_config reactions
 # sorted by intensity (later ones emote more about the delay)
 ESCALATING_REACTIONS = [
     "🫡", "👨‍💻", "⚡", "🔥", "👀", "🤔", "🤨",
@@ -19,7 +22,7 @@ ESCALATING_REACTIONS = [
 ]
 
 
-class TelegramProgressNotifier:
+class ChatProgressNotifier:
 
     __message_id: str
     __last_reaction_time: float
@@ -66,7 +69,7 @@ class TelegramProgressNotifier:
                 return
             log.t("  Starting a new thread...")
             self.__signal.clear()
-            thread_name = f"telegram-progress-notifier-{random.randint(1000, 9999)}"
+            thread_name = f"chat-progress-notifier-{random.randint(1000, 9999)}"
             self.__thread = Thread(name = thread_name, target = self.__run, daemon = True)
             self.__thread.start()  # fire and forget
             log.t(f"  Started thread {thread_name}")
@@ -91,7 +94,8 @@ class TelegramProgressNotifier:
         # noinspection TryExceptPass
         # remove the stale reaction (sometimes fails due to API race condition but doesn't matter)
         try:
-            self.__di.telegram_bot_sdk.set_reaction(str(self.__di.require_invoker_chat().external_id), self.__message_id, None)
+            platform_sdk = self.__di.platform_bot_sdk()
+            platform_sdk.set_reaction(str(self.__di.require_invoker_chat().external_id), self.__message_id, None)
         except:  # noqa: E722
             pass
 
@@ -117,31 +121,42 @@ class TelegramProgressNotifier:
                 self.__send_reaction()
                 self.__last_reaction_time = current_time_s
             else:
-                # no updates, keep the status running (else Telegram will clear it)
-                self.__set_chat_status(is_long = False)
+                # no updates, keep the status running
+                self.__set_chat_action("typing")
 
             self.__total_cycles += 1
             self.__signal.wait(TYPING_STATUS_INTERVAL_S)
 
-    def __set_chat_status(self, is_long: bool):
-        status = "uploading" if is_long else "typing"
-        log.t(f"Setting \"{status}\" status")
+    def __set_chat_action(self, action: Literal["typing", "upload_photo"]):
+        log.t(f"Setting \"{action}\" action")
         try:
             invoker_chat = self.__di.require_invoker_chat()
-            if is_long:
-                self.__di.telegram_bot_sdk.set_status_uploading_image(str(invoker_chat.external_id))
-            else:
-                self.__di.telegram_bot_sdk.set_status_typing(str(invoker_chat.external_id))
+            platform_sdk = self.__di.platform_bot_sdk()
+            platform_sdk.set_chat_action(str(invoker_chat.external_id), action)
         except Exception as e:
-            log.w(f"Failed to set \"{status}\" status", e)
+            log.w(f"Failed to set \"{action}\" action", e)
 
     def __send_reaction(self):
         log.t("Time for a reaction update")
-        self.__set_chat_status(is_long = False)
+        self.__set_chat_action("typing")
         try:
             invoker_chat = self.__di.require_invoker_chat()
-            next_reaction = ESCALATING_REACTIONS[self.__next_reaction_index]
-            self.__next_reaction_index = (self.__next_reaction_index + 1) % len(ESCALATING_REACTIONS)
-            self.__di.telegram_bot_sdk.set_reaction(str(invoker_chat.external_id), self.__message_id, next_reaction)
+            # use platform-appropriate reactions
+            available_reactions = self.__get_available_reactions()
+            next_reaction = available_reactions[self.__next_reaction_index]
+            self.__next_reaction_index = (self.__next_reaction_index + 1) % len(available_reactions)
+            platform_sdk = self.__di.platform_bot_sdk()
+            platform_sdk.set_reaction(str(invoker_chat.external_id), self.__message_id, next_reaction)
         except Exception as e:
             log.w(f"Failed to send reaction: {e}")
+
+    def __get_available_reactions(self) -> list[str]:
+        match self.__di.require_invoker_chat_type():
+            case ChatConfigDB.ChatType.telegram:
+                reactions = TELEGRAM_REACTIONS
+            case ChatConfigDB.ChatType.whatsapp:
+                reactions = WHATSAPP_REACTIONS
+            case _:
+                reactions = ESCALATING_REACTIONS
+        # filter to only include escalating reactions that exist in the platform's reactions
+        return [r for r in ESCALATING_REACTIONS if r in reactions]

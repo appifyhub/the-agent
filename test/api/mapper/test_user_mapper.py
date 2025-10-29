@@ -22,6 +22,8 @@ class UserMapperTest(unittest.TestCase):
             telegram_username = "testuser",
             telegram_chat_id = "123456789",
             telegram_user_id = 123456789,
+            whatsapp_user_id = "15551234567",
+            whatsapp_phone_number = SecretStr("15551234567"),
             open_ai_key = SecretStr("sk-test123"),
             anthropic_key = SecretStr("sk-ant-test456"),
             google_ai_key = SecretStr("google-test789"),
@@ -143,6 +145,9 @@ class UserMapperTest(unittest.TestCase):
         self.assertEqual(masked_user.telegram_username, self.user.telegram_username)
         self.assertEqual(masked_user.telegram_chat_id, self.user.telegram_chat_id)
         self.assertEqual(masked_user.telegram_user_id, self.user.telegram_user_id)
+        self.assertEqual(masked_user.whatsapp_user_id, self.user.whatsapp_user_id)
+        assert self.user.whatsapp_phone_number is not None
+        self.assertEqual(masked_user.whatsapp_phone_number, self.user.whatsapp_phone_number.get_secret_value())
         self.assertEqual(masked_user.group, self.user.group.value)
         self.assertEqual(masked_user.created_at, self.user.created_at.isoformat())
 

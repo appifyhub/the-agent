@@ -6,6 +6,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from db.model.chat_config import ChatConfigDB
 from db.schema.chat_message import ChatMessage
 from db.schema.chat_message_attachment import ChatMessageAttachment
+from db.schema.user import User
 from db.sql import get_detached_session
 from di.di import DI
 from features.chat.chat_agent import ChatAgent
@@ -26,8 +27,10 @@ def respond_to_update(update: Update) -> bool:
         di = DI(db)
 
         def map_to_langchain(message) -> HumanMessage | AIMessage:
+            author_db = di.user_crud.get(message.author_id)
+            author = User.model_validate(author_db) if author_db else None
             return di.domain_langchain_mapper.map_to_langchain(
-                author = di.user_crud.get(message.author_id),
+                author = author,
                 message = message,
                 chat_type = ChatConfigDB.ChatType.telegram,
             )
@@ -37,7 +40,7 @@ def respond_to_update(update: Update) -> bool:
             # map to storage models for persistence
             domain_update = di.telegram_domain_mapper.map_update(update)
             if not domain_update:
-                raise HTTPException(status_code = 422, detail = "Unable to map the update")
+                raise HTTPException(status_code = 422, detail = "Unable to map the Telegram update")
 
             # store and map to domain models (throws in case of error)
             resolved_domain_data = di.telegram_data_resolver.resolve(domain_update)
@@ -76,7 +79,7 @@ def respond_to_update(update: Update) -> bool:
             )
             answer = chat_agent.execute()
             if not answer or not answer.content:
-                log.d("Resolved an empty response, skipping bot reply")
+                log.d("No LLM response needed (command handled or no reply required)")
                 return False
 
             # send and store the response[s]

@@ -42,6 +42,9 @@ class UserDB(BaseModel):
     telegram_chat_id = Column(String, nullable = True)  # can be changed in Telegram
     telegram_user_id = Column(BigInteger, unique = True, nullable = True, index = True)
 
+    whatsapp_user_id = Column(String, unique = True, nullable = True, index = True)
+    whatsapp_phone_number = Column(EncryptedString, nullable = True)
+
     open_ai_key = Column(EncryptedString, nullable = True)
     anthropic_key = Column(EncryptedString, nullable = True)
     google_ai_key = Column(EncryptedString, nullable = True)

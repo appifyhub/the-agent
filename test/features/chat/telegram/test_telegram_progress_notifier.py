@@ -4,16 +4,16 @@ from uuid import UUID
 
 from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig
-from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
-from features.chat.telegram.telegram_progress_notifier import TelegramProgressNotifier
+from features.chat.chat_progress_notifier import ChatProgressNotifier
+from features.integrations.platform_bot_sdk import PlatformBotSDK
 
 
-class TelegramProgressNotifierTest(unittest.TestCase):
+class ChatProgressNotifierTest(unittest.TestCase):
 
     chat_config: ChatConfig
     message_id: str
     mock_di: Mock
-    notifier: TelegramProgressNotifier
+    notifier: ChatProgressNotifier
 
     def setUp(self):
         self.chat_config = ChatConfig(
@@ -34,9 +34,10 @@ class TelegramProgressNotifierTest(unittest.TestCase):
         self.mock_di.invoker_chat = self.chat_config
         self.mock_di.require_invoker_chat = MagicMock(return_value = self.chat_config)
         # noinspection PyPropertyAccess
-        self.mock_di.telegram_bot_sdk = Mock(spec = TelegramBotSDK)
+        self.mock_di.platform_bot_sdk = Mock(return_value = Mock(spec = PlatformBotSDK))
+        self.mock_di.require_invoker_chat_type = MagicMock(return_value = ChatConfigDB.ChatType.telegram)
 
-        self.notifier = TelegramProgressNotifier(
+        self.notifier = ChatProgressNotifier(
             message_id = self.message_id,
             di = self.mock_di,
             auto_start = False,
@@ -44,25 +45,27 @@ class TelegramProgressNotifierTest(unittest.TestCase):
 
     # noinspection PyUnresolvedReferences
     def test_init(self):
-        self.assertEqual(self.notifier._TelegramProgressNotifier__message_id, self.message_id)
-        self.assertEqual(self.notifier._TelegramProgressNotifier__di, self.mock_di)
+        self.assertEqual(self.notifier._ChatProgressNotifier__message_id, self.message_id)
+        self.assertEqual(self.notifier._ChatProgressNotifier__di, self.mock_di)
 
-    @patch("features.chat.telegram.telegram_progress_notifier.Thread")
+    @patch("features.chat.chat_progress_notifier.Thread")
     def test_start(self, mock_thread):
         self.notifier.start()
         mock_thread.assert_called_once()
         mock_thread.return_value.start.assert_called_once()
 
-    @patch("features.chat.telegram.telegram_progress_notifier.Thread")
+    @patch("features.chat.chat_progress_notifier.Thread")
     def test_stop(self, mock_thread):
         self.notifier.start()
         self.notifier.stop()
         mock_thread.return_value.join.assert_called_once_with(timeout = 1)
 
-    @patch("features.chat.telegram.telegram_progress_notifier.time.time")
+    @patch("features.chat.chat_progress_notifier.time.time")
     def test_send_reaction(self, mock_time):
         mock_time.return_value = 100
+        mock_platform_sdk = Mock(spec = PlatformBotSDK)
+        self.mock_di.platform_bot_sdk.return_value = mock_platform_sdk
         # noinspection PyUnresolvedReferences
-        self.notifier._TelegramProgressNotifier__send_reaction()
-        self.mock_di.telegram_bot_sdk.set_status_typing.assert_called_once_with(self.chat_config.external_id)
-        self.mock_di.telegram_bot_sdk.set_reaction.assert_called_once()
+        self.notifier._ChatProgressNotifier__send_reaction()
+        mock_platform_sdk.set_chat_action.assert_called_once()
+        mock_platform_sdk.set_reaction.assert_called_once()

@@ -1,5 +1,6 @@
 import time
 from datetime import datetime, timedelta
+from typing import Literal
 
 import requests
 
@@ -83,6 +84,12 @@ class TelegramBotSDK:
 
     def set_status_uploading_image(self, chat_id: int | str):
         self.__di.telegram_bot_api.set_status_uploading_image(chat_id)
+
+    def set_chat_action(self, chat_id: int | str, action: Literal["typing", "upload_photo"]):
+        if action == "upload_photo":
+            self.set_status_uploading_image(chat_id)
+        else:
+            self.set_status_typing(chat_id)
 
     def set_reaction(self, chat_id: int | str, message_id: int | str, reaction: str | None):
         self.__di.telegram_bot_api.set_reaction(chat_id = chat_id, message_id = message_id, reaction = reaction)

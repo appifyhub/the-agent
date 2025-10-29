@@ -23,6 +23,8 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "test-user",
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
+            whatsapp_user_id = "1234567890",
+            whatsapp_phone_number = SecretStr("1234567890"),
             open_ai_key = SecretStr("test-key"),
             anthropic_key = SecretStr("test-anthropic-key"),
             google_ai_key = SecretStr("test-google-ai-key"),
@@ -54,6 +56,9 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(user.full_name, user_data.full_name)
         self.assertEqual(user.telegram_username, user_data.telegram_username)
         self.assertEqual(user.telegram_chat_id, user_data.telegram_chat_id)
+        self.assertEqual(user.whatsapp_user_id, user_data.whatsapp_user_id)
+        assert user_data.whatsapp_phone_number is not None
+        self.assertEqual(user.whatsapp_phone_number, user_data.whatsapp_phone_number.get_secret_value())
         assert user_data.open_ai_key is not None
         self.assertEqual(user.open_ai_key, user_data.open_ai_key.get_secret_value())
         assert user_data.anthropic_key is not None
@@ -91,6 +96,8 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "test-user",
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
+            whatsapp_user_id = "1234567890",
+            whatsapp_phone_number = SecretStr("1234567890"),
             open_ai_key = SecretStr("test-key"),
             anthropic_key = SecretStr("test-anthropic-key"),
             perplexity_key = SecretStr("test-perplexity-key"),
@@ -110,6 +117,9 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(fetched_user.full_name, user_data.full_name)
         self.assertEqual(fetched_user.telegram_username, user_data.telegram_username)
         self.assertEqual(fetched_user.telegram_user_id, user_data.telegram_user_id)
+        self.assertEqual(fetched_user.whatsapp_user_id, user_data.whatsapp_user_id)
+        assert user_data.whatsapp_phone_number is not None
+        self.assertEqual(fetched_user.whatsapp_phone_number, user_data.whatsapp_phone_number.get_secret_value())
         self.assertEqual(fetched_user.tool_choice_chat, user_data.tool_choice_chat)
         self.assertEqual(fetched_user.tool_choice_vision, user_data.tool_choice_vision)
 
@@ -221,12 +231,79 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(fetched_user.tool_choice_embedding, user_data.tool_choice_embedding)
         self.assertEqual(fetched_user.tool_choice_api_twitter, user_data.tool_choice_api_twitter)
 
+    def test_get_user_by_whatsapp_user_id(self):
+        user_data = UserSave(
+            full_name = "Test User",
+            telegram_username = "test-user",
+            telegram_chat_id = "123456",
+            telegram_user_id = 55555,
+            whatsapp_user_id = "9876543210",
+            whatsapp_phone_number = SecretStr("9876543210"),
+            open_ai_key = SecretStr("test-key"),
+            anthropic_key = SecretStr("test-anthropic-key"),
+            perplexity_key = SecretStr("test-perplexity-key"),
+            replicate_key = SecretStr("test-replicate-key"),
+            rapid_api_key = SecretStr("test-rapid-api-key"),
+            coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
+            tool_choice_hearing = "whisper-1",
+            tool_choice_search = "perplexity-search",
+            group = UserDB.Group.standard,
+        )
+        created_user = self.sql.user_crud().create(user_data)
+
+        fetched_user = self.sql.user_crud().get_by_whatsapp_user_id(created_user.whatsapp_user_id)
+
+        assert fetched_user is not None
+        self.assertEqual(fetched_user.id, created_user.id)
+        self.assertEqual(fetched_user.full_name, user_data.full_name)
+        self.assertEqual(fetched_user.telegram_username, user_data.telegram_username)
+        self.assertEqual(fetched_user.telegram_user_id, user_data.telegram_user_id)
+        self.assertEqual(fetched_user.whatsapp_user_id, user_data.whatsapp_user_id)
+        assert user_data.whatsapp_phone_number is not None
+        self.assertEqual(fetched_user.whatsapp_phone_number, user_data.whatsapp_phone_number.get_secret_value())
+        self.assertEqual(fetched_user.tool_choice_hearing, user_data.tool_choice_hearing)
+        self.assertEqual(fetched_user.tool_choice_search, user_data.tool_choice_search)
+
+    def test_get_user_by_whatsapp_phone_number(self):
+        user_data = UserSave(
+            full_name = "Test User",
+            telegram_username = "test-user",
+            telegram_chat_id = "123456",
+            telegram_user_id = 55555,
+            whatsapp_user_id = "9876543210",
+            whatsapp_phone_number = SecretStr("9876543210"),
+            open_ai_key = SecretStr("test-key"),
+            anthropic_key = SecretStr("test-anthropic-key"),
+            perplexity_key = SecretStr("test-perplexity-key"),
+            replicate_key = SecretStr("test-replicate-key"),
+            rapid_api_key = SecretStr("test-rapid-api-key"),
+            coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
+            tool_choice_hearing = "whisper-1",
+            tool_choice_search = "perplexity-search",
+            group = UserDB.Group.standard,
+        )
+        created_user = self.sql.user_crud().create(user_data)
+
+        fetched_user = self.sql.user_crud().get_by_whatsapp_phone_number("9876543210")
+
+        assert fetched_user is not None
+        self.assertEqual(fetched_user.id, created_user.id)
+        self.assertEqual(fetched_user.full_name, user_data.full_name)
+        self.assertEqual(fetched_user.telegram_username, user_data.telegram_username)
+        self.assertEqual(fetched_user.telegram_chat_id, user_data.telegram_chat_id)
+        self.assertEqual(fetched_user.telegram_user_id, user_data.telegram_user_id)
+        self.assertEqual(fetched_user.whatsapp_user_id, user_data.whatsapp_user_id)
+        assert user_data.whatsapp_phone_number is not None
+        self.assertEqual(fetched_user.whatsapp_phone_number, user_data.whatsapp_phone_number.get_secret_value())
+
     def test_update_user(self):
         user_data = UserSave(
             full_name = "Test User",
             telegram_username = "test-user",
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
+            whatsapp_user_id = "1234567890",
+            whatsapp_phone_number = SecretStr("1234567890"),
             open_ai_key = SecretStr("test-key"),
             anthropic_key = SecretStr("test-anthropic-key"),
             perplexity_key = SecretStr("test-perplexity-key"),
@@ -246,6 +323,8 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "updated-user",
             telegram_chat_id = "654321",
             telegram_user_id = 654321,
+            whatsapp_user_id = "9876543210",
+            whatsapp_phone_number = SecretStr("9876543210"),
             open_ai_key = SecretStr("updated-key"),
             anthropic_key = SecretStr("updated-anthropic-key"),
             perplexity_key = SecretStr("updated-perplexity-key"),
@@ -266,6 +345,9 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(updated_user.full_name, update_data.full_name)
         self.assertEqual(updated_user.telegram_username, update_data.telegram_username)
         self.assertEqual(updated_user.telegram_chat_id, update_data.telegram_chat_id)
+        self.assertEqual(updated_user.whatsapp_user_id, update_data.whatsapp_user_id)
+        assert update_data.whatsapp_phone_number is not None
+        self.assertEqual(updated_user.whatsapp_phone_number, update_data.whatsapp_phone_number.get_secret_value())
         assert update_data.open_ai_key is not None
         self.assertEqual(updated_user.open_ai_key, update_data.open_ai_key.get_secret_value())
         assert update_data.anthropic_key is not None
@@ -293,6 +375,8 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "test-user",
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
+            whatsapp_user_id = "1234567890",
+            whatsapp_phone_number = SecretStr("1234567890"),
             open_ai_key = SecretStr("test-key"),
             anthropic_key = SecretStr("test-anthropic-key"),
             perplexity_key = SecretStr("test-perplexity-key"),
@@ -312,6 +396,9 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(saved_user.telegram_username, user_data.telegram_username)
         self.assertEqual(saved_user.telegram_chat_id, user_data.telegram_chat_id)
         self.assertEqual(saved_user.telegram_user_id, user_data.telegram_user_id)
+        self.assertEqual(saved_user.whatsapp_user_id, user_data.whatsapp_user_id)
+        assert user_data.whatsapp_phone_number is not None
+        self.assertEqual(saved_user.whatsapp_phone_number, user_data.whatsapp_phone_number.get_secret_value())
         assert user_data.open_ai_key is not None
         self.assertEqual(saved_user.open_ai_key, user_data.open_ai_key.get_secret_value())
         assert user_data.anthropic_key is not None
@@ -336,6 +423,8 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "updated-user",
             telegram_chat_id = "654321",
             telegram_user_id = 654321,
+            whatsapp_user_id = "9876543210",
+            whatsapp_phone_number = SecretStr("9876543210"),
             open_ai_key = SecretStr("updated-key"),
             anthropic_key = SecretStr("updated-anthropic-key"),
             perplexity_key = SecretStr("updated-perplexity-key"),
@@ -355,6 +444,9 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(updated_user.telegram_username, update_data.telegram_username)
         self.assertEqual(updated_user.telegram_chat_id, update_data.telegram_chat_id)
         self.assertEqual(updated_user.telegram_user_id, update_data.telegram_user_id)
+        self.assertEqual(updated_user.whatsapp_user_id, update_data.whatsapp_user_id)
+        assert update_data.whatsapp_phone_number is not None
+        self.assertEqual(updated_user.whatsapp_phone_number, update_data.whatsapp_phone_number.get_secret_value())
         assert update_data.open_ai_key is not None
         self.assertEqual(updated_user.open_ai_key, update_data.open_ai_key.get_secret_value())
         assert update_data.anthropic_key is not None
@@ -380,6 +472,8 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "test-user",
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
+            whatsapp_user_id = "1234567890",
+            whatsapp_phone_number = SecretStr("1234567890"),
             open_ai_key = SecretStr("test-key"),
             anthropic_key = SecretStr("test-anthropic-key"),
             perplexity_key = SecretStr("test-perplexity-key"),

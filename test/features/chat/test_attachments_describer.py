@@ -14,6 +14,7 @@ from db.schema.tools_cache import ToolsCache
 from db.schema.user import User
 from features.chat.attachments_describer import CACHE_TTL, AttachmentsDescriber
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from features.integrations.platform_bot_sdk import PlatformBotSDK
 from util.config import config
 
 
@@ -89,9 +90,11 @@ class AttachmentsDescriberTest(unittest.TestCase):
         self.mock_chat_message_attachment_crud.get.return_value = self.attachment.model_dump()
         self.mock_chat_message_attachment_crud.save.return_value = self.attachment.model_dump()
         self.mock_cache_crud.create_key.return_value = "test_cache_key"
+        self.mock_di.require_invoker_chat_type = MagicMock(return_value = ChatConfigDB.ChatType.telegram)
 
         # Use a real SDK instance so the resolver under test returns real models
         self.mock_di.telegram_bot_sdk = TelegramBotSDK(self.mock_di)
+        self.mock_di.platform_bot_sdk = MagicMock(return_value = PlatformBotSDK(self.mock_di))
 
     @requests_mock.Mocker()
     def test_execute_with_cache_hit(self, m: requests_mock.Mocker):

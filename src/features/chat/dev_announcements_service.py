@@ -102,7 +102,7 @@ class DevAnnouncementsService:
                         raise AssertionError(f"Received a non-AI message from LLM: {answer}")
                     summary = translations.save(str(answer.content), chat.language_name, chat.language_iso_code)
                     summaries_created += 1
-                scoped_di.telegram_bot_sdk.send_text_message(int(chat.external_id or "-1"), summary)
+                scoped_di.platform_bot_sdk().send_text_message(int(chat.external_id or "-1"), summary)
                 chats_notified += 1
             except Exception as e:
                 log.e(f"Announcement failed for chat #{chat.chat_id}", e)

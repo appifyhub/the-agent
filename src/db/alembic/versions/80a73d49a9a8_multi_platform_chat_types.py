@@ -10,7 +10,7 @@ from typing import Sequence, Union
 from alembic import op
 from sqlalchemy import text
 
-from features.integrations.integration_config import BACKGROUND_AGENT, GITHUB_AGENT, TELEGRAM_AGENT
+from features.integrations.integration_config import BACKGROUND_AGENT, THE_AGENT
 
 # revision identifiers, used by Alembic.
 revision: str = "80a73d49a9a8"
@@ -49,7 +49,7 @@ def upgrade() -> None:
         USING chat_type::chattype
     """))
 
-    # Insert the telegram agent if it doesn't exist
+    # Insert the agent if it doesn't exist
     op.execute(text("""
         INSERT INTO simulants (id, full_name, "group", telegram_username, telegram_chat_id, telegram_user_id, created_at)
         SELECT :id, :full_name, :group, :telegram_username, :telegram_chat_id, :telegram_user_id, :created_at
@@ -57,16 +57,16 @@ def upgrade() -> None:
             SELECT 1 FROM simulants WHERE id = :id
         )
     """).bindparams(
-        id = str(TELEGRAM_AGENT.id),
-        full_name = TELEGRAM_AGENT.full_name,
-        group = TELEGRAM_AGENT.group.value,
-        telegram_username = TELEGRAM_AGENT.telegram_username,
-        telegram_chat_id = TELEGRAM_AGENT.telegram_chat_id,
-        telegram_user_id = TELEGRAM_AGENT.telegram_user_id,
+        id = str(THE_AGENT.id),
+        full_name = THE_AGENT.full_name,
+        group = THE_AGENT.group.value,
+        telegram_username = THE_AGENT.telegram_username,
+        telegram_chat_id = THE_AGENT.telegram_chat_id,
+        telegram_user_id = THE_AGENT.telegram_user_id,
         created_at = "2024-01-01",  # Default date
     ))
 
-    # Insert the background agent if it doesn't exist (copy all properties from telegram agent)
+    # Insert the background agent if it doesn't exist (copy all properties from the agent)
     op.execute(text("""
         INSERT INTO simulants (
             id, full_name, "group", telegram_username, telegram_chat_id, telegram_user_id,
@@ -88,42 +88,12 @@ def upgrade() -> None:
             t.tool_choice_search, t.tool_choice_embedding, t.tool_choice_api_fiat_exchange,
             t.tool_choice_api_crypto_exchange, t.tool_choice_api_twitter, t.created_at
         FROM simulants t
-        WHERE t.id = :tg_id
+        WHERE t.id = :agent_id
         AND NOT EXISTS (SELECT 1 FROM simulants WHERE id = :bg_id)
     """).bindparams(
         bg_id = str(BACKGROUND_AGENT.id),
         bg_full_name = BACKGROUND_AGENT.full_name,
-        tg_id = str(TELEGRAM_AGENT.id),
-    ))
-
-    # Insert the github agent if it doesn't exist (copy all properties from telegram agent)
-    op.execute(text("""
-        INSERT INTO simulants (
-            id, full_name, "group", telegram_username, telegram_chat_id, telegram_user_id,
-            open_ai_key, anthropic_key, google_ai_key, perplexity_key, replicate_key,
-            rapid_api_key, coinmarketcap_key, tool_choice_chat, tool_choice_reasoning,
-            tool_choice_copywriting, tool_choice_vision, tool_choice_hearing,
-            tool_choice_images_gen, tool_choice_images_edit, tool_choice_images_restoration,
-            tool_choice_images_inpainting, tool_choice_images_background_removal,
-            tool_choice_search, tool_choice_embedding, tool_choice_api_fiat_exchange,
-            tool_choice_api_crypto_exchange, tool_choice_api_twitter, created_at
-        )
-        SELECT
-            :gh_id, :gh_full_name, t.group, NULL, NULL, NULL,
-            t.open_ai_key, t.anthropic_key, t.google_ai_key, t.perplexity_key, t.replicate_key,
-            t.rapid_api_key, t.coinmarketcap_key, t.tool_choice_chat, t.tool_choice_reasoning,
-            t.tool_choice_copywriting, t.tool_choice_vision, t.tool_choice_hearing,
-            t.tool_choice_images_gen, t.tool_choice_images_edit, t.tool_choice_images_restoration,
-            t.tool_choice_images_inpainting, t.tool_choice_images_background_removal,
-            t.tool_choice_search, t.tool_choice_embedding, t.tool_choice_api_fiat_exchange,
-            t.tool_choice_api_crypto_exchange, t.tool_choice_api_twitter, t.created_at
-        FROM simulants t
-        WHERE t.id = :tg_id
-        AND NOT EXISTS (SELECT 1 FROM simulants WHERE id = :gh_id)
-    """).bindparams(
-        gh_id = str(GITHUB_AGENT.id),
-        gh_full_name = GITHUB_AGENT.full_name,
-        tg_id = str(TELEGRAM_AGENT.id),
+        agent_id = str(THE_AGENT.id),
     ))
 
 

@@ -7,6 +7,8 @@ class UserSettingsResponse(BaseModel):
     telegram_username: str | None = None
     telegram_chat_id: str | None = None
     telegram_user_id: int | None = None
+    whatsapp_user_id: str | None = None
+    whatsapp_phone_number: str | None = None
     open_ai_key: str | None = None
     anthropic_key: str | None = None
     google_ai_key: str | None = None

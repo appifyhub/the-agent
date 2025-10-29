@@ -42,12 +42,14 @@ class DevAnnouncementsServiceTest(unittest.TestCase):
         self.mock_di.invoker = self.user
         self.mock_di.invoker_chat_type = ChatConfigDB.ChatType.telegram
         self.mock_di.require_invoker_chat_type = MagicMock(return_value = ChatConfigDB.ChatType.telegram)
+        self.mock_platform_sdk = MagicMock()
+        self.mock_di.platform_bot_sdk = MagicMock(return_value = self.mock_platform_sdk)
         self.mock_di.chat_langchain_model.return_value = MagicMock()
         self.mock_di.user_crud.get_by_telegram_username.return_value = None
         self.mock_di.chat_config_crud.get.return_value = None
         self.mock_di.chat_config_crud.get_by_external_identifiers.return_value = None
         self.mock_di.chat_config_crud.get_all.return_value = []
-        self.mock_di.telegram_bot_sdk.send_text_message.return_value = {"result": {"message_id": 123}}
+        self.mock_platform_sdk.send_text_message.return_value = {"result": {"message_id": 123}}
         self.mock_di.chat_message_crud.save.return_value = MagicMock()
         self.mock_di.translations_cache.get.return_value = "Translated announcement"
         self.mock_di.translations_cache.save.return_value = "Translated announcement"
@@ -176,7 +178,7 @@ class DevAnnouncementsServiceTest(unittest.TestCase):
         self.mock_di.chat_config_crud.get_all.return_value = [
             self.__create_mock_chat_config("1", "en"),
         ]
-        self.mock_di.telegram_bot_sdk.send_text_message.side_effect = Exception("Notification failed")
+        self.mock_platform_sdk.send_text_message.side_effect = Exception("Notification failed")
 
         # Mock external ID resolution
         from unittest.mock import patch
