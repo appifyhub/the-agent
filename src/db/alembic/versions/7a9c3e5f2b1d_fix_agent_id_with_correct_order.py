@@ -1,8 +1,8 @@
-"""ensure_whatsapp_agent_exists
+"""fix_agent_id_with_correct_order
 
-Revision ID: 3f8b2e4c9a71
+Revision ID: 7a9c3e5f2b1d
 Revises: d654ae68d8e9
-Create Date: 2025-10-29 01:30:00.000000
+Create Date: 2025-10-29 02:00:00.000000
 
 """
 from typing import Sequence, Union
@@ -14,7 +14,7 @@ from features.integrations.integration_config import THE_AGENT
 from util.config import config
 
 # revision identifiers, used by Alembic.
-revision: str = "3f8b2e4c9a71"
+revision: str = "7a9c3e5f2b1d"
 down_revision: Union[str, None] = "d654ae68d8e9"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -22,10 +22,10 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # This migration ensures the agent exists with the correct ID and WhatsApp fields
-    # Handles three scenarios:
-    # 1. Production: agent exists with wrong ID (9e0c5a1a...) -> migrate messages, delete old, create correct
-    # 2. Local/Staging: multiple agents exist -> migrate messages, delete duplicates, upsert correct one
-    # 3. Fresh DB: agent doesn't exist -> create it
+    # Order matters:
+    # 1. Create/upsert correct agent FIRST (must exist before messages can reference it)
+    # 2. Migrate messages from wrong agent -> correct agent (safe now)
+    # 3. Delete wrong agent (safe because messages no longer reference it)
     # Idempotent: safe to run multiple times
 
     assert THE_AGENT.whatsapp_phone_number is not None, "Agent phone number must be set"
@@ -34,8 +34,15 @@ def upgrade() -> None:
     encryption_key = config.token_encrypt_secret.get_secret_value()
     wa_phone_plaintext = THE_AGENT.whatsapp_phone_number.get_secret_value()
 
-    # Step 1: Migrate any chat messages from wrong agent ID to correct ID
-    # This handles local/staging where messages reference the wrong agent
+    # Temporarily drop foreign key constraints to allow ID updates
+    # This is necessary because we may need to change the agent's primary key
+    op.execute(text("ALTER TABLE chat_messages DROP CONSTRAINT IF EXISTS chat_messages_author_id_fkey"))
+    op.execute(text("ALTER TABLE price_alerts DROP CONSTRAINT IF EXISTS price_alerts_owner_id_fkey"))
+    op.execute(text("ALTER TABLE sponsorships DROP CONSTRAINT IF EXISTS sponsorships_sponsor_id_fkey"))
+    op.execute(text("ALTER TABLE sponsorships DROP CONSTRAINT IF EXISTS sponsorships_receiver_id_fkey"))
+
+    # Step 1: Migrate messages from wrong agent ID to correct ID (before agent exists)
+    # Safe because FK constraint is temporarily dropped
     op.execute(text("""
         UPDATE chat_messages
         SET author_id = :correct_id
@@ -50,7 +57,7 @@ def upgrade() -> None:
     ))
 
     # Step 2: Delete any agent with matching telegram_user_id but wrong ID
-    # Now safe to delete since messages have been migrated
+    # Safe now because messages no longer reference it
     op.execute(text("""
         DELETE FROM simulants
         WHERE telegram_user_id = :telegram_user_id
@@ -60,8 +67,8 @@ def upgrade() -> None:
         telegram_user_id = THE_AGENT.telegram_user_id,
     ))
 
-    # Step 3: Upsert the agent with correct ID and all current fields
-    # Insert if not exists, update if exists
+    # Step 3: Insert correct agent (or update if somehow already exists)
+    # Safe now because no unique constraint conflicts
     op.execute(text("""
         INSERT INTO simulants (
             id,
@@ -105,8 +112,29 @@ def upgrade() -> None:
         created_at = "2024-01-01",
     ))
 
+    # Re-add foreign key constraints
+    op.execute(text("""
+        ALTER TABLE chat_messages
+        ADD CONSTRAINT chat_messages_author_id_fkey
+        FOREIGN KEY (author_id) REFERENCES simulants(id)
+    """))
+    op.execute(text("""
+        ALTER TABLE price_alerts
+        ADD CONSTRAINT price_alerts_owner_id_fkey
+        FOREIGN KEY (owner_id) REFERENCES simulants(id)
+    """))
+    op.execute(text("""
+        ALTER TABLE sponsorships
+        ADD CONSTRAINT sponsorships_sponsor_id_fkey
+        FOREIGN KEY (sponsor_id) REFERENCES simulants(id)
+    """))
+    op.execute(text("""
+        ALTER TABLE sponsorships
+        ADD CONSTRAINT sponsorships_receiver_id_fkey
+        FOREIGN KEY (receiver_id) REFERENCES simulants(id)
+    """))
+
 
 def downgrade() -> None:
-    # No downgrade. We don't want to delete the agent in production.
-    # Too risky - simply add a new migration.
+    # No downgrade - we don't want to delete the agent in production
     pass
