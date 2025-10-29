@@ -1,6 +1,5 @@
 from itertools import chain
 
-from fastapi import HTTPException
 from langchain_core.messages import AIMessage, HumanMessage
 
 from db.model.chat_config import ChatConfigDB
@@ -41,7 +40,8 @@ def respond_to_update(update: Update) -> bool:
             # map to storage models for persistence
             domain_update = di.whatsapp_domain_mapper.map_update(update)
             if not domain_update:
-                raise HTTPException(status_code = 422, detail = "Unable to map the WhatsApp update")
+                log.w("No messages to process in this WhatsApp update (likely a status update or notification)")
+                return False
 
             # store and map to domain models (throws in case of error)
             resolved_domain_data_all = di.whatsapp_data_resolver.resolve_all(domain_update)
