@@ -53,7 +53,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.main_language_iso_code, "en")
         self.assertEqual(config.uploadcare_public_key, "invalid")
         self.assertEqual(config.uploadcare_cdn_id, "invalid")
-        self.assertEqual(config.url_shortener_base_url, "https://to.appifyhub.com")
+        self.assertEqual(config.url_shortener_base_url, "https://urls.appifyhub.com")
         self.assertEqual(config.version, "dev")
 
         self.assertEqual(config.db_url.get_secret_value(), "postgresql://root:root@localhost:5432/agent")

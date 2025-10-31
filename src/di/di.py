@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 # noinspection PyUnusedImports
@@ -512,7 +512,7 @@ class DI:
         max_visits: int | None = None,
     ) -> "UrlShortener":
         from features.web_browsing.url_shortener import UrlShortener
-        return UrlShortener(long_url, self, custom_slug, valid_until, max_visits)
+        return UrlShortener(long_url, custom_slug, valid_until, max_visits)
 
     @property
     def exchange_rate_fetcher(self) -> "ExchangeRateFetcher":

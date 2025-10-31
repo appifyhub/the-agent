@@ -3,7 +3,6 @@ from datetime import datetime
 import requests
 from requests import Response
 
-from di.di import DI
 from util import log
 from util.config import config
 
@@ -14,12 +13,10 @@ class UrlShortener:
     __custom_slug: str | None
     __valid_until: str | None
     __max_visits: int | None
-    __di: DI
 
     def __init__(
         self,
         long_url: str,
-        di: DI,
         custom_slug: str | None = None,
         valid_until: datetime | None = None,
         max_visits: int | None = None,
@@ -28,9 +25,8 @@ class UrlShortener:
             raise ValueError("long_url is required and cannot be empty")
         self.__long_url = long_url.strip()
         self.__custom_slug = custom_slug.strip() if custom_slug and custom_slug.strip() else None
-        self.__valid_until = valid_until.isoformat() if valid_until else None
+        self.__valid_until = valid_until.isoformat(sep = "T", timespec = "seconds") if valid_until else None
         self.__max_visits = max_visits
-        self.__di = di
 
     def execute(self) -> dict:
         response: Response | None = None
@@ -51,6 +47,7 @@ class UrlShortener:
                 payload["validUntil"] = self.__valid_until
             if self.__max_visits is not None:
                 payload["maxVisits"] = self.__max_visits
+            log.t("  Sending payload", payload)
 
             response = requests.post(api_endpoint, json = payload, headers = headers, timeout = config.web_timeout_s * 2)
             log.t(f"Response HTTP-{response.status_code} received!")

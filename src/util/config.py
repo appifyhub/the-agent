@@ -114,7 +114,7 @@ class Config(metaclass = Singleton):
         def_main_language_iso_code: str = "en",
         def_uploadcare_public_key: str = "invalid",
         def_uploadcare_cdn_id: str = "invalid",
-        def_url_shortener_base_url: str = "https://to.appifyhub.com",
+        def_url_shortener_base_url: str = "https://urls.appifyhub.com",
         def_version: str = "dev",
 
         def_db_user: SecretStr = SecretStr("root"),
