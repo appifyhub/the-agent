@@ -124,7 +124,7 @@ class SettingsControllerTest(unittest.TestCase):
         # Mock URL shortener to return same URL
         def mock_url_shortener(long_url, **kwargs):
             mock_shortener = MagicMock()
-            mock_shortener.execute.return_value = {"shortUrl": long_url}
+            mock_shortener.execute.return_value = long_url
             return mock_shortener
         self.mock_di.url_shortener = MagicMock(side_effect = mock_url_shortener)
 

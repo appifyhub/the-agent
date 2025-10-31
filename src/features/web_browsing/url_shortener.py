@@ -34,7 +34,7 @@ class UrlShortener:
             self.__valid_until = None
         self.__max_visits = max_visits
 
-    def execute(self) -> dict:
+    def execute(self) -> str:
         response: Response | None = None
         try:
             log.t("Creating short URL...")
@@ -60,8 +60,12 @@ class UrlShortener:
             response.raise_for_status()
             response_data = response.json()
 
+            short_url = response_data.get("shortUrl")
+            if not short_url:
+                raise ValueError(f"API response missing 'shortUrl' field: {response_data}")
+
             log.t("Short URL created successfully!")
-            return response_data
+            return str(short_url)
         except Exception as e:
             message = log.w("URL shortening failed!", {response.text if response is not None else "No response"}, e)
             raise ValueError(message)

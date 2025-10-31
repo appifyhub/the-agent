@@ -71,8 +71,7 @@ class SettingsController:
 
         valid_until = datetime.now() + timedelta(minutes = config.jwt_expires_in_minutes * 10)
         shortener = self.__di.url_shortener(long_url, valid_until = valid_until)
-        short_url_response = shortener.execute()
-        return short_url_response.get("shortUrl", long_url)
+        return shortener.execute()
 
     def create_help_link(self, chat_type: ChatConfigDB.ChatType | None = None) -> str:
         chat_type = chat_type or self.__di.invoker_chat_type
@@ -95,8 +94,7 @@ class SettingsController:
 
         valid_until = datetime.now() + timedelta(minutes = config.jwt_expires_in_minutes * 10)
         shortener = self.__di.url_shortener(long_url, valid_until = valid_until)
-        short_url_response = shortener.execute()
-        return short_url_response.get("shortUrl", long_url)
+        return shortener.execute()
 
     def fetch_external_tools(self, user_id_hex: str) -> dict[str, Any]:
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)

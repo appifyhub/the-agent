@@ -139,6 +139,4 @@ class UserSupportService:
         log.i(f"Issue created successfully. Issue URL: {issue_url}")
 
         shortener = self.__di.url_shortener(issue_url)
-        short_url_response = shortener.execute()
-        short_url = short_url_response.get("shortUrl", issue_url)
-        return short_url
+        return shortener.execute()
