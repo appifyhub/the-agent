@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 import requests
 from requests import Response
@@ -25,7 +25,12 @@ class UrlShortener:
             raise ValueError("long_url is required and cannot be empty")
         self.__long_url = long_url.strip()
         self.__custom_slug = custom_slug.strip() if custom_slug and custom_slug.strip() else None
-        self.__valid_until = valid_until.isoformat(sep = "T", timespec = "seconds") if valid_until else None
+        if valid_until:
+            if valid_until.tzinfo is None:
+                valid_until = valid_until.replace(tzinfo = timezone.utc)
+            self.__valid_until = valid_until.isoformat(timespec = "seconds")
+        else:
+            self.__valid_until = None
         self.__max_visits = max_visits
 
     def execute(self) -> dict:
