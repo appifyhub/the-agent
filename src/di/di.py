@@ -60,6 +60,7 @@ if TYPE_CHECKING:
     from features.web_browsing.ai_web_search import AIWebSearch
     from features.web_browsing.html_content_cleaner import HTMLContentCleaner
     from features.web_browsing.twitter_status_fetcher import TwitterStatusFetcher
+    from features.web_browsing.url_shortener import UrlShortener
     from features.web_browsing.web_fetcher import WebFetcher
     from util.translations_cache import TranslationsCache
 
@@ -502,6 +503,16 @@ class DI:
     ) -> "TwitterStatusFetcher":
         from features.web_browsing.twitter_status_fetcher import TwitterStatusFetcher
         return TwitterStatusFetcher(tweet_id, twitter_api_tool, vision_tool, twitter_enterprise_tool, self)
+
+    def url_shortener(
+        self,
+        long_url: str,
+        custom_slug: str | None = None,
+        valid_until: str | None = None,
+        max_visits: int | None = None,
+    ) -> "UrlShortener":
+        from features.web_browsing.url_shortener import UrlShortener
+        return UrlShortener(long_url, self, custom_slug, valid_until, max_visits)
 
     @property
     def exchange_rate_fetcher(self) -> "ExchangeRateFetcher":
