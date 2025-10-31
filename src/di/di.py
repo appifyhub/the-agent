@@ -508,7 +508,7 @@ class DI:
         self,
         long_url: str,
         custom_slug: str | None = None,
-        valid_until: str | None = None,
+        valid_until: datetime | None = None,
         max_visits: int | None = None,
     ) -> "UrlShortener":
         from features.web_browsing.url_shortener import UrlShortener
