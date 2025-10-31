@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 
 import requests
 from requests import Response
@@ -27,7 +27,8 @@ class UrlShortener:
         self.__custom_slug = custom_slug.strip() if custom_slug and custom_slug.strip() else None
         if valid_until:
             if valid_until.tzinfo is None:
-                valid_until = valid_until.replace(tzinfo = timezone.utc)
+                local_tz = datetime.now().astimezone().tzinfo
+                valid_until = valid_until.replace(tzinfo = local_tz)
             self.__valid_until = valid_until.isoformat(timespec = "seconds")
         else:
             self.__valid_until = None
