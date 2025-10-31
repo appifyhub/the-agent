@@ -53,6 +53,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.main_language_iso_code, "en")
         self.assertEqual(config.uploadcare_public_key, "invalid")
         self.assertEqual(config.uploadcare_cdn_id, "invalid")
+        self.assertEqual(config.url_shortener_base_url, "https://to.appifyhub.com")
         self.assertEqual(config.version, "dev")
 
         self.assertEqual(config.db_url.get_secret_value(), "postgresql://root:root@localhost:5432/agent")
@@ -67,6 +68,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.free_img_host_token.get_secret_value(), "invalid")
         self.assertEqual(config.token_encrypt_secret.get_secret_value(), "default")
         self.assertEqual(config.uploadcare_private_key.get_secret_value(), "invalid")
+        self.assertEqual(config.url_shortener_api_key.get_secret_value(), "invalid")
 
     def test_custom_config(self):
         os.environ["LOG_LEVEL"] = "DEBUG"
@@ -100,6 +102,7 @@ class ConfigTest(unittest.TestCase):
         os.environ["MAIN_LANGUAGE_ISO_CODE"] = "de"
         os.environ["UPLOADCARE_PUBLIC_KEY"] = "public-key-123"
         os.environ["UPLOADCARE_CDN_ID"] = "cdn-id-123"
+        os.environ["URL_SHORTENER_BASE_URL"] = "https://custom.to.appifyhub.com"
         os.environ["VERSION"] = "custom"
 
         os.environ["POSTGRES_USER"] = "admin"
@@ -118,6 +121,7 @@ class ConfigTest(unittest.TestCase):
         os.environ["FREE_IMG_HOST_TOKEN"] = "sk-im-valid"
         os.environ["TOKEN_ENCRYPT_SECRET"] = "custom-encryption-key"
         os.environ["UPLOADCARE_PRIVATE_KEY"] = "private-key-123"
+        os.environ["URL_SHORTENER_API_KEY"] = "url-shortener-key-123"
 
         config = Config()
 
@@ -152,6 +156,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.main_language_iso_code, "de")
         self.assertEqual(config.uploadcare_public_key, "public-key-123")
         self.assertEqual(config.uploadcare_cdn_id, "cdn-id-123")
+        self.assertEqual(config.url_shortener_base_url, "https://custom.to.appifyhub.com")
         self.assertEqual(config.version, "custom")
 
         self.assertEqual(config.db_url.get_secret_value(), "postgresql://admin:admin123@db.example.com:5432/test_db")
@@ -167,3 +172,4 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.free_img_host_token.get_secret_value(), "sk-im-valid")
         self.assertEqual(config.token_encrypt_secret.get_secret_value(), "custom-encryption-key")
         self.assertEqual(config.uploadcare_private_key.get_secret_value(), "private-key-123")
+        self.assertEqual(config.url_shortener_api_key.get_secret_value(), "url-shortener-key-123")
