@@ -264,14 +264,14 @@ paths:
           required: true
           schema:
             type: string
-            enum: [telegram]
+            enum: [telegram, whatsapp]
           description: Platform type for the handle resolution
         - name: platform_handle
           in: path
           required: true
           schema:
             type: string
-          description: Platform-specific handle of the sponsored user (e.g., Telegram username)
+          description: Platform-specific handle of the sponsored user (e.g., Telegram username, WhatsApp phone number)
       responses:
         "200":
           description: Sponsorship removed successfully
@@ -341,7 +341,7 @@ components:
         platform:
           type: string
           nullable: false
-          enum: [telegram]
+          enum: [telegram, whatsapp]
           description: Platform where the token was issued
         platform_id:
           type: string
@@ -486,6 +486,14 @@ components:
           type: integer
           nullable: true
           description: Telegram user ID
+        whatsapp_user_id:
+          type: string
+          nullable: true
+          description: WhatsApp user ID
+        whatsapp_phone_number:
+          type: string
+          nullable: true
+          description: WhatsApp phone number
         open_ai_key:
           type: string
           nullable: true
@@ -611,7 +619,7 @@ components:
         platform:
           type: string
           nullable: false
-          enum: [telegram]
+          enum: [telegram, whatsapp]
           description: Platform type of this chat
         language_name:
           type: string
@@ -654,11 +662,11 @@ components:
         platform_handle:
           type: string
           nullable: false
-          description: Platform-specific handle of the user to sponsor (e.g., Telegram username)
+          description: Platform-specific handle of the user to sponsor (e.g., Telegram username, WhatsApp phone number)
         platform:
           type: string
           nullable: false
-          enum: [telegram]
+          enum: [telegram, whatsapp]
           description: Platform type for the handle resolution
       required:
         - platform_handle
@@ -678,7 +686,7 @@ components:
         platform:
           type: string
           nullable: false
-          enum: [telegram]
+          enum: [telegram, whatsapp]
           description: Platform type of this chat
         is_own:
           type: boolean
@@ -818,11 +826,11 @@ components:
         platform_handle:
           type: string
           nullable: true
-          description: Platform-specific handle of sponsored user (e.g., Telegram username)
+          description: Platform-specific handle of sponsored user (e.g., Telegram username, WhatsApp phone number)
         platform:
           type: string
           nullable: false
-          enum: [telegram]
+          enum: [telegram, whatsapp]
           description: Platform type where the first handle was found
         sponsored_at:
           type: string
