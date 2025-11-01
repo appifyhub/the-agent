@@ -8,8 +8,10 @@ from pydantic import SecretStr
 from db.crud.user import UserCRUD
 from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
+from db.schema.chat_config import ChatConfig
 from db.schema.user import User, UserSave
 from features.integrations.integrations import (
+    is_own_chat,
     is_the_agent,
     lookup_user_by_handle,
     resolve_agent_user,
@@ -585,3 +587,108 @@ class IntegrationsTest(TestCase):
         )
         result = resolve_private_chat_id(user, ChatConfigDB.ChatType.whatsapp)
         self.assertIsNone(result)
+
+    def test_is_own_chat_whatsapp_success(self):
+        user = User(
+            id = UUID(int = 1),
+            created_at = date.today(),
+            whatsapp_user_id = "15551234567",
+        )
+        chat_config = ChatConfig(
+            chat_id = UUID(int = 1),
+            external_id = "15551234567",
+            is_private = True,
+            chat_type = ChatConfigDB.ChatType.whatsapp,
+        )
+        result = is_own_chat(chat_config, user)
+        self.assertTrue(result)
+
+    def test_is_own_chat_whatsapp_different_user(self):
+        user = User(
+            id = UUID(int = 1),
+            created_at = date.today(),
+            whatsapp_user_id = "15551234567",
+        )
+        chat_config = ChatConfig(
+            chat_id = UUID(int = 1),
+            external_id = "15559999999",
+            is_private = True,
+            chat_type = ChatConfigDB.ChatType.whatsapp,
+        )
+        result = is_own_chat(chat_config, user)
+        self.assertFalse(result)
+
+    def test_is_own_chat_whatsapp_missing_user_id(self):
+        user = User(
+            id = UUID(int = 1),
+            created_at = date.today(),
+            whatsapp_user_id = None,
+        )
+        chat_config = ChatConfig(
+            chat_id = UUID(int = 1),
+            external_id = "15551234567",
+            is_private = True,
+            chat_type = ChatConfigDB.ChatType.whatsapp,
+        )
+        result = is_own_chat(chat_config, user)
+        self.assertFalse(result)
+
+    def test_is_own_chat_whatsapp_missing_external_id(self):
+        user = User(
+            id = UUID(int = 1),
+            created_at = date.today(),
+            whatsapp_user_id = "15551234567",
+        )
+        chat_config = ChatConfig(
+            chat_id = UUID(int = 1),
+            external_id = None,
+            is_private = True,
+            chat_type = ChatConfigDB.ChatType.whatsapp,
+        )
+        result = is_own_chat(chat_config, user)
+        self.assertFalse(result)
+
+    def test_is_own_chat_whatsapp_not_private(self):
+        user = User(
+            id = UUID(int = 1),
+            created_at = date.today(),
+            whatsapp_user_id = "15551234567",
+        )
+        chat_config = ChatConfig(
+            chat_id = UUID(int = 1),
+            external_id = "15551234567",
+            is_private = False,
+            chat_type = ChatConfigDB.ChatType.whatsapp,
+        )
+        result = is_own_chat(chat_config, user)
+        self.assertFalse(result)
+
+    def test_is_own_chat_whatsapp_phone_number_normalization(self):
+        user = User(
+            id = UUID(int = 1),
+            created_at = date.today(),
+            whatsapp_user_id = "15551234567",
+        )
+        chat_config = ChatConfig(
+            chat_id = UUID(int = 1),
+            external_id = "+1 (555) 123-4567",
+            is_private = True,
+            chat_type = ChatConfigDB.ChatType.whatsapp,
+        )
+        result = is_own_chat(chat_config, user)
+        self.assertTrue(result)
+
+    def test_is_own_chat_whatsapp_phone_number_normalization_different(self):
+        user = User(
+            id = UUID(int = 1),
+            created_at = date.today(),
+            whatsapp_user_id = "15551234567",
+        )
+        chat_config = ChatConfig(
+            chat_id = UUID(int = 1),
+            external_id = "+1 (555) 999-9999",
+            is_private = True,
+            chat_type = ChatConfigDB.ChatType.whatsapp,
+        )
+        result = is_own_chat(chat_config, user)
+        self.assertFalse(result)

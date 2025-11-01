@@ -47,7 +47,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.chat_history_depth, 30)
         self.assertEqual(config.github_issues_repo, "appifyhub/the-agent")
         self.assertEqual(config.issue_templates_abs_path, ".github/ISSUE_TEMPLATE")
-        self.assertEqual(config.jwt_expires_in_minutes, 5)
+        self.assertEqual(config.jwt_expires_in_minutes, 30)
         self.assertEqual(config.backoffice_url_base, "http://127.0.0.1.sslip.io:5173")
         self.assertEqual(config.main_language_name, "English")
         self.assertEqual(config.main_language_iso_code, "en")
