@@ -32,7 +32,7 @@ class UserMapperTest(unittest.TestCase):
             rapid_api_key = SecretStr("rapid-test345"),
             coinmarketcap_key = SecretStr("cmc-test678"),
             tool_choice_chat = "gpt-4o",
-            tool_choice_reasoning = "claude-3-5-sonnet-latest",
+            tool_choice_reasoning = "claude-3-7-sonnet-latest",
             tool_choice_copywriting = "gpt-4o-mini",
             tool_choice_vision = "gpt-4o",
             tool_choice_hearing = "whisper-1",

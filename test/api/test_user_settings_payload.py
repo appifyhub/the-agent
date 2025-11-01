@@ -15,7 +15,7 @@ class UserSettingsPayloadTest(unittest.TestCase):
             rapid_api_key = "mno345",
             coinmarketcap_key = "pqr678-stu-901",
             tool_choice_chat = "gpt-4o",
-            tool_choice_reasoning = "claude-3-5-sonnet-latest",
+            tool_choice_reasoning = "claude-3-7-sonnet-latest",
             tool_choice_copywriting = "gpt-4o-mini",
             tool_choice_vision = "gpt-4o",
             tool_choice_hearing = "whisper-1",
@@ -38,7 +38,7 @@ class UserSettingsPayloadTest(unittest.TestCase):
         self.assertEqual(payload.rapid_api_key, "mno345")
         self.assertEqual(payload.coinmarketcap_key, "pqr678-stu-901")
         self.assertEqual(payload.tool_choice_chat, "gpt-4o")
-        self.assertEqual(payload.tool_choice_reasoning, "claude-3-5-sonnet-latest")
+        self.assertEqual(payload.tool_choice_reasoning, "claude-3-7-sonnet-latest")
         self.assertEqual(payload.tool_choice_copywriting, "gpt-4o-mini")
         self.assertEqual(payload.tool_choice_vision, "gpt-4o")
         self.assertEqual(payload.tool_choice_hearing, "whisper-1")
@@ -59,13 +59,13 @@ class UserSettingsPayloadTest(unittest.TestCase):
             open_ai_key = "sk-abc123",
             anthropic_key = "sk-ant-def456",
             tool_choice_chat = "gpt-4o",
-            tool_choice_vision = "claude-3-5-sonnet-latest",
+            tool_choice_vision = "claude-3-7-sonnet-latest",
         )
 
         self.assertEqual(payload.open_ai_key, "sk-abc123")
         self.assertEqual(payload.anthropic_key, "sk-ant-def456")
         self.assertEqual(payload.tool_choice_chat, "gpt-4o")
-        self.assertEqual(payload.tool_choice_vision, "claude-3-5-sonnet-latest")
+        self.assertEqual(payload.tool_choice_vision, "claude-3-7-sonnet-latest")
         self.assertIsNone(payload.perplexity_key)
         self.assertIsNone(payload.replicate_key)
         self.assertIsNone(payload.rapid_api_key)
@@ -91,7 +91,7 @@ class UserSettingsPayloadTest(unittest.TestCase):
             anthropic_key = "\tsk-ant-def456\n",
             perplexity_key = " pplx-ghi789 ",
             tool_choice_chat = "  gpt-4o  ",
-            tool_choice_reasoning = "\tclaude-3-5-sonnet-latest\n",
+            tool_choice_reasoning = "\tclaude-3-7-sonnet-latest\n",
             tool_choice_vision = " gpt-4o ",
             tool_choice_hearing = "  whisper-1  ",
             tool_choice_images_gen = "\tdall-e-3\n",
@@ -103,7 +103,7 @@ class UserSettingsPayloadTest(unittest.TestCase):
         self.assertEqual(payload.anthropic_key, "sk-ant-def456")
         self.assertEqual(payload.perplexity_key, "pplx-ghi789")
         self.assertEqual(payload.tool_choice_chat, "gpt-4o")
-        self.assertEqual(payload.tool_choice_reasoning, "claude-3-5-sonnet-latest")
+        self.assertEqual(payload.tool_choice_reasoning, "claude-3-7-sonnet-latest")
         self.assertEqual(payload.tool_choice_vision, "gpt-4o")
         self.assertEqual(payload.tool_choice_hearing, "whisper-1")
         self.assertEqual(payload.tool_choice_images_gen, "dall-e-3")
@@ -141,7 +141,7 @@ class UserSettingsPayloadTest(unittest.TestCase):
             open_ai_key = None,
             anthropic_key = "sk-ant-123",
             tool_choice_chat = None,
-            tool_choice_reasoning = "claude-3-5-sonnet-latest",
+            tool_choice_reasoning = "claude-3-7-sonnet-latest",
             tool_choice_vision = None,
             tool_choice_hearing = "whisper-1",
         )
@@ -149,7 +149,7 @@ class UserSettingsPayloadTest(unittest.TestCase):
         self.assertIsNone(payload.open_ai_key)
         self.assertEqual(payload.anthropic_key, "sk-ant-123")
         self.assertIsNone(payload.tool_choice_chat)
-        self.assertEqual(payload.tool_choice_reasoning, "claude-3-5-sonnet-latest")
+        self.assertEqual(payload.tool_choice_reasoning, "claude-3-7-sonnet-latest")
         self.assertIsNone(payload.tool_choice_vision)
         self.assertEqual(payload.tool_choice_hearing, "whisper-1")
 
@@ -183,7 +183,7 @@ class UserSettingsPayloadTest(unittest.TestCase):
         """Test creating payload with only tool choice fields"""
         payload = UserSettingsPayload(
             tool_choice_chat = "gpt-4o",
-            tool_choice_reasoning = "claude-3-5-sonnet-latest",
+            tool_choice_reasoning = "claude-3-7-sonnet-latest",
             tool_choice_vision = "gpt-4o",
             tool_choice_images_gen = "dall-e-3",
             tool_choice_search = "perplexity-search",
@@ -199,7 +199,7 @@ class UserSettingsPayloadTest(unittest.TestCase):
 
         # Tool choices should be set
         self.assertEqual(payload.tool_choice_chat, "gpt-4o")
-        self.assertEqual(payload.tool_choice_reasoning, "claude-3-5-sonnet-latest")
+        self.assertEqual(payload.tool_choice_reasoning, "claude-3-7-sonnet-latest")
         self.assertEqual(payload.tool_choice_vision, "gpt-4o")
         self.assertEqual(payload.tool_choice_images_gen, "dall-e-3")
         self.assertEqual(payload.tool_choice_search, "perplexity-search")

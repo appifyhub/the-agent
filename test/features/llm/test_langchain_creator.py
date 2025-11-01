@@ -28,8 +28,8 @@ class LangchainCreatorTest(unittest.TestCase):
         )
 
         self.mock_anthropic_tool = ExternalTool(
-            id = "claude-3-5-sonnet-latest",
-            name = "Claude 3.5 Sonnet",
+            id = "claude-3-7-sonnet-latest",
+            name = "Claude 3.7 Sonnet",
             provider = self.mock_anthropic_provider,
             types = [ToolType.chat, ToolType.reasoning],
         )
