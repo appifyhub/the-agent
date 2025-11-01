@@ -148,13 +148,6 @@ CLAUDE_3_5_HAIKU = ExternalTool(
     types = [ToolType.chat, ToolType.copywriting, ToolType.vision],
 )
 
-CLAUDE_3_5_SONNET = ExternalTool(
-    id = "claude-3-5-sonnet-latest",
-    name = "Claude 3.5 Sonnet",
-    provider = ANTHROPIC,
-    types = [ToolType.chat, ToolType.copywriting, ToolType.vision],
-)
-
 CLAUDE_3_7_SONNET = ExternalTool(
     id = "claude-3-7-sonnet-latest",
     name = "Claude 3.7 Sonnet",
@@ -167,6 +160,13 @@ CLAUDE_4_SONNET = ExternalTool(
     name = "Claude 4 Sonnet",
     provider = ANTHROPIC,
     types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+)
+
+CLAUDE_4_5_HAIKU = ExternalTool(
+    id = "claude-haiku-4-5",
+    name = "Claude Haiku 4.5",
+    provider = ANTHROPIC,
+    types = [ToolType.chat, ToolType.copywriting, ToolType.vision],
 )
 
 CLAUDE_4_5_SONNET = ExternalTool(
@@ -371,9 +371,9 @@ ALL_EXTERNAL_TOOLS = [
     TEXT_EMBEDDING_5_LARGE,
     # Anthropic
     CLAUDE_3_5_HAIKU,
-    CLAUDE_3_5_SONNET,
     CLAUDE_3_7_SONNET,
     CLAUDE_4_SONNET,
+    CLAUDE_4_5_HAIKU,
     CLAUDE_4_5_SONNET,
     # Google AI
     GEMINI_2_FLASH_LITE,

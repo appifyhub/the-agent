@@ -7,7 +7,7 @@ from db.schema.chat_config import ChatConfig
 from db.schema.user import User
 from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ToolType
-from features.external_tools.external_tool_library import CLAUDE_3_5_SONNET
+from features.external_tools.external_tool_library import CLAUDE_3_7_SONNET
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.integrations import prompt_resolvers
 from features.integrations.integrations import lookup_user_by_handle, resolve_agent_user, resolve_external_id
@@ -16,7 +16,7 @@ from util import log
 
 class DevAnnouncementsService:
 
-    DEFAULT_TOOL: ExternalTool = CLAUDE_3_5_SONNET
+    DEFAULT_TOOL: ExternalTool = CLAUDE_3_7_SONNET
     TOOL_TYPE: ToolType = ToolType.copywriting
 
     __raw_message: str

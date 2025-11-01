@@ -10,7 +10,7 @@ from db.schema.user import User
 from di.di import DI
 from features.external_tools.access_token_resolver import AccessTokenResolver
 from features.external_tools.external_tool import ToolType
-from features.external_tools.external_tool_library import CLAUDE_3_5_SONNET, GPT_4O_MINI
+from features.external_tools.external_tool_library import CLAUDE_3_7_SONNET, GPT_4O_MINI
 from features.external_tools.tool_choice_resolver import ToolChoiceResolver, ToolResolutionError
 
 
@@ -29,7 +29,7 @@ class ToolChoiceResolverTest(unittest.TestCase):
             telegram_user_id = 1,
             open_ai_key = SecretStr("test_openai_key"),
             anthropic_key = SecretStr("test_anthropic_key"),
-            tool_choice_chat = "claude-3-5-sonnet-latest",
+            tool_choice_chat = "claude-3-7-sonnet-latest",
             tool_choice_vision = "gpt-4o-mini",
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
@@ -46,8 +46,8 @@ class ToolChoiceResolverTest(unittest.TestCase):
         self.assertEqual(tool, GPT_4O_MINI)
 
     def test_find_tool_by_id_success_anthropic_tool(self):
-        tool = ToolChoiceResolver.find_tool_by_id(CLAUDE_3_5_SONNET.id)
-        self.assertEqual(tool, CLAUDE_3_5_SONNET)
+        tool = ToolChoiceResolver.find_tool_by_id(CLAUDE_3_7_SONNET.id)
+        self.assertEqual(tool, CLAUDE_3_7_SONNET)
 
     def test_find_tool_by_id_failure_nonexistent_tool(self):
         tool = ToolChoiceResolver.find_tool_by_id("nonexistent-tool-id")
@@ -71,12 +71,12 @@ class ToolChoiceResolverTest(unittest.TestCase):
     def test_get_prioritized_tools_only_user_choice(self):
         tools = ToolChoiceResolver.get_prioritized_tools(
             ToolType.chat,
-            user_choice_tool = CLAUDE_3_5_SONNET,
+            user_choice_tool = CLAUDE_3_7_SONNET,
             default_tool = None,
         )
 
         self.assertGreater(len(tools), 1)
-        self.assertEqual(tools[0], CLAUDE_3_5_SONNET)
+        self.assertEqual(tools[0], CLAUDE_3_7_SONNET)
         for tool in tools:
             self.assertIn(ToolType.chat, tool.types)
 
@@ -84,23 +84,23 @@ class ToolChoiceResolverTest(unittest.TestCase):
         tools = ToolChoiceResolver.get_prioritized_tools(
             ToolType.chat,
             user_choice_tool = None,
-            default_tool = CLAUDE_3_5_SONNET,
+            default_tool = CLAUDE_3_7_SONNET,
         )
 
         self.assertGreater(len(tools), 1)
-        self.assertEqual(tools[0], CLAUDE_3_5_SONNET)
+        self.assertEqual(tools[0], CLAUDE_3_7_SONNET)
         for tool in tools:
             self.assertIn(ToolType.chat, tool.types)
 
     def test_get_prioritized_tools_both_user_choice_and_default(self):
         tools = ToolChoiceResolver.get_prioritized_tools(
             ToolType.chat,
-            user_choice_tool = CLAUDE_3_5_SONNET.id,
+            user_choice_tool = CLAUDE_3_7_SONNET.id,
             default_tool = GPT_4O_MINI.id,
         )
 
         self.assertGreater(len(tools), 2)
-        self.assertEqual(tools[0], CLAUDE_3_5_SONNET)
+        self.assertEqual(tools[0], CLAUDE_3_7_SONNET)
         self.assertEqual(tools[1], GPT_4O_MINI)
         for tool in tools:
             self.assertIn(ToolType.chat, tool.types)
@@ -149,14 +149,14 @@ class ToolChoiceResolverTest(unittest.TestCase):
         self.assertIsNotNone(result)
         assert result is not None  # Type hint for linter
         tool, token, purpose = result
-        self.assertEqual(tool, CLAUDE_3_5_SONNET)
+        self.assertEqual(tool, CLAUDE_3_7_SONNET)
         self.assertIsInstance(token, SecretStr)
         self.assertEqual(token.get_secret_value(), "test_token")
         self.assertEqual(purpose, ToolType.chat)
 
     def test_get_tool_success_user_no_access_to_user_choice_but_has_access_to_others(self):
         def mock_get_access_token_for_tool(test_tool):
-            if test_tool == CLAUDE_3_5_SONNET:
+            if test_tool == CLAUDE_3_7_SONNET:
                 return None
             return SecretStr("test_token")
 
@@ -168,7 +168,7 @@ class ToolChoiceResolverTest(unittest.TestCase):
         self.assertIsNotNone(result)
         assert result is not None  # Type hint for linter
         tool, token, purpose = result
-        self.assertNotEqual(tool, CLAUDE_3_5_SONNET)
+        self.assertNotEqual(tool, CLAUDE_3_7_SONNET)
         self.assertIn(ToolType.chat, tool.types)
         self.assertIsInstance(token, SecretStr)
         self.assertEqual(token.get_secret_value(), "test_token")
@@ -176,7 +176,7 @@ class ToolChoiceResolverTest(unittest.TestCase):
 
     def test_get_tool_success_with_default_tool_prioritized(self):
         def mock_get_access_token_for_tool(test_tool):
-            if test_tool == CLAUDE_3_5_SONNET:
+            if test_tool == CLAUDE_3_7_SONNET:
                 return None
             if test_tool == GPT_4O_MINI:
                 return SecretStr("test_token")
@@ -212,7 +212,7 @@ class ToolChoiceResolverTest(unittest.TestCase):
         self.assertIsNotNone(result)
         assert result is not None  # Type hint for linter
         tool, token, purpose = result
-        self.assertEqual(tool, CLAUDE_3_5_SONNET)
+        self.assertEqual(tool, CLAUDE_3_7_SONNET)
         self.assertIsInstance(token, SecretStr)
         self.assertEqual(token.get_secret_value(), "test_token")
         self.assertEqual(purpose, ToolType.chat)
@@ -238,7 +238,7 @@ class ToolChoiceResolverTest(unittest.TestCase):
         self.assertIsNotNone(chat_result)
         assert chat_result is not None  # Type hint for linter
         chat_tool, chat_token, chat_purpose = chat_result
-        self.assertEqual(chat_tool, CLAUDE_3_5_SONNET)
+        self.assertEqual(chat_tool, CLAUDE_3_7_SONNET)
         self.assertIsInstance(chat_token, SecretStr)
         self.assertEqual(chat_token.get_secret_value(), "test_token_1")
         self.assertEqual(chat_purpose, ToolType.chat)
