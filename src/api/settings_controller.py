@@ -1,4 +1,5 @@
 from dataclasses import asdict
+from datetime import datetime, timedelta
 from typing import Annotated, Any, List, Literal, TypeAlias, get_args
 
 from api import auth
@@ -66,7 +67,11 @@ class SettingsController:
 
         page = "sponsorships" if (settings_type == "user" and sponsored_by) else "settings"
         settings_url_base = f"{config.backoffice_url_base}/{lang_iso_code}/{settings_type}/{resource_id}/{page}"
-        return f"{settings_url_base}?{SETTINGS_TOKEN_VAR}={jwt_token}"
+        long_url = f"{settings_url_base}?{SETTINGS_TOKEN_VAR}={jwt_token}"
+
+        valid_until = datetime.now() + timedelta(minutes = config.jwt_expires_in_minutes * 10)
+        shortener = self.__di.url_shortener(long_url, valid_until = valid_until)
+        return shortener.execute()
 
     def create_help_link(self, chat_type: ChatConfigDB.ChatType | None = None) -> str:
         chat_type = chat_type or self.__di.invoker_chat_type
@@ -85,7 +90,11 @@ class SettingsController:
 
         jwt_token = self.__create_jwt_token(chat_type)
         settings_url_base = f"{config.backoffice_url_base}/{lang_iso_code}/features"
-        return f"{settings_url_base}?{SETTINGS_TOKEN_VAR}={jwt_token}"
+        long_url = f"{settings_url_base}?{SETTINGS_TOKEN_VAR}={jwt_token}"
+
+        valid_until = datetime.now() + timedelta(minutes = config.jwt_expires_in_minutes * 10)
+        shortener = self.__di.url_shortener(long_url, valid_until = valid_until)
+        return shortener.execute()
 
     def fetch_external_tools(self, user_id_hex: str) -> dict[str, Any]:
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)

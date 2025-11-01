@@ -61,7 +61,7 @@ class SettingsControllerTest(unittest.TestCase):
             rapid_api_key = SecretStr("test_rapid_api_key"),
             coinmarketcap_key = SecretStr("test_coinmarketcap_key"),
             tool_choice_chat = "gpt-4o",
-            tool_choice_reasoning = "claude-3-5-sonnet-latest",
+            tool_choice_reasoning = "claude-3-7-sonnet-latest",
             tool_choice_vision = "gpt-4o",
             tool_choice_images_gen = "dall-e-3",
             tool_choice_search = "perplexity-search",
@@ -120,6 +120,13 @@ class SettingsControllerTest(unittest.TestCase):
         self.mock_access_token_resolver.get_access_token_for_tool.return_value = None
         self.mock_access_token_resolver.get_access_token.return_value = None
         self.mock_di.access_token_resolver.return_value = self.mock_access_token_resolver
+
+        # Mock URL shortener to return same URL
+        def mock_url_shortener(long_url, **kwargs):
+            mock_shortener = MagicMock()
+            mock_shortener.execute.return_value = long_url
+            return mock_shortener
+        self.mock_di.url_shortener = MagicMock(side_effect = mock_url_shortener)
 
     @staticmethod
     def create_admin_member(telegram_user, is_manager = True):
@@ -274,9 +281,9 @@ class SettingsControllerTest(unittest.TestCase):
             replicate_key = SecretStr("new_replicate_key"),
             rapid_api_key = SecretStr("new_rapid_api_key"),
             coinmarketcap_key = SecretStr("new_coinmarketcap_key"),
-            tool_choice_chat = "claude-3-5-sonnet-latest",
+            tool_choice_chat = "claude-3-7-sonnet-latest",
             tool_choice_reasoning = "gpt-4o",
-            tool_choice_vision = "claude-3-5-sonnet-latest",
+            tool_choice_vision = "claude-3-7-sonnet-latest",
             tool_choice_images_gen = "dall-e-2",
             tool_choice_search = "updated-perplexity-search",
             group = self.invoker_user.group,
@@ -287,7 +294,7 @@ class SettingsControllerTest(unittest.TestCase):
         # Mock the fetch_external_tools method
         mock_fetch_external_tools.return_value = {
             "tools": [
-                {"definition": {"id": "claude-3-5-sonnet-latest"}, "is_configured": True},
+                {"definition": {"id": "claude-3-7-sonnet-latest"}, "is_configured": True},
                 {"definition": {"id": "gpt-4o"}, "is_configured": True},
                 {"definition": {"id": "dall-e-2"}, "is_configured": True},
                 {"definition": {"id": "updated-perplexity-search"}, "is_configured": True},
@@ -303,9 +310,9 @@ class SettingsControllerTest(unittest.TestCase):
             replicate_key = "new_replicate_key",
             rapid_api_key = "new_rapid_api_key",
             coinmarketcap_key = "new_coinmarketcap_key",
-            tool_choice_chat = "claude-3-5-sonnet-latest",
+            tool_choice_chat = "claude-3-7-sonnet-latest",
             tool_choice_reasoning = "gpt-4o",
-            tool_choice_vision = "claude-3-5-sonnet-latest",
+            tool_choice_vision = "claude-3-7-sonnet-latest",
             tool_choice_images_gen = "dall-e-2",
             tool_choice_search = "updated-perplexity-search",
         )
