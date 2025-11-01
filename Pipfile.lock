@@ -1119,12 +1119,12 @@
         },
         "langchain-core": {
             "hashes": [
-                "sha256:c7ce58fc487359c44166e255cc0009ef30290da0b6307b75091152847919661e",
-                "sha256:d769e8d25854466abb672a721143a01bea11cc6ee2d7dae776aa092556db0a26"
+                "sha256:1f4ab4a41fc2e135e5dd4b97a89af123bbdc535af8f1f0644e8e8801bc288a12",
+                "sha256:9aae1908cc00d50b88e812305e980e7fd06d07375590ce8da01c04037bdccd72"
             ],
             "index": "pypi",
             "markers": "python_full_version >= '3.10.0' and python_full_version < '4.0.0'",
-            "version": "==1.0.1"
+            "version": "==1.0.2"
         },
         "langchain-google-genai": {
             "hashes": [
@@ -1195,11 +1195,11 @@
         },
         "langsmith": {
             "hashes": [
-                "sha256:326232a24b1c6dd308a3188557cc023adf8fb14144263b2982c115a6be5141e7",
-                "sha256:3aa57f9c16a5880256cd1eab0452533c1fb5ee14ec5250e23ed919cc2b07f6d3"
+                "sha256:48872eaaa449fc10781b5251f4fc05bc7d5c2d1d733a734566a96dd9166108b4",
+                "sha256:8f2e6bae5cba88f86d8df2a4f95b20a319c65e9945be639302876ab6ef2f13e0"
             ],
             "markers": "python_version >= '3.10'",
-            "version": "==0.4.38"
+            "version": "==0.4.39"
         },
         "lxml": {
             "hashes": [
