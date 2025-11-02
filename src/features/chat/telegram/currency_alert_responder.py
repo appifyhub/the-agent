@@ -15,13 +15,14 @@ def respond_with_currency_alerts(di: DI) -> dict:
     triggered_alerts = service.get_triggered_alerts()
     translation_caches_all: dict[str, TranslationsCache] = {}
     for triggered_alert in triggered_alerts:
+        scoped_di: DI
         # try to summarize the announcement first
         try:
-            scoped_di = di.clone(invoker_id = triggered_alert.owner_id.hex)
-            chat_config_db = scoped_di.chat_config_crud.get(triggered_alert.chat_id)
+            chat_config_db = di.chat_config_crud.get(triggered_alert.chat_id)
             if not chat_config_db:
                 raise ValueError(f"Chat config not found for chat {triggered_alert.chat_id}")
             chat_config = ChatConfig.model_validate(chat_config_db)
+            scoped_di = di.clone(invoker_id = triggered_alert.owner_id.hex, invoker_chat_id = chat_config.chat_id.hex)
 
             # find the correct translations cache for this alert
             base_currency = triggered_alert.base_currency
@@ -63,7 +64,7 @@ def respond_with_currency_alerts(di: DI) -> dict:
 
         # now let's send the announcement to each chat
         try:
-            di.telegram_bot_sdk.send_text_message(str(chat_config.external_id), announcement_text)
+            scoped_di.platform_bot_sdk().send_text_message(str(chat_config.external_id), announcement_text)
             chats_notified += 1
         except Exception as e:
             log.w(f"Chat notification failed for chat #{triggered_alert.chat_id}", e)

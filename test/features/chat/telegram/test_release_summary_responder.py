@@ -30,6 +30,7 @@ from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.external_tools.tool_choice_resolver import ToolChoiceResolver
 from features.integrations.integrations import resolve_agent_user
+from features.integrations.platform_bot_sdk import PlatformBotSDK
 from util.translations_cache import TranslationsCache
 
 
@@ -148,10 +149,16 @@ class ReleaseSummaryResponderTest(unittest.TestCase):
         # Mock chat config
         self.mock_di.chat_config_crud.get_all.return_value = [self.__make_chat_db()]
 
+        # Mock scoped DI and platform SDK for cloning
+        mock_scoped_di = Mock()
+        mock_platform_sdk = Mock(spec = PlatformBotSDK)
+        mock_scoped_di.platform_bot_sdk = Mock(return_value = mock_platform_sdk)
+        self.mock_di.clone = Mock(return_value = mock_scoped_di)
+
         result = respond_with_summary(self.payload, self.mock_di)
         self.assertEqual(result["chats_notified"], 1)
         # noinspection PyUnresolvedReferences
-        self.mock_di.telegram_bot_sdk.send_text_message.assert_called_once_with("1234", "Test summary")
+        mock_platform_sdk.send_text_message.assert_called_once_with("1234", "Test summary")
 
     def test_multiple_languages(self):
         mock_summarizer = Mock(spec = ReleaseSummaryService)
@@ -176,9 +183,15 @@ class ReleaseSummaryResponderTest(unittest.TestCase):
 
         # Use the real translations cache
 
-        # Mock chat config and telegram send failure
+        # Mock chat config
         self.mock_di.chat_config_crud.get_all.return_value = [self.__make_chat_db()]
-        self.mock_di.telegram_bot_sdk.send_text_message.side_effect = Exception("fail")
+
+        # Mock scoped DI with platform SDK send failure
+        mock_scoped_di = Mock()
+        mock_platform_sdk = Mock(spec = PlatformBotSDK)
+        mock_platform_sdk.send_text_message.side_effect = Exception("fail")
+        mock_scoped_di.platform_bot_sdk = Mock(return_value = mock_platform_sdk)
+        self.mock_di.clone = Mock(return_value = mock_scoped_di)
 
         result = respond_with_summary(self.payload, self.mock_di)
         self.assertEqual(result["chats_notified"], 0)

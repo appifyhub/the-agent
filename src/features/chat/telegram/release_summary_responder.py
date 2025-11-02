@@ -97,14 +97,15 @@ def respond_with_summary(payload: ReleaseOutputPayload, di: DI) -> dict:
 
     # then summarize for each of the languages (with a translations cache)
     for chat in subscribed_chats:
+        scoped_di = di.clone(invoker_chat_id = chat.chat_id.hex)
         try:
             summary = translations.get(chat.language_name, chat.language_iso_code)
             if not summary:
-                tool = di.tool_choice_resolver.require_tool(
+                tool = scoped_di.tool_choice_resolver.require_tool(
                     ReleaseSummaryService.TOOL_TYPE,
                     ReleaseSummaryService.DEFAULT_TOOL,
                 )
-                answer = di.release_summary_service(release_notes, chat, tool).execute()
+                answer = scoped_di.release_summary_service(release_notes, chat, tool).execute()
                 if not answer.content:
                     raise ValueError("LLM Answer not received")
                 stripped_content = _strip_title_formatting(str(answer.content))
@@ -116,7 +117,7 @@ def respond_with_summary(payload: ReleaseOutputPayload, di: DI) -> dict:
 
         # we need to notify each chat of the summary
         try:
-            di.telegram_bot_sdk.send_text_message(str(chat.external_id), summary)
+            scoped_di.platform_bot_sdk().send_text_message(str(chat.external_id), summary)
             result.chats_notified += 1
         except Exception as e:
             log.w(f"Chat notification failed for chat #{chat.chat_id}", e)
