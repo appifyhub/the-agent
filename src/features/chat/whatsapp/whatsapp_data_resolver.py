@@ -2,6 +2,7 @@ from typing import List
 
 from pydantic import BaseModel
 
+from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig, ChatConfigSave
 from db.schema.chat_message import ChatMessage, ChatMessageSave
 from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessageAttachmentSave
@@ -83,6 +84,12 @@ class WhatsAppDataResolver:
             mapped_data.is_private = old_chat_config.is_private
             mapped_data.reply_chance_percent = old_chat_config.reply_chance_percent
             mapped_data.release_notifications = old_chat_config.release_notifications
+        else:
+            # new chat, let's set the default value
+            if mapped_data.is_private:
+                mapped_data.release_notifications = ChatConfigDB.ReleaseNotifications.major
+            else:
+                mapped_data.release_notifications = ChatConfigDB.ReleaseNotifications.none
         return ChatConfig.model_validate(self.__di.chat_config_crud.save(mapped_data))
 
     # noinspection DuplicatedCode
