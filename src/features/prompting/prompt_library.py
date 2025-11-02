@@ -537,6 +537,7 @@ class _AppendixLibrary:
         section = PromptSection.appendix,
         content = (
             f"You should try to respond in {{{PromptVar.language_name.value}}} (ISO '{{{PromptVar.language_iso.value}}}'). "
+            "All parts of the output should be in the target language, unless otherwise specified. "
             "If you are unable to use this language, you must default to "
             f"{config.main_language_name} (ISO '{config.main_language_iso_code}'). "
         ).strip(),
