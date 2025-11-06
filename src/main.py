@@ -24,7 +24,9 @@ from api.auth import (
     verify_whatsapp_webhook_challenge,
 )
 from api.model.chat_settings_payload import ChatSettingsPayload
+from api.model.connect_key_response import ConnectKeyResponse
 from api.model.release_output_payload import ReleaseOutputPayload
+from api.model.settings_link_response import SettingsLinkResponse
 from api.model.sponsorship_payload import SponsorshipPayload
 from api.model.user_settings_payload import UserSettingsPayload
 from api.settings_controller import SettingsType
@@ -302,7 +304,7 @@ def unsponsor_self(
     resource_id: str,
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
-) -> dict:
+) -> SettingsLinkResponse:
     try:
         log.d(f"User {resource_id} is unsponsoring themselves")
         invoker_id_hex = get_user_id_from_jwt(token)
@@ -314,10 +316,63 @@ def unsponsor_self(
         chat_type = ChatConfigDB.ChatType.lookup(chat_type_str)
         if not chat_type:
             raise ValueError(f"Invalid chat type in the access token: {chat_type_str}")
-        settings_link = di.settings_controller.create_settings_link(chat_type = chat_type)
-        return {"settings_link": settings_link}
+        return di.settings_controller.create_settings_link(chat_type = chat_type)
     except Exception as e:
         raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to unsponsor self", e)})
+
+
+@app.get("/user/{user_id_hex}/connect-key")
+def get_connect_key(
+    user_id_hex: str,
+    db = Depends(get_session),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
+) -> ConnectKeyResponse:
+    try:
+        log.d(f"Fetching connect key for user '{user_id_hex}'")
+        invoker_id_hex = get_user_id_from_jwt(token)
+        log.d(f"  Invoker ID: {invoker_id_hex}")
+        di = DI(db, invoker_id_hex)
+        return di.profile_connect_controller.get_connect_key(user_id_hex)
+    except Exception as e:
+        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get connect key", e)})
+
+
+@app.post("/user/{user_id_hex}/regenerate-connect-key")
+def regenerate_connect_key(
+    user_id_hex: str,
+    db = Depends(get_session),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
+) -> ConnectKeyResponse:
+    try:
+        log.d(f"Regenerating connect key for user '{user_id_hex}'")
+        invoker_id_hex = get_user_id_from_jwt(token)
+        log.d(f"  Invoker ID: {invoker_id_hex}")
+        di = DI(db, invoker_id_hex)
+        return di.profile_connect_controller.regenerate_connect_key(user_id_hex)
+    except Exception as e:
+        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to regenerate connect key", e)})
+
+
+@app.post("/user/{user_id_hex}/connect-key/{connect_key}/merge")
+def connect_profiles(
+    user_id_hex: str,
+    connect_key: str,
+    db = Depends(get_session),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
+) -> SettingsLinkResponse:
+    try:
+        log.d(f"Executing profile connect for user '{user_id_hex}' with key '{connect_key}'")
+        invoker_id_hex = get_user_id_from_jwt(token)
+        log.d(f"  Invoker ID: {invoker_id_hex}")
+        di = DI(db, invoker_id_hex)
+        # Extract chat_type from JWT token
+        chat_type_str = get_chat_type_from_jwt(token)
+        chat_type = ChatConfigDB.ChatType.lookup(chat_type_str)
+        if not chat_type:
+            raise ValueError(f"Invalid chat type in the access token: {chat_type_str}")
+        return di.profile_connect_controller.connect_profiles(user_id_hex, connect_key, chat_type)
+    except Exception as e:
+        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to execute profile connect", e)})
 
 
 # The main runner

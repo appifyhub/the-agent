@@ -76,6 +76,7 @@ class ReleaseSummaryResponderTest(unittest.TestCase):
             telegram_username = self.agent_user.telegram_username,
             telegram_chat_id = self.agent_user.telegram_chat_id,
             telegram_user_id = self.agent_user.telegram_user_id,
+            connect_key = "REL-SUM-KEY1",
             open_ai_key = self.agent_user.open_ai_key,
             anthropic_key = "test-anthropic-key",  # Provide a proper test key for the bot
             perplexity_key = self.agent_user.perplexity_key,

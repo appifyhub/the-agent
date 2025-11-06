@@ -112,6 +112,7 @@ class WhatsAppDataResolver:
             mapped_data.telegram_chat_id = old_user.telegram_chat_id
             mapped_data.telegram_user_id = old_user.telegram_user_id
             mapped_data.telegram_username = old_user.telegram_username
+            mapped_data.connect_key = old_user.connect_key
             mapped_data.open_ai_key = old_user.open_ai_key
             mapped_data.anthropic_key = old_user.anthropic_key
             mapped_data.google_ai_key = old_user.google_ai_key

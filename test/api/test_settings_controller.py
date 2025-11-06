@@ -7,6 +7,7 @@ from pydantic import SecretStr
 
 from api.authorization_service import AuthorizationService
 from api.model.chat_settings_payload import ChatSettingsPayload
+from api.model.settings_link_response import SettingsLinkResponse
 from api.model.user_settings_payload import UserSettingsPayload
 from api.settings_controller import SettingsController
 from db.crud.chat_config import ChatConfigCRUD
@@ -150,8 +151,10 @@ class SettingsControllerTest(unittest.TestCase):
 
     def test_create_settings_link_success_user_settings(self):
         controller = SettingsController(self.mock_di)
-        link = controller.create_settings_link()
+        link_response = controller.create_settings_link()
 
+        self.assertIsInstance(link_response, SettingsLinkResponse)
+        link = link_response.settings_link
         self.assertIn("user", link)
         self.assertIn(self.invoker_user.id.hex, link)
         self.assertIn("token=", link)
@@ -162,8 +165,10 @@ class SettingsControllerTest(unittest.TestCase):
         self.mock_di.invoker_chat_id = self.chat_config.chat_id.hex
         # noinspection PyPropertyAccess
         self.mock_di.invoker_chat = self.chat_config
-        link = controller.create_settings_link("chat")
+        link_response = controller.create_settings_link("chat")
 
+        self.assertIsInstance(link_response, SettingsLinkResponse)
+        link = link_response.settings_link
         self.assertIn("chat", link)
         self.assertIn(self.chat_config.chat_id.hex, link)
         self.assertIn("token=", link)
@@ -275,6 +280,7 @@ class SettingsControllerTest(unittest.TestCase):
             telegram_username = self.invoker_user.telegram_username,
             telegram_chat_id = self.invoker_user.telegram_chat_id,
             telegram_user_id = self.invoker_user.telegram_user_id,
+            connect_key = "SAVE-USER-KEY1",
             open_ai_key = SecretStr("new_openai_key"),
             anthropic_key = SecretStr("new_anthropic_key"),
             perplexity_key = SecretStr("new_perplexity_key"),
@@ -512,6 +518,7 @@ class SettingsControllerTest(unittest.TestCase):
             telegram_username = "sponsor",
             telegram_chat_id = "987654321",
             telegram_user_id = 987654321,
+            connect_key = "SPONSR-KEY1",
             group = UserDBModel.Group.developer,
             created_at = datetime.now().date(),
         )
@@ -520,7 +527,9 @@ class SettingsControllerTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = sponsor_user_db
 
         controller = SettingsController(self.mock_di)
-        link = controller.create_settings_link()
+        link_response = controller.create_settings_link()
+        self.assertIsInstance(link_response, SettingsLinkResponse)
+        link = link_response.settings_link
 
         self.assertIn("sponsorships", link)
         self.assertIn("user", link)

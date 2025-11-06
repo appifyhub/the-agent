@@ -61,6 +61,7 @@ class TelegramUpdateResponderTest(unittest.TestCase):
             telegram_username = "test_user",
             full_name = "Test User",
             telegram_user_id = 1,
+            connect_key = "TG-USER-KEY1",
             group = UserDB.Group.standard,
             created_at = date.today(),
             telegram_chat_id = "123",
