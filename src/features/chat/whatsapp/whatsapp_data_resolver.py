@@ -107,7 +107,7 @@ class WhatsAppDataResolver:
             old_user = User.model_validate(old_user_db)
             # reset the attributes that are not normally changed through the WhatsApp API
             mapped_data.id = old_user.id
-            mapped_data.full_name = mapped_data.full_name or old_user.full_name
+            mapped_data.full_name = mapped_data.full_name if not old_user.full_name else old_user.full_name
             mapped_data.whatsapp_phone_number = mapped_data.whatsapp_phone_number or old_user.whatsapp_phone_number
             mapped_data.telegram_chat_id = old_user.telegram_chat_id
             mapped_data.telegram_user_id = old_user.telegram_user_id

@@ -136,6 +136,28 @@ class UserMapperTest(unittest.TestCase):
         self.assertIsNone(user_save.open_ai_key)
         self.assertIsNone(user_save.tool_choice_chat)
 
+    def test_api_to_domain_with_full_name(self):
+        # Test setting a new full_name
+        payload_set = UserSettingsPayload(
+            full_name = "New Name",
+        )
+        user_save = api_to_domain(payload_set, self.user)
+        self.assertEqual(user_save.full_name, "New Name")
+
+        # Test clearing full_name with empty string
+        payload_clear = UserSettingsPayload(
+            full_name = "",
+        )
+        user_save = api_to_domain(payload_clear, self.user)
+        self.assertIsNone(user_save.full_name)
+
+        # Test that None in payload preserves existing value
+        payload_none = UserSettingsPayload(
+            open_ai_key = "sk-test",
+        )
+        user_save = api_to_domain(payload_none, self.user)
+        self.assertEqual(user_save.full_name, self.user.full_name)
+
     def test_domain_to_api_conversion(self):
         masked_user = domain_to_api(self.user)
 
