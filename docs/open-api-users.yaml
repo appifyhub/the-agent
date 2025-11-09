@@ -483,6 +483,10 @@ components:
           type: string
           nullable: true
           description: Anthropic API key
+        google_ai_key:
+          type: string
+          nullable: true
+          description: Google AI API key
         perplexity_key:
           type: string
           nullable: true
@@ -599,6 +603,10 @@ components:
           type: string
           nullable: true
           description: Anthropic API key (masked)
+        google_ai_key:
+          type: string
+          nullable: true
+          description: Google AI API key (masked)
         perplexity_key:
           type: string
           nullable: true
