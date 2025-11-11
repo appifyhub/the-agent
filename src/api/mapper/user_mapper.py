@@ -11,6 +11,9 @@ def api_to_domain(payload: UserSettingsPayload, existing_user: User) -> UserSave
     # All fields are already stripped in the payload model validators
     user_save = UserSave(**existing_user.model_dump())
 
+    if payload.full_name is not None:
+        user_save.full_name = payload.full_name if payload.full_name else None
+
     if payload.open_ai_key is not None:
         user_save.open_ai_key = SecretStr(payload.open_ai_key) if payload.open_ai_key else None
     if payload.anthropic_key is not None:

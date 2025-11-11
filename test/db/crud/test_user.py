@@ -25,6 +25,7 @@ class UserCRUDTest(unittest.TestCase):
             telegram_user_id = 123456,
             whatsapp_user_id = "1234567890",
             whatsapp_phone_number = SecretStr("1234567890"),
+            connect_key = "TEST-CONN-KEY1",
             open_ai_key = SecretStr("test-key"),
             anthropic_key = SecretStr("test-anthropic-key"),
             google_ai_key = SecretStr("test-google-ai-key"),
@@ -98,6 +99,7 @@ class UserCRUDTest(unittest.TestCase):
             telegram_user_id = 123456,
             whatsapp_user_id = "1234567890",
             whatsapp_phone_number = SecretStr("1234567890"),
+            connect_key = "TST2-KEY2-TST2",
             open_ai_key = SecretStr("test-key"),
             anthropic_key = SecretStr("test-anthropic-key"),
             perplexity_key = SecretStr("test-perplexity-key"),
@@ -125,8 +127,8 @@ class UserCRUDTest(unittest.TestCase):
 
     def test_get_all_users(self):
         users = [
-            self.sql.user_crud().create(UserSave()),
-            self.sql.user_crud().create(UserSave()),
+            self.sql.user_crud().create(UserSave(connect_key = "KEY1-KEY1-KEY1")),
+            self.sql.user_crud().create(UserSave(connect_key = "KEY2-KEY2-KEY2")),
         ]
 
         fetched_users = self.sql.user_crud().get_all()
@@ -144,6 +146,7 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "test-user-1",
             telegram_chat_id = "1234561",
             telegram_user_id = 1234561,
+            connect_key = "USR1-KEY1-USR1",
             open_ai_key = SecretStr("test-key-1"),
             anthropic_key = SecretStr("test-anthropic-key-1"),
             perplexity_key = SecretStr("test-perplexity-key-1"),
@@ -159,6 +162,7 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "test-user-2",
             telegram_chat_id = "1234562",
             telegram_user_id = 1234562,
+            connect_key = "USR2-KEY2-USR2",
             open_ai_key = SecretStr("test-key-2"),
             anthropic_key = SecretStr("test-anthropic-key-2"),
             perplexity_key = SecretStr("test-perplexity-key-2"),
@@ -181,6 +185,7 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "test-user",
             telegram_chat_id = "123456",
             telegram_user_id = 55555,
+            connect_key = "TG5S-KEY5-TG5S",
             open_ai_key = SecretStr("test-key"),
             anthropic_key = SecretStr("test-anthropic-key"),
             perplexity_key = SecretStr("test-perplexity-key"),
@@ -209,6 +214,7 @@ class UserCRUDTest(unittest.TestCase):
             telegram_username = "test-user",
             telegram_chat_id = "123456",
             telegram_user_id = 55555,
+            connect_key = "TG6S-KEY6-TG6S",
             open_ai_key = SecretStr("test-key"),
             anthropic_key = SecretStr("test-anthropic-key"),
             perplexity_key = SecretStr("test-perplexity-key"),
@@ -239,6 +245,7 @@ class UserCRUDTest(unittest.TestCase):
             telegram_user_id = 55555,
             whatsapp_user_id = "9876543210",
             whatsapp_phone_number = SecretStr("9876543210"),
+            connect_key = "WA7S-KEY7-WA7S",
             open_ai_key = SecretStr("test-key"),
             anthropic_key = SecretStr("test-anthropic-key"),
             perplexity_key = SecretStr("test-perplexity-key"),
@@ -272,6 +279,7 @@ class UserCRUDTest(unittest.TestCase):
             telegram_user_id = 55555,
             whatsapp_user_id = "9876543210",
             whatsapp_phone_number = SecretStr("9876543210"),
+            connect_key = "WA8S-KEY8-WA8S",
             open_ai_key = SecretStr("test-key"),
             anthropic_key = SecretStr("test-anthropic-key"),
             perplexity_key = SecretStr("test-perplexity-key"),
@@ -304,6 +312,7 @@ class UserCRUDTest(unittest.TestCase):
             telegram_user_id = 123456,
             whatsapp_user_id = "1234567890",
             whatsapp_phone_number = SecretStr("1234567890"),
+            connect_key = "UPD9-KEY9-UPD9",
             open_ai_key = SecretStr("test-key"),
             anthropic_key = SecretStr("test-anthropic-key"),
             perplexity_key = SecretStr("test-perplexity-key"),
@@ -325,6 +334,7 @@ class UserCRUDTest(unittest.TestCase):
             telegram_user_id = 654321,
             whatsapp_user_id = "9876543210",
             whatsapp_phone_number = SecretStr("9876543210"),
+            connect_key = "UPDA-KEYA-UPDA",
             open_ai_key = SecretStr("updated-key"),
             anthropic_key = SecretStr("updated-anthropic-key"),
             perplexity_key = SecretStr("updated-perplexity-key"),
@@ -377,6 +387,7 @@ class UserCRUDTest(unittest.TestCase):
             telegram_user_id = 123456,
             whatsapp_user_id = "1234567890",
             whatsapp_phone_number = SecretStr("1234567890"),
+            connect_key = "SAVB-KEYB-SAVB",
             open_ai_key = SecretStr("test-key"),
             anthropic_key = SecretStr("test-anthropic-key"),
             perplexity_key = SecretStr("test-perplexity-key"),
@@ -425,6 +436,7 @@ class UserCRUDTest(unittest.TestCase):
             telegram_user_id = 654321,
             whatsapp_user_id = "9876543210",
             whatsapp_phone_number = SecretStr("9876543210"),
+            connect_key = "SAVC-KEYC-SAVC",
             open_ai_key = SecretStr("updated-key"),
             anthropic_key = SecretStr("updated-anthropic-key"),
             perplexity_key = SecretStr("updated-perplexity-key"),
@@ -474,6 +486,7 @@ class UserCRUDTest(unittest.TestCase):
             telegram_user_id = 123456,
             whatsapp_user_id = "1234567890",
             whatsapp_phone_number = SecretStr("1234567890"),
+            connect_key = "DELD-KEYD-DELD",
             open_ai_key = SecretStr("test-key"),
             anthropic_key = SecretStr("test-anthropic-key"),
             perplexity_key = SecretStr("test-perplexity-key"),
@@ -490,3 +503,33 @@ class UserCRUDTest(unittest.TestCase):
 
         self.assertEqual(deleted_user.id, created_user.id)
         self.assertIsNone(self.sql.user_crud().get(created_user.id))
+
+    def test_get_user_by_connect_key(self):
+        user_data = UserSave(
+            full_name = "Test User",
+            telegram_username = "test-user",
+            telegram_chat_id = "123456",
+            telegram_user_id = 55555,
+            whatsapp_user_id = "9876543210",
+            whatsapp_phone_number = SecretStr("9876543210"),
+            connect_key = "ABCD-EFGH-JKLM",
+            open_ai_key = SecretStr("test-key"),
+            anthropic_key = SecretStr("test-anthropic-key"),
+            perplexity_key = SecretStr("test-perplexity-key"),
+            replicate_key = SecretStr("test-replicate-key"),
+            rapid_api_key = SecretStr("test-rapid-api-key"),
+            coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
+            tool_choice_hearing = "whisper-1",
+            tool_choice_search = "perplexity-search",
+            group = UserDB.Group.standard,
+        )
+        created_user = self.sql.user_crud().create(user_data)
+
+        fetched_user = self.sql.user_crud().get_by_connect_key("ABCD-EFGH-JKLM")
+
+        assert fetched_user is not None
+        self.assertEqual(fetched_user.id, created_user.id)
+        self.assertEqual(fetched_user.full_name, user_data.full_name)
+        self.assertEqual(fetched_user.connect_key, user_data.connect_key)
+        self.assertEqual(fetched_user.telegram_username, user_data.telegram_username)
+        self.assertEqual(fetched_user.telegram_user_id, user_data.telegram_user_id)

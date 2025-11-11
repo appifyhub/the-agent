@@ -306,7 +306,7 @@ def configure_settings(
         raw_settings_type: [mandatory] The type of settings the user wants: [ 'user', 'chat' ]
     """
     try:
-        settings_link = di.settings_controller.create_settings_link(raw_settings_type)
+        settings_link = di.settings_controller.create_settings_link(raw_settings_type).settings_link
         platform_private_chat_id = resolve_private_chat_id(di.invoker, di.require_invoker_chat_type())
         if not platform_private_chat_id:
             return __error("Author has no private chat with the agent; cannot send settings link")
@@ -357,6 +357,26 @@ def get_version(di: DI) -> str:
         return __error(e)
 
 
+def connect_profiles(di: DI, connect_key: str) -> str:
+    """
+    Connects the current user profile with another profile using a connect key. This allows users to
+    (for example) merge their Telegram and WhatsApp accounts into a single unified profile, or merge
+    any other two profiles together — provided they have the other profile's connect key. The connect
+    key is usually a 12-character code in the format XXXX-XXXX-XXXX that can be obtained from the
+    settings page of any profile. The user must provide this key to connect their profiles together.
+
+    Args:
+        connect_key: [mandatory] The connect key from the other profile that you want to connect with
+    """
+    try:
+        result, message = di.profile_connect_service.connect_profiles(di.invoker, connect_key)
+        if result == di.profile_connect_service.Result.failure:
+            raise ValueError(message)
+        return __success({"status": "success", "message": message})
+    except Exception as e:
+        return __error(e)
+
+
 # === Helper functions ===
 
 
@@ -396,6 +416,7 @@ ALL_LLM_TOOLS: dict[str, Callable[..., str]] = {
     "configure_settings": configure_settings,
     "read_help_and_features": read_help_and_features,
     "get_version": get_version,
+    "connect_profiles": connect_profiles,
 }
 
 

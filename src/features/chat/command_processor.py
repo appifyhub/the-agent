@@ -7,7 +7,8 @@ from util import log
 COMMAND_START = "start"
 COMMAND_SETTINGS = "settings"
 COMMAND_HELP = "help"
-SUPPORTED_COMMANDS = [COMMAND_START, COMMAND_SETTINGS, COMMAND_HELP]
+COMMAND_CONNECT = "connect"
+SUPPORTED_COMMANDS = [COMMAND_START, COMMAND_SETTINGS, COMMAND_HELP, COMMAND_CONNECT]
 
 
 class CommandProcessor:
@@ -56,6 +57,8 @@ class CommandProcessor:
     def __handle_config_commands(self, command_name: str, command_args: list[str]) -> Result:
         log.t(f"Processing the config command '{command_name}' and args '{command_args}'")
         try:
+            platform_private_chat_id = resolve_private_chat_id(self.__di.invoker, self.__di.require_invoker_chat_type()) or "-1"
+
             if command_name in [COMMAND_START, COMMAND_SETTINGS]:
                 # try to accept a sponsorship (works if this is the first message and user is pre-sponsored)
                 if command_name == COMMAND_START:
@@ -63,19 +66,42 @@ class CommandProcessor:
                         log.d("Accepted a sponsorship by messaging the bot")
                         return CommandProcessor.Result.success
                 # no sponsorship accepted, so let's share the settings link
-                settings_url = self.__di.settings_controller.create_settings_link()
-                platform_private_chat_id = resolve_private_chat_id(self.__di.invoker, self.__di.require_invoker_chat_type())
-                self.__di.platform_bot_sdk().send_button_link(platform_private_chat_id or "-1", settings_url)
+                settings_url = self.__di.settings_controller.create_settings_link().settings_link
+                self.__di.platform_bot_sdk().send_button_link(platform_private_chat_id, settings_url)
                 log.t("Shared the settings link with the user")
                 return CommandProcessor.Result.success
 
             if command_name == COMMAND_HELP:
                 # share the help link
                 help_url = self.__di.settings_controller.create_help_link()
-                platform_private_chat_id = resolve_private_chat_id(self.__di.invoker, self.__di.require_invoker_chat_type())
-                self.__di.platform_bot_sdk().send_button_link(platform_private_chat_id or "-1", help_url)
+                self.__di.platform_bot_sdk().send_button_link(platform_private_chat_id, help_url)
                 log.t("Shared the help link with the user")
                 return CommandProcessor.Result.success
+
+            if command_name == COMMAND_CONNECT:
+                # handle profile connection
+                if not command_args:
+                    # no connect key provided, send settings link
+                    settings_url = self.__di.settings_controller.create_settings_link().settings_link
+                    self.__di.platform_bot_sdk().send_button_link(platform_private_chat_id, settings_url)
+                    log.d("Shared the settings link with the user (no connect key provided)")
+                    return CommandProcessor.Result.success
+
+                # try to connect profiles
+                connect_key = command_args[0].strip().upper()
+                result, message = self.__di.profile_connect_service.connect_profiles(self.__di.invoker, connect_key)
+                if result == self.__di.profile_connect_service.Result.success:
+                    self.__di.platform_bot_sdk().send_text_message(platform_private_chat_id, "✅")
+                    log.t("Profile connection successful")
+                    return CommandProcessor.Result.success
+                else:
+                    # invalid key, send settings link
+                    log.w(f"Failed to connect profiles: {message}")
+                    settings_url = self.__di.settings_controller.create_settings_link().settings_link
+                    self.__di.platform_bot_sdk().send_text_message(platform_private_chat_id, message)
+                    self.__di.platform_bot_sdk().send_button_link(platform_private_chat_id, settings_url)
+                    log.t("Shared the settings link with the user (invalid connect key)")
+                    return CommandProcessor.Result.success
 
             raise ValueError(f"Unknown command '{command_name}'")
         except Exception as e:

@@ -3,6 +3,7 @@ from datetime import datetime
 from unittest.mock import MagicMock, Mock
 from uuid import UUID
 
+from api.model.settings_link_response import SettingsLinkResponse
 from api.settings_controller import SettingsController
 from db.crud.user import UserCRUD
 from db.model.chat_config import ChatConfigDB
@@ -10,7 +11,8 @@ from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User, UserSave
 from di.di import DI
-from features.chat.command_processor import COMMAND_HELP, COMMAND_SETTINGS, COMMAND_START, CommandProcessor
+from features.chat.command_processor import COMMAND_CONNECT, COMMAND_HELP, COMMAND_SETTINGS, COMMAND_START, CommandProcessor
+from features.connect.profile_connect_service import ProfileConnectService
 from features.integrations.integrations import resolve_agent_user
 from features.integrations.platform_bot_sdk import PlatformBotSDK
 from features.sponsorships.sponsorship_service import SponsorshipService
@@ -60,6 +62,8 @@ class CommandProcessorTest(unittest.TestCase):
         # noinspection PyPropertyAccess
         self.mock_di.sponsorship_service = Mock(spec = SponsorshipService)
         # noinspection PyPropertyAccess
+        self.mock_di.profile_connect_service = Mock(spec = ProfileConnectService)
+        # noinspection PyPropertyAccess
         self.mock_di.settings_controller = Mock(spec = SettingsController)
         # noinspection PyPropertyAccess
         mock_platform_sdk = Mock(spec = PlatformBotSDK)
@@ -68,7 +72,9 @@ class CommandProcessorTest(unittest.TestCase):
 
         # Setup default return values
         self.mock_di.sponsorship_service.accept_sponsorship.return_value = False
-        self.mock_di.settings_controller.create_settings_link.return_value = "https://example.com/settings?token=abc123"
+        self.mock_di.settings_controller.create_settings_link.return_value = SettingsLinkResponse(
+            settings_link = "https://example.com/settings?token=abc123",
+        )
         self.mock_di.settings_controller.create_help_link.return_value = "https://example.com/features?token=abc123"
 
         self.processor = CommandProcessor(self.mock_di)
@@ -220,3 +226,51 @@ class CommandProcessorTest(unittest.TestCase):
 
         result = self.processor.execute(f"/{COMMAND_HELP}")
         self.assertEqual(result, CommandProcessor.Result.failed)
+
+    def test_connect_command_no_key_provided(self):
+        result = self.processor.execute(f"/{COMMAND_CONNECT}")
+        self.assertEqual(result, CommandProcessor.Result.success)
+        # noinspection PyUnresolvedReferences
+        self.mock_di.settings_controller.create_settings_link.assert_called_once()
+        # noinspection PyUnresolvedReferences
+        self.mock_platform_sdk.send_button_link.assert_called_once_with(
+            self.user.telegram_chat_id,
+            "https://example.com/settings?token=abc123",
+        )
+
+    def test_connect_command_successful(self):
+        # Mock the Result enum on the service
+        self.mock_di.profile_connect_service.Result = ProfileConnectService.Result
+        self.mock_di.profile_connect_service.connect_profiles.return_value = (
+            ProfileConnectService.Result.success,
+            "Profiles connected successfully!",
+        )
+
+        result = self.processor.execute(f"/{COMMAND_CONNECT} ABCD-EFGH-JKLM")
+        self.assertEqual(result, CommandProcessor.Result.success)
+        # noinspection PyUnresolvedReferences
+        self.mock_di.profile_connect_service.connect_profiles.assert_called_once_with(
+            self.user,
+            "ABCD-EFGH-JKLM",
+        )
+        # noinspection PyUnresolvedReferences
+        self.mock_platform_sdk.send_text_message.assert_called_once_with(
+            self.user.telegram_chat_id,
+            "✅",
+        )
+
+    def test_connect_command_invalid_key(self):
+        self.mock_di.profile_connect_service.connect_profiles.return_value = (
+            ProfileConnectService.Result.failure,
+            "Invalid connect key",
+        )
+
+        result = self.processor.execute(f"/{COMMAND_CONNECT} INVALID-KEY")
+        self.assertEqual(result, CommandProcessor.Result.success)
+        # noinspection PyUnresolvedReferences
+        self.mock_di.profile_connect_service.connect_profiles.assert_called_once()
+        # Should send settings link instead
+        # noinspection PyUnresolvedReferences
+        self.mock_di.settings_controller.create_settings_link.assert_called_once()
+        # noinspection PyUnresolvedReferences
+        self.mock_platform_sdk.send_button_link.assert_called_once()

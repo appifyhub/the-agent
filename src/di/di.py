@@ -14,6 +14,7 @@ from db.schema.user import User
 
 if TYPE_CHECKING:
     from api.authorization_service import AuthorizationService
+    from api.profile_connect_controller import ProfileConnectController
     from api.settings_controller import SettingsController
     from api.sponsorships_controller import SponsorshipsController
     from db.crud.chat_config import ChatConfigCRUD
@@ -44,6 +45,7 @@ if TYPE_CHECKING:
     from features.chat.whatsapp.sdk.whatsapp_bot_sdk import WhatsAppBotSDK
     from features.chat.whatsapp.whatsapp_data_resolver import WhatsAppDataResolver
     from features.chat.whatsapp.whatsapp_domain_mapper import WhatsAppDomainMapper
+    from features.connect.profile_connect_service import ProfileConnectService
     from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
     from features.documents.document_search import DocumentSearch
     from features.external_tools.access_token_resolver import AccessTokenResolver
@@ -92,10 +94,12 @@ class DI:
     _price_alert_crud: "PriceAlertCRUD | None"
     # Services
     _sponsorship_service: "SponsorshipService | None"
+    _profile_connect_service: "ProfileConnectService | None"
     _authorization_service: "AuthorizationService | None"
     # Controllers
     _settings_controller: "SettingsController | None"
     _sponsorships_controller: "SponsorshipsController | None"
+    _profile_connect_controller: "ProfileConnectController | None"
     # Internal tools
     _access_token_resolver: "AccessTokenResolver | None"
     _tool_choice_resolver: "ToolChoiceResolver | None"
@@ -136,10 +140,12 @@ class DI:
         self._price_alert_crud = None
         # Services
         self._sponsorship_service = None
+        self._profile_connect_service = None
         self._authorization_service = None
         # Controllers
         self._settings_controller = None
         self._sponsorships_controller = None
+        self._profile_connect_controller = None
         # Internal tools
         self._access_token_resolver = None
         self._tool_choice_resolver = None
@@ -348,6 +354,13 @@ class DI:
             self._authorization_service = AuthorizationService(self)
         return self._authorization_service
 
+    @property
+    def profile_connect_service(self) -> "ProfileConnectService":
+        if self._profile_connect_service is None:
+            from features.connect.profile_connect_service import ProfileConnectService
+            self._profile_connect_service = ProfileConnectService(self)
+        return self._profile_connect_service
+
     # === Controllers ===
 
     @property
@@ -363,6 +376,13 @@ class DI:
             from api.sponsorships_controller import SponsorshipsController
             self._sponsorships_controller = SponsorshipsController(self)
         return self._sponsorships_controller
+
+    @property
+    def profile_connect_controller(self) -> "ProfileConnectController":
+        if self._profile_connect_controller is None:
+            from api.profile_connect_controller import ProfileConnectController
+            self._profile_connect_controller = ProfileConnectController(self)
+        return self._profile_connect_controller
 
     # === Internal tools ===
 
