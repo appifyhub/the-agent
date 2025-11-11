@@ -1,9 +1,17 @@
+import secrets
 from datetime import date
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, SecretStr
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
 
 from db.model.user import UserDB
+
+
+def generate_connect_key() -> str:
+    # the final format is XXXX-XXXX-XXXX
+    allowed_chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # avoids confusing characters like I, O, 1, 0, etc.
+    key_chars = [secrets.choice(allowed_chars) for _ in range(12)]
+    return f"{''.join(key_chars[0:4])}-{''.join(key_chars[4:8])}-{''.join(key_chars[8:12])}"
 
 
 class UserBase(BaseModel):
@@ -59,6 +67,13 @@ class UserBase(BaseModel):
 
 class UserSave(UserBase):
     id: UUID | None = None
+    connect_key: str | None = None
+
+    @model_validator(mode = "after")
+    def _ensure_connect_key(self) -> "UserSave":
+        if not self.connect_key:
+            self.connect_key = generate_connect_key()
+        return self
 
     def model_dump(self, **kwargs) -> dict:
         # we override to automatically convert SecretStr fields for database storage
@@ -73,6 +88,7 @@ class UserSave(UserBase):
 class User(UserBase):
     id: UUID
     created_at: date
+    connect_key: str = Field(default_factory = generate_connect_key)
     model_config = ConfigDict(from_attributes = True)
 
     def has_any_api_key(self) -> bool:

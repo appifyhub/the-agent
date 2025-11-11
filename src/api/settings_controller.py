@@ -7,6 +7,7 @@ from api.mapper.chat_mapper import domain_to_api as chat_to_api
 from api.mapper.user_mapper import api_to_domain, domain_to_api
 from api.model.chat_settings_payload import ChatSettingsPayload
 from api.model.external_tools_response import ExternalToolProviderResponse, ExternalToolResponse, ExternalToolsResponse
+from api.model.settings_link_response import SettingsLinkResponse
 from api.model.user_settings_payload import UserSettingsPayload
 from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig, ChatConfigSave
@@ -39,7 +40,11 @@ class SettingsController:
             raise ValueError(log.e(f"Invalid settings type '{settings_type}'"))
         return settings_type
 
-    def create_settings_link(self, raw_settings_type: str | None = None, chat_type: ChatConfigDB.ChatType | None = None) -> str:
+    def create_settings_link(
+        self,
+        raw_settings_type: str | None = None,
+        chat_type: ChatConfigDB.ChatType | None = None,
+    ) -> SettingsLinkResponse:
         chat_type = chat_type or self.__di.invoker_chat_type
         if not chat_type:
             raise ValueError(log.e("Chat type not provided and invoker_chat is not available"))
@@ -71,7 +76,7 @@ class SettingsController:
 
         valid_until = datetime.now() + timedelta(minutes = config.jwt_expires_in_minutes * 10)
         shortener = self.__di.url_shortener(long_url, valid_until = valid_until)
-        return shortener.execute()
+        return SettingsLinkResponse(settings_link = shortener.execute())
 
     def create_help_link(self, chat_type: ChatConfigDB.ChatType | None = None) -> str:
         chat_type = chat_type or self.__di.invoker_chat_type

@@ -69,6 +69,12 @@ class TelegramDataResolver:
             mapped_data.is_private = old_chat_config.is_private
             mapped_data.reply_chance_percent = old_chat_config.reply_chance_percent
             mapped_data.release_notifications = old_chat_config.release_notifications
+        else:
+            # new chat, let's set the default value
+            if mapped_data.is_private:
+                mapped_data.release_notifications = ChatConfigDB.ReleaseNotifications.major
+            else:
+                mapped_data.release_notifications = ChatConfigDB.ReleaseNotifications.none
         return ChatConfig.model_validate(self.__di.chat_config_crud.save(mapped_data))
 
     # noinspection DuplicatedCode
@@ -85,10 +91,11 @@ class TelegramDataResolver:
             old_user = User.model_validate(old_user_db)
             # reset the attributes that are not normally changed through the Telegram API
             mapped_data.id = old_user.id
-            mapped_data.full_name = mapped_data.full_name or old_user.full_name
+            mapped_data.full_name = mapped_data.full_name if not old_user.full_name else old_user.full_name
             mapped_data.telegram_chat_id = mapped_data.telegram_chat_id or old_user.telegram_chat_id
             mapped_data.whatsapp_user_id = old_user.whatsapp_user_id
             mapped_data.whatsapp_phone_number = old_user.whatsapp_phone_number
+            mapped_data.connect_key = old_user.connect_key
             mapped_data.open_ai_key = old_user.open_ai_key
             mapped_data.anthropic_key = old_user.anthropic_key
             mapped_data.google_ai_key = old_user.google_ai_key

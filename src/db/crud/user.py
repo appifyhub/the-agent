@@ -45,6 +45,11 @@ class UserCRUD:
             UserDB.whatsapp_phone_number == whatsapp_phone_number,
         ).first()
 
+    def get_by_connect_key(self, connect_key: str) -> UserDB | None:
+        return self._db.query(UserDB).filter(
+            UserDB.connect_key == connect_key,
+        ).first()
+
     def create(self, create_data: UserSave) -> UserDB:
         user = UserDB(**create_data.model_dump())
         self._db.add(user)
@@ -52,15 +57,17 @@ class UserCRUD:
         self._db.refresh(user)
         return user
 
-    def update(self, update_data: UserSave) -> UserDB | None:
+    def update(self, update_data: UserSave, commit: bool = True) -> UserDB | None:
         if not update_data.id:
             return None  # can be called from 'save'
         user = self.get(update_data.id)
         if user:
             for key, value in update_data.model_dump().items():
                 setattr(user, key, value)
-            self._db.commit()
+            self._db.flush()
             self._db.refresh(user)
+            if commit:
+                self._db.commit()
         return user
 
     def save(self, data: UserSave) -> UserDB:
@@ -69,9 +76,11 @@ class UserCRUD:
             return updated_user  # available only if update was successful
         return self.create(data)
 
-    def delete(self, user_id: UUID) -> UserDB | None:
+    def delete(self, user_id: UUID, commit: bool = True) -> UserDB | None:
         user = self.get(user_id)
         if user:
             self._db.delete(user)
-            self._db.commit()
+            self._db.flush()
+            if commit:
+                self._db.commit()
         return user

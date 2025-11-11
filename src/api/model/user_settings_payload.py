@@ -4,6 +4,8 @@ from pydantic import BaseModel, field_validator
 
 
 class UserSettingsPayload(BaseModel):
+    full_name: str | None = None
+
     open_ai_key: str | None = None
     anthropic_key: str | None = None
     google_ai_key: str | None = None
@@ -30,6 +32,7 @@ class UserSettingsPayload(BaseModel):
 
     # noinspection PyNestedDecorators
     @field_validator(
+        "full_name",
         "open_ai_key",
         "anthropic_key",
         "google_ai_key",

@@ -278,7 +278,8 @@ class WhatsAppDataResolverTest(unittest.TestCase):
         assert result is not None
         self.assertEqual(result, saved_user)
         self.assertEqual(result.id, existing_user.id)
-        self.assertEqual(result.full_name, mapped_data.full_name)
+        # Should preserve existing name when DB has a value, even if platform sends a new one
+        self.assertEqual(result.full_name, existing_user.full_name)
         self.assertEqual(result.whatsapp_user_id, mapped_data.whatsapp_user_id)
         self.assertEqual(result.whatsapp_user_id, existing_user.whatsapp_user_id)
         self.assertEqual(result.open_ai_key, existing_user.open_ai_key)
@@ -343,7 +344,8 @@ class WhatsAppDataResolverTest(unittest.TestCase):
 
         self.assertEqual(result, saved_user)
         self.assertEqual(result.id, existing_user.id)
-        self.assertEqual(result.full_name, mapped_data.full_name)
+        # Should preserve existing name when DB has a value, even if platform sends a new one
+        self.assertEqual(result.full_name, existing_user.full_name)
         self.assertEqual(result.whatsapp_user_id, mapped_data.whatsapp_user_id)
         self.assertEqual(result.whatsapp_user_id, mapped_data.whatsapp_user_id)
         self.assertEqual(result.open_ai_key, existing_user.open_ai_key)

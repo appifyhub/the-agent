@@ -63,6 +63,7 @@ class WhatsAppUpdateResponderTest(unittest.TestCase):
             id = UUID(int = 1),
             full_name = "Test User",
             whatsapp_user_id = "1",
+            connect_key = "WA-USER-KEY1",
             group = UserDB.Group.standard,
             created_at = date.today(),
         )

@@ -177,6 +177,7 @@ class SponsorshipServiceTest(unittest.TestCase):
             telegram_username = receiver_telegram_username,
             telegram_chat_id = "new_chat_id",
             telegram_user_id = 2,
+            connect_key = "NEW-USER-KEY1",
             open_ai_key = developer_user.open_ai_key,
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),

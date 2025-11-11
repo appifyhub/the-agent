@@ -175,6 +175,7 @@ class IntegrationsTest(TestCase):
             telegram_username = "test_user",
             telegram_chat_id = "test_chat",
             telegram_user_id = 123456789,
+            connect_key = "INT-TG-KEY1",
             group = UserDB.Group.standard,
             created_at = date.today(),
         )
@@ -202,6 +203,7 @@ class IntegrationsTest(TestCase):
             telegram_username = "test_user",
             telegram_chat_id = "test_chat",
             telegram_user_id = 123456789,
+            connect_key = "INT-TG-KEY2",
             group = UserDB.Group.standard,
             created_at = date.today(),
         )
@@ -227,6 +229,7 @@ class IntegrationsTest(TestCase):
             full_name = "Test User",
             whatsapp_user_id = "15551234567",
             whatsapp_phone_number = "15551234567",
+            connect_key = "INT-WA-KEY1",
             group = UserDB.Group.standard,
             created_at = date.today(),
         )

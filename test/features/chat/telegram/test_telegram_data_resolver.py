@@ -289,7 +289,8 @@ class TelegramDataResolverTest(unittest.TestCase):
         assert result is not None
         self.assertEqual(result, saved_user)
         self.assertEqual(result.id, existing_user.id)
-        self.assertEqual(result.full_name, mapped_data.full_name)
+        # Should preserve existing name when DB has a value, even if platform sends a new one
+        self.assertEqual(result.full_name, existing_user.full_name)
         self.assertEqual(result.telegram_username, mapped_data.telegram_username)
         self.assertEqual(result.telegram_chat_id, mapped_data.telegram_chat_id)
         self.assertEqual(result.telegram_user_id, existing_user.telegram_user_id)
@@ -358,7 +359,8 @@ class TelegramDataResolverTest(unittest.TestCase):
 
         self.assertEqual(result, saved_user)
         self.assertEqual(result.id, existing_user.id)
-        self.assertEqual(result.full_name, mapped_data.full_name)
+        # Should preserve existing name when DB has a value, even if platform sends a new one
+        self.assertEqual(result.full_name, existing_user.full_name)
         self.assertEqual(result.telegram_username, mapped_data.telegram_username)
         self.assertEqual(result.telegram_chat_id, mapped_data.telegram_chat_id)
         self.assertEqual(result.telegram_user_id, mapped_data.telegram_user_id)

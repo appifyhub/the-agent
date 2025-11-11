@@ -45,6 +45,9 @@ class UserDB(BaseModel):
     whatsapp_user_id = Column(String, unique = True, nullable = True, index = True)
     whatsapp_phone_number = Column(EncryptedString, nullable = True)
 
+    # not secret, used to connect multiple user profiles
+    connect_key = Column(String, nullable = False, unique = True, index = True)
+
     open_ai_key = Column(EncryptedString, nullable = True)
     anthropic_key = Column(EncryptedString, nullable = True)
     google_ai_key = Column(EncryptedString, nullable = True)
