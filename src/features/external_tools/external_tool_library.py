@@ -76,6 +76,13 @@ GPT_5_NANO = ExternalTool(
     types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
 )
 
+GPT_5_1 = ExternalTool(
+    id = "gpt-5.1",
+    name = "GPT 5.1",
+    provider = OPEN_AI,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+)
+
 GPT_4O = ExternalTool(
     id = "gpt-4o",
     name = "GPT 4o",
@@ -360,6 +367,7 @@ ALL_EXTERNAL_TOOLS = [
     GPT_5,
     GPT_5_MINI,
     GPT_5_NANO,
+    GPT_5_1,
     GPT_4O,
     GPT_4O_MINI,
     GPT_O3_MINI,
