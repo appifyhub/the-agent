@@ -111,6 +111,31 @@ class DomainLangchainMapperTest(unittest.TestCase):
             self.assertEqual(message.chat_id, self.chat.chat_id)
             self.assertEqual(message.author_id, self.agent_user.id)
 
+    def test_map_bot_message_to_storage_content_block_format(self):
+        # Test Gemini 3.0 format: list of content blocks with 'text' key
+        message = AIMessage(content = [{"type": "text", "text": "Hello, world!", "extras": {"signature": "abc123"}}])
+        result = self.mapper.map_bot_message_to_storage(self.chat, message)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].text, "Hello, world!")
+        self.assertEqual(result[0].chat_id, self.chat.chat_id)
+        self.assertEqual(result[0].author_id, self.agent_user.id)
+
+    def test_map_bot_message_to_storage_content_block_format_multiple(self):
+        # Test multiple content blocks with 'text' key
+        message = AIMessage(
+            content = [
+                {"type": "text", "text": "First message", "extras": {}},
+                {"type": "text", "text": "Second message", "extras": {"signature": "xyz"}},
+            ],
+        )
+        result = self.mapper.map_bot_message_to_storage(self.chat, message)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0].text, "First message")
+        self.assertEqual(result[1].text, "Second message")
+        for message in result:
+            self.assertEqual(message.chat_id, self.chat.chat_id)
+            self.assertEqual(message.author_id, self.agent_user.id)
+
     def test_map_bot_message_to_storage_message_id_uniqueness(self):
         message = AIMessage(content = "Test message")
         result1 = self.mapper.map_bot_message_to_storage(self.chat, message)

@@ -72,6 +72,13 @@ class DomainLangchainMapper:
         def pretty_print(raw_dict):
             return "\n".join(f"{key}: {value}" for key, value in raw_dict.items())
 
+        def extract_text_from_dict(item: dict) -> str:
+            # Handle LangChain content block format: {'type': 'text', 'text': '...', ...}
+            if "text" in item:
+                return item["text"]
+            # Fallback to pretty print for other dict formats
+            return pretty_print(item)
+
         # edge: no content
         if not message.content:
             return ""
@@ -80,7 +87,7 @@ class DomainLangchainMapper:
             return message.content
         # edge: it's a dict
         if isinstance(message.content, dict):
-            return pretty_print(message.content)
+            return extract_text_from_dict(message.content)
         # edge: it's a list
         if isinstance(message.content, list):
             messages: list[str] = []
@@ -88,7 +95,7 @@ class DomainLangchainMapper:
                 if isinstance(item, str):
                     messages.append(item)
                 elif isinstance(item, dict):
-                    messages.append(pretty_print(item))
+                    messages.append(extract_text_from_dict(item))
                 else:
                     messages.append(str(item))
             return CHAT_MESSAGE_DELIMITER.join(messages)
