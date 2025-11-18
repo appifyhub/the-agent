@@ -185,20 +185,6 @@ CLAUDE_4_5_SONNET = ExternalTool(
 
 ###  Google AI  ###
 
-GEMINI_2_FLASH_LITE = ExternalTool(
-    id = "gemini-2.0-flash-lite",
-    name = "Gemini 2.0 Flash-Lite",
-    provider = GOOGLE_AI,
-    types = [ToolType.chat, ToolType.copywriting, ToolType.vision],
-)
-
-GEMINI_2_FLASH = ExternalTool(
-    id = "gemini-2.0-flash",
-    name = "Gemini 2.0 Flash",
-    provider = GOOGLE_AI,
-    types = [ToolType.chat, ToolType.copywriting, ToolType.vision],
-)
-
 GEMINI_2_5_FLASH_LITE = ExternalTool(
     id = "gemini-2.5-flash-lite",
     name = "Gemini 2.5 Flash-Lite",
@@ -225,6 +211,13 @@ GEMINI_2_5_FLASH_IMAGE = ExternalTool(
     name = "Gemini 2.5 Flash Image (Preview)",
     provider = GOOGLE_AI,
     types = [ToolType.images_gen],
+)
+
+GEMINI_3_PRO = ExternalTool(
+    id = "gemini-3-pro-preview",
+    name = "Gemini 3 Pro (Preview)",
+    provider = GOOGLE_AI,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
 )
 
 ###  Perplexity  ###
@@ -384,12 +377,11 @@ ALL_EXTERNAL_TOOLS = [
     CLAUDE_4_5_HAIKU,
     CLAUDE_4_5_SONNET,
     # Google AI
-    GEMINI_2_FLASH_LITE,
-    GEMINI_2_FLASH,
     GEMINI_2_5_FLASH_LITE,
     GEMINI_2_5_FLASH,
     GEMINI_2_5_PRO,
     GEMINI_2_5_FLASH_IMAGE,
+    GEMINI_3_PRO,
     # Perplexity
     SONAR,
     SONAR_PRO,
