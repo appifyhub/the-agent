@@ -347,6 +347,13 @@ IMAGE_EDITING_GOOGLE_NANO_BANANA = ExternalTool(
     types = [ToolType.images_edit],
 )
 
+IMAGE_EDITING_GOOGLE_NANO_BANANA_PRO = ExternalTool(
+    id = "google/nano-banana-pro",
+    name = "Google's Nano Banana Pro",
+    provider = REPLICATE,
+    types = [ToolType.images_edit],
+)
+
 ###  All External Tools  ###
 
 ALL_EXTERNAL_TOOLS = [
@@ -403,4 +410,5 @@ ALL_EXTERNAL_TOOLS = [
     IMAGE_EDITING_SEED_EDIT,
     IMAGE_GENERATION_EDITING_SEEDREAM_4,
     IMAGE_EDITING_GOOGLE_NANO_BANANA,
+    IMAGE_EDITING_GOOGLE_NANO_BANANA_PRO,
 ]
