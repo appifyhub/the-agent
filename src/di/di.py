@@ -35,7 +35,6 @@ if TYPE_CHECKING:
     from features.chat.currency_alert_service import CurrencyAlertService
     from features.chat.dev_announcements_service import DevAnnouncementsService
     from features.chat.llm_tools.llm_tool_library import LLMToolLibrary
-    from features.chat.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
     from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
     from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
     from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
@@ -56,6 +55,7 @@ if TYPE_CHECKING:
     from features.images.image_editor import ImageEditor
     from features.images.image_uploader import ImageUploader
     from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
+    from features.images.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
     from features.integrations.platform_bot_sdk import PlatformBotSDK
     from features.sponsorships.sponsorship_service import SponsorshipService
     from features.support.user_support_service import UserSupportService
@@ -555,18 +555,22 @@ class DI:
         raw_prompt: str,
         configured_copywriter_tool: ConfiguredTool,
         configured_image_gen_tool: ConfiguredTool,
+        aspect_ratio: str | None = None,
     ) -> "SmartStableDiffusionGenerator":
-        from features.chat.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
-        return SmartStableDiffusionGenerator(raw_prompt, configured_copywriter_tool, configured_image_gen_tool, self)
+        from features.images.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
+        return SmartStableDiffusionGenerator(
+            raw_prompt, configured_copywriter_tool, configured_image_gen_tool, self, aspect_ratio,
+        )
 
     # noinspection PyMethodMayBeStatic
     def simple_stable_diffusion_generator(
         self,
         prompt: str,
         configured_tool: ConfiguredTool,
+        aspect_ratio: str | None = None,
     ) -> "SimpleStableDiffusionGenerator":
         from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
-        return SimpleStableDiffusionGenerator(prompt, configured_tool, self)
+        return SimpleStableDiffusionGenerator(prompt, configured_tool, self, aspect_ratio)
 
     # noinspection PyMethodMayBeStatic
     def image_uploader(
@@ -593,9 +597,10 @@ class DI:
         attachment_ids: list[str],
         operation_name: str,
         operation_guidance: str | None,
+        aspect_ratio: str | None = None,
     ) -> "ChatImagingService":
         from features.chat.chat_imaging_service import ChatImagingService
-        return ChatImagingService(attachment_ids, operation_name, operation_guidance, self)
+        return ChatImagingService(attachment_ids, operation_name, operation_guidance, aspect_ratio, self)
 
     # noinspection PyMethodMayBeStatic
     def image_editor(
@@ -604,9 +609,10 @@ class DI:
         configured_tool: ConfiguredTool,
         context: str | None = None,
         mime_type: str | None = None,
+        aspect_ratio: str | None = None,
     ) -> "ImageEditor":
         from features.images.image_editor import ImageEditor
-        return ImageEditor(image_url, configured_tool, context, mime_type)
+        return ImageEditor(image_url, configured_tool, context, mime_type, aspect_ratio)
 
     # noinspection PyMethodMayBeStatic
     def image_background_remover(

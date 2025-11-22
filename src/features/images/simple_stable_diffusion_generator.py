@@ -1,6 +1,6 @@
 from google import genai
 from google.genai.client import Client as GoogleClient
-from google.genai.types import GenerateContentConfig, HttpOptions
+from google.genai.types import GenerateContentConfig, HttpOptions, ImageConfig
 from httpx import Timeout
 from replicate.client import Client as ReplicateClient
 
@@ -9,6 +9,7 @@ from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import IMAGE_GENERATION_FLUX
 from features.external_tools.external_tool_provider_library import GOOGLE_AI, REPLICATE
 from features.external_tools.tool_choice_resolver import ConfiguredTool
+from features.images.aspect_ratio_utils import validate_aspect_ratio
 from util import log
 from util.config import config
 from util.functions import extract_url_from_replicate_result
@@ -17,6 +18,9 @@ from util.functions import extract_url_from_replicate_result
 # Not tested as it's just a proxy
 class SimpleStableDiffusionGenerator:
 
+    DEFAULT_ASPECT_RATIO: str = "2:3"
+    DEFAULT_IMAGE_SIZE: str = "4K"
+    DEFAULT_OUTPUT_MIME_TYPE: str = "image/png"
     DEFAULT_TOOL: ExternalTool = IMAGE_GENERATION_FLUX
     TOOL_TYPE: ToolType = ToolType.images_gen
 
@@ -25,6 +29,7 @@ class SimpleStableDiffusionGenerator:
     __configured_tool: ConfiguredTool
     __replicate: ReplicateClient | None
     __google_ai: GoogleClient | None
+    __aspect_ratio: str
     __di: DI
 
     def __init__(
@@ -32,10 +37,12 @@ class SimpleStableDiffusionGenerator:
         prompt: str,
         configured_tool: ConfiguredTool,
         di: DI,
+        aspect_ratio: str | None = None,
     ):
         self.__di = di
         self.__prompt = prompt
         self.__configured_tool = configured_tool
+        self.__aspect_ratio = validate_aspect_ratio(aspect_ratio, SimpleStableDiffusionGenerator.DEFAULT_ASPECT_RATIO)
         tool, token, _ = self.__configured_tool
 
         self.__replicate = None
@@ -80,13 +87,15 @@ class SimpleStableDiffusionGenerator:
             input = {
                 "prompt": self.__prompt,
                 "prompt_upsampling": True,
-                "aspect_ratio": "2:3",
+                "aspect_ratio": self.__aspect_ratio,
                 "output_format": "png",
+                "output_mime_type": SimpleStableDiffusionGenerator.DEFAULT_OUTPUT_MIME_TYPE,
                 "output_quality": 100,
                 "num_inference_steps": 30,
-                "safety_tolerance": 5,
+                "safety_tolerance": 0,
+                "guidance_scale": 5.5,
                 "num_outputs": 1,
-                "size": "4K",
+                "size": SimpleStableDiffusionGenerator.DEFAULT_IMAGE_SIZE,
                 "max_images": 1,
                 "sequential_image_generation": "disabled",
             },
@@ -106,7 +115,14 @@ class SimpleStableDiffusionGenerator:
         response = self.__google_ai.models.generate_content(
             model = tool.id,
             contents = self.__prompt,
-            config = GenerateContentConfig(response_modalities = ["TEXT", "IMAGE"]),
+            config = GenerateContentConfig(
+                response_modalities = ["TEXT", "IMAGE"],
+                image_config = ImageConfig(
+                    aspect_ratio = self.__aspect_ratio,
+                    image_size = SimpleStableDiffusionGenerator.DEFAULT_IMAGE_SIZE,
+                    output_mime_type = SimpleStableDiffusionGenerator.DEFAULT_OUTPUT_MIME_TYPE,
+                ),
+            ),
         )
 
         # analyze the response

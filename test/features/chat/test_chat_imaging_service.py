@@ -79,6 +79,7 @@ class ChatImagingServiceTest(unittest.TestCase):
                 attachment_ids = self.attachment_ids,
                 operation_name = self.operation_name,
                 operation_guidance = self.operation_guidance,
+                aspect_ratio = None,
                 di = self.mock_di,
             )
             self.assertIsInstance(service, ChatImagingService)
@@ -89,6 +90,7 @@ class ChatImagingServiceTest(unittest.TestCase):
                 attachment_ids = self.attachment_ids,
                 operation_name = "invalid-operation",
                 operation_guidance = self.operation_guidance,
+                aspect_ratio = None,
                 di = self.mock_di,
             )
 
@@ -108,6 +110,7 @@ class ChatImagingServiceTest(unittest.TestCase):
             attachment_ids = self.attachment_ids,
             operation_name = "remove-background",
             operation_guidance = self.operation_guidance,
+            aspect_ratio = None,
             di = self.mock_di,
         )
         result, details = service.execute()
@@ -136,6 +139,7 @@ class ChatImagingServiceTest(unittest.TestCase):
             attachment_ids = self.attachment_ids,
             operation_name = "remove-background",
             operation_guidance = self.operation_guidance,
+            aspect_ratio = None,
             di = self.mock_di,
         )
         result, details = service.execute()
@@ -159,6 +163,7 @@ class ChatImagingServiceTest(unittest.TestCase):
             attachment_ids = self.attachment_ids,
             operation_name = "remove-background",
             operation_guidance = self.operation_guidance,
+            aspect_ratio = None,
             di = self.mock_di,
         )
         result, details = service.execute()
@@ -179,6 +184,7 @@ class ChatImagingServiceTest(unittest.TestCase):
                 attachment_ids = self.attachment_ids,
                 operation_name = "remove-background",
                 operation_guidance = self.operation_guidance,
+                aspect_ratio = None,
                 di = self.mock_di,
             )
             with self.assertRaises(ValueError):
@@ -197,6 +203,7 @@ class ChatImagingServiceTest(unittest.TestCase):
             attachment_ids = self.attachment_ids,
             operation_name = "remove-background",
             operation_guidance = self.operation_guidance,
+            aspect_ratio = None,
             di = self.mock_di,
         )
         result, details = service.execute()
@@ -227,6 +234,7 @@ class ChatImagingServiceTest(unittest.TestCase):
             attachment_ids = self.attachment_ids,
             operation_name = "restore-image",
             operation_guidance = self.operation_guidance,
+            aspect_ratio = None,
             di = self.mock_di,
         )
         result, details = service.execute()
