@@ -10,6 +10,7 @@ from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import IMAGE_EDITING_FLUX_KONTEXT_PRO
 from features.external_tools.tool_choice_resolver import ConfiguredTool
+from features.images.aspect_ratio_utils import validate_aspect_ratio
 from util import log
 from util.functions import extract_url_from_replicate_result, first_key_with_value
 
@@ -19,6 +20,7 @@ BOOT_AND_RUN_TIMEOUT_S = 120
 # Not tested as it's just a proxy
 class ImageEditor:
 
+    DEFAULT_ASPECT_RATIO: str = "match_input_image"
     DEFAULT_TOOL: ExternalTool = IMAGE_EDITING_FLUX_KONTEXT_PRO
     TOOL_TYPE: ToolType = ToolType.images_edit
 
@@ -27,6 +29,7 @@ class ImageEditor:
     __image_url: str
     __configured_tool: ConfiguredTool
     __mime_type: str | None
+    __aspect_ratio: str
     __replicate: Client
 
     def __init__(
@@ -35,11 +38,13 @@ class ImageEditor:
         configured_tool: ConfiguredTool,
         context: str | None = None,
         mime_type: str | None = None,
+        aspect_ratio: str | None = None,
     ):
         self.__context = context
         self.__image_url = image_url
         self.__configured_tool = configured_tool
         self.__mime_type = mime_type
+        self.__aspect_ratio = validate_aspect_ratio(aspect_ratio, ImageEditor.DEFAULT_ASPECT_RATIO)
         _, token, _ = configured_tool
         self.__replicate = Client(
             api_token = token.get_secret_value(),
@@ -61,9 +66,9 @@ class ImageEditor:
                         "image": file,
                         "input_image": file,
                         "image_input": [file],
-                        "aspect_ratio": "match_input_image",
+                        "aspect_ratio": self.__aspect_ratio,
                         "output_format": "png",
-                        "safety_tolerance": 2,
+                        "safety_tolerance": 0,
                         "guidance_scale": 5.5,
                         "size": "4K",
                         "max_images": 1,

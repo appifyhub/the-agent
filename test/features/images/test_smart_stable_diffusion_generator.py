@@ -5,8 +5,8 @@ from langchain_core.messages import AIMessage
 
 from db.model.chat_config import ChatConfigDB
 from di.di import DI
-from features.chat.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
 from features.external_tools.tool_choice_resolver import ConfiguredTool
+from features.images.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
 from features.integrations.platform_bot_sdk import PlatformBotSDK
 
 

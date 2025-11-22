@@ -2,6 +2,7 @@ from enum import Enum
 
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from di.di import DI
+from features.images.aspect_ratio_utils import validate_aspect_ratio
 from features.images.image_background_remover import ImageBackgroundRemover
 from features.images.image_contents_restorer import ImageContentsRestorer
 from features.images.image_editor import ImageEditor
@@ -37,6 +38,7 @@ class ChatImagingService:
     __attachments: list[ChatMessageAttachment]
     __operation: Operation
     __operation_guidance: str | None
+    __aspect_ratio: str
     __di: DI
 
     def __init__(
@@ -44,6 +46,7 @@ class ChatImagingService:
         attachment_ids: list[str],
         operation_name: str,
         operation_guidance: str | None,
+        aspect_ratio: str | None,
         di: DI,
     ):
         if not attachment_ids:
@@ -52,6 +55,7 @@ class ChatImagingService:
         self.__attachments = self.__di.platform_bot_sdk().refresh_attachments_by_ids(attachment_ids)
         self.__operation = ChatImagingService.Operation.resolve(operation_name)
         self.__operation_guidance = operation_guidance
+        self.__aspect_ratio = validate_aspect_ratio(aspect_ratio, ImageEditor.DEFAULT_ASPECT_RATIO)
 
     def __remove_background(self) -> tuple[Result, URLList, ErrorList]:
         log.t(f"Removing background from {len(self.__attachments)} images")
@@ -163,6 +167,7 @@ class ChatImagingService:
                     configured_tool = configured_tool,
                     context = self.__operation_guidance,
                     mime_type = attachment.mime_type,
+                    aspect_ratio = self.__aspect_ratio,
                 )
                 editing_result = editor.execute()
                 if editor.error:
@@ -194,50 +199,50 @@ class ChatImagingService:
         if self.__operation == ChatImagingService.Operation.remove_background:
             result, urls, errors = self.__remove_background()
             urls = self.__clean_urls(urls)
-            output: list[dict[str, str | None]] = []
+            output_removal_urls: list[dict[str, str | None]] = []
             for image_url, error in zip(urls, errors):
                 if image_url is None:
-                    output.append({"url": None, "error": error})
+                    output_removal_urls.append({"url": None, "error": error})
                     continue
                 external_id = str(invoker_chat.external_id)
                 log.t(f"Sending edited image to chat '{external_id}'")
                 self.__di.platform_bot_sdk().send_document(external_id, image_url, thumbnail = image_url)
                 self.__di.platform_bot_sdk().send_photo(external_id, image_url, caption = "📸")
                 log.t("Image edited and sent successfully")
-                output.append({"url": image_url, "error": None, "status": "delivered"})
-            return result, output
+                output_removal_urls.append({"url": image_url, "error": None, "status": "delivered"})
+            return result, output_removal_urls
 
         elif self.__operation == ChatImagingService.Operation.restore_image:
             result, urls, errors = self.__restore_image()
             urls = self.__clean_urls(urls)
-            output: list[dict[str, str | None]] = []
+            output_restoration_urls: list[dict[str, str | None]] = []
             for image_url, error in zip(urls, errors):
                 if image_url is None:
-                    output.append({"url": None, "error": error})
+                    output_restoration_urls.append({"url": None, "error": error})
                     continue
                 external_id = str(invoker_chat.external_id)
                 log.t(f"Sending restored image to chat '{external_id}': {image_url}")
                 self.__di.platform_bot_sdk().send_document(external_id, image_url, thumbnail = image_url)
                 self.__di.platform_bot_sdk().send_photo(external_id, image_url, caption = "📸")
                 log.t("Image restored and sent successfully")
-                output.append({"url": image_url, "error": None, "status": "delivered"})
-            return result, output
+                output_restoration_urls.append({"url": image_url, "error": None, "status": "delivered"})
+            return result, output_restoration_urls
 
         elif self.__operation == ChatImagingService.Operation.edit_image:
             result, urls, errors = self.__edit_image()
             urls = self.__clean_urls(urls)
-            output: list[dict[str, str | None]] = []
+            output_editing_urls: list[dict[str, str | None]] = []
             for image_url, error in zip(urls, errors):
                 if image_url is None:
-                    output.append({"url": None, "error": error})
+                    output_editing_urls.append({"url": None, "error": error})
                     continue
                 external_id = str(invoker_chat.external_id)
                 log.t(f"Sending edited image to chat '{external_id}': {image_url}")
                 self.__di.platform_bot_sdk().send_document(external_id, image_url, thumbnail = image_url)
                 self.__di.platform_bot_sdk().send_photo(external_id, image_url, caption = "📸")
                 log.t("Image edited and sent successfully")
-                output.append({"url": image_url, "error": None, "status": "delivered"})
-            return result, output
+                output_editing_urls.append({"url": image_url, "error": None, "status": "delivered"})
+            return result, output_editing_urls
 
         else:
             raise ValueError(f"Unknown operation '{self.__operation.value}'")
