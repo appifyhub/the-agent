@@ -63,7 +63,7 @@ class ImageEditor:
                         "image_input": [file],
                         "aspect_ratio": "match_input_image",
                         "output_format": "png",
-                        "safety_tolerance": 2,
+                        "safety_tolerance": 0,
                         "guidance_scale": 5.5,
                         "size": "4K",
                         "max_images": 1,
