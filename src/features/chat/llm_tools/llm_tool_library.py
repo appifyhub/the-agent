@@ -14,7 +14,7 @@ from di.di import DI
 from features.chat.attachments_describer import AttachmentsDescriber
 from features.chat.chat_imaging_service import ChatImagingService
 from features.chat.dev_announcements_service import DevAnnouncementsService
-from features.chat.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
+from features.images.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
 from features.integrations.integrations import add_messaging_frequency_warning, resolve_private_chat_id
 from features.support.user_support_service import UserSupportService
 from features.web_browsing.ai_web_search import AIWebSearch
@@ -29,11 +29,12 @@ def process_attachments(
     attachment_ids: str,
     operation: str = "describe",
     context: str | None = None,
+    aspect_ratio: str | None = None,
 ) -> str:
     """
     Processes the contents of the given attachments. Allowed operations are:
         - 'describe' (default): Describes the image contents, transcribes audio, searches docs
-        - 'edit-image': Edits the image based on the provided context (e.g. "Replace background with a space vortex")
+        - 'edit-image': Regenerates or transforms the image based on the provided instructions (e.g. "Replace background with a space vortex", "Generate the next frame")
         - 'remove-background': Removes the image background
         - 'restore-image': Restores an old/broken image (primarily faces)
 
@@ -41,6 +42,7 @@ def process_attachments(
         attachment_ids: [mandatory] A comma-separated list of verbatim, unique 📎 attachment IDs that need to be processed (located in each message); include any dashes, underscores or other symbols; these IDs are not to be cleaned or truncated
         operation: [mandatory] The action to perform on the attachments
         context: [optional] Additional task context or guidance, e.g. the user's message/question/caption, if available
+        aspect_ratio: [optional] The desired aspect ratio for image editing operations. Valid options: 1:1, 2:3, 3:2, 3:4, 4:3, 16:9, 9:16. Defaults to the aspect ratio of the input image
     """
     try:
         operation = operation.lower().strip()
@@ -56,7 +58,7 @@ def process_attachments(
             return json.dumps({"result": result.value, "attachments": describer.result})
         elif operation in editing_operations:
             # Generate images based on the provided context
-            result, details = di.chat_imaging_service(attachment_ids_list, operation, context).execute()
+            result, details = di.chat_imaging_service(attachment_ids_list, operation, context, aspect_ratio).execute()
             if result == ChatImagingService.Result.failed:
                 raise ValueError("Failed to edit the images! Details: " + str(details))
             return __success(
@@ -72,12 +74,17 @@ def process_attachments(
         return __error(e)
 
 
-def generate_image(di: DI, prompt: str) -> str:
+def generate_image(
+    di: DI,
+    prompt: str,
+    aspect_ratio: str | None = None,
+) -> str:
     """
     Generates (draws) an image based on the given prompt using Generative AI.
 
     Args:
         prompt: [mandatory] The user's description or prompt for the generated image
+        aspect_ratio: [optional] The desired aspect ratio for generation. Valid options: 1:1, 2:3 (default if not specified), 3:2, 3:4, 4:3, 16:9, 9:16.
     """
     try:
         copywriter_tool = di.tool_choice_resolver.require_tool(
@@ -88,7 +95,7 @@ def generate_image(di: DI, prompt: str) -> str:
             SmartStableDiffusionGenerator.IMAGE_GEN_TOOL_TYPE,
             SmartStableDiffusionGenerator.DEFAULT_IMAGE_GEN_TOOL,
         )
-        generator = di.smart_stable_diffusion_generator(prompt, copywriter_tool, image_gen_tool)
+        generator = di.smart_stable_diffusion_generator(prompt, copywriter_tool, image_gen_tool, aspect_ratio)
         result = generator.execute()
         if result == SmartStableDiffusionGenerator.Result.failed:
             raise ValueError(f"Failed to generate the image! Reason: {str(generator.error)}")

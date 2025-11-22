@@ -7,6 +7,7 @@ from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_3_5_HAIKU
 from features.external_tools.tool_choice_resolver import ConfiguredTool
+from features.images.aspect_ratio_utils import validate_aspect_ratio
 from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
 from features.integrations import prompt_resolvers
 from util import log
@@ -28,6 +29,7 @@ class SmartStableDiffusionGenerator:
     __llm_input: list[BaseMessage]
     __image_gen_tool: ConfiguredTool
     __copywriter: BaseChatModel
+    __aspect_ratio: str
     __di: DI
 
     def __init__(
@@ -36,11 +38,13 @@ class SmartStableDiffusionGenerator:
         configured_copywriter_tool: ConfiguredTool,
         configured_image_gen_tool: ConfiguredTool,
         di: DI,
+        aspect_ratio: str | None = None,
     ):
         system_prompt = prompt_resolvers.copywriting_image_prompt_upscaler(di.require_invoker_chat_type())
         self.__llm_input = [SystemMessage(system_prompt), HumanMessage(raw_prompt)]
         self.__copywriter = di.chat_langchain_model(configured_copywriter_tool)
         self.__image_gen_tool = configured_image_gen_tool
+        self.__aspect_ratio = validate_aspect_ratio(aspect_ratio, SimpleStableDiffusionGenerator.DEFAULT_ASPECT_RATIO)
         self.__di = di
 
     def execute(self) -> Result:
@@ -63,7 +67,7 @@ class SmartStableDiffusionGenerator:
         # let's generate the image now using the corrected prompt
         try:
             log.t("Starting image generation")
-            generator = self.__di.simple_stable_diffusion_generator(prompt, self.__image_gen_tool)
+            generator = self.__di.simple_stable_diffusion_generator(prompt, self.__image_gen_tool, self.__aspect_ratio)
             image_url = generator.execute()
             if generator.error:
                 self.error = log.e("Image generator failure", generator.error)
