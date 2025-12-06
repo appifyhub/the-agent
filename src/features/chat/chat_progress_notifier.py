@@ -6,6 +6,7 @@ from typing import Literal
 from db.model.chat_config import ChatConfigDB
 from di.di import DI
 from features.integrations.integration_config import TELEGRAM_REACTIONS, WHATSAPP_REACTIONS
+from features.integrations.integrations import resolve_reaction_timing
 from util import log
 
 DEFAULT_REACTION_INTERVAL_S = 15
@@ -24,7 +25,10 @@ ESCALATING_REACTIONS = [
 class ChatProgressNotifier:
 
     __message_id: str
-    __last_reaction_time: float
+    __initial_delay_s: int | None
+    __reaction_interval_s: int | None
+    __start_time: float | None
+    __last_reaction_time: float | None
     __next_reaction_index: int
     __total_cycles: int
     __lock: Lock
@@ -37,17 +41,23 @@ class ChatProgressNotifier:
         message_id: str,
         di: DI,
         auto_start: bool = False,
-        reaction_interval_s: int = DEFAULT_REACTION_INTERVAL_S,
     ):
         self.__di = di
         self.__message_id = message_id
-        self.__last_reaction_time = 0
+        self.__start_time = None
+        self.__last_reaction_time = None
         self.__next_reaction_index = 0
         self.__total_cycles = 0
         self.__thread = None
         self.__lock = Lock()
         self.__signal = Event()
-        self.__reaction_interval_s = reaction_interval_s
+        resolved_timing = resolve_reaction_timing(self.__di.require_invoker_chat_type())
+        if resolved_timing is None:
+            self.__initial_delay_s = None
+            self.__reaction_interval_s = None
+        else:
+            # both are always set together or both are None
+            self.__initial_delay_s, self.__reaction_interval_s = resolved_timing
         if auto_start:
             self.start()
 
@@ -94,21 +104,34 @@ class ChatProgressNotifier:
             pass
 
     def __run(self):
-        current_time_s = time.time()
-        self.__last_reaction_time = current_time_s
+        # both interval and delay are always set together, or both are None
+        are_intervals_set = self.__reaction_interval_s is not None and self.__initial_delay_s is not None
 
         while not self.__signal.is_set() and self.__total_cycles < MAX_CYCLES:
             current_time_s = time.time()
-            reaction_elapsed_s = current_time_s - self.__last_reaction_time
+            if self.__start_time is None:
+                self.__start_time = current_time_s
 
-            if reaction_elapsed_s >= float(self.__reaction_interval_s):
-                # check if reaction update is needed
-                self.__send_reaction()
-                self.__last_reaction_time = current_time_s
-            else:
-                # no updates, keep the status running
-                self.__set_chat_action("typing")
+            # let's try to notify with a reaction
+            if are_intervals_set:
+                assert self.__reaction_interval_s is not None  # linter is stupid
+                assert self.__initial_delay_s is not None  # linter is stupid
 
+                if self.__last_reaction_time is None:
+                    # we haven't reacted yet, so check initial delay
+                    elapsed_time_s = current_time_s - self.__start_time
+                    if elapsed_time_s >= self.__initial_delay_s:
+                        self.__send_reaction()
+                        self.__last_reaction_time = current_time_s
+                else:
+                    # we have reacted before, so check interval
+                    elapsed_time_s = current_time_s - self.__last_reaction_time
+                    if elapsed_time_s >= self.__reaction_interval_s:
+                        self.__send_reaction()
+                        self.__last_reaction_time = current_time_s
+
+            # always notify the typing status because it resets automatically, and wait
+            self.__set_chat_action("typing")
             self.__total_cycles += 1
             self.__signal.wait(TYPING_STATUS_INTERVAL_S)
 

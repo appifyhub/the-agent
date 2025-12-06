@@ -44,3 +44,11 @@ WHATSAPP_REACTIONS: list[str] = [
     "😇", "😨", "🤝", "✍", "🤗", "🫡", "🎅", "🎄", "☃", "💅", "🤪", "🗿", "🆒", "💘", "🙉", "🦄",
     "😘", "💊", "🙊", "😎", "👾", "🤷‍♂️", "😡",
 ]
+
+# === Platform Notification Intervals (in seconds) ===
+
+TELEGRAM_REACTION_INTERVAL_S = 10
+TELEGRAM_REACTION_INITIAL_DELAY_S = TELEGRAM_REACTION_INTERVAL_S
+
+WHATSAPP_REACTION_INTERVAL_S = 7
+WHATSAPP_REACTION_INITIAL_DELAY_S = 0
