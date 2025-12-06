@@ -561,12 +561,12 @@
         },
         "fastapi": {
             "hashes": [
-                "sha256:ab33d672d8e1cc6e0b49777eb73c32ccf20761011f5ca16755889ab406fd1de0",
-                "sha256:f54c69f23db14bd3dbcdfaf3fdce0483ca5f499512380c8e379a70cda30aa920"
+                "sha256:0503b7b7bc71bc98f7c90c9117d21fdf6147c0d74703011b87936becc86985c1",
+                "sha256:624d384d7cda7c096449c889fc776a0571948ba14c3c929fa8e9a78cd0b0a6a8"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.8'",
-            "version": "==0.123.9"
+            "version": "==0.123.10"
         },
         "filetype": {
             "hashes": [
