@@ -463,16 +463,13 @@ class DI:
         message_id: str,
         auto_start: bool = False,
         reaction_interval_s: int | None = None,
-        text_update_interval_s: int | None = None,
     ) -> "ChatProgressNotifier":
         from features.chat.chat_progress_notifier import (
             DEFAULT_REACTION_INTERVAL_S,
-            DEFAULT_TEXT_UPDATE_INTERVAL_S,
             ChatProgressNotifier,
         )
         reaction_interval_s = reaction_interval_s or DEFAULT_REACTION_INTERVAL_S
-        text_update_interval_s = text_update_interval_s or DEFAULT_TEXT_UPDATE_INTERVAL_S
-        return ChatProgressNotifier(message_id, self, auto_start, reaction_interval_s, text_update_interval_s)
+        return ChatProgressNotifier(message_id, self, auto_start, reaction_interval_s)
 
     @property
     def command_processor(self) -> "CommandProcessor":
