@@ -6,7 +6,14 @@ from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User, UserSave
 from di.di import DI
-from features.integrations.integration_config import BACKGROUND_AGENT, THE_AGENT
+from features.integrations.integration_config import (
+    BACKGROUND_AGENT,
+    TELEGRAM_REACTION_INITIAL_DELAY_S,
+    TELEGRAM_REACTION_INTERVAL_S,
+    THE_AGENT,
+    WHATSAPP_REACTION_INITIAL_DELAY_S,
+    WHATSAPP_REACTION_INTERVAL_S,
+)
 from util.functions import normalize_phone_number, normalize_username
 
 
@@ -175,6 +182,16 @@ def add_messaging_frequency_warning(response_data: dict, chat_type: ChatConfigDB
             "you've messaged the agent within the last 24 hours. If you haven't sent a message "
             "recently, you won't receive this alert notification."
         )
+
+
+def resolve_reaction_timing(chat_type: ChatConfigDB.ChatType) -> tuple[int, int] | None:
+    match chat_type:
+        case ChatConfigDB.ChatType.telegram:
+            return TELEGRAM_REACTION_INITIAL_DELAY_S, TELEGRAM_REACTION_INTERVAL_S
+        case ChatConfigDB.ChatType.whatsapp:
+            return WHATSAPP_REACTION_INITIAL_DELAY_S, WHATSAPP_REACTION_INTERVAL_S
+        case _:
+            return None
 
 
 def lookup_all_admin_chats(chat_config: ChatConfig, user: User, di: DI) -> list[ChatConfig]:
