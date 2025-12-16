@@ -704,11 +704,17 @@ components:
           nullable: false
           enum: [none, major, minor, all]
           description: Release notification settings
+        media_mode:
+          type: string
+          nullable: false
+          enum: [photo, file, all]
+          description: Media sending mode - photo (send as photo), file (send as file), all (send both photo and file)
       required:
         - language_name
         - language_iso_code
         - reply_chance_percent
         - release_notifications
+        - media_mode
 
     ChatSettingsResponse:
       type: object
@@ -745,6 +751,11 @@ components:
           nullable: false
           enum: [none, major, minor, all]
           description: Release notification settings
+        media_mode:
+          type: string
+          nullable: false
+          enum: [photo, file, all]
+          description: Media sending mode - photo (send as photo), file (send as file), all (send both photo and file)
         is_private:
           type: boolean
           nullable: false
@@ -758,6 +769,7 @@ components:
         - platform
         - reply_chance_percent
         - release_notifications
+        - media_mode
         - is_private
         - is_own
 
