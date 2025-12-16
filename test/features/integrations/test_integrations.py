@@ -1,6 +1,6 @@
 from datetime import date
 from unittest import TestCase
-from unittest.mock import Mock
+from unittest.mock import Mock, create_autospec
 from uuid import UUID
 
 from pydantic import SecretStr
@@ -23,6 +23,7 @@ from features.integrations.integrations import (
     resolve_user_link,
     resolve_user_to_save,
 )
+from features.integrations.platform_bot_sdk import PlatformBotSDK
 from util.config import config
 
 
@@ -695,3 +696,76 @@ class IntegrationsTest(TestCase):
         )
         result = is_own_chat(chat_config, user)
         self.assertFalse(result)
+
+    def test_all_mode_sends_both_photo_and_document(self):
+        """Test that 'all' mode sends both photo (resized) and document (original)"""
+        sdk_mock = create_autospec(PlatformBotSDK, instance = True)
+        sdk_mock.send_photo = Mock(return_value = "photo-sent")
+        sdk_mock.send_document = Mock(return_value = "document-sent")
+        # Call the actual smart_send_photo method
+        result = PlatformBotSDK.smart_send_photo(
+            sdk_mock,
+            media_mode = ChatConfigDB.MediaMode.all,
+            chat_id = 1,
+            photo_url = "http://example.com/img.png",
+            caption = "test",
+        )
+        # Verify photo was sent
+        sdk_mock.send_photo.assert_called_once_with(1, "http://example.com/img.png", "test")
+        # Verify document was sent with original URL
+        sdk_mock.send_document.assert_called_once_with(1, "http://example.com/img.png", "test", thumbnail = None)
+        # Return value should be from document (last message sent)
+        self.assertEqual(result, "document-sent")
+
+    def test_all_mode_continues_with_document_when_photo_fails(self):
+        """Test that 'all' mode still sends document even if photo send fails"""
+        sdk_mock = create_autospec(PlatformBotSDK, instance = True)
+        sdk_mock.send_photo = Mock(side_effect = Exception("photo send failed"))
+        sdk_mock.send_document = Mock(return_value = "document-sent")
+        result = PlatformBotSDK.smart_send_photo(
+            sdk_mock,
+            media_mode = ChatConfigDB.MediaMode.all,
+            chat_id = 1,
+            photo_url = "http://example.com/img.png",
+        )
+        # Verify photo was attempted
+        sdk_mock.send_photo.assert_called_once_with(1, "http://example.com/img.png", None)
+        # Verify document was still sent despite photo failure
+        sdk_mock.send_document.assert_called_once_with(1, "http://example.com/img.png", None, thumbnail = None)
+        # Return value should be from document
+        self.assertEqual(result, "document-sent")
+
+    def test_file_mode_sends_document_only(self):
+        """Test that 'file' mode sends document directly"""
+        sdk_mock = create_autospec(PlatformBotSDK, instance = True)
+        sdk_mock.send_document = Mock(return_value = "document-sent")
+        sdk_mock.send_photo = Mock()
+        result = PlatformBotSDK.smart_send_photo(
+            sdk_mock,
+            media_mode = ChatConfigDB.MediaMode.file,
+            chat_id = 1,
+            photo_url = "http://example.com/img.png",
+            caption = "test",
+        )
+        # Verify document was sent with original URL
+        sdk_mock.send_document.assert_called_once_with(1, "http://example.com/img.png", "test", thumbnail = None)
+        # Verify photo was not called
+        sdk_mock.send_photo.assert_not_called()
+        self.assertEqual(result, "document-sent")
+
+    def test_photo_mode_sends_photo_with_fallback(self):
+        """Test that 'photo' mode sends photo, falls back to document on failure"""
+        sdk_mock = create_autospec(PlatformBotSDK, instance = True)
+        sdk_mock.send_photo = Mock(side_effect = Exception("photo failed"))
+        sdk_mock.send_document = Mock(return_value = "document-sent")
+        result = PlatformBotSDK.smart_send_photo(
+            sdk_mock,
+            media_mode = ChatConfigDB.MediaMode.photo,
+            chat_id = 1,
+            photo_url = "http://example.com/img.png",
+        )
+        # Verify photo was attempted
+        sdk_mock.send_photo.assert_called_once()
+        # Verify document was sent as fallback
+        sdk_mock.send_document.assert_called_once_with(1, "http://example.com/img.png", None, thumbnail = None)
+        self.assertEqual(result, "document-sent")

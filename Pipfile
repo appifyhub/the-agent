@@ -35,6 +35,7 @@ readabilipy = "*"
 langchain-perplexity = "*"
 google-genai = "*"
 pyuploadcare = "*"
+pillow = "*"
 
 [dev-packages]
 pytest = "*"

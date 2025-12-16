@@ -206,8 +206,13 @@ class ChatImagingService:
                     continue
                 external_id = str(invoker_chat.external_id)
                 log.t(f"Sending edited image to chat '{external_id}'")
-                self.__di.platform_bot_sdk().send_document(external_id, image_url, thumbnail = image_url)
-                self.__di.platform_bot_sdk().send_photo(external_id, image_url, caption = "📸")
+                self.__di.platform_bot_sdk().smart_send_photo(
+                    media_mode = invoker_chat.media_mode,
+                    chat_id = external_id,
+                    photo_url = image_url,
+                    caption = "📸",
+                    thumbnail = image_url,
+                )
                 log.t("Image edited and sent successfully")
                 output_removal_urls.append({"url": image_url, "error": None, "status": "delivered"})
             return result, output_removal_urls
@@ -222,8 +227,13 @@ class ChatImagingService:
                     continue
                 external_id = str(invoker_chat.external_id)
                 log.t(f"Sending restored image to chat '{external_id}': {image_url}")
-                self.__di.platform_bot_sdk().send_document(external_id, image_url, thumbnail = image_url)
-                self.__di.platform_bot_sdk().send_photo(external_id, image_url, caption = "📸")
+                self.__di.platform_bot_sdk().smart_send_photo(
+                    media_mode = invoker_chat.media_mode,
+                    chat_id = external_id,
+                    photo_url = image_url,
+                    caption = "📸",
+                    thumbnail = image_url,
+                )
                 log.t("Image restored and sent successfully")
                 output_restoration_urls.append({"url": image_url, "error": None, "status": "delivered"})
             return result, output_restoration_urls
@@ -238,8 +248,13 @@ class ChatImagingService:
                     continue
                 external_id = str(invoker_chat.external_id)
                 log.t(f"Sending edited image to chat '{external_id}': {image_url}")
-                self.__di.platform_bot_sdk().send_document(external_id, image_url, thumbnail = image_url)
-                self.__di.platform_bot_sdk().send_photo(external_id, image_url, caption = "📸")
+                self.__di.platform_bot_sdk().smart_send_photo(
+                    media_mode = invoker_chat.media_mode,
+                    chat_id = external_id,
+                    photo_url = image_url,
+                    caption = "📸",
+                    thumbnail = image_url,
+                )
                 log.t("Image edited and sent successfully")
                 output_editing_urls.append({"url": image_url, "error": None, "status": "delivered"})
             return result, output_editing_urls

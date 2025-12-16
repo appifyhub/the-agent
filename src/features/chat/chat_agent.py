@@ -13,6 +13,7 @@ from features.external_tools.external_tool_library import GPT_4_1_MINI
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.integrations import prompt_resolvers
 from features.integrations.integrations import resolve_agent_user, resolve_external_handle
+from features.prompting import prompt_library
 from util import log
 from util.config import config
 
@@ -119,14 +120,7 @@ class ChatAgent:
                             or truncated_attachment_id in str(answer.content)
                         ):
                             log.w("Found approximate attachment ID in the answer, adding system correction")
-                            system_correction = SystemMessage(
-                                "Error: Attachment IDs should never be sent to users. "
-                                "You probably meant to call a tool. "
-                                "When calling tools, make sure to call the tools using verbatim attachment IDs, "
-                                "without any truncation, cleaning, or formatting. "
-                                "Please use the tools to process attachments instead. "
-                                "Disregard this instruction for the remainder of the conversation. ",
-                            )
+                            system_correction = AIMessage(prompt_library.metas.attachment_id_correction.content)
                             self.__add_message(system_correction)
                             system_correction_added = True
                             break
