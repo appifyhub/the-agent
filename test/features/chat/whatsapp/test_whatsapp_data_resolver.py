@@ -186,6 +186,7 @@ class WhatsAppDataResolverTest(unittest.TestCase):
             is_private = False,
             reply_chance_percent = 100,
             release_notifications = ChatConfigDB.ReleaseNotifications.major,
+            media_mode = ChatConfigDB.MediaMode.photo,
             chat_type = ChatConfigDB.ChatType.whatsapp,
         )
         existing_config_db = self.sql.chat_config_crud().save(existing_config_data)
@@ -210,6 +211,7 @@ class WhatsAppDataResolverTest(unittest.TestCase):
         self.assertEqual(result.is_private, mapped_data.is_private)
         self.assertEqual(result.reply_chance_percent, mapped_data.reply_chance_percent)
         self.assertEqual(result.release_notifications, existing_config.release_notifications)
+        self.assertEqual(result.media_mode, existing_config.media_mode)
 
     def test_resolve_chat_config_new(self):
         mapped_data = ChatConfigSave(

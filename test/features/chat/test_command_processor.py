@@ -43,6 +43,7 @@ class CommandProcessorTest(unittest.TestCase):
             reply_chance_percent = 100,
             chat_type = ChatConfigDB.ChatType.telegram,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            media_mode = ChatConfigDB.MediaMode.photo,
         )
         self.agent_user = resolve_agent_user(ChatConfigDB.ChatType.telegram)
 

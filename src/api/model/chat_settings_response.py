@@ -9,5 +9,6 @@ class ChatSettingsResponse(BaseModel):
     language_iso_code: str | None = None
     reply_chance_percent: int
     release_notifications: str
+    media_mode: str
     is_private: bool
     is_own: bool

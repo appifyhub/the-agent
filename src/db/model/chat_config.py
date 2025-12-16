@@ -11,6 +11,38 @@ from db.model.base import BaseModel
 class ChatConfigDB(BaseModel):
     __tablename__ = "chat_configs"
 
+    class MediaMode(Enum):
+        photo = "photo"
+        file = "file"
+        all = "all"
+
+        @classmethod
+        def lookup(cls, value) -> "ChatConfigDB.MediaMode | None":
+            try:
+                return cls(value)
+            except ValueError:
+                return None
+
+        def __lt__(self, other):
+            if not isinstance(other, ChatConfigDB.MediaMode):
+                return NotImplemented
+            hierarchy = {
+                "photo": 1,
+                "file": 2,
+                "all": 3,
+            }
+            return hierarchy[self.value] < hierarchy[other.value]
+
+        def __ge__(self, other):
+            if not isinstance(other, ChatConfigDB.MediaMode):
+                return NotImplemented
+            hierarchy = {
+                "photo": 1,
+                "file": 2,
+                "all": 3,
+            }
+            return hierarchy[self.value] >= hierarchy[other.value]
+
     class ReleaseNotifications(Enum):
         none = "none"
         major = "major"
@@ -89,6 +121,7 @@ class ChatConfigDB(BaseModel):
     is_private = Column(Boolean, nullable = False)
     reply_chance_percent = Column(Integer, nullable = False)
     release_notifications = Column(EnumSQL(ReleaseNotifications), nullable = False, default = ReleaseNotifications.all)
+    media_mode = Column(EnumSQL(MediaMode), nullable = False, default = MediaMode.photo)
     chat_type = Column(EnumSQL(ChatType), nullable = False)
 
     __table_args__ = (

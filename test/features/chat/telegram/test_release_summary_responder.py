@@ -260,6 +260,7 @@ class ReleaseSummaryResponderTest(unittest.TestCase):
     @staticmethod
     def __make_chat_db(
         notifications: ChatConfigDB.ReleaseNotifications = ChatConfigDB.ReleaseNotifications.all,
+        media_mode: ChatConfigDB.MediaMode = ChatConfigDB.MediaMode.photo,
         chat_id: str = "1234",
         lang_name: str = "English",
         lang_iso: str = "en",
@@ -273,12 +274,14 @@ class ReleaseSummaryResponderTest(unittest.TestCase):
             is_private = True,
             reply_chance_percent = 100,
             release_notifications = notifications,
+            media_mode = media_mode,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
 
     @staticmethod
     def __make_chat(
         notifications: ChatConfigDB.ReleaseNotifications = ChatConfigDB.ReleaseNotifications.all,
+        media_mode: ChatConfigDB.MediaMode = ChatConfigDB.MediaMode.photo,
         chat_id: str = "1234",
         lang_name: str = "English",
         lang_iso: str = "en",
@@ -293,6 +296,7 @@ class ReleaseSummaryResponderTest(unittest.TestCase):
                 is_private = True,
                 reply_chance_percent = 100,
                 release_notifications = notifications,
+                media_mode = media_mode,
                 chat_type = ChatConfigDB.ChatType.telegram,
             ),
         )
