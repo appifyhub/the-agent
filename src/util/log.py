@@ -49,8 +49,13 @@ def _format_args(*args: Any) -> tuple[str, list[Exception]]:
 
 
 def _log_message(level: str, message: str, exceptions: list[Exception]) -> str:
+    # build enriched return value with exception messages (always, regardless of logging)
+    return_parts = [message]
+    for exception in exceptions:
+        return_parts.append(f"{type(exception).__name__}: {str(exception)}")
+
     if not _should_log(level) and not exceptions:
-        return message
+        return "\n ├─ ".join(return_parts)
 
     # for uvicorn, use the uvicorn logger
     if config.log_level != "local":
@@ -66,7 +71,7 @@ def _log_message(level: str, message: str, exceptions: list[Exception]) -> str:
                         logger.warning(message)
                     case "ERROR":
                         logger.error(message)
-            # log the exceptions
+            # log the exceptions (message + traceback)
             for exception in exceptions:
                 logger.error(f"Message: {str(exception)}")
                 if trace := exception.__traceback__:
@@ -83,7 +88,7 @@ def _log_message(level: str, message: str, exceptions: list[Exception]) -> str:
                     trace_lines = traceback.format_tb(trace)
                     indented_trace = "".join(trace_lines).strip()
                     print(indented_trace, file = sys.stderr)
-        return message
+        return "\n ├─ ".join(return_parts)
 
     # for local execution, print to stdout/stderr
     print(f"[{level[0]}] {message}")
@@ -93,7 +98,7 @@ def _log_message(level: str, message: str, exceptions: list[Exception]) -> str:
             trace_lines = traceback.format_tb(trace)
             indented_trace = "".join(("    " + line.strip()) for line in trace_lines)
             print(indented_trace, file = sys.stderr)
-    return message
+    return "\n ├─ ".join(return_parts)
 
 
 def t(*args: Any) -> str:

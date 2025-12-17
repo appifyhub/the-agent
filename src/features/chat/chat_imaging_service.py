@@ -150,7 +150,7 @@ class ChatImagingService:
         return result, urls, errors
 
     def __edit_image(self) -> tuple[Result, URLList, ErrorList]:
-        log.t(f"Editing {len(self.__attachments)} images")
+        log.t(f"Editing {len(self.__attachments)} images in aspect ratio {self.__aspect_ratio}")
         result = ChatImagingService.Result.success
         urls: URLList = []
         errors: ErrorList = []
