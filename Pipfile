@@ -12,7 +12,6 @@ alembic = "*"
 pydantic = "*"
 uvicorn = "*"
 replicate = "*"
-ruff = "*"
 pydub = "*"
 pymupdf = "*"
 python-jose = { extras = ["cryptography"], version = "*" }
@@ -40,6 +39,7 @@ pillow = "*"
 [dev-packages]
 pytest = "*"
 requests-mock = "*"
+ruff = "*"
 
 [requires]
 # Python 3.12: keep in sync with pyproject.toml
