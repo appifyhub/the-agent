@@ -14,12 +14,14 @@ class ChatSettingsPayloadTest(unittest.TestCase):
             language_iso_code = "es",
             reply_chance_percent = 75,
             release_notifications = "all",
+            media_mode = "photo",
         )
 
         self.assertEqual(payload.language_name, "Spanish")
         self.assertEqual(payload.language_iso_code, "es")
         self.assertEqual(payload.reply_chance_percent, 75)
         self.assertEqual(payload.release_notifications, "all")
+        self.assertEqual(payload.media_mode, "photo")
 
     def test_missing_required_fields_raises_error(self):
         """Test that missing required fields raise ValidationError"""
@@ -34,12 +36,14 @@ class ChatSettingsPayloadTest(unittest.TestCase):
             language_iso_code = "\ten\n",
             reply_chance_percent = 50,
             release_notifications = "  none  ",
+            media_mode = "  file  ",
         )
 
         self.assertEqual(payload.language_name, "English")
         self.assertEqual(payload.language_iso_code, "en")
         self.assertEqual(payload.reply_chance_percent, 50)
         self.assertEqual(payload.release_notifications, "none")
+        self.assertEqual(payload.media_mode, "file")
 
     def test_empty_strings_after_trimming(self):
         """Test that empty strings after trimming remain empty strings"""
@@ -48,6 +52,7 @@ class ChatSettingsPayloadTest(unittest.TestCase):
             language_iso_code = "",  # Already empty
             reply_chance_percent = 25,
             release_notifications = "\t\n",  # Tabs and newlines
+            media_mode = "\t\n",  # Tabs and newlines
         )
 
         # After trimming, these should all be empty strings
@@ -55,6 +60,7 @@ class ChatSettingsPayloadTest(unittest.TestCase):
         self.assertEqual(payload.language_iso_code, "")
         self.assertEqual(payload.reply_chance_percent, 25)
         self.assertEqual(payload.release_notifications, "")
+        self.assertEqual(payload.media_mode, "")
 
     def test_reply_chance_validation_valid_values(self):
         """Test that valid reply chance percentages are accepted"""
@@ -64,18 +70,21 @@ class ChatSettingsPayloadTest(unittest.TestCase):
             language_iso_code = "en",
             reply_chance_percent = 0,
             release_notifications = "all",
+            media_mode = "photo",
         )
         payload_100 = ChatSettingsPayload(
             language_name = "English",
             language_iso_code = "en",
             reply_chance_percent = 100,
             release_notifications = "all",
+            media_mode = "file",
         )
         payload_50 = ChatSettingsPayload(
             language_name = "English",
             language_iso_code = "en",
             reply_chance_percent = 50,
             release_notifications = "all",
+            media_mode = "all",
         )
 
         self.assertEqual(payload_0.reply_chance_percent, 0)
@@ -91,6 +100,7 @@ class ChatSettingsPayloadTest(unittest.TestCase):
                 language_iso_code = "en",
                 reply_chance_percent = -1,
                 release_notifications = "all",
+                media_mode = "photo",
             )
         self.assertIn("Reply chance percent must be between 0 and 100", str(context.exception))
 
@@ -100,5 +110,6 @@ class ChatSettingsPayloadTest(unittest.TestCase):
                 language_iso_code = "en",
                 reply_chance_percent = 101,
                 release_notifications = "all",
+                media_mode = "photo",
             )
         self.assertIn("Reply chance percent must be between 0 and 100", str(context.exception))

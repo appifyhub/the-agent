@@ -82,11 +82,12 @@ class SmartStableDiffusionGenerator:
         # let's send the image to the chat
         try:
             log.t("Starting image sending")
-            self.__di.platform_bot_sdk().send_document(
-                int(invoker_chat.external_id or "-1"), image_url, thumbnail = image_url,
-            )
-            self.__di.platform_bot_sdk().send_photo(
-                int(invoker_chat.external_id or "-1"), image_url, caption = "📸",
+            self.__di.platform_bot_sdk().smart_send_photo(
+                media_mode = invoker_chat.media_mode,
+                chat_id = int(invoker_chat.external_id or "-1"),
+                photo_url = image_url,
+                caption = "📸",
+                thumbnail = image_url,
             )
         except Exception as e:
             self.error = log.e("Error sending image", e)

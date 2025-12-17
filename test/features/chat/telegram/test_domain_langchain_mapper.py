@@ -28,6 +28,7 @@ class DomainLangchainMapperTest(unittest.TestCase):
             reply_chance_percent = 100,
             chat_type = ChatConfigDB.ChatType.telegram,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            media_mode = ChatConfigDB.MediaMode.photo,
         )
         self.mapper = DomainLangchainMapper()
 

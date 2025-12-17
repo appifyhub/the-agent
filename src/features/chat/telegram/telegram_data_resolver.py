@@ -69,8 +69,10 @@ class TelegramDataResolver:
             mapped_data.is_private = old_chat_config.is_private
             mapped_data.reply_chance_percent = old_chat_config.reply_chance_percent
             mapped_data.release_notifications = old_chat_config.release_notifications
+            mapped_data.media_mode = old_chat_config.media_mode
         else:
-            # new chat, let's set the default value
+            # new chat, let's set sensible default values
+            mapped_data.media_mode = ChatConfigDB.MediaMode.photo
             if mapped_data.is_private:
                 mapped_data.release_notifications = ChatConfigDB.ReleaseNotifications.major
             else:

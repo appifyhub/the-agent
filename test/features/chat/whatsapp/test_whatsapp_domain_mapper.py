@@ -5,6 +5,7 @@ from features.chat.whatsapp.model.attachment.media_attachment import MediaAttach
 from features.chat.whatsapp.model.attachment.text import Text
 from features.chat.whatsapp.model.change import Change
 from features.chat.whatsapp.model.contact import Contact
+from features.chat.whatsapp.model.context import Context
 from features.chat.whatsapp.model.entry import Entry
 from features.chat.whatsapp.model.message import Message
 from features.chat.whatsapp.model.metadata import Metadata
@@ -85,6 +86,36 @@ class WhatsAppDomainMapperTest(unittest.TestCase):
         self.assertEqual(latest.message.message_id, "m2")
         self.assertEqual(latest.chat.external_id, "2222222222")
         self.assertEqual(latest.chat.title, "Second User")
+
+    def test_map_update_with_forwarded_message(self):
+        message = Message(
+            id = "forward_msg_123",
+            **{"from": "5511999999999"},
+            timestamp = str(int(datetime.now().timestamp())),
+            type = "image",
+            image = MediaAttachment(id = "image_id_123", mime_type = "image/jpeg"),
+            context = Context(),
+        )
+
+        value = Value(
+            messaging_product = "whatsapp",
+            metadata = Metadata(display_phone_number = "1234567890", phone_number_id = "phone_id"),
+            contacts = [Contact(profile = Profile(name = "John Doe"), wa_id = "5511999999999")],
+            messages = [message],
+        )
+        change = Change(value = value, field = "messages")
+        entry = Entry(id = "entry_123", changes = [change])
+        update = Update(object = "whatsapp_business_account", entry = [entry])
+
+        results = self.mapper.map_update(update)
+
+        self.assertEqual(len(results), 1)
+        result = results[0]
+        self.assertEqual(result.message.message_id, "forward_msg_123")
+        self.assertIsNone(result.replied_to_message_id)
+        self.assertEqual(len(result.attachments), 1)
+        self.assertEqual(result.attachments[0].external_id, "image_id_123")
+        self.assertEqual(result.attachments[0].mime_type, "image/jpeg")
 
     def test_map_message_filled(self):
         message = Message(

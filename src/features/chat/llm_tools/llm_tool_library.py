@@ -65,7 +65,8 @@ def process_attachments(
                 {
                     "status": result.value,
                     "details": details,
-                    "next_step": "Deliver any errors to the partner (no links)",
+                    "description": "Results were already delivered to the partner!",
+                    "next_step": "You may deliver any errors to the partner (but no links or attachments)",
                 },
             )
         else:

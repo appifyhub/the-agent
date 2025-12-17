@@ -146,7 +146,6 @@ class ChatProgressNotifier:
 
     def __send_reaction(self):
         log.t("Time for a reaction update")
-        self.__set_chat_action("typing")
         try:
             invoker_chat = self.__di.require_invoker_chat()
             # use platform-appropriate reactions

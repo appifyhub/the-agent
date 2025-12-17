@@ -20,6 +20,7 @@ class ChatMapperTest(unittest.TestCase):
             reply_chance_percent = 75,
             is_private = False,
             release_notifications = ChatConfigDB.ReleaseNotifications.major,
+            media_mode = ChatConfigDB.MediaMode.photo,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
 
@@ -32,5 +33,6 @@ class ChatMapperTest(unittest.TestCase):
         self.assertEqual(api.language_name, self.chat.language_name)
         self.assertEqual(api.reply_chance_percent, self.chat.reply_chance_percent)
         self.assertEqual(api.release_notifications, self.chat.release_notifications.value)
+        self.assertEqual(api.media_mode, self.chat.media_mode.value)
         self.assertEqual(api.is_private, self.chat.is_private)
         self.assertTrue(api.is_own)
