@@ -147,6 +147,13 @@ class SettingsController:
         log.t(f"  Updating release notifications to '{release_notifications.value}'")
         chat_config_save.release_notifications = release_notifications
 
+        # validate media mode changes
+        media_mode = ChatConfigDB.MediaMode.lookup(payload.media_mode)
+        if not media_mode:
+            raise ValueError(log.e(f"Invalid media mode setting value '{payload.media_mode}'"))
+        log.t(f"  Updating media mode to '{media_mode.value}'")
+        chat_config_save.media_mode = media_mode
+
         # finally store the changes
         ChatConfig.model_validate(self.__di.chat_config_crud.save(chat_config_save))
         log.i("Chat settings saved")

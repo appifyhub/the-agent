@@ -30,6 +30,7 @@ class ChatImagingServiceTest(unittest.TestCase):
         mock_chat = MagicMock()
         mock_chat.external_id = "test_chat_id"
         mock_chat.chat_type = ChatConfigDB.ChatType.telegram
+        mock_chat.media_mode = ChatConfigDB.MediaMode.all  # Default to 'all' mode to match old behavior
         self.mock_di.require_invoker_chat = MagicMock(return_value = mock_chat)
         self.mock_di.require_invoker_chat_type = MagicMock(return_value = ChatConfigDB.ChatType.telegram)
         self.mock_di.tool_choice_resolver = MagicMock()
@@ -122,9 +123,11 @@ class ChatImagingServiceTest(unittest.TestCase):
         ]
         self.assertEqual(details, expected_details)
         self.assertEqual(self.mock_di.image_background_remover.call_count, 2)
-        self.mock_platform_sdk.send_document.assert_called_once_with(
-            "test_chat_id",
-            "http://test.com/edited_image.png",
+        self.mock_platform_sdk.smart_send_photo.assert_called_once_with(
+            media_mode = ChatConfigDB.MediaMode.all,
+            chat_id = "test_chat_id",
+            photo_url = "http://test.com/edited_image.png",
+            caption = "📸",
             thumbnail = "http://test.com/edited_image.png",
         )
 
@@ -212,9 +215,11 @@ class ChatImagingServiceTest(unittest.TestCase):
         expected_details = [{"url": "http://test.com/edited_image.png", "error": None, "status": "delivered"}]
         self.assertEqual(details, expected_details)
         mock_remover_instance.execute.assert_called_once()
-        self.mock_platform_sdk.send_document.assert_called_once_with(
-            "test_chat_id",
-            "http://test.com/edited_image.png",
+        self.mock_platform_sdk.smart_send_photo.assert_called_once_with(
+            media_mode = ChatConfigDB.MediaMode.all,
+            chat_id = "test_chat_id",
+            photo_url = "http://test.com/edited_image.png",
+            caption = "📸",
             thumbnail = "http://test.com/edited_image.png",
         )
 
@@ -243,4 +248,10 @@ class ChatImagingServiceTest(unittest.TestCase):
         expected_details = [{"url": "http://test.com/inpainted_image.png", "error": None, "status": "delivered"}]
         self.assertEqual(details, expected_details)
         mock_restorer_instance.execute.assert_called_once()
-        self.mock_platform_sdk.send_document.assert_called_once()
+        self.mock_platform_sdk.smart_send_photo.assert_called_once_with(
+            media_mode = ChatConfigDB.MediaMode.all,
+            chat_id = "test_chat_id",
+            photo_url = "http://test.com/inpainted_image.png",
+            caption = "📸",
+            thumbnail = "http://test.com/inpainted_image.png",
+        )

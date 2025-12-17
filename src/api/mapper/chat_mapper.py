@@ -11,6 +11,7 @@ def domain_to_api(chat: ChatConfig, is_own: bool) -> ChatSettingsResponse:
         language_iso_code = chat.language_iso_code,
         reply_chance_percent = chat.reply_chance_percent,
         release_notifications = chat.release_notifications.value,
+        media_mode = chat.media_mode.value,
         is_private = chat.is_private,
         is_own = is_own,
     )

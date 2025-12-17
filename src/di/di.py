@@ -53,6 +53,7 @@ if TYPE_CHECKING:
     from features.images.image_background_remover import ImageBackgroundRemover
     from features.images.image_contents_restorer import ImageContentsRestorer
     from features.images.image_editor import ImageEditor
+    from features.images.image_resizer import ImageResizer
     from features.images.image_uploader import ImageUploader
     from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
     from features.images.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
@@ -574,6 +575,12 @@ class DI:
     ) -> "ImageUploader":
         from features.images.image_uploader import ImageUploader
         return ImageUploader(binary_image, base64_image, expiration_s, name)
+
+    # noinspection PyMethodMayBeStatic
+    @property
+    def image_resizer(self) -> "ImageResizer":
+        from features.images.image_resizer import ImageResizer
+        return ImageResizer()
 
     # noinspection PyMethodMayBeStatic
     def file_uploader(

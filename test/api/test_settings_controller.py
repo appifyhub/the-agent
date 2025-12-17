@@ -77,6 +77,7 @@ class SettingsControllerTest(unittest.TestCase):
             reply_chance_percent = 75,
             is_private = False,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            media_mode = ChatConfigDB.MediaMode.photo,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
 
@@ -210,6 +211,7 @@ class SettingsControllerTest(unittest.TestCase):
         self.assertEqual(result["reply_chance_percent"], self.chat_config.reply_chance_percent)
         self.assertEqual(result["is_private"], self.chat_config.is_private)
         self.assertEqual(result["release_notifications"], self.chat_config.release_notifications.value)
+        self.assertEqual(result["media_mode"], self.chat_config.media_mode.value)
         self.assertIn("is_own", result)
 
     def test_fetch_user_settings_success(self):
@@ -252,6 +254,7 @@ class SettingsControllerTest(unittest.TestCase):
             reply_chance_percent = 50,  # Updated value
             is_private = self.chat_config.is_private,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,  # Updated value
+            media_mode = ChatConfigDB.MediaMode.photo,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_chat_config_dao.save.return_value = saved_chat_config_db
@@ -262,6 +265,7 @@ class SettingsControllerTest(unittest.TestCase):
             language_iso_code = "es",
             reply_chance_percent = 50,
             release_notifications = "all",
+            media_mode = "photo",
         )
 
         # Should not raise any exception
@@ -352,6 +356,7 @@ class SettingsControllerTest(unittest.TestCase):
             language_iso_code = "es",
             reply_chance_percent = 50,
             release_notifications = "all",
+            media_mode = "photo",
         )
 
         with self.assertRaises(ValueError) as context:
@@ -369,6 +374,7 @@ class SettingsControllerTest(unittest.TestCase):
             reply_chance_percent = 100,
             is_private = True,  # This is the key difference
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            media_mode = ChatConfigDB.MediaMode.photo,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_chat_config_dao.get.return_value = private_chat_config
@@ -380,6 +386,7 @@ class SettingsControllerTest(unittest.TestCase):
             language_iso_code = "en",
             reply_chance_percent = 50,  # This should fail for private chats
             release_notifications = "all",
+            media_mode = "photo",
         )
 
         with self.assertRaises(ValueError) as context:
@@ -397,6 +404,7 @@ class SettingsControllerTest(unittest.TestCase):
             language_iso_code = "en",
             reply_chance_percent = 50,
             release_notifications = "invalid_value",  # This should fail
+            media_mode = "photo",
         )
 
         with self.assertRaises(ValueError) as context:
@@ -417,6 +425,7 @@ class SettingsControllerTest(unittest.TestCase):
             reply_chance_percent = 75,  # Updated value
             is_private = self.chat_config.is_private,
             release_notifications = ChatConfigDB.ReleaseNotifications.major,  # Updated value
+            media_mode = ChatConfigDB.MediaMode.file,  # Updated value
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_chat_config_dao.save.return_value = saved_chat_config_db
@@ -427,6 +436,7 @@ class SettingsControllerTest(unittest.TestCase):
             language_iso_code = "es",
             reply_chance_percent = 75,
             release_notifications = "major",
+            media_mode = "file",
         )
 
         # Should not raise any exception
@@ -446,6 +456,7 @@ class SettingsControllerTest(unittest.TestCase):
             reply_chance_percent = 100,
             is_private = True,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            media_mode = ChatConfigDB.MediaMode.photo,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         group_chat_config = ChatConfig(
@@ -456,6 +467,7 @@ class SettingsControllerTest(unittest.TestCase):
             reply_chance_percent = 50,
             is_private = False,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            media_mode = ChatConfigDB.MediaMode.photo,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         no_title_chat_config = ChatConfig(
@@ -466,6 +478,7 @@ class SettingsControllerTest(unittest.TestCase):
             reply_chance_percent = 75,
             is_private = False,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            media_mode = ChatConfigDB.MediaMode.photo,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
 
@@ -670,6 +683,7 @@ class SettingsControllerTest(unittest.TestCase):
             reply_chance_percent = 100,
             is_private = True,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            media_mode = ChatConfigDB.MediaMode.photo,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_authorization_service.authorize_for_chat.return_value = custom_chat_config

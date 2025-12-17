@@ -1,8 +1,11 @@
 import hashlib
+from pathlib import Path
 from typing import Any, Callable, TypeVar
 from uuid import uuid4
 
 from pydantic import SecretStr
+
+from util import log
 
 K = TypeVar("K")
 V = TypeVar("V")
@@ -85,3 +88,12 @@ def extract_url_from_replicate_result(result: Any) -> str:
     elif isinstance(result, str):
         return result
     raise ValueError(f"Unexpected result type from Replicate: {type(result)}")
+
+
+def delete_file_safe(path: str | None) -> None:
+    if not path:
+        return
+    try:
+        Path(path).unlink(missing_ok = True)
+    except Exception as e:
+        log.w(f"Failed to delete temp file {path}", e)

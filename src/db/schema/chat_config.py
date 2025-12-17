@@ -13,6 +13,7 @@ class ChatConfigBase(BaseModel):
     is_private: bool = False
     reply_chance_percent: int = 100
     release_notifications: ChatConfigDB.ReleaseNotifications = ChatConfigDB.ReleaseNotifications.major
+    media_mode: ChatConfigDB.MediaMode = ChatConfigDB.MediaMode.photo
     chat_type: ChatConfigDB.ChatType
 
 

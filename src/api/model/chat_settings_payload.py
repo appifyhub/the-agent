@@ -8,12 +8,14 @@ class ChatSettingsPayload(BaseModel):
     language_iso_code: str
     reply_chance_percent: int
     release_notifications: str
+    media_mode: str
 
     # noinspection PyNestedDecorators
     @field_validator(
         "language_name",
         "language_iso_code",
         "release_notifications",
+        "media_mode",
         mode = "before",
     )
     @classmethod

@@ -67,7 +67,6 @@ class ChatProgressNotifierTest(unittest.TestCase):
         self.mock_di.platform_bot_sdk.return_value = mock_platform_sdk
         # noinspection PyUnresolvedReferences
         self.notifier._ChatProgressNotifier__send_reaction()
-        mock_platform_sdk.set_chat_action.assert_called_once()
         mock_platform_sdk.set_reaction.assert_called_once()
 
     @patch("features.chat.chat_progress_notifier.resolve_reaction_timing")

@@ -56,6 +56,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             title = "Test Chat",
             is_private = False,
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            media_mode = ChatConfigDB.MediaMode.photo,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.chat_member = self.create_admin_member(self.invoker_telegram_user, is_manager = False)
@@ -190,6 +191,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             is_private = False,
             language_iso_code = "en",
             reply_chance_percent = 50,
+            media_mode = ChatConfigDB.MediaMode.photo,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         chat_config_2 = ChatConfig(
@@ -199,6 +201,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             is_private = False,
             language_iso_code = "en",
             reply_chance_percent = 50,
+            media_mode = ChatConfigDB.MediaMode.photo,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         chat_config_3 = ChatConfig(
@@ -208,6 +211,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             is_private = False,
             language_iso_code = "en",
             reply_chance_percent = 50,
+            media_mode = ChatConfigDB.MediaMode.photo,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
 
@@ -248,18 +252,21 @@ class AuthorizationServiceTest(unittest.TestCase):
             chat_id = UUID(int = 21), external_id = "chat_id_1",
             title = "Admin Chat 1", language_iso_code = "en", reply_chance_percent = 50,
             is_private = False, release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            media_mode = ChatConfigDB.MediaMode.photo,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         chat_config2 = ChatConfig(
             chat_id = UUID(int = 22), external_id = "chat_id_2",
             title = "Non-Admin Chat", language_iso_code = "es", reply_chance_percent = 70,
             is_private = False, release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            media_mode = ChatConfigDB.MediaMode.photo,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         chat_config3 = ChatConfig(
             chat_id = UUID(int = 23), external_id = "chat_id_3",
             title = "Admin Chat 2", language_iso_code = "fr", reply_chance_percent = 60,
             is_private = False, release_notifications = ChatConfigDB.ReleaseNotifications.all,
+            media_mode = ChatConfigDB.MediaMode.photo,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         all_chat_configs = [chat_config1, chat_config2, chat_config3]
@@ -319,6 +326,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             is_private = True,
             language_iso_code = "en",
             reply_chance_percent = 100,
+            media_mode = ChatConfigDB.MediaMode.photo,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         group_chat_z = ChatConfig(
@@ -328,6 +336,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             is_private = False,
             language_iso_code = "en",
             reply_chance_percent = 50,
+            media_mode = ChatConfigDB.MediaMode.photo,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         group_chat_a = ChatConfig(
@@ -337,6 +346,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             is_private = False,
             language_iso_code = "en",
             reply_chance_percent = 50,
+            media_mode = ChatConfigDB.MediaMode.photo,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         group_chat_no_title = ChatConfig(
@@ -346,6 +356,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             is_private = False,
             language_iso_code = "en",
             reply_chance_percent = 50,
+            media_mode = ChatConfigDB.MediaMode.photo,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
 
