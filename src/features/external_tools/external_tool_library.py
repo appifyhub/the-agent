@@ -83,6 +83,13 @@ GPT_5_1 = ExternalTool(
     types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
 )
 
+GPT_5_2 = ExternalTool(
+    id = "gpt-5.2",
+    name = "GPT 5.2",
+    provider = OPEN_AI,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+)
+
 GPT_4O = ExternalTool(
     id = "gpt-4o",
     name = "GPT 4o",
@@ -213,6 +220,13 @@ GEMINI_2_5_FLASH_IMAGE = ExternalTool(
     types = [ToolType.images_gen],
 )
 
+GEMINI_3_FLASH = ExternalTool(
+    id = "gemini-3-flash-preview",
+    name = "Gemini 3 Flash (Preview)",
+    provider = GOOGLE_AI,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+)
+
 GEMINI_3_PRO = ExternalTool(
     id = "gemini-3-pro-preview",
     name = "Gemini 3 Pro (Preview)",
@@ -305,11 +319,32 @@ IMAGE_INPAINTING = ExternalTool(
     types = [ToolType.images_inpainting],
 )
 
-IMAGE_GENERATION_FLUX = ExternalTool(
+IMAGE_GENERATION_FLUX_1_1 = ExternalTool(
     id = "black-forest-labs/flux-1.1-pro",
-    name = "Black Forest's Flux Pro 1.1",
+    name = "Black Forest's Flux 1.1 Pro",
     provider = REPLICATE,
     types = [ToolType.images_gen],
+)
+
+IMAGE_GENERATION_EDITING_FLUX_2_PRO = ExternalTool(
+    id = "black-forest-labs/flux-2-pro",
+    name = "Black Forest's Flux 2 Pro",
+    provider = REPLICATE,
+    types = [ToolType.images_gen, ToolType.images_edit],
+)
+
+IMAGE_GENERATION_EDITING_FLUX_2_MAX = ExternalTool(
+    id = "black-forest-labs/flux-2-max",
+    name = "Black Forest's Flux 2 Max",
+    provider = REPLICATE,
+    types = [ToolType.images_gen, ToolType.images_edit],
+)
+
+IMAGE_GENERATION_EDITING_GPT_IMAGE_1_5 = ExternalTool(
+    id = "openai/gpt-image-1.5",
+    name = "OpenAI's GPT Image 1.5",
+    provider = REPLICATE,
+    types = [ToolType.images_gen, ToolType.images_edit],
 )
 
 IMAGE_GENERATION_GEMINI_2_5_FLASH_IMAGE = ExternalTool(
@@ -368,6 +403,7 @@ ALL_EXTERNAL_TOOLS = [
     GPT_5_MINI,
     GPT_5_NANO,
     GPT_5_1,
+    GPT_5_2,
     GPT_4O,
     GPT_4O_MINI,
     GPT_O3_MINI,
@@ -388,6 +424,7 @@ ALL_EXTERNAL_TOOLS = [
     GEMINI_2_5_FLASH,
     GEMINI_2_5_PRO,
     GEMINI_2_5_FLASH_IMAGE,
+    GEMINI_3_FLASH,
     GEMINI_3_PRO,
     # Perplexity
     SONAR,
@@ -404,7 +441,10 @@ ALL_EXTERNAL_TOOLS = [
     BACKGROUND_REMOVAL,
     IMAGE_RESTORATION,
     IMAGE_INPAINTING,
-    IMAGE_GENERATION_FLUX,
+    IMAGE_GENERATION_FLUX_1_1,
+    IMAGE_GENERATION_EDITING_FLUX_2_PRO,
+    IMAGE_GENERATION_EDITING_FLUX_2_MAX,
+    IMAGE_GENERATION_EDITING_GPT_IMAGE_1_5,
     IMAGE_GENERATION_GEMINI_2_5_FLASH_IMAGE,
     IMAGE_EDITING_FLUX_KONTEXT_PRO,
     IMAGE_EDITING_SEED_EDIT,

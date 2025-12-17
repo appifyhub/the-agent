@@ -1,5 +1,7 @@
 import re
 
+from util import log
+
 VALID_ASPECT_RATIOS = [
     "9:16",  # Ultra-tall portrait
     "2:3",   # Tall portrait
@@ -26,6 +28,7 @@ def validate_aspect_ratio(aspect_ratio: str | None, default: str) -> str:
     Returns:
         A valid aspect ratio string or the default value
     """
+    log.d(f"Validating aspect ratio… requested '{aspect_ratio}', default: '{default}'")
     if not aspect_ratio:
         return default
 

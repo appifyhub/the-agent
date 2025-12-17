@@ -6,7 +6,7 @@ from replicate.client import Client as ReplicateClient
 
 from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ToolType
-from features.external_tools.external_tool_library import IMAGE_GENERATION_FLUX
+from features.external_tools.external_tool_library import IMAGE_GENERATION_FLUX_1_1
 from features.external_tools.external_tool_provider_library import GOOGLE_AI, REPLICATE
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.images.aspect_ratio_utils import validate_aspect_ratio
@@ -20,8 +20,9 @@ class SimpleStableDiffusionGenerator:
 
     DEFAULT_ASPECT_RATIO: str = "2:3"
     DEFAULT_IMAGE_SIZE: str = "4K"
+    DEFAULT_IMAGE_RESOLUTION: str = "4 MP"
     DEFAULT_OUTPUT_MIME_TYPE: str = "image/png"
-    DEFAULT_TOOL: ExternalTool = IMAGE_GENERATION_FLUX
+    DEFAULT_TOOL: ExternalTool = IMAGE_GENERATION_FLUX_1_1
     TOOL_TYPE: ToolType = ToolType.images_gen
 
     error: str | None
@@ -86,18 +87,25 @@ class SimpleStableDiffusionGenerator:
             tool.id,
             input = {
                 "prompt": self.__prompt,
-                "prompt_upsampling": True,
+                "prompt_upsampling": False,
                 "aspect_ratio": self.__aspect_ratio,
                 "output_format": "png",
                 "output_mime_type": SimpleStableDiffusionGenerator.DEFAULT_OUTPUT_MIME_TYPE,
                 "output_quality": 100,
                 "num_inference_steps": 30,
-                "safety_tolerance": 0,
+                "safety_tolerance": 1,
                 "guidance_scale": 5.5,
                 "num_outputs": 1,
-                "size": SimpleStableDiffusionGenerator.DEFAULT_IMAGE_SIZE,
                 "max_images": 1,
                 "sequential_image_generation": "disabled",
+                "size": SimpleStableDiffusionGenerator.DEFAULT_IMAGE_SIZE,
+                "resolution": SimpleStableDiffusionGenerator.DEFAULT_IMAGE_RESOLUTION,
+                "quality": "high",
+                "background": "auto",
+                "moderation": "low",
+                "input_fidelity": "high",
+                "number_of_images": 1,
+                "output_compression": 90,
             },
         )
         log.d("Result", result)
