@@ -49,7 +49,7 @@ class SmartStableDiffusionGenerator:
 
     def execute(self) -> Result:
         invoker_chat = self.__di.require_invoker_chat()
-        log.d(f"Generating image for chat '{invoker_chat.chat_id}'")
+        log.d(f"Generating image for chat '{invoker_chat.chat_id}' in aspect ratio {self.__aspect_ratio}")
         self.error = None
 
         # let's correct/prettify and translate the prompt first

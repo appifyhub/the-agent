@@ -173,7 +173,14 @@ class ChatImagingServiceTest(unittest.TestCase):
 
         self.assertEqual(result, ChatImagingService.Result.failed)
         expected_details = [
-            {"url": None, "error": "Failed to remove background from attachment 'attachment1'\n ├─ ! Exception (see below)"},
+            {
+                "url": None,
+                "error": (
+                    "Failed to remove background from attachment 'attachment1'\n"
+                    " ├─ ! Exception (see below)\n"
+                    " ├─ Exception: Test exception"
+                ),
+            },
         ]
         self.assertEqual(details, expected_details)
         mock_remover_instance.execute.assert_called_once()

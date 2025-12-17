@@ -21,6 +21,7 @@ BOOT_AND_RUN_TIMEOUT_S = 120
 class ImageEditor:
 
     DEFAULT_ASPECT_RATIO: str = "match_input_image"
+    DEFAULT_IMAGE_SIZE: str = "4K"
     DEFAULT_TOOL: ExternalTool = IMAGE_EDITING_FLUX_KONTEXT_PRO
     TOOL_TYPE: ToolType = ToolType.images_edit
 
@@ -63,16 +64,28 @@ class ImageEditor:
                 with open(temp_file.name, "rb") as file:
                     input_data = {
                         "prompt": self.__context or "",
+                        "prompt_upsampling": False,
                         "image": file,
                         "input_image": file,
                         "image_input": [file],
+                        "input_images": [file],
                         "aspect_ratio": self.__aspect_ratio,
                         "output_format": "png",
-                        "safety_tolerance": 0,
+                        "output_mime_type": "image/png",
+                        "output_quality": 100,
+                        "num_inference_steps": 30,
+                        "safety_tolerance": 1,
                         "guidance_scale": 5.5,
-                        "size": "4K",
+                        "num_outputs": 1,
                         "max_images": 1,
                         "sequential_image_generation": "disabled",
+                        "size": ImageEditor.DEFAULT_IMAGE_SIZE,
+                        "quality": "high",
+                        "background": "auto",
+                        "moderation": "low",
+                        "input_fidelity": "high",
+                        "number_of_images": 1,
+                        "output_compression": 90,
                     }
                     tool, _, _ = self.__configured_tool
                     result = self.__replicate.run(tool.id, input = input_data)

@@ -42,7 +42,8 @@ def process_attachments(
         attachment_ids: [mandatory] A comma-separated list of verbatim, unique 📎 attachment IDs that need to be processed (located in each message); include any dashes, underscores or other symbols; these IDs are not to be cleaned or truncated
         operation: [mandatory] The action to perform on the attachments
         context: [optional] Additional task context or guidance, e.g. the user's message/question/caption, if available
-        aspect_ratio: [optional] The desired aspect ratio for image editing operations. Valid options: 1:1, 2:3, 3:2, 3:4, 4:3, 16:9, 9:16. Defaults to the aspect ratio of the input image
+        aspect_ratio: [optional] The desired image's aspect ratio for image editing. Valid options: 1:1, 2:3, 3:2, 3:4, 4:3, 16:9, 9:16. If not explicitly requested, don't send; default is the aspect ratio of the input image
+        aspect_ratio: [optional] The desired image's aspect ratio. Valid options: 1:1, 2:3, 3:2, 3:4, 4:3, 16:9, 9:16. If not explicitly requested, don't send; default is 2:3
     """
     try:
         operation = operation.lower().strip()
@@ -57,6 +58,7 @@ def process_attachments(
                 raise ValueError("Failed to resolve attachments")
             return json.dumps({"result": result.value, "attachments": describer.result})
         elif operation in editing_operations:
+            log.d(f"LLM requested to process {len(attachment_ids_list)} images in aspect ratio {aspect_ratio}")
             # Generate images based on the provided context
             result, details = di.chat_imaging_service(attachment_ids_list, operation, context, aspect_ratio).execute()
             if result == ChatImagingService.Result.failed:
@@ -85,9 +87,10 @@ def generate_image(
 
     Args:
         prompt: [mandatory] The user's description or prompt for the generated image
-        aspect_ratio: [optional] The desired aspect ratio for generation. Valid options: 1:1, 2:3 (default if not specified), 3:2, 3:4, 4:3, 16:9, 9:16.
+        aspect_ratio: [optional] The desired image's aspect ratio. Valid options: 1:1, 2:3, 3:2, 3:4, 4:3, 16:9, 9:16. If not explicitly requested, don't send; default is 2:3
     """
     try:
+        log.d(f"LLM requested to generate an image in aspect ratio {aspect_ratio}")
         copywriter_tool = di.tool_choice_resolver.require_tool(
             SmartStableDiffusionGenerator.COPYWRITER_TOOL_TYPE,
             SmartStableDiffusionGenerator.DEFAULT_COPYWRITER_TOOL,
