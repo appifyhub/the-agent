@@ -13,6 +13,8 @@ def api_to_domain(payload: UserSettingsPayload, existing_user: User) -> UserSave
 
     if payload.full_name is not None:
         user_save.full_name = payload.full_name if payload.full_name else None
+    if payload.about_me is not None:
+        user_save.about_me = SecretStr(payload.about_me) if payload.about_me else None
 
     if payload.open_ai_key is not None:
         user_save.open_ai_key = SecretStr(payload.open_ai_key) if payload.open_ai_key else None
@@ -77,6 +79,7 @@ def domain_to_api(user: User) -> UserSettingsResponse:
     return UserSettingsResponse(
         id = user.id.hex,
         full_name = user.full_name,
+        about_me = user.about_me.get_secret_value() if user.about_me else None,
         telegram_username = user.telegram_username,
         telegram_chat_id = user.telegram_chat_id,
         telegram_user_id = user.telegram_user_id,

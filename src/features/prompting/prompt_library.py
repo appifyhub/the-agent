@@ -160,7 +160,7 @@ class _ContextLibrary:
             "requested by some of your human partners, who live in the simulation you are monitoring. "
             "Your task is simply to look at the raw transcribed text, and fix it to sound coherent, natural and correct. "
             "You must ensure that the following names of products, agents, organizations and people are spelled correctly: "
-            f"[ {{{PromptVar.personal_dictionary.value}}} ]. "
+            f"`[ {{{PromptVar.personal_dictionary.value}}} ]`. "
             "Only add necessary punctuation such as periods, commas, and capitalization. Use only the context provided. "
             "Aim to reduce newlines and keep the text concise and readable. Use array formatting for long lists of items. "
             "Do not converse or reply to the message — focus *only* on copywriting and spell-checking of the raw text. "
@@ -176,7 +176,7 @@ class _ContextLibrary:
             "Your task is simply to take the provided raw description, and create a title that fits this request well. "
             "The raw description contains information on what the issue/request is, and what kind of support is required. "
             "You must ensure that the following names of products, agents, organizations and people are spelled correctly: "
-            f"[ {{{PromptVar.personal_dictionary.value}}} ]. "
+            f"`[ {{{PromptVar.personal_dictionary.value}}} ]`. "
             "Use only the context provided and do not add any new information. "
             "Do not converse or reply to the message, you are only generating a support request title. "
         ).strip(),
@@ -191,7 +191,7 @@ class _ContextLibrary:
             "Your task is simply to take the provided raw description, and create a well-formatted description for development. "
             "The raw description contains information on what the issue/request is, and what kind of support is required. "
             "You must ensure that the following names of products, agents, organizations and people are spelled correctly: "
-            f"[ {{{PromptVar.personal_dictionary.value}}} ]. "
+            f"`[ {{{PromptVar.personal_dictionary.value}}} ]`. "
             "Use only the context provided and do not add any new information. "
             "Do not converse or reply to the message, you are only generating a support request description. "
         ).strip(),
@@ -221,9 +221,9 @@ class _ContextLibrary:
             "requested by some of your human partners, who live in the simulation you are monitoring. "
             "Your task is two-fold: [1] read the provided search results, and summarize them to sound coherent, "
             "natural and correct; and [2] if there is a query given, you should reply to that query and not summarize "
-            f"the search results. Query: {{{PromptVar.query.value}}}. "
+            f"the search results. Query: `{{{PromptVar.query.value}}}`. "
             "You must ensure that the following names of products, agents, organizations and people are spelled correctly: "
-            f"[ {{{PromptVar.personal_dictionary.value}}} ]. "
+            f"`[ {{{PromptVar.personal_dictionary.value}}} ]`. "
             "You may add necessary punctuation such as periods, commas, and fix capitalization. Use only the context provided. "
             "Aim to reduce newlines and keep the text concise and readable. Use array formatting for long lists of items. "
             "Your output should *only* contain the response (or the summary), with no additional commentary or content. "
@@ -538,10 +538,10 @@ class _AppendixLibrary:
         id = "translate",
         section = PromptSection.appendix,
         content = (
-            f"You should try to respond in {{{PromptVar.language_name.value}}} (ISO '{{{PromptVar.language_iso.value}}}'). "
+            f"You should try to respond in `{{{PromptVar.language_name.value}}}` (ISO `{{{PromptVar.language_iso.value}}}`). "
             "All parts of the output should be in the target language, unless otherwise specified. "
             "If you are unable to use this language, you must default to "
-            f"{config.main_language_name} (ISO '{config.main_language_iso_code}'). "
+            f"{config.main_language_name} (ISO `{config.main_language_iso_code}`). "
         ).strip(),
     )
 
@@ -568,13 +568,13 @@ class _MetaLibrary:
     agent_username = PromptFragment(
         id = "agent_username",
         section = PromptSection.meta,
-        content = f"Your username is @{{{PromptVar.agent_username.value}}}.",
+        content = f"Your username is `@{{{PromptVar.agent_username.value}}}`.",
     )
 
     agent_website = PromptFragment(
         id = "agent_website",
         section = PromptSection.meta,
-        content = f"Your website is {{{PromptVar.agent_website.value}}}.",
+        content = f"Your website is `{{{PromptVar.agent_website.value}}}`.",
     )
 
     chat_title = PromptFragment(
@@ -587,15 +587,25 @@ class _MetaLibrary:
         id = "message_author",
         section = PromptSection.meta,
         content = (
-            f"The last message's author is {{{PromptVar.author_name.value}}} (@{{{PromptVar.author_username.value}}}), "
-            f"with the assigned role of '{{{PromptVar.author_role.value}}}'. "
+            f"The last message's author is `{{{PromptVar.author_name.value}}}` (`@{{{PromptVar.author_username.value}}}`), "
+            f"with the assigned role of `{{{PromptVar.author_role.value}}}`. "
+        ).strip(),
+    )
+
+    author_info = PromptFragment(
+        id = "author_info",
+        section = PromptSection.meta,
+        content = (
+            f"Here is the author's bio: ```\n{{{PromptVar.author_info.value}}}\n```. "
+            "The author is providing this information voluntarily using their profile page, and you are permitted to use it. "
+            "If it makes sense to use this information in the context, you must use it to personalize your responses. "
         ).strip(),
     )
 
     today = PromptFragment(
         id = "today",
         section = PromptSection.meta,
-        content = f"Today is {{{PromptVar.date_and_time.value}}}.",
+        content = f"Today is `{{{PromptVar.date_and_time.value}}}`.",
     )
 
     tools_list = PromptFragment(

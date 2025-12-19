@@ -16,6 +16,7 @@ def generate_connect_key() -> str:
 
 class UserBase(BaseModel):
     full_name: str | None = None
+    about_me: SecretStr | None = None
 
     telegram_username: str | None = None
     telegram_chat_id: str | None = None

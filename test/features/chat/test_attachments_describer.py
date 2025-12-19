@@ -72,6 +72,7 @@ class AttachmentsDescriberTest(unittest.TestCase):
             external_id = "1",
             language_name = "Spanish",
             language_iso_code = "es",
+            use_about_me = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.attachment = ChatMessageAttachment(

@@ -63,6 +63,7 @@ class CurrencyAlertServiceTest(unittest.TestCase):
         self.chat_config = ChatConfig(
             chat_id = UUID(hex = self.chat_id),
             external_id = "test_chat_id",
+            use_about_me = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_di.authorization_service.validate_chat.return_value = self.chat_config

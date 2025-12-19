@@ -19,6 +19,7 @@ class UserMapperTest(unittest.TestCase):
         self.user = User(
             id = UUID("12345678-1234-5678-1234-567812345678"),
             full_name = "Test User",
+            about_me = SecretStr("I love Python programming and enjoy hiking on weekends"),
             telegram_username = "testuser",
             telegram_chat_id = "123456789",
             telegram_user_id = 123456789,
@@ -158,12 +159,43 @@ class UserMapperTest(unittest.TestCase):
         user_save = api_to_domain(payload_none, self.user)
         self.assertEqual(user_save.full_name, self.user.full_name)
 
+    def test_api_to_domain_with_about_me(self):
+        # Test setting a new about_me
+        payload_set = UserSettingsPayload(
+            about_me = "I enjoy hiking and photography",
+        )
+        user_save = api_to_domain(payload_set, self.user)
+        self.assertEqual(
+            user_save.about_me.get_secret_value() if user_save.about_me else None,
+            "I enjoy hiking and photography",
+        )
+
+        # Test clearing about_me with empty string
+        payload_clear = UserSettingsPayload(
+            about_me = "",
+        )
+        user_save = api_to_domain(payload_clear, self.user)
+        self.assertIsNone(user_save.about_me)
+
+        # Test that None in payload preserves existing value
+        payload_none = UserSettingsPayload(
+            open_ai_key = "sk-test",
+        )
+        user_save = api_to_domain(payload_none, self.user)
+        self.assertEqual(user_save.about_me, self.user.about_me)
+
     def test_domain_to_api_conversion(self):
         masked_user = domain_to_api(self.user)
 
         # Check basic fields
         self.assertEqual(masked_user.id, self.user.id.hex)
         self.assertEqual(masked_user.full_name, self.user.full_name)
+        # Check that about_me is NOT masked (returned as-is)
+        assert self.user.about_me is not None
+        self.assertEqual(
+            masked_user.about_me,
+            self.user.about_me.get_secret_value(),
+        )
         self.assertEqual(masked_user.telegram_username, self.user.telegram_username)
         self.assertEqual(masked_user.telegram_chat_id, self.user.telegram_chat_id)
         self.assertEqual(masked_user.telegram_user_id, self.user.telegram_user_id)
@@ -202,6 +234,7 @@ class UserMapperTest(unittest.TestCase):
     def test_domain_to_api_with_none_values(self):
         user_with_nones = self.user.model_copy(
             update = {
+                "about_me": None,
                 "open_ai_key": None,
                 "tool_choice_chat": None,
                 "tool_choice_reasoning": None,
@@ -211,6 +244,7 @@ class UserMapperTest(unittest.TestCase):
         masked_user = domain_to_api(user_with_nones)
 
         # Check that None values remain None
+        self.assertIsNone(masked_user.about_me)
         self.assertIsNone(masked_user.open_ai_key)
         self.assertIsNone(masked_user.tool_choice_chat)
         self.assertIsNone(masked_user.tool_choice_reasoning)

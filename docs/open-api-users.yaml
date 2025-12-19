@@ -475,6 +475,10 @@ components:
           type: string
           nullable: true
           description: User's full name
+        about_me:
+          type: string
+          nullable: true
+          description: Personal information about the user for personalized interactions
         open_ai_key:
           type: string
           nullable: true
@@ -575,6 +579,10 @@ components:
           type: string
           nullable: true
           description: User's full name
+        about_me:
+          type: string
+          nullable: true
+          description: Personal information about the user
         telegram_username:
           type: string
           nullable: true
@@ -709,12 +717,17 @@ components:
           nullable: false
           enum: [photo, file, all]
           description: Media sending mode - photo (send as photo), file (send as file), all (send both photo and file)
+        use_about_me:
+          type: boolean
+          nullable: false
+          description: Whether to include the participants' "about me" information in agent interactions for this chat
       required:
         - language_name
         - language_iso_code
         - reply_chance_percent
         - release_notifications
         - media_mode
+        - use_about_me
 
     ChatSettingsResponse:
       type: object
@@ -756,6 +769,10 @@ components:
           nullable: false
           enum: [photo, file, all]
           description: Media sending mode - photo (send as photo), file (send as file), all (send both photo and file)
+        use_about_me:
+          type: boolean
+          nullable: false
+          description: Whether to include the participants' "about me" information in agent interactions for this chat
         is_private:
           type: boolean
           nullable: false
@@ -770,6 +787,7 @@ components:
         - reply_chance_percent
         - release_notifications
         - media_mode
+        - use_about_me
         - is_private
         - is_own
 

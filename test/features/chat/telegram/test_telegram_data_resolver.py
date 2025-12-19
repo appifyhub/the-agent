@@ -192,7 +192,8 @@ class TelegramDataResolverTest(unittest.TestCase):
             is_private = False,
             reply_chance_percent = 100,
             release_notifications = ChatConfigDB.ReleaseNotifications.major,
-            media_mode = ChatConfigDB.MediaMode.photo,
+            media_mode = ChatConfigDB.MediaMode.file,  # Non-default value to test preservation
+            use_about_me = False,  # Non-default value to test preservation
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         existing_config_db = self.sql.chat_config_crud().save(existing_config_data)
@@ -218,6 +219,7 @@ class TelegramDataResolverTest(unittest.TestCase):
         self.assertEqual(result.reply_chance_percent, mapped_data.reply_chance_percent)
         self.assertEqual(result.release_notifications, existing_config.release_notifications)
         self.assertEqual(result.media_mode, existing_config.media_mode)
+        self.assertEqual(result.use_about_me, existing_config.use_about_me)
 
     def test_resolve_chat_config_new(self):
         mapped_data = ChatConfigSave(
@@ -326,6 +328,7 @@ class TelegramDataResolverTest(unittest.TestCase):
             replicate_key = SecretStr("sk-key"),
             rapid_api_key = SecretStr("sk-key"),
             coinmarketcap_key = SecretStr("sk-key"),
+            about_me = SecretStr("Personal info about me"),
             group = UserDB.Group.developer,
             # Add all tool choice fields to test preservation
             tool_choice_chat = "openai",
@@ -372,6 +375,7 @@ class TelegramDataResolverTest(unittest.TestCase):
         self.assertEqual(result.replicate_key, existing_user.replicate_key)
         self.assertEqual(result.rapid_api_key, existing_user.rapid_api_key)
         self.assertEqual(result.coinmarketcap_key, existing_user.coinmarketcap_key)
+        self.assertEqual(result.about_me, existing_user.about_me)
         self.assertEqual(result.group, existing_user.group)
         self.assertEqual(result.created_at, existing_user.created_at)
 

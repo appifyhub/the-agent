@@ -44,6 +44,13 @@ def chat(
         (PromptVar.date_and_time, __now()),
         (PromptVar.tools_list, tools_list or PLACEHOLDER_NO_DATA),
     )
+    # add conditional generic components
+    if target_chat.use_about_me and invoker.about_me and (about_me_text := invoker.about_me.get_secret_value()):
+        composer = (
+            composer
+            .add_fragments(prompt_library.metas.author_info)
+            .add_variables((PromptVar.author_info, about_me_text))
+        )
     # override and add platform-specific fragments and variables
     match target_chat.chat_type:
         case ChatConfigDB.ChatType.telegram:
