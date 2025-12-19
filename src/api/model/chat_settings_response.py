@@ -10,5 +10,6 @@ class ChatSettingsResponse(BaseModel):
     reply_chance_percent: int
     release_notifications: str
     media_mode: str
+    use_about_me: bool
     is_private: bool
     is_own: bool

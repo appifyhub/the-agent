@@ -9,6 +9,7 @@ class ChatSettingsPayload(BaseModel):
     reply_chance_percent: int
     release_notifications: str
     media_mode: str
+    use_about_me: bool
 
     # noinspection PyNestedDecorators
     @field_validator(

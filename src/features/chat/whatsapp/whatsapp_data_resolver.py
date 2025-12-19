@@ -85,9 +85,11 @@ class WhatsAppDataResolver:
             mapped_data.reply_chance_percent = old_chat_config.reply_chance_percent
             mapped_data.release_notifications = old_chat_config.release_notifications
             mapped_data.media_mode = old_chat_config.media_mode
+            mapped_data.use_about_me = old_chat_config.use_about_me
         else:
             # new chat, let's set sensible default values
             mapped_data.media_mode = ChatConfigDB.MediaMode.photo
+            mapped_data.use_about_me = True
             if mapped_data.is_private:
                 mapped_data.release_notifications = ChatConfigDB.ReleaseNotifications.major
             else:
@@ -110,6 +112,7 @@ class WhatsAppDataResolver:
             # reset the attributes that are not normally changed through the WhatsApp API
             mapped_data.id = old_user.id
             mapped_data.full_name = mapped_data.full_name if not old_user.full_name else old_user.full_name
+            mapped_data.about_me = old_user.about_me
             mapped_data.whatsapp_phone_number = mapped_data.whatsapp_phone_number or old_user.whatsapp_phone_number
             mapped_data.telegram_chat_id = old_user.telegram_chat_id
             mapped_data.telegram_user_id = old_user.telegram_user_id
@@ -144,20 +147,18 @@ class WhatsAppDataResolver:
             if user_count >= config.max_users:
                 raise ValueError(log.e(f"User limit reached: {user_count}/{config.max_users}. Try again later"))
 
-        # reset token values to None so that there's no confusion going forward
+        # reset token values to None if they are non-null but contain only whitespace
         def is_empty_secret(secret):
-            if not secret:
-                return True
             if hasattr(secret, "get_secret_value"):
                 return not secret.get_secret_value().strip()
             return not secret.strip() if isinstance(secret, str) else False
 
-        # reset all SecretStr fields that are empty
+        # reset all SecretStr fields that are non-null but empty/whitespace
         secret_fields = mapped_data._get_secret_str_fields()
         for field_name in secret_fields:
             field_value = getattr(mapped_data, field_name)
-            if is_empty_secret(field_value):
-                log.w(f"Resetting {field_name} to None because it is empty")
+            if field_value is not None and is_empty_secret(field_value):
+                log.d(f"Resetting {field_name} to None because it is empty")
                 setattr(mapped_data, field_name, None)
         # reset tool choice values to None if they are empty strings (not if already None)
         if mapped_data.tool_choice_chat is not None and not mapped_data.tool_choice_chat.strip():

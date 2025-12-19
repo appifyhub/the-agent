@@ -15,6 +15,7 @@ class ChatSettingsPayloadTest(unittest.TestCase):
             reply_chance_percent = 75,
             release_notifications = "all",
             media_mode = "photo",
+            use_about_me = True,
         )
 
         self.assertEqual(payload.language_name, "Spanish")
@@ -22,6 +23,7 @@ class ChatSettingsPayloadTest(unittest.TestCase):
         self.assertEqual(payload.reply_chance_percent, 75)
         self.assertEqual(payload.release_notifications, "all")
         self.assertEqual(payload.media_mode, "photo")
+        self.assertEqual(payload.use_about_me, True)
 
     def test_missing_required_fields_raises_error(self):
         """Test that missing required fields raise ValidationError"""
@@ -37,6 +39,7 @@ class ChatSettingsPayloadTest(unittest.TestCase):
             reply_chance_percent = 50,
             release_notifications = "  none  ",
             media_mode = "  file  ",
+            use_about_me = False,
         )
 
         self.assertEqual(payload.language_name, "English")
@@ -53,6 +56,7 @@ class ChatSettingsPayloadTest(unittest.TestCase):
             reply_chance_percent = 25,
             release_notifications = "\t\n",  # Tabs and newlines
             media_mode = "\t\n",  # Tabs and newlines
+            use_about_me = True,
         )
 
         # After trimming, these should all be empty strings
@@ -71,6 +75,7 @@ class ChatSettingsPayloadTest(unittest.TestCase):
             reply_chance_percent = 0,
             release_notifications = "all",
             media_mode = "photo",
+            use_about_me = True,
         )
         payload_100 = ChatSettingsPayload(
             language_name = "English",
@@ -78,6 +83,7 @@ class ChatSettingsPayloadTest(unittest.TestCase):
             reply_chance_percent = 100,
             release_notifications = "all",
             media_mode = "file",
+            use_about_me = False,
         )
         payload_50 = ChatSettingsPayload(
             language_name = "English",
@@ -85,6 +91,7 @@ class ChatSettingsPayloadTest(unittest.TestCase):
             reply_chance_percent = 50,
             release_notifications = "all",
             media_mode = "all",
+            use_about_me = True,
         )
 
         self.assertEqual(payload_0.reply_chance_percent, 0)
@@ -101,6 +108,7 @@ class ChatSettingsPayloadTest(unittest.TestCase):
                 reply_chance_percent = -1,
                 release_notifications = "all",
                 media_mode = "photo",
+                use_about_me = True,
             )
         self.assertIn("Reply chance percent must be between 0 and 100", str(context.exception))
 
@@ -111,5 +119,6 @@ class ChatSettingsPayloadTest(unittest.TestCase):
                 reply_chance_percent = 101,
                 release_notifications = "all",
                 media_mode = "photo",
+                use_about_me = True,
             )
         self.assertIn("Reply chance percent must be between 0 and 100", str(context.exception))

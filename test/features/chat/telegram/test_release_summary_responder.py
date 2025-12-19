@@ -275,6 +275,7 @@ class ReleaseSummaryResponderTest(unittest.TestCase):
             reply_chance_percent = 100,
             release_notifications = notifications,
             media_mode = media_mode,
+            use_about_me = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
 
@@ -297,6 +298,7 @@ class ReleaseSummaryResponderTest(unittest.TestCase):
                 reply_chance_percent = 100,
                 release_notifications = notifications,
                 media_mode = media_mode,
+                use_about_me = True,
                 chat_type = ChatConfigDB.ChatType.telegram,
             ),
         )

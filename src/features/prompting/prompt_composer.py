@@ -25,6 +25,7 @@ class PromptVar(Enum):
     author_name = "author_name"
     author_username = "author_username"
     author_role = "author_role"
+    author_info = "author_info"
     language_name = "language_name"
     language_iso = "language_iso"
     date_and_time = "date_and_time"
@@ -68,8 +69,9 @@ class PromptComposer:
 
     def render(self) -> str:
         def apply_vars(text: str) -> str:
+            sanitized_vars = {k: v.replace("`", "") for k, v in self.variables.items()}
             try:
-                return text.format_map(self.variables)
+                return text.format_map(sanitized_vars).strip()
             except KeyError as e:
                 missing = str(e).strip("'")
                 raise ValueError(f"Missing variable: {missing}")
@@ -79,7 +81,7 @@ class PromptComposer:
         for f in self.fragments:
             if f.section not in section_to_bodies:
                 section_to_bodies[f.section] = []
-            section_to_bodies[f.section].append(apply_vars(f.content).strip())
+            section_to_bodies[f.section].append(apply_vars(f.content))
 
         # render sections in the order defined by the enum, but include only present sections
         rendered_sections: list[str] = []
