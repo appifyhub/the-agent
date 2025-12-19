@@ -37,6 +37,7 @@ class UserDB(BaseModel):
 
     id = Column(UUID(as_uuid = True), primary_key = True, default = uuid.uuid4)
     full_name = Column(String, nullable = True)
+    about_me = Column(EncryptedString, nullable = True)
 
     telegram_username = Column(String, nullable = True)  # can be changed in Telegram
     telegram_chat_id = Column(String, nullable = True)  # can be changed in Telegram

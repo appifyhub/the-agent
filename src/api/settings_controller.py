@@ -154,6 +154,12 @@ class SettingsController:
         log.t(f"  Updating media mode to '{media_mode.value}'")
         chat_config_save.media_mode = media_mode
 
+        # validate use_about_me changes (it should always be valid, but let's keep)
+        if not isinstance(payload.use_about_me, bool):
+            raise ValueError(log.e(f"Invalid use_about_me value '{payload.use_about_me}'"))
+        log.t(f"  Updating use_about_me to '{payload.use_about_me}'")
+        chat_config_save.use_about_me = payload.use_about_me
+
         # finally store the changes
         ChatConfig.model_validate(self.__di.chat_config_crud.save(chat_config_save))
         log.i("Chat settings saved")

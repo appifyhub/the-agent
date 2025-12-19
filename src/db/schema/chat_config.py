@@ -14,6 +14,7 @@ class ChatConfigBase(BaseModel):
     reply_chance_percent: int = 100
     release_notifications: ChatConfigDB.ReleaseNotifications = ChatConfigDB.ReleaseNotifications.major
     media_mode: ChatConfigDB.MediaMode = ChatConfigDB.MediaMode.photo
+    use_about_me: bool = True
     chat_type: ChatConfigDB.ChatType
 
 

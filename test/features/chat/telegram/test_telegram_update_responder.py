@@ -79,6 +79,7 @@ class TelegramUpdateResponderTest(unittest.TestCase):
                 reply_chance_percent = 100,
                 release_notifications = ChatConfigDB.ReleaseNotifications.all,
                 media_mode = ChatConfigDB.MediaMode.photo,
+                use_about_me = True,
                 chat_type = ChatConfigDB.ChatType.telegram,
             ),
             author = User.model_validate(author_db),
