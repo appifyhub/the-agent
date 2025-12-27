@@ -93,5 +93,13 @@ class User(UserBase):
     model_config = ConfigDict(from_attributes = True)
 
     def has_any_api_key(self) -> bool:
-        secret_fields = self._get_secret_str_fields()
-        return any(getattr(self, field) is not None for field in secret_fields)
+        api_key_fields = [
+            "open_ai_key",
+            "anthropic_key",
+            "google_ai_key",
+            "perplexity_key",
+            "replicate_key",
+            "rapid_api_key",
+            "coinmarketcap_key",
+        ]
+        return any(getattr(self, field) is not None for field in api_key_fields)
