@@ -30,6 +30,7 @@ def process_attachments(
     operation: str = "describe",
     context: str | None = None,
     aspect_ratio: str | None = None,
+    size: str | None = None,
 ) -> str:
     """
     Processes the contents of the given attachments. Allowed operations are:
@@ -42,8 +43,8 @@ def process_attachments(
         attachment_ids: [mandatory] A comma-separated list of verbatim, unique 📎 attachment IDs that need to be processed (located in each message); include any dashes, underscores or other symbols; these IDs are not to be cleaned or truncated
         operation: [mandatory] The action to perform on the attachments
         context: [optional] Additional task context or guidance, e.g. the user's message/question/caption, if available
-        aspect_ratio: [optional] The desired image's aspect ratio for image editing. Valid options: 1:1, 2:3, 3:2, 3:4, 4:3, 16:9, 9:16. If not explicitly requested, don't send; default is the aspect ratio of the input image
-        aspect_ratio: [optional] The desired image's aspect ratio. Valid options: 1:1, 2:3, 3:2, 3:4, 4:3, 16:9, 9:16. If not explicitly requested, don't send; default is 2:3
+        aspect_ratio: [optional] The desired image's aspect ratio for image editing. Valid options: 1:1, 2:3, 3:2, 3:4, 4:3, 16:9, 9:16, match_input_image. If not explicitly requested, don't send
+        size: [optional] The desired image size/resolution for image editing. Valid options: 1K, 2K, 4K. If not explicitly requested, don't send
     """
     try:
         operation = operation.lower().strip()
@@ -58,9 +59,9 @@ def process_attachments(
                 raise ValueError("Failed to resolve attachments")
             return json.dumps({"result": result.value, "attachments": describer.result})
         elif operation in editing_operations:
-            log.d(f"LLM requested to process {len(attachment_ids_list)} images in aspect ratio {aspect_ratio}")
+            log.d(f"LLM requested to process {len(attachment_ids_list)} images in aspect ratio {aspect_ratio}, size {size}")
             # Generate images based on the provided context
-            result, details = di.chat_imaging_service(attachment_ids_list, operation, context, aspect_ratio).execute()
+            result, details = di.chat_imaging_service(attachment_ids_list, operation, context, aspect_ratio, size).execute()
             if result == ChatImagingService.Result.failed:
                 raise ValueError("Failed to edit the images! Details: " + str(details))
             return __success(
@@ -81,13 +82,15 @@ def generate_image(
     di: DI,
     prompt: str,
     aspect_ratio: str | None = None,
+    size: str | None = None,
 ) -> str:
     """
     Generates (draws) an image based on the given prompt using Generative AI.
 
     Args:
         prompt: [mandatory] The user's description or prompt for the generated image
-        aspect_ratio: [optional] The desired image's aspect ratio. Valid options: 1:1, 2:3, 3:2, 3:4, 4:3, 16:9, 9:16. If not explicitly requested, don't send; default is 2:3
+        aspect_ratio: [optional] The desired image's aspect ratio. Valid options: 1:1, 2:3, 3:2, 3:4, 4:3, 16:9, 9:16. If not explicitly requested, don't send
+        size: [optional] The desired image size/resolution. Valid options: 1K, 2K, 4K. If not explicitly requested, don't send
     """
     try:
         log.d(f"LLM requested to generate an image in aspect ratio {aspect_ratio}")
@@ -99,7 +102,7 @@ def generate_image(
             SmartStableDiffusionGenerator.IMAGE_GEN_TOOL_TYPE,
             SmartStableDiffusionGenerator.DEFAULT_IMAGE_GEN_TOOL,
         )
-        generator = di.smart_stable_diffusion_generator(prompt, copywriter_tool, image_gen_tool, aspect_ratio)
+        generator = di.smart_stable_diffusion_generator(prompt, copywriter_tool, image_gen_tool, aspect_ratio, size)
         result = generator.execute()
         if result == SmartStableDiffusionGenerator.Result.failed:
             raise ValueError(f"Failed to generate the image! Reason: {str(generator.error)}")

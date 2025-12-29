@@ -10,7 +10,7 @@ from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import IMAGE_EDITING_FLUX_KONTEXT_PRO
 from features.external_tools.tool_choice_resolver import ConfiguredTool
-from features.images.aspect_ratio_utils import validate_aspect_ratio
+from features.images.image_api_utils import map_to_model_parameters
 from util import log
 from util.functions import extract_url_from_replicate_result, first_key_with_value
 
@@ -20,32 +20,33 @@ BOOT_AND_RUN_TIMEOUT_S = 120
 # Not tested as it's just a proxy
 class ImageEditor:
 
-    DEFAULT_ASPECT_RATIO: str = "match_input_image"
-    DEFAULT_IMAGE_SIZE: str = "4K"
     DEFAULT_TOOL: ExternalTool = IMAGE_EDITING_FLUX_KONTEXT_PRO
     TOOL_TYPE: ToolType = ToolType.images_edit
 
     error: str | None
-    __context: str | None
+    __prompt: str
     __image_url: str
     __configured_tool: ConfiguredTool
-    __mime_type: str | None
-    __aspect_ratio: str
+    __input_mime_type: str | None
+    __aspect_ratio: str | None
+    __size: str | None
     __replicate: Client
 
     def __init__(
         self,
         image_url: str,
         configured_tool: ConfiguredTool,
-        context: str | None = None,
-        mime_type: str | None = None,
+        prompt: str,
+        input_mime_type: str | None = None,
         aspect_ratio: str | None = None,
+        size: str | None = None,
     ):
-        self.__context = context
+        self.__prompt = prompt
         self.__image_url = image_url
         self.__configured_tool = configured_tool
-        self.__mime_type = mime_type
-        self.__aspect_ratio = validate_aspect_ratio(aspect_ratio, ImageEditor.DEFAULT_ASPECT_RATIO)
+        self.__input_mime_type = input_mime_type
+        self.__aspect_ratio = aspect_ratio
+        self.__size = size
         _, token, _ = configured_tool
         self.__replicate = Client(
             api_token = token.get_secret_value(),
@@ -62,33 +63,17 @@ class ImageEditor:
                 temp_file.write(response.content)
                 temp_file.flush()
                 with open(temp_file.name, "rb") as file:
-                    input_data = {
-                        "prompt": self.__context or "",
-                        "prompt_upsampling": False,
-                        "image": file,
-                        "input_image": file,
-                        "image_input": [file],
-                        "input_images": [file],
-                        "aspect_ratio": self.__aspect_ratio,
-                        "output_format": "png",
-                        "output_mime_type": "image/png",
-                        "output_quality": 100,
-                        "num_inference_steps": 30,
-                        "safety_tolerance": 1,
-                        "guidance_scale": 5.5,
-                        "num_outputs": 1,
-                        "max_images": 1,
-                        "sequential_image_generation": "disabled",
-                        "size": ImageEditor.DEFAULT_IMAGE_SIZE,
-                        "quality": "high",
-                        "background": "auto",
-                        "moderation": "low",
-                        "input_fidelity": "high",
-                        "number_of_images": 1,
-                        "output_compression": 90,
-                    }
                     tool, _, _ = self.__configured_tool
-                    result = self.__replicate.run(tool.id, input = input_data)
+                    unified_params = map_to_model_parameters(
+                        tool = tool, prompt = self.__prompt,
+                        aspect_ratio = self.__aspect_ratio, size = self.__size,
+                        input_files = [file],
+                    )
+                    dict_params = {
+                        k: v for k, v in unified_params.__dict__.items() if v is not None
+                    }
+                    log.t("Calling Replicate image editing with params", dict_params)
+                    result = self.__replicate.run(tool.id, input = dict_params)
             if not result:
                 raise ValueError("Failed to edit the image (no result returned)")
             log.d("Image edit successful")
@@ -104,6 +89,6 @@ class ImageEditor:
         if file_with_extension:
             return f".{file_with_extension.lstrip('.')}"
         # if no extension in URL, use MIME type to determine extension
-        if self.__mime_type:
-            return first_key_with_value(KNOWN_IMAGE_FORMATS, self.__mime_type) or ".none"
+        if self.__input_mime_type:
+            return first_key_with_value(KNOWN_IMAGE_FORMATS, self.__input_mime_type) or ".none"
         return ""

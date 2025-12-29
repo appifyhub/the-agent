@@ -1,3 +1,5 @@
+from dataclasses import asdict
+
 from google import genai
 from google.genai.client import Client as GoogleClient
 from google.genai.types import GenerateContentConfig, HttpOptions, ImageConfig
@@ -9,7 +11,7 @@ from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import IMAGE_GENERATION_FLUX_1_1
 from features.external_tools.external_tool_provider_library import GOOGLE_AI, REPLICATE
 from features.external_tools.tool_choice_resolver import ConfiguredTool
-from features.images.aspect_ratio_utils import validate_aspect_ratio
+from features.images.image_api_utils import map_to_model_parameters
 from util import log
 from util.config import config
 from util.functions import extract_url_from_replicate_result
@@ -18,10 +20,6 @@ from util.functions import extract_url_from_replicate_result
 # Not tested as it's just a proxy
 class SimpleStableDiffusionGenerator:
 
-    DEFAULT_ASPECT_RATIO: str = "2:3"
-    DEFAULT_IMAGE_SIZE: str = "4K"
-    DEFAULT_IMAGE_RESOLUTION: str = "4 MP"
-    DEFAULT_OUTPUT_MIME_TYPE: str = "image/png"
     DEFAULT_TOOL: ExternalTool = IMAGE_GENERATION_FLUX_1_1
     TOOL_TYPE: ToolType = ToolType.images_gen
 
@@ -30,7 +28,8 @@ class SimpleStableDiffusionGenerator:
     __configured_tool: ConfiguredTool
     __replicate: ReplicateClient | None
     __google_ai: GoogleClient | None
-    __aspect_ratio: str
+    __aspect_ratio: str | None
+    __size: str | None
     __di: DI
 
     def __init__(
@@ -39,11 +38,13 @@ class SimpleStableDiffusionGenerator:
         configured_tool: ConfiguredTool,
         di: DI,
         aspect_ratio: str | None = None,
+        size: str | None = None,
     ):
         self.__di = di
         self.__prompt = prompt
         self.__configured_tool = configured_tool
-        self.__aspect_ratio = validate_aspect_ratio(aspect_ratio, SimpleStableDiffusionGenerator.DEFAULT_ASPECT_RATIO)
+        self.__aspect_ratio = aspect_ratio
+        self.__size = size
         tool, token, _ = self.__configured_tool
 
         self.__replicate = None
@@ -83,31 +84,17 @@ class SimpleStableDiffusionGenerator:
         tool, _, _ = self.__configured_tool
         if not self.__replicate:
             raise ValueError("Replicate client is not initialized")
-        result = self.__replicate.run(
-            tool.id,
-            input = {
-                "prompt": self.__prompt,
-                "prompt_upsampling": False,
-                "aspect_ratio": self.__aspect_ratio,
-                "output_format": "png",
-                "output_mime_type": SimpleStableDiffusionGenerator.DEFAULT_OUTPUT_MIME_TYPE,
-                "output_quality": 100,
-                "num_inference_steps": 30,
-                "safety_tolerance": 1,
-                "guidance_scale": 5.5,
-                "num_outputs": 1,
-                "max_images": 1,
-                "sequential_image_generation": "disabled",
-                "size": SimpleStableDiffusionGenerator.DEFAULT_IMAGE_SIZE,
-                "resolution": SimpleStableDiffusionGenerator.DEFAULT_IMAGE_RESOLUTION,
-                "quality": "high",
-                "background": "auto",
-                "moderation": "low",
-                "input_fidelity": "high",
-                "number_of_images": 1,
-                "output_compression": 90,
-            },
+
+        unified_params = map_to_model_parameters(
+            tool = tool, prompt = self.__prompt,
+            aspect_ratio = self.__aspect_ratio, size = self.__size,
         )
+        dict_params = {
+            k: v for k, v in unified_params.__dict__.items() if v is not None
+        }
+        log.t("Calling Replicate image generator with params", dict_params)
+        result = self.__replicate.run(tool.id, input = dict_params)
+
         log.d("Result", result)
         if not result:
             raise ValueError("No result returned from image generation")
@@ -119,17 +106,24 @@ class SimpleStableDiffusionGenerator:
         if not self.__google_ai:
             raise ValueError("Google AI client is not initialized")
 
-        # generate the image
+        unified_params = map_to_model_parameters(
+            tool = tool, prompt = self.__prompt,
+            aspect_ratio = self.__aspect_ratio, size = self.__size,
+        )
+        dict_params = asdict(unified_params)
+        log.t("Calling Google AI image generator API with params", dict_params)
+
+        image_config = ImageConfig(
+            aspect_ratio = unified_params.aspect_ratio,
+            image_size = unified_params.size,
+        )
+
         response = self.__google_ai.models.generate_content(
             model = tool.id,
             contents = self.__prompt,
             config = GenerateContentConfig(
                 response_modalities = ["TEXT", "IMAGE"],
-                image_config = ImageConfig(
-                    aspect_ratio = self.__aspect_ratio,
-                    image_size = SimpleStableDiffusionGenerator.DEFAULT_IMAGE_SIZE,
-                    output_mime_type = SimpleStableDiffusionGenerator.DEFAULT_OUTPUT_MIME_TYPE,
-                ),
+                image_config = image_config,
             ),
         )
 
