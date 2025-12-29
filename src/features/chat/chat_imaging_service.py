@@ -2,7 +2,6 @@ from enum import Enum
 
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from di.di import DI
-from features.images.aspect_ratio_utils import validate_aspect_ratio
 from features.images.image_background_remover import ImageBackgroundRemover
 from features.images.image_contents_restorer import ImageContentsRestorer
 from features.images.image_editor import ImageEditor
@@ -38,7 +37,8 @@ class ChatImagingService:
     __attachments: list[ChatMessageAttachment]
     __operation: Operation
     __operation_guidance: str | None
-    __aspect_ratio: str
+    __aspect_ratio: str | None
+    __size: str | None
     __di: DI
 
     def __init__(
@@ -47,6 +47,7 @@ class ChatImagingService:
         operation_name: str,
         operation_guidance: str | None,
         aspect_ratio: str | None,
+        size: str | None,
         di: DI,
     ):
         if not attachment_ids:
@@ -55,7 +56,8 @@ class ChatImagingService:
         self.__attachments = self.__di.platform_bot_sdk().refresh_attachments_by_ids(attachment_ids)
         self.__operation = ChatImagingService.Operation.resolve(operation_name)
         self.__operation_guidance = operation_guidance
-        self.__aspect_ratio = validate_aspect_ratio(aspect_ratio, ImageEditor.DEFAULT_ASPECT_RATIO)
+        self.__aspect_ratio = aspect_ratio
+        self.__size = size
 
     def __remove_background(self) -> tuple[Result, URLList, ErrorList]:
         log.t(f"Removing background from {len(self.__attachments)} images")
@@ -165,9 +167,10 @@ class ChatImagingService:
                 editor = self.__di.image_editor(
                     image_url = attachment.last_url,
                     configured_tool = configured_tool,
-                    context = self.__operation_guidance,
-                    mime_type = attachment.mime_type,
+                    prompt = self.__operation_guidance or "<empty>",
+                    input_mime_type = attachment.mime_type,
                     aspect_ratio = self.__aspect_ratio,
+                    size = self.__size,
                 )
                 editing_result = editor.execute()
                 if editor.error:

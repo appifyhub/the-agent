@@ -39,7 +39,7 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         self.simple_stable_diffusion_generator = MagicMock()
         # Mock the error property - default to no error
         self.simple_stable_diffusion_generator.error = None
-        self.mock_di.simple_stable_diffusion_generator.return_value = self.simple_stable_diffusion_generator
+        self.mock_di.simple_stable_diffusion_generator = MagicMock(return_value = self.simple_stable_diffusion_generator)
 
         # Mock configured tools
         # noinspection PyTypeChecker
@@ -75,6 +75,12 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         self.assertEqual(result, SmartStableDiffusionGenerator.Result.success)
         mock_llm.invoke.assert_called_once()
         self.simple_stable_diffusion_generator.execute.assert_called_once()
+        self.mock_di.simple_stable_diffusion_generator.assert_called_once_with(
+            configured_tool = self.mock_configured_image_gen_tool,
+            prompt = "Refined prompt",
+            aspect_ratio = None,
+            size = None,
+        )
         # noinspection PyUnresolvedReferences
         self.mock_platform_sdk.smart_send_photo.assert_called_once_with(
             media_mode = ChatConfigDB.MediaMode.all,

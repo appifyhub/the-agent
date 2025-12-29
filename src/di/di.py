@@ -549,10 +549,11 @@ class DI:
         configured_copywriter_tool: ConfiguredTool,
         configured_image_gen_tool: ConfiguredTool,
         aspect_ratio: str | None = None,
+        size: str | None = None,
     ) -> "SmartStableDiffusionGenerator":
         from features.images.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
         return SmartStableDiffusionGenerator(
-            raw_prompt, configured_copywriter_tool, configured_image_gen_tool, self, aspect_ratio,
+            raw_prompt, configured_copywriter_tool, configured_image_gen_tool, self, aspect_ratio, size,
         )
 
     # noinspection PyMethodMayBeStatic
@@ -561,9 +562,10 @@ class DI:
         prompt: str,
         configured_tool: ConfiguredTool,
         aspect_ratio: str | None = None,
+        size: str | None = None,
     ) -> "SimpleStableDiffusionGenerator":
         from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
-        return SimpleStableDiffusionGenerator(prompt, configured_tool, self, aspect_ratio)
+        return SimpleStableDiffusionGenerator(prompt, configured_tool, self, aspect_ratio, size)
 
     # noinspection PyMethodMayBeStatic
     def image_uploader(
@@ -597,21 +599,23 @@ class DI:
         operation_name: str,
         operation_guidance: str | None,
         aspect_ratio: str | None = None,
+        size: str | None = None,
     ) -> "ChatImagingService":
         from features.chat.chat_imaging_service import ChatImagingService
-        return ChatImagingService(attachment_ids, operation_name, operation_guidance, aspect_ratio, self)
+        return ChatImagingService(attachment_ids, operation_name, operation_guidance, aspect_ratio, size, self)
 
     # noinspection PyMethodMayBeStatic
     def image_editor(
         self,
         image_url: str,
         configured_tool: ConfiguredTool,
-        context: str | None = None,
-        mime_type: str | None = None,
+        prompt: str,
+        input_mime_type: str | None = None,
         aspect_ratio: str | None = None,
+        size: str | None = None,
     ) -> "ImageEditor":
         from features.images.image_editor import ImageEditor
-        return ImageEditor(image_url, configured_tool, context, mime_type, aspect_ratio)
+        return ImageEditor(image_url, configured_tool, prompt, input_mime_type, aspect_ratio, size)
 
     # noinspection PyMethodMayBeStatic
     def image_background_remover(

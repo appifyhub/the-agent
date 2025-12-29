@@ -327,7 +327,3 @@ class WhatsAppDomainMapperTest(unittest.TestCase):
         )
 
         self.assertEqual(result, "#10")
-
-
-if __name__ == "__main__":
-    unittest.main()

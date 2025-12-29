@@ -214,8 +214,8 @@ GEMINI_2_5_PRO = ExternalTool(
 )
 
 GEMINI_2_5_FLASH_IMAGE = ExternalTool(
-    id = "gemini-2.5-flash-image-preview",
-    name = "Gemini 2.5 Flash Image (Preview)",
+    id = "gemini-2.5-flash-image",
+    name = "Gemini 2.5 Flash Image",
     provider = GOOGLE_AI,
     types = [ToolType.images_gen],
 )
@@ -232,6 +232,13 @@ GEMINI_3_PRO = ExternalTool(
     name = "Gemini 3 Pro (Preview)",
     provider = GOOGLE_AI,
     types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+)
+
+GEMINI_3_PRO_IMAGE = ExternalTool(
+    id = "gemini-3-pro-image-preview",
+    name = "Gemini 3 Pro Image",
+    provider = GOOGLE_AI,
+    types = [ToolType.images_gen],
 )
 
 ###  Perplexity  ###
@@ -361,7 +368,7 @@ IMAGE_EDITING_FLUX_KONTEXT_PRO = ExternalTool(
     types = [ToolType.images_gen, ToolType.images_edit],
 )
 
-IMAGE_EDITING_SEED_EDIT = ExternalTool(
+IMAGE_EDITING_SEED_EDIT_3 = ExternalTool(
     id = "bytedance/seededit-3.0",
     name = "ByteDance's SeedEdit v3",
     provider = REPLICATE,
@@ -426,6 +433,7 @@ ALL_EXTERNAL_TOOLS = [
     GEMINI_2_5_FLASH_IMAGE,
     GEMINI_3_FLASH,
     GEMINI_3_PRO,
+    GEMINI_3_PRO_IMAGE,
     # Perplexity
     SONAR,
     SONAR_PRO,
@@ -447,7 +455,7 @@ ALL_EXTERNAL_TOOLS = [
     IMAGE_GENERATION_EDITING_GPT_IMAGE_1_5,
     IMAGE_GENERATION_GEMINI_2_5_FLASH_IMAGE,
     IMAGE_EDITING_FLUX_KONTEXT_PRO,
-    IMAGE_EDITING_SEED_EDIT,
+    IMAGE_EDITING_SEED_EDIT_3,
     IMAGE_GENERATION_EDITING_SEEDREAM_4,
     IMAGE_EDITING_GOOGLE_NANO_BANANA,
     IMAGE_EDITING_GOOGLE_NANO_BANANA_PRO,
