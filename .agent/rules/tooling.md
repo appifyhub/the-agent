@@ -1,8 +1,7 @@
 ---
-description: 
-globs: *.py, *.sh
-alwaysApply: true
+trigger: always_on
 ---
+
 ### MANDATORY PROJECT RULES
 
 #### Environment Management

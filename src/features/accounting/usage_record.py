@@ -1,0 +1,27 @@
+from datetime import datetime, timezone
+from uuid import UUID
+
+from pydantic import BaseModel, Field
+
+from features.external_tools.external_tool import ExternalTool
+
+
+class UsageRecord(BaseModel):
+    # core properties
+    user_id: UUID
+    chat_id: UUID
+    tool: ExternalTool
+    timestamp: datetime = Field(default_factory = lambda: datetime.now(timezone.utc))
+    runtime_seconds: int
+    # cost properties
+    model_cost_credits: float
+    maintenance_fee_credits: float
+    total_cost_credits: float
+    # token-based properties
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    search_tokens: int | None = None
+    total_tokens: int | None = None
+    # image-related properties
+    image_count: int | None = None
+    image_size: str | None = None
