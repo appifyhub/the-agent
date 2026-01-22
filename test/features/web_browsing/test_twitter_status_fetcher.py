@@ -1,6 +1,7 @@
 import unittest
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, Mock, patch
+from uuid import UUID
 
 import requests
 import requests_mock
@@ -42,6 +43,20 @@ class TwitterStatusFetcherTest(unittest.TestCase):
         self.mock_di.tools_cache_crud.create_key.return_value = "test_cache_key"
         self.mock_di.tools_cache_crud.save.return_value = None
         self.mock_di.computer_vision_analyzer = MagicMock()
+
+        # Mock invoker and chat for usage tracking
+        mock_user = Mock()
+        mock_user.id = UUID(int = 1)
+        self.mock_di.invoker = mock_user
+
+        mock_chat = Mock()
+        mock_chat.chat_id = UUID(int = 2)
+        self.mock_di.require_invoker_chat = MagicMock(return_value = mock_chat)
+
+        # Mock tracked_http_get to return a mock that delegates to requests.get
+        mock_http_client = MagicMock()
+        mock_http_client.get = requests.get
+        self.mock_di.tracked_http_get = MagicMock(return_value = mock_http_client)
 
         # Set up configured tools
         mock_twitter_tool = MagicMock()

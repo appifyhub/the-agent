@@ -2,10 +2,9 @@ from datetime import datetime, timedelta
 from time import sleep
 from typing import Any, Dict
 
-import requests
-
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from di.di import DI
+from features.accounting.http_usage_tracking_decorator import HTTPUsageTrackingDecorator
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import TWITTER_API
@@ -30,6 +29,7 @@ class TwitterStatusFetcher:
     __twitter_api_tool: ConfiguredTool
     __vision_tool: ConfiguredTool
     __twitter_enterprise_tool: ConfiguredTool
+    __http_client: HTTPUsageTrackingDecorator
     __di: DI
 
     def __init__(
@@ -44,6 +44,7 @@ class TwitterStatusFetcher:
         self.__twitter_api_tool = twitter_api_tool
         self.__vision_tool = vision_tool
         self.__twitter_enterprise_tool = twitter_enterprise_tool
+        self.__http_client = di.tracked_http_get(twitter_api_tool)
         self.__di = di
 
     def execute(self) -> str:
@@ -71,7 +72,7 @@ class TwitterStatusFetcher:
         }
 
         sleep(RATE_LIMIT_DELAY_S)
-        response = requests.get(api_url, headers = headers, params = enterprise_params, timeout = config.web_timeout_s)
+        response = self.__http_client.get(api_url, headers = headers, params = enterprise_params, timeout = config.web_timeout_s)
         response.raise_for_status()
         response = response.json() or {}
 
@@ -84,6 +85,7 @@ class TwitterStatusFetcher:
             ),
         )
         log.t(f"Cache updated for key '{cache_key}'")
+
         return resolved_content
 
     def __get_cached_content(self, cache_key: str) -> str | None:

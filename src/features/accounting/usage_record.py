@@ -1,20 +1,24 @@
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from uuid import UUID
 
-from pydantic import BaseModel, Field
-
-from features.external_tools.external_tool import ExternalTool
+from features.external_tools.external_tool import ExternalTool, ToolType
 
 
-class UsageRecord(BaseModel):
+@dataclass(kw_only = True)
+class UsageRecord:
     # core properties
     user_id: UUID
     chat_id: UUID
     tool: ExternalTool
-    timestamp: datetime = Field(default_factory = lambda: datetime.now(timezone.utc))
-    runtime_seconds: int
+    tool_purpose: ToolType
+    timestamp: datetime = field(default_factory = lambda: datetime.now(timezone.utc))
+    runtime_seconds: float
+    remote_runtime_seconds: float | None = None
     # cost properties
     model_cost_credits: float
+    remote_runtime_cost_credits: float
+    api_call_cost_credits: float
     maintenance_fee_credits: float
     total_cost_credits: float
     # token-based properties

@@ -7,6 +7,9 @@ import requests
 from httpx import Timeout
 from replicate.client import Client
 
+from di.di import DI
+from features.accounting.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
+from features.accounting.usage_tracking_service import UsageTrackingService
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import IMAGE_INPAINTING, IMAGE_RESTORATION
@@ -39,6 +42,7 @@ class ImageContentsRestorer:
     __prompt_negative: str | None
     __replicate_restoration: Client
     __replicate_inpainting: Client
+    __di: DI | None
 
     def __init__(
         self,
@@ -48,6 +52,7 @@ class ImageContentsRestorer:
         prompt_positive: str | None = None,
         prompt_negative: str | None = None,
         mime_type: str | None = None,
+        di: DI | None = None,
     ):
         self.__image_url = image_url
         self.__restoration_tool = restoration_tool
@@ -55,16 +60,36 @@ class ImageContentsRestorer:
         self.__mime_type = mime_type
         self.__prompt_positive = prompt_positive
         self.__prompt_negative = prompt_negative
+        self.__di = di
         _, restoration_token, _ = restoration_tool
-        self.__replicate_restoration = Client(
+        base_restoration_client = Client(
             api_token = restoration_token.get_secret_value(),
             timeout = Timeout(BOOT_AND_RUN_TIMEOUT_S),
         )
         _, inpainting_token, _ = inpainting_tool
-        self.__replicate_inpainting = Client(
+        base_inpainting_client = Client(
             api_token = inpainting_token.get_secret_value(),
             timeout = Timeout(BOOT_AND_RUN_TIMEOUT_S),
         )
+        if self.__di:
+            tracking_service = UsageTrackingService(self.__di)
+            restoration_purpose, _, restoration_tool = restoration_tool
+            self.__replicate_restoration = ReplicateUsageTrackingDecorator(
+                base_restoration_client,
+                tracking_service,
+                restoration_tool,
+                restoration_purpose,
+            )
+            inpainting_purpose, _, inpainting_tool = inpainting_tool
+            self.__replicate_inpainting = ReplicateUsageTrackingDecorator(
+                base_inpainting_client,
+                tracking_service,
+                inpainting_tool,
+                inpainting_purpose,
+            )
+        else:
+            self.__replicate_restoration = base_restoration_client
+            self.__replicate_inpainting = base_inpainting_client
 
     def execute(self) -> Result:
         result = ImageContentsRestorer.Result(None, None, None)
@@ -86,7 +111,14 @@ class ImageContentsRestorer:
                         "codeformer_fidelity": 0.1,
                     }
                     restoration_tool, _, _ = self.__restoration_tool
-                    restored_url = self.__replicate_restoration.run(restoration_tool.id, input = input_data)
+
+                    prediction = self.__replicate_restoration.predictions.create(
+                        version = restoration_tool.id,
+                        input = input_data,
+                    )
+                    prediction.wait()
+
+                    restored_url = prediction.output
             if not restored_url:
                 raise ValueError("Failed to restore image contents (no output URL)")
             log.d("Image contents restoration successful")
@@ -116,7 +148,15 @@ class ImageContentsRestorer:
                         "negative_prompt": self.__prompt_negative or "bad anatomy, ugly, low quality",
                     }
                     inpainting_tool, _, _ = self.__inpainting_tool
-                    inpainted_url = list(self.__replicate_inpainting.run(inpainting_tool.id, input = input_data))
+
+                    prediction = self.__replicate_inpainting.predictions.create(
+                        version = inpainting_tool.id,
+                        input = input_data,
+                    )
+                    prediction.wait()
+
+                    inpainted_output = prediction.output
+                    inpainted_url = list(inpainted_output) if isinstance(inpainted_output, (list, tuple)) else [inpainted_output]
             if not inpainted_url or not inpainted_url[0]:
                 raise ValueError("Failed to inpaint image details (no output URL)")
             log.d("Image detail inpainting successful")

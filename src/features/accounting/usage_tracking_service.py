@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from di.di import DI
 from features.accounting.usage_record import UsageRecord
-from features.external_tools.external_tool import CostEstimate, ExternalTool
+from features.external_tools.external_tool import CostEstimate, ExternalTool, ToolType
 from util import log
 from util.config import config
 
@@ -14,36 +14,42 @@ class UsageTrackingService:
     def __init__(self, di: DI):
         self.__di = di
 
-    def track_llm(
+    def track_text_model(
         self,
         tool: ExternalTool,
-        runtime_seconds: int,
+        tool_purpose: ToolType,
+        runtime_seconds: float,
         input_tokens: int | None = None,
         output_tokens: int | None = None,
         search_tokens: int | None = None,
         total_tokens: int | None = None,
+        remote_runtime_seconds: float | None = None,
     ) -> UsageRecord:
         if all(t is None for t in [input_tokens, output_tokens, search_tokens, total_tokens]):
             raise ValueError(
-                f"No usage metadata available for LLM {tool.id} - "
-                "all token fields are None",
+                f"No usage metadata available for LLM {tool.id} - all token fields are None",
             )
-        # we use provider's total_tokens if available, otherwise calculate from components
-        if total_tokens is None:
-            total_tokens = (input_tokens or 0) + (output_tokens or 0) + (search_tokens or 0)
-        model_cost_credits = self.__calculate_llm_cost(
-            tool.cost_estimate,
-            input_tokens, output_tokens, search_tokens,
-        )
+
+        model_cost_credits: float = self.__calculate_llm_cost(tool.cost_estimate, input_tokens, output_tokens, search_tokens)
+        remote_runtime_cost_credits: float = (tool.cost_estimate.second_of_runtime or 0) \
+            * (remote_runtime_seconds or runtime_seconds)
+        api_cost_credits: float = float(tool.cost_estimate.api_call or 0)
+        maintenance_fee_credits: float = config.usage_maintenance_fee_credits
+        total_cost_credits: float = model_cost_credits + api_cost_credits + remote_runtime_cost_credits + maintenance_fee_credits
+
         record = UsageRecord(
             user_id = self.__di.invoker.id,
             chat_id = self.__di.require_invoker_chat().chat_id,
             tool = tool,
+            tool_purpose = tool_purpose,
             timestamp = datetime.now(timezone.utc),
             model_cost_credits = model_cost_credits,
-            maintenance_fee_credits = config.usage_maintenance_fee_credits,
-            total_cost_credits = model_cost_credits + config.usage_maintenance_fee_credits,
+            api_call_cost_credits = api_cost_credits,
+            remote_runtime_cost_credits = remote_runtime_cost_credits,
+            maintenance_fee_credits = maintenance_fee_credits,
+            total_cost_credits = total_cost_credits,
             runtime_seconds = runtime_seconds,
+            remote_runtime_seconds = remote_runtime_seconds,
             input_tokens = input_tokens,
             output_tokens = output_tokens,
             total_tokens = total_tokens,
@@ -52,37 +58,45 @@ class UsageTrackingService:
         log.d("LLM Usage Tracked", record)
         return record
 
-    def track_image(
+    def track_image_model(
         self,
         tool: ExternalTool,
-        runtime_seconds: int,
+        tool_purpose: ToolType,
+        runtime_seconds: float,
         input_tokens: int | None = None,
         output_tokens: int | None = None,
         total_tokens: int | None = None,
         image_count: int = 1,
         image_size: str | None = None,
+        remote_runtime_seconds: float | None = None,
     ) -> UsageRecord:
         if all(t is None for t in [input_tokens, output_tokens, total_tokens, image_size]):
             raise ValueError(
-                f"No usage metadata available for image tool {tool.id} - "
-                "all metrics (tokens, size) are None",
+                f"No usage metadata available for image tool {tool.id} - all metrics (tokens, size) are None",
             )
-        # we use provider's total_tokens if available, otherwise calculate from components
-        if total_tokens is None:
-            total_tokens = (input_tokens or 0) + (output_tokens or 0)
-        model_cost_credits = self.__calculate_image_cost(
-            tool.cost_estimate, image_size,
-            input_tokens, output_tokens, total_tokens,
+
+        model_cost_credits: float = self.__calculate_image_cost(
+            tool.cost_estimate, image_size, input_tokens, output_tokens, total_tokens,
         )
+        api_cost_credits: float = float(tool.cost_estimate.api_call or 0)
+        remote_runtime_cost_credits: float = (tool.cost_estimate.second_of_runtime or 0) \
+            * (remote_runtime_seconds or runtime_seconds)
+        maintenance_fee_credits: float = config.usage_maintenance_fee_credits
+        total_cost_credits: float = model_cost_credits + api_cost_credits + remote_runtime_cost_credits + maintenance_fee_credits
+
         record = UsageRecord(
             user_id = self.__di.invoker.id,
             chat_id = self.__di.require_invoker_chat().chat_id,
             tool = tool,
+            tool_purpose = tool_purpose,
             timestamp = datetime.now(timezone.utc),
             model_cost_credits = model_cost_credits,
-            maintenance_fee_credits = config.usage_maintenance_fee_credits,
-            total_cost_credits = model_cost_credits + config.usage_maintenance_fee_credits,
+            remote_runtime_cost_credits = remote_runtime_cost_credits,
+            api_call_cost_credits = api_cost_credits,
+            maintenance_fee_credits = maintenance_fee_credits,
+            total_cost_credits = total_cost_credits,
             runtime_seconds = runtime_seconds,
+            remote_runtime_seconds = remote_runtime_seconds,
             input_tokens = input_tokens,
             output_tokens = output_tokens,
             total_tokens = total_tokens,
@@ -95,17 +109,25 @@ class UsageTrackingService:
     def track_api_call(
         self,
         tool: ExternalTool,
-        runtime_seconds: int,
+        tool_purpose: ToolType,
+        runtime_seconds: float,
     ) -> UsageRecord:
-        model_cost_credits = self.__calculate_api_cost(tool.cost_estimate)
+        api_call_cost: float = float(tool.cost_estimate.api_call or 0)
+        remote_runtime_cost_credits: float = (tool.cost_estimate.second_of_runtime or 0) * runtime_seconds
+        maintenance_fee_credits: float = config.usage_maintenance_fee_credits
+        total_cost_credits: float = api_call_cost + remote_runtime_cost_credits + maintenance_fee_credits
+
         record = UsageRecord(
             user_id = self.__di.invoker.id,
             chat_id = self.__di.require_invoker_chat().chat_id,
             tool = tool,
+            tool_purpose = tool_purpose,
             timestamp = datetime.now(timezone.utc),
-            model_cost_credits = model_cost_credits,
-            maintenance_fee_credits = config.usage_maintenance_fee_credits,
-            total_cost_credits = model_cost_credits + config.usage_maintenance_fee_credits,
+            model_cost_credits = 0.0,
+            remote_runtime_cost_credits = remote_runtime_cost_credits,
+            api_call_cost_credits = api_call_cost,
+            maintenance_fee_credits = maintenance_fee_credits,
+            total_cost_credits = total_cost_credits,
             runtime_seconds = runtime_seconds,
         )
         log.d("API Call Tracked", record)
@@ -119,12 +141,11 @@ class UsageTrackingService:
         search_tokens: int | None,
     ) -> float:
         result = 0.0
-        if input_tokens and cost.input_1m_tokens:
+        if input_tokens is not None and cost.input_1m_tokens is not None:
             result += (input_tokens / 1_000_000) * cost.input_1m_tokens
-        if output_tokens and cost.output_1m_tokens:
+        if output_tokens is not None and cost.output_1m_tokens is not None:
             result += (output_tokens / 1_000_000) * cost.output_1m_tokens
-        # search tokens cost is always added for some models (kind of like a separate API fee)
-        if search_tokens and cost.search_1m_tokens:
+        if search_tokens is not None and cost.search_1m_tokens is not None:
             result += (search_tokens / 1_000_000) * cost.search_1m_tokens
         return result
 
@@ -137,8 +158,8 @@ class UsageTrackingService:
         total_tokens: int | None,
     ) -> float:
         # when tokens are present, we calculate cost based on tokens using LLM logic
-        # some image models (like the ones from Google AI) report token usage
-        if input_tokens or output_tokens or total_tokens:
+        # because some image models (like the ones from Google AI) report token usage
+        if input_tokens is not None or output_tokens is not None or total_tokens is not None:
             return self.__calculate_llm_cost(cost, input_tokens, output_tokens, search_tokens = None)
 
         image_size_lower = image_size.lower().strip() if image_size else None
@@ -157,6 +178,3 @@ class UsageTrackingService:
         raise ValueError(
             f"Cannot calculate cost for image: no token usage and no pricing for size '{image_size}'",
         )
-
-    def __calculate_api_cost(self, estimate: CostEstimate) -> float:
-        return float(estimate.api_single_call or 0)
