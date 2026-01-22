@@ -8,8 +8,8 @@ from httpx import Timeout
 from replicate.client import Client
 
 from di.di import DI
-from features.accounting.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
-from features.accounting.usage_tracking_service import UsageTrackingService
+from features.accounting.decorators.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
+from features.accounting.service.usage_tracking_service import UsageTrackingService
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import IMAGE_INPAINTING, IMAGE_RESTORATION

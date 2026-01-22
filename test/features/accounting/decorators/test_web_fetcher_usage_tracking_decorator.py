@@ -2,8 +2,8 @@ import unittest
 from time import sleep
 from unittest.mock import Mock
 
-from features.accounting.usage_tracking_service import UsageTrackingService
-from features.accounting.web_fetcher_usage_tracking_decorator import WebFetcherUsageTrackingDecorator
+from features.accounting.decorators.web_fetcher_usage_tracking_decorator import WebFetcherUsageTrackingDecorator
+from features.accounting.service.usage_tracking_service import UsageTrackingService
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.web_browsing.web_fetcher import WebFetcher
 

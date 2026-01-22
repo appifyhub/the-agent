@@ -5,8 +5,8 @@ from langchain_core.language_models import BaseChatModel, LanguageModelInput
 from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.runnables import Runnable, RunnableConfig
 
-from features.accounting.llm_usage_stats import LLMUsageStats
-from features.accounting.usage_tracking_service import UsageTrackingService
+from features.accounting.service.usage_tracking_service import UsageTrackingService
+from features.accounting.stats.llm_usage_stats import LLMUsageStats
 from features.external_tools.external_tool import ExternalTool, ToolType
 
 

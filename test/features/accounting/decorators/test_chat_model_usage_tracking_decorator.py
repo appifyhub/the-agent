@@ -4,11 +4,11 @@ from unittest.mock import Mock
 
 from langchain_core.messages import AIMessage
 
-from features.accounting.chat_model_usage_tracking_decorator import (
+from features.accounting.decorators.chat_model_usage_tracking_decorator import (
     ChatModelUsageTrackingDecorator,
     RunnableUsageTrackingDecorator,
 )
-from features.accounting.usage_tracking_service import UsageTrackingService
+from features.accounting.service.usage_tracking_service import UsageTrackingService
 from features.external_tools.external_tool import ExternalTool, ToolType
 
 

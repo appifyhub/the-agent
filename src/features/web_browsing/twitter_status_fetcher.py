@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from di.di import DI
-from features.accounting.http_usage_tracking_decorator import HTTPUsageTrackingDecorator
+from features.accounting.decorators.http_usage_tracking_decorator import HTTPUsageTrackingDecorator
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import TWITTER_API

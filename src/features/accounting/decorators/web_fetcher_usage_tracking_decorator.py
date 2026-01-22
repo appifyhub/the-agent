@@ -1,6 +1,6 @@
 from time import time
 
-from features.accounting.usage_tracking_service import UsageTrackingService
+from features.accounting.service.usage_tracking_service import UsageTrackingService
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.web_browsing.web_fetcher import WebFetcher
 

@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from di.di import DI
-from features.accounting.usage_record import UsageRecord
+from features.accounting.stats.usage_record import UsageRecord
 from features.external_tools.external_tool import CostEstimate, ExternalTool, ToolType
 from util import log
 from util.config import config

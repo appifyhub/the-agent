@@ -28,13 +28,13 @@ if TYPE_CHECKING:
     from db.crud.sponsorship import SponsorshipCRUD
     from db.crud.tools_cache import ToolsCacheCRUD
     from db.crud.user import UserCRUD
-    from features.accounting.chat_model_usage_tracking_decorator import ChatModelUsageTrackingDecorator
-    from features.accounting.google_ai_usage_tracking_decorator import GoogleAIUsageTrackingDecorator
-    from features.accounting.http_usage_tracking_decorator import HTTPUsageTrackingDecorator
-    from features.accounting.openai_usage_tracking_decorator import OpenAIUsageTrackingDecorator
-    from features.accounting.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
-    from features.accounting.usage_tracking_service import UsageTrackingService
-    from features.accounting.web_fetcher_usage_tracking_decorator import WebFetcherUsageTrackingDecorator
+    from features.accounting.decorators.chat_model_usage_tracking_decorator import ChatModelUsageTrackingDecorator
+    from features.accounting.decorators.google_ai_usage_tracking_decorator import GoogleAIUsageTrackingDecorator
+    from features.accounting.decorators.http_usage_tracking_decorator import HTTPUsageTrackingDecorator
+    from features.accounting.decorators.openai_usage_tracking_decorator import OpenAIUsageTrackingDecorator
+    from features.accounting.decorators.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
+    from features.accounting.decorators.web_fetcher_usage_tracking_decorator import WebFetcherUsageTrackingDecorator
+    from features.accounting.service.usage_tracking_service import UsageTrackingService
     from features.announcements.release_summary_service import ReleaseSummaryService
     from features.announcements.sys_announcements_service import SysAnnouncementsService
     from features.audio.audio_transcriber import AudioTranscriber
@@ -371,7 +371,7 @@ class DI:
     @property
     def usage_tracking_service(self) -> "UsageTrackingService":
         if self._usage_tracking_service is None:
-            from features.accounting.usage_tracking_service import UsageTrackingService
+            from features.accounting.service.usage_tracking_service import UsageTrackingService
             self._usage_tracking_service = UsageTrackingService(self)
         return self._usage_tracking_service
 
@@ -464,7 +464,7 @@ class DI:
     # === Features & Dynamic Instances ===
 
     def chat_langchain_model(self, configured_tool: ConfiguredTool) -> "ChatModelUsageTrackingDecorator":
-        from features.accounting.chat_model_usage_tracking_decorator import ChatModelUsageTrackingDecorator
+        from features.accounting.decorators.chat_model_usage_tracking_decorator import ChatModelUsageTrackingDecorator
         from features.llm import langchain_creator
 
         external_tool, _, tool_type = configured_tool
@@ -486,7 +486,7 @@ class DI:
         timeout_s: float | None = None,
         image_size: str | None = None,
     ) -> "ReplicateUsageTrackingDecorator":
-        from features.accounting.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
+        from features.accounting.decorators.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
 
         external_tool, token, tool_type = configured_tool
         base_client = self.base_replicate_client(token.get_secret_value(), timeout_s)
@@ -513,7 +513,7 @@ class DI:
         timeout_s: float | None = None,
         image_size: str | None = None,
     ) -> "GoogleAIUsageTrackingDecorator":
-        from features.accounting.google_ai_usage_tracking_decorator import GoogleAIUsageTrackingDecorator
+        from features.accounting.decorators.google_ai_usage_tracking_decorator import GoogleAIUsageTrackingDecorator
 
         external_tool, token, tool_type = configured_tool
         base_client = self.base_google_ai_client(token.get_secret_value(), timeout_s)
@@ -536,7 +536,7 @@ class DI:
         configured_tool: ConfiguredTool,
         timeout_s: float | None = None,
     ) -> "OpenAIUsageTrackingDecorator":
-        from features.accounting.openai_usage_tracking_decorator import OpenAIUsageTrackingDecorator
+        from features.accounting.decorators.openai_usage_tracking_decorator import OpenAIUsageTrackingDecorator
 
         external_tool, _, tool_type = configured_tool
         base_client = self.base_open_ai_client(configured_tool, timeout_s)
@@ -550,7 +550,7 @@ class DI:
         return LangChainEmbeddingsAdapter(client, embedding_model.id)
 
     def tracked_http_get(self, configured_tool: ConfiguredTool) -> "HTTPUsageTrackingDecorator":
-        from features.accounting.http_usage_tracking_decorator import HTTPUsageTrackingDecorator
+        from features.accounting.decorators.http_usage_tracking_decorator import HTTPUsageTrackingDecorator
 
         external_tool, _, tool_purpose = configured_tool
         return HTTPUsageTrackingDecorator(self.usage_tracking_service, external_tool, tool_purpose)
@@ -621,7 +621,7 @@ class DI:
         auto_fetch_html: bool = False,
         auto_fetch_json: bool = False,
     ) -> "WebFetcherUsageTrackingDecorator":
-        from features.accounting.web_fetcher_usage_tracking_decorator import WebFetcherUsageTrackingDecorator
+        from features.accounting.decorators.web_fetcher_usage_tracking_decorator import WebFetcherUsageTrackingDecorator
 
         external_tool, _, tool_purpose = configured_tool
         base_fetcher = self.web_fetcher(

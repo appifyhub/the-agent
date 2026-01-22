@@ -4,9 +4,9 @@ from typing import Any, Callable
 from replicate.client import Client
 from replicate.prediction import Prediction
 
-from features.accounting.image_usage_stats import ImageUsageStats
-from features.accounting.namespace_proxy import NamespaceProxy
-from features.accounting.usage_tracking_service import UsageTrackingService
+from features.accounting.proxies.namespace_proxy import NamespaceProxy
+from features.accounting.service.usage_tracking_service import UsageTrackingService
+from features.accounting.stats.image_usage_stats import ImageUsageStats
 from features.external_tools.external_tool import ExternalTool, ToolType
 
 

@@ -4,8 +4,8 @@ from unittest.mock import Mock
 
 from google.genai.types import GenerateContentResponse
 
-from features.accounting.google_ai_usage_tracking_decorator import GoogleAIUsageTrackingDecorator
-from features.accounting.usage_tracking_service import UsageTrackingService
+from features.accounting.decorators.google_ai_usage_tracking_decorator import GoogleAIUsageTrackingDecorator
+from features.accounting.service.usage_tracking_service import UsageTrackingService
 from features.external_tools.external_tool import ExternalTool, ToolType
 
 

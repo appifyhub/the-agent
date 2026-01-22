@@ -3,7 +3,7 @@ from unittest.mock import Mock
 
 from langchain_core.messages import AIMessage
 
-from features.accounting.llm_usage_stats import LLMUsageStats
+from features.accounting.stats.llm_usage_stats import LLMUsageStats
 
 
 class LLMUsageStatsTest(unittest.TestCase):

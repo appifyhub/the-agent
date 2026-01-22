@@ -2,11 +2,11 @@ import unittest
 from time import sleep
 from unittest.mock import Mock
 
-from features.accounting.replicate_usage_tracking_decorator import (
+from features.accounting.decorators.replicate_usage_tracking_decorator import (
     PredictionUsageTrackingDecorator,
     ReplicateUsageTrackingDecorator,
 )
-from features.accounting.usage_tracking_service import UsageTrackingService
+from features.accounting.service.usage_tracking_service import UsageTrackingService
 from features.external_tools.external_tool import ExternalTool, ToolType
 
 

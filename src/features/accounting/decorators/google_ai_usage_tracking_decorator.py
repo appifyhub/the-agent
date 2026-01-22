@@ -5,9 +5,9 @@ from google.genai.client import Client as GoogleSDKClient
 from google.genai.models import Models as GoogleSDKModels
 from google.genai.types import GenerateContentResponse
 
-from features.accounting.image_usage_stats import ImageUsageStats
-from features.accounting.namespace_proxy import NamespaceProxy
-from features.accounting.usage_tracking_service import UsageTrackingService
+from features.accounting.proxies.namespace_proxy import NamespaceProxy
+from features.accounting.service.usage_tracking_service import UsageTrackingService
+from features.accounting.stats.image_usage_stats import ImageUsageStats
 from features.external_tools.external_tool import ExternalTool, ToolType
 
 

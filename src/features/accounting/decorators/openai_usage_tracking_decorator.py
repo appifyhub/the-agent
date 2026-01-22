@@ -3,9 +3,9 @@ from typing import Any, Callable
 
 from openai import OpenAI
 
-from features.accounting.llm_usage_stats import LLMUsageStats
-from features.accounting.namespace_proxy import NamespaceProxy
-from features.accounting.usage_tracking_service import UsageTrackingService
+from features.accounting.proxies.namespace_proxy import NamespaceProxy
+from features.accounting.service.usage_tracking_service import UsageTrackingService
+from features.accounting.stats.llm_usage_stats import LLMUsageStats
 from features.external_tools.external_tool import ExternalTool, ToolType
 
 
