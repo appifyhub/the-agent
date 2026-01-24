@@ -115,9 +115,6 @@ class TelegramDataResolver:
             mapped_data.tool_choice_hearing = old_user.tool_choice_hearing
             mapped_data.tool_choice_images_gen = old_user.tool_choice_images_gen
             mapped_data.tool_choice_images_edit = old_user.tool_choice_images_edit
-            mapped_data.tool_choice_images_restoration = old_user.tool_choice_images_restoration
-            mapped_data.tool_choice_images_inpainting = old_user.tool_choice_images_inpainting
-            mapped_data.tool_choice_images_background_removal = old_user.tool_choice_images_background_removal
             mapped_data.tool_choice_search = old_user.tool_choice_search
             mapped_data.tool_choice_embedding = old_user.tool_choice_embedding
             mapped_data.tool_choice_api_fiat_exchange = old_user.tool_choice_api_fiat_exchange
@@ -165,15 +162,6 @@ class TelegramDataResolver:
         if mapped_data.tool_choice_images_edit is not None and not mapped_data.tool_choice_images_edit.strip():
             log.w("Resetting tool_choice_images_edit to None because it is empty")
             mapped_data.tool_choice_images_edit = None
-        if mapped_data.tool_choice_images_restoration is not None and not mapped_data.tool_choice_images_restoration.strip():
-            log.w("Resetting tool_choice_images_restoration to None because it is empty")
-            mapped_data.tool_choice_images_restoration = None
-        if mapped_data.tool_choice_images_inpainting is not None and not mapped_data.tool_choice_images_inpainting.strip():
-            log.w("Resetting tool_choice_images_inpainting to None because it is empty")
-            mapped_data.tool_choice_images_inpainting = None
-        if mapped_data.tool_choice_images_background_removal is not None and not mapped_data.tool_choice_images_background_removal.strip():  # noqa: E501
-            log.w("Resetting tool_choice_images_background_removal to None because it is empty")
-            mapped_data.tool_choice_images_background_removal = None
         if mapped_data.tool_choice_search is not None and not mapped_data.tool_choice_search.strip():
             log.w("Resetting tool_choice_search to None because it is empty")
             mapped_data.tool_choice_search = None

@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 # noinspection PyUnusedImports
-from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from sqlalchemy.orm import Session
 
@@ -13,6 +12,11 @@ from db.schema.chat_config import ChatConfig
 from db.schema.user import User
 
 if TYPE_CHECKING:
+
+    from google.genai import Client as GoogleSDKClient
+    from openai import OpenAI
+    from replicate.client import Client as ReplicateSDKClient
+
     from api.authorization_service import AuthorizationService
     from api.profile_connect_controller import ProfileConnectController
     from api.settings_controller import SettingsController
@@ -24,12 +28,19 @@ if TYPE_CHECKING:
     from db.crud.sponsorship import SponsorshipCRUD
     from db.crud.tools_cache import ToolsCacheCRUD
     from db.crud.user import UserCRUD
+    from features.accounting.decorators.chat_model_usage_tracking_decorator import ChatModelUsageTrackingDecorator
+    from features.accounting.decorators.google_ai_usage_tracking_decorator import GoogleAIUsageTrackingDecorator
+    from features.accounting.decorators.http_usage_tracking_decorator import HTTPUsageTrackingDecorator
+    from features.accounting.decorators.openai_usage_tracking_decorator import OpenAIUsageTrackingDecorator
+    from features.accounting.decorators.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
+    from features.accounting.decorators.web_fetcher_usage_tracking_decorator import WebFetcherUsageTrackingDecorator
+    from features.accounting.service.usage_tracking_service import UsageTrackingService
     from features.announcements.release_summary_service import ReleaseSummaryService
     from features.announcements.sys_announcements_service import SysAnnouncementsService
     from features.audio.audio_transcriber import AudioTranscriber
-    from features.chat.attachments_describer import AttachmentsDescriber
     from features.chat.chat_agent import ChatAgent
-    from features.chat.chat_imaging_service import ChatImagingService
+    from features.chat.chat_attachments_analyzer import ChatAttachmentsAnalyzer
+    from features.chat.chat_image_edit_service import ChatImageEditService
     from features.chat.chat_progress_notifier import ChatProgressNotifier
     from features.chat.command_processor import CommandProcessor
     from features.chat.currency_alert_service import CurrencyAlertService
@@ -47,11 +58,10 @@ if TYPE_CHECKING:
     from features.connect.profile_connect_service import ProfileConnectService
     from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
     from features.documents.document_search import DocumentSearch
+    from features.documents.langchain_embeddings_adapter import LangChainEmbeddingsAdapter
     from features.external_tools.access_token_resolver import AccessTokenResolver
     from features.external_tools.tool_choice_resolver import ConfiguredTool, ToolChoiceResolver
     from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
-    from features.images.image_background_remover import ImageBackgroundRemover
-    from features.images.image_contents_restorer import ImageContentsRestorer
     from features.images.image_editor import ImageEditor
     from features.images.image_resizer import ImageResizer
     from features.images.image_uploader import ImageUploader
@@ -97,6 +107,7 @@ class DI:
     _sponsorship_service: "SponsorshipService | None"
     _profile_connect_service: "ProfileConnectService | None"
     _authorization_service: "AuthorizationService | None"
+    _usage_tracking_service: "UsageTrackingService | None"
     # Controllers
     _settings_controller: "SettingsController | None"
     _sponsorships_controller: "SponsorshipsController | None"
@@ -109,7 +120,7 @@ class DI:
     _whatsapp_domain_mapper: "WhatsAppDomainMapper | None"
     _telegram_data_resolver: "TelegramDataResolver | None"
     _whatsapp_data_resolver: "WhatsAppDataResolver | None"
-    # Features
+    # Features & Dynamic Instances
     _llm_tool_library: "LLMToolLibrary | None"
     _command_processor: "CommandProcessor | None"
     _exchange_rate_fetcher: "ExchangeRateFetcher | None"
@@ -155,7 +166,7 @@ class DI:
         self._whatsapp_domain_mapper = None
         self._telegram_data_resolver = None
         self._whatsapp_data_resolver = None
-        # Features
+        # Features & Dynamic Instances
         self._llm_tool_library = None
         self._command_processor = None
         self._exchange_rate_fetcher = None
@@ -356,6 +367,13 @@ class DI:
         return self._authorization_service
 
     @property
+    def usage_tracking_service(self) -> "UsageTrackingService":
+        if self._usage_tracking_service is None:
+            from features.accounting.service.usage_tracking_service import UsageTrackingService
+            self._usage_tracking_service = UsageTrackingService(self)
+        return self._usage_tracking_service
+
+    @property
     def profile_connect_service(self) -> "ProfileConnectService":
         if self._profile_connect_service is None:
             from features.connect.profile_connect_service import ProfileConnectService
@@ -441,12 +459,99 @@ class DI:
             self._whatsapp_data_resolver = WhatsAppDataResolver(self)
         return self._whatsapp_data_resolver
 
-    # === Features ===
+    # === Features & Dynamic Instances ===
 
-    # noinspection PyMethodMayBeStatic
-    def chat_langchain_model(self, configured_tool: ConfiguredTool) -> "BaseChatModel":
+    def chat_langchain_model(self, configured_tool: ConfiguredTool) -> "ChatModelUsageTrackingDecorator":
+        from features.accounting.decorators.chat_model_usage_tracking_decorator import ChatModelUsageTrackingDecorator
         from features.llm import langchain_creator
-        return langchain_creator.create(configured_tool)
+
+        external_tool, _, tool_type = configured_tool
+        base_model = langchain_creator.create(configured_tool)
+        return ChatModelUsageTrackingDecorator(base_model, self.usage_tracking_service, external_tool, tool_type)
+
+    def base_replicate_client(self, api_token: str, timeout_s: float | None = None) -> "ReplicateSDKClient":
+        from httpx import Timeout
+        from replicate.client import Client as ReplicateSDKClient
+
+        return ReplicateSDKClient(
+            api_token = api_token,
+            timeout = Timeout(timeout_s) if timeout_s is not None else None,
+        )
+
+    def replicate_client(
+        self,
+        configured_tool: ConfiguredTool,
+        timeout_s: float | None = None,
+        image_size: str | None = None,
+    ) -> "ReplicateUsageTrackingDecorator":
+        from features.accounting.decorators.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
+
+        external_tool, token, tool_type = configured_tool
+        base_client = self.base_replicate_client(token.get_secret_value(), timeout_s)
+        return ReplicateUsageTrackingDecorator(
+            base_client, self.usage_tracking_service, external_tool, tool_type, image_size,
+        )
+
+    def base_google_ai_client(
+        self,
+        api_key: str,
+        timeout_s: float | None = None,
+    ) -> "GoogleSDKClient":
+        from google.genai import Client as GoogleSDKClient
+        from google.genai.types import HttpOptions
+
+        http_options: HttpOptions | None = None
+        if timeout_s is not None:
+            http_options = HttpOptions(timeout = int(timeout_s * 1000))
+        return GoogleSDKClient(api_key = api_key, http_options = http_options)
+
+    def google_ai_client(
+        self,
+        configured_tool: ConfiguredTool,
+        timeout_s: float | None = None,
+        image_size: str | None = None,
+    ) -> "GoogleAIUsageTrackingDecorator":
+        from features.accounting.decorators.google_ai_usage_tracking_decorator import GoogleAIUsageTrackingDecorator
+
+        external_tool, token, tool_type = configured_tool
+        base_client = self.base_google_ai_client(token.get_secret_value(), timeout_s)
+        return GoogleAIUsageTrackingDecorator(
+            base_client, self.usage_tracking_service, external_tool, tool_type, image_size,
+        )
+
+    def base_open_ai_client(
+        self,
+        configured_tool: ConfiguredTool,
+        timeout_s: float | None = None,
+    ) -> "OpenAI":
+        from openai import OpenAI
+
+        _, token, _ = configured_tool
+        return OpenAI(api_key = token.get_secret_value(), timeout = timeout_s)
+
+    def open_ai_client(
+        self,
+        configured_tool: ConfiguredTool,
+        timeout_s: float | None = None,
+    ) -> "OpenAIUsageTrackingDecorator":
+        from features.accounting.decorators.openai_usage_tracking_decorator import OpenAIUsageTrackingDecorator
+
+        external_tool, _, tool_type = configured_tool
+        base_client = self.base_open_ai_client(configured_tool, timeout_s)
+        return OpenAIUsageTrackingDecorator(base_client, self.usage_tracking_service, external_tool, tool_type)
+
+    def openai_embeddings(self, configured_tool: ConfiguredTool) -> "LangChainEmbeddingsAdapter":
+        from features.documents.langchain_embeddings_adapter import LangChainEmbeddingsAdapter
+
+        embedding_model, _, _ = configured_tool
+        client = self.open_ai_client(configured_tool)
+        return LangChainEmbeddingsAdapter(client, embedding_model.id)
+
+    def tracked_http_get(self, configured_tool: ConfiguredTool) -> "HTTPUsageTrackingDecorator":
+        from features.accounting.decorators.http_usage_tracking_decorator import HTTPUsageTrackingDecorator
+
+        external_tool, _, tool_purpose = configured_tool
+        return HTTPUsageTrackingDecorator(self.usage_tracking_service, external_tool, tool_purpose)
 
     @property
     def llm_tool_library(self) -> "LLMToolLibrary":
@@ -501,6 +606,32 @@ class DI:
             headers, params,
             cache_ttl_html, cache_ttl_json,
             auto_fetch_html, auto_fetch_json,
+        )
+
+    def tracked_web_fetcher(
+        self,
+        configured_tool: ConfiguredTool,
+        url: str,
+        headers: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,
+        cache_ttl_html: timedelta | None = None,
+        cache_ttl_json: timedelta | None = None,
+        auto_fetch_html: bool = False,
+        auto_fetch_json: bool = False,
+    ) -> "WebFetcherUsageTrackingDecorator":
+        from features.accounting.decorators.web_fetcher_usage_tracking_decorator import WebFetcherUsageTrackingDecorator
+
+        external_tool, _, tool_purpose = configured_tool
+        base_fetcher = self.web_fetcher(
+            url, headers, params,
+            cache_ttl_html, cache_ttl_json,
+            auto_fetch_html, auto_fetch_json,
+        )
+        return WebFetcherUsageTrackingDecorator(
+            base_fetcher,
+            self.usage_tracking_service,
+            external_tool,
+            tool_purpose,
         )
 
     def html_content_cleaner(self, raw_html: str) -> "HTMLContentCleaner":
@@ -593,18 +724,16 @@ class DI:
         from features.files.file_uploader import FileUploader
         return FileUploader(content, filename)
 
-    def chat_imaging_service(
+    def chat_image_edit_service(
         self,
         attachment_ids: list[str],
-        operation_name: str,
         operation_guidance: str | None,
         aspect_ratio: str | None = None,
         size: str | None = None,
-    ) -> "ChatImagingService":
-        from features.chat.chat_imaging_service import ChatImagingService
-        return ChatImagingService(attachment_ids, operation_name, operation_guidance, aspect_ratio, size, self)
+    ) -> "ChatImageEditService":
+        from features.chat.chat_image_edit_service import ChatImageEditService
+        return ChatImageEditService(attachment_ids, operation_guidance, aspect_ratio, size, self)
 
-    # noinspection PyMethodMayBeStatic
     def image_editor(
         self,
         image_url: str,
@@ -615,30 +744,7 @@ class DI:
         size: str | None = None,
     ) -> "ImageEditor":
         from features.images.image_editor import ImageEditor
-        return ImageEditor(image_url, configured_tool, prompt, input_mime_type, aspect_ratio, size)
-
-    # noinspection PyMethodMayBeStatic
-    def image_background_remover(
-        self,
-        image_url: str,
-        configured_tool: ConfiguredTool,
-        mime_type: str | None = None,
-    ) -> "ImageBackgroundRemover":
-        from features.images.image_background_remover import ImageBackgroundRemover
-        return ImageBackgroundRemover(image_url, configured_tool, mime_type)
-
-    # noinspection PyMethodMayBeStatic
-    def image_contents_restorer(
-        self,
-        image_url: str,
-        restoration_tool: ConfiguredTool,
-        inpainting_tool: ConfiguredTool,
-        prompt_positive: str | None = None,
-        prompt_negative: str | None = None,
-        mime_type: str | None = None,
-    ) -> "ImageContentsRestorer":
-        from features.images.image_contents_restorer import ImageContentsRestorer
-        return ImageContentsRestorer(image_url, restoration_tool, inpainting_tool, prompt_positive, prompt_negative, mime_type)
+        return ImageEditor(image_url, configured_tool, prompt, self, input_mime_type, aspect_ratio, size)
 
     def computer_vision_analyzer(
         self,
@@ -652,7 +758,6 @@ class DI:
         from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
         return ComputerVisionAnalyzer(job_id, image_mime_type, configured_tool, self, image_url, image_b64, additional_context)
 
-    # noinspection PyMethodMayBeStatic
     def document_search(
         self,
         job_id: str,
@@ -664,7 +769,6 @@ class DI:
         from features.documents.document_search import DocumentSearch
         return DocumentSearch(job_id, document_url, embedding_tool, copywriter_tool, self, additional_context)
 
-    # noinspection PyMethodMayBeStatic
     def audio_transcriber(
         self,
         job_id: str,
@@ -684,13 +788,13 @@ class DI:
             language_name, language_iso_code,
         )
 
-    def attachments_describer(
+    def chat_attachments_analyzer(
         self,
         additional_context: str | None,
         attachment_ids: list[str],
-    ) -> "AttachmentsDescriber":
-        from features.chat.attachments_describer import AttachmentsDescriber
-        return AttachmentsDescriber(additional_context, attachment_ids, self)
+    ) -> "ChatAttachmentsAnalyzer":
+        from features.chat.chat_attachments_analyzer import ChatAttachmentsAnalyzer
+        return ChatAttachmentsAnalyzer(additional_context, attachment_ids, self)
 
     def dev_announcements_service(
         self,
