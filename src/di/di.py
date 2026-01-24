@@ -154,6 +154,7 @@ class DI:
         self._sponsorship_service = None
         self._profile_connect_service = None
         self._authorization_service = None
+        self._usage_tracking_service = None
         # Controllers
         self._settings_controller = None
         self._sponsorships_controller = None
