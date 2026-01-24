@@ -58,8 +58,7 @@ class AudioTranscriber:
         self.__transcriber_tool = transcriber_tool
         self.__language_name = language_name
         self.__language_iso_code = language_iso_code
-        _, transcriber_token, _ = transcriber_tool
-        self.__transcriber = OpenAI(api_key = transcriber_token.get_secret_value())
+        self.__transcriber = di.open_ai_client(transcriber_tool)
         self.__copywriter = di.chat_langchain_model(copywriter_tool)
         self.__di = di
 
