@@ -9,7 +9,7 @@ from features.external_tools.external_tool import ExternalTool, ToolType
 class UsageRecord:
     # core properties
     user_id: UUID
-    chat_id: UUID
+    chat_id: UUID | None = None
     tool: ExternalTool
     tool_purpose: ToolType
     timestamp: datetime = field(default_factory = lambda: datetime.now(timezone.utc))

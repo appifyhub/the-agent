@@ -39,7 +39,7 @@ class UsageTrackingService:
 
         record = UsageRecord(
             user_id = self.__di.invoker.id,
-            chat_id = self.__di.require_invoker_chat().chat_id,
+            chat_id = self.__di.invoker_chat.chat_id if self.__di.invoker_chat else None,
             tool = tool,
             tool_purpose = tool_purpose,
             timestamp = datetime.now(timezone.utc),
@@ -86,7 +86,7 @@ class UsageTrackingService:
 
         record = UsageRecord(
             user_id = self.__di.invoker.id,
-            chat_id = self.__di.require_invoker_chat().chat_id,
+            chat_id = self.__di.invoker_chat.chat_id if self.__di.invoker_chat else None,
             tool = tool,
             tool_purpose = tool_purpose,
             timestamp = datetime.now(timezone.utc),
@@ -119,7 +119,7 @@ class UsageTrackingService:
 
         record = UsageRecord(
             user_id = self.__di.invoker.id,
-            chat_id = self.__di.require_invoker_chat().chat_id,
+            chat_id = self.__di.invoker_chat.chat_id if self.__di.invoker_chat else None,
             tool = tool,
             tool_purpose = tool_purpose,
             timestamp = datetime.now(timezone.utc),

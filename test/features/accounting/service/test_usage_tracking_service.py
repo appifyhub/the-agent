@@ -28,6 +28,7 @@ class UsageTrackingServiceTest(unittest.TestCase):
         mock_chat = Mock()
         mock_chat.chat_id = self.chat_id
         self.mock_di.require_invoker_chat = MagicMock(return_value = mock_chat)
+        self.mock_di.invoker_chat = mock_chat
 
         self.original_fee = config.usage_maintenance_fee_credits
         config.usage_maintenance_fee_credits = 1.0
