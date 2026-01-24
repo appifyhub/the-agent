@@ -38,9 +38,9 @@ if TYPE_CHECKING:
     from features.announcements.release_summary_service import ReleaseSummaryService
     from features.announcements.sys_announcements_service import SysAnnouncementsService
     from features.audio.audio_transcriber import AudioTranscriber
-    from features.chat.attachments_describer import AttachmentsDescriber
     from features.chat.chat_agent import ChatAgent
-    from features.chat.chat_imaging_service import ChatImagingService
+    from features.chat.chat_attachments_analyzer import ChatAttachmentsAnalyzer
+    from features.chat.chat_image_edit_service import ChatImageEditService
     from features.chat.chat_progress_notifier import ChatProgressNotifier
     from features.chat.command_processor import CommandProcessor
     from features.chat.currency_alert_service import CurrencyAlertService
@@ -62,8 +62,6 @@ if TYPE_CHECKING:
     from features.external_tools.access_token_resolver import AccessTokenResolver
     from features.external_tools.tool_choice_resolver import ConfiguredTool, ToolChoiceResolver
     from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
-    from features.images.image_background_remover import ImageBackgroundRemover
-    from features.images.image_contents_restorer import ImageContentsRestorer
     from features.images.image_editor import ImageEditor
     from features.images.image_resizer import ImageResizer
     from features.images.image_uploader import ImageUploader
@@ -726,16 +724,15 @@ class DI:
         from features.files.file_uploader import FileUploader
         return FileUploader(content, filename)
 
-    def chat_imaging_service(
+    def chat_image_edit_service(
         self,
         attachment_ids: list[str],
-        operation_name: str,
         operation_guidance: str | None,
         aspect_ratio: str | None = None,
         size: str | None = None,
-    ) -> "ChatImagingService":
-        from features.chat.chat_imaging_service import ChatImagingService
-        return ChatImagingService(attachment_ids, operation_name, operation_guidance, aspect_ratio, size, self)
+    ) -> "ChatImageEditService":
+        from features.chat.chat_image_edit_service import ChatImageEditService
+        return ChatImageEditService(attachment_ids, operation_guidance, aspect_ratio, size, self)
 
     def image_editor(
         self,
@@ -748,29 +745,6 @@ class DI:
     ) -> "ImageEditor":
         from features.images.image_editor import ImageEditor
         return ImageEditor(image_url, configured_tool, prompt, self, input_mime_type, aspect_ratio, size)
-
-    def image_background_remover(
-        self,
-        image_url: str,
-        configured_tool: ConfiguredTool,
-        mime_type: str | None = None,
-    ) -> "ImageBackgroundRemover":
-        from features.images.image_background_remover import ImageBackgroundRemover
-        return ImageBackgroundRemover(image_url, configured_tool, mime_type, self)
-
-    def image_contents_restorer(
-        self,
-        image_url: str,
-        restoration_tool: ConfiguredTool,
-        inpainting_tool: ConfiguredTool,
-        prompt_positive: str | None = None,
-        prompt_negative: str | None = None,
-        mime_type: str | None = None,
-    ) -> "ImageContentsRestorer":
-        from features.images.image_contents_restorer import ImageContentsRestorer
-        return ImageContentsRestorer(
-            image_url, restoration_tool, inpainting_tool, prompt_positive, prompt_negative, mime_type, self,
-        )
 
     def computer_vision_analyzer(
         self,
@@ -814,13 +788,13 @@ class DI:
             language_name, language_iso_code,
         )
 
-    def attachments_describer(
+    def chat_attachments_analyzer(
         self,
         additional_context: str | None,
         attachment_ids: list[str],
-    ) -> "AttachmentsDescriber":
-        from features.chat.attachments_describer import AttachmentsDescriber
-        return AttachmentsDescriber(additional_context, attachment_ids, self)
+    ) -> "ChatAttachmentsAnalyzer":
+        from features.chat.chat_attachments_analyzer import ChatAttachmentsAnalyzer
+        return ChatAttachmentsAnalyzer(additional_context, attachment_ids, self)
 
     def dev_announcements_service(
         self,

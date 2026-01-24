@@ -450,42 +450,6 @@ CRYPTO_CURRENCY_EXCHANGE = ExternalTool(
 
 ###  Replicate  ###
 
-BACKGROUND_REMOVAL = ExternalTool(
-    id = "cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003",
-    name = "Chenxi's Background Removal",
-    provider = REPLICATE,
-    types = [ToolType.images_background_removal],
-    cost_estimate = CostEstimate(
-        image_1k = 1,
-        image_2k = 1,
-        image_4k = 1,
-    ),
-)
-
-IMAGE_RESTORATION = ExternalTool(
-    id = "sczhou/codeformer:cc4956dd26fa5a7185d5660cc9100fab1b8070a1d1654a8bb5eb6d443b020bb2",
-    name = "Shangchen's Image Restoration",
-    provider = REPLICATE,
-    types = [ToolType.images_restoration],
-    cost_estimate = CostEstimate(
-        image_1k = 1,
-        image_2k = 1,
-        image_4k = 1,
-    ),
-)
-
-IMAGE_INPAINTING = ExternalTool(
-    id = "fermatresearch/magic-image-refiner:507ddf6f977a7e30e46c0daefd30de7d563c72322f9e4cf7cbac52ef0f667b13",
-    name = "Fermat Research's Image Inpainting",
-    provider = REPLICATE,
-    types = [ToolType.images_inpainting],
-    cost_estimate = CostEstimate(
-        image_1k = 15,
-        image_2k = 15,
-        image_4k = 15,
-    ),
-)
-
 IMAGE_GENERATION_FLUX_1_1 = ExternalTool(
     id = "black-forest-labs/flux-1.1-pro",
     name = "Black Forest's Flux 1.1 Pro",
@@ -655,9 +619,6 @@ ALL_EXTERNAL_TOOLS = [
     # CoinMarketCap
     CRYPTO_CURRENCY_EXCHANGE,
     # Replicate
-    BACKGROUND_REMOVAL,
-    IMAGE_RESTORATION,
-    IMAGE_INPAINTING,
     IMAGE_GENERATION_FLUX_1_1,
     IMAGE_GENERATION_EDITING_FLUX_2_PRO,
     IMAGE_GENERATION_EDITING_FLUX_2_MAX,

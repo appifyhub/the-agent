@@ -36,9 +36,6 @@ class ToolType(str, Enum):
     hearing = "hearing"  # hearing features
     images_gen = "images_gen"  # image generation
     images_edit = "images_edit"  # image editing
-    images_restoration = "images_restoration"  # image restoration
-    images_inpainting = "images_inpainting"  # image inpainting
-    images_background_removal = "images_background_removal"  # image background removal
     search = "search"  # web search features
     embedding = "embedding"  # embedding models
     api_fiat_exchange = "api_fiat_exchange"  # fiat exchange API
