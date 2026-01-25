@@ -10,6 +10,7 @@ from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
 from features.integrations import prompt_resolvers
 from util import log
+from util.functions import parse_ai_message_content
 
 
 class SmartStableDiffusionGenerator:
@@ -58,9 +59,9 @@ class SmartStableDiffusionGenerator:
         try:
             log.t("Starting prompt upscaling")
             response = self.__copywriter.invoke(self.__llm_input)
-            if not isinstance(response, AIMessage) or not isinstance(response.content, str):
+            if not isinstance(response, AIMessage):
                 raise AssertionError(f"Received a complex message from LLM: {response}")
-            prompt = response.content
+            prompt = parse_ai_message_content(response.content)
             log.t(f"Finished prompt correction, new size is {len(prompt)} characters")
         except Exception as e:
             self.error = log.e("Error correcting raw prompt", e)

@@ -97,3 +97,20 @@ def delete_file_safe(path: str | None) -> None:
         Path(path).unlink(missing_ok = True)
     except Exception as e:
         log.w(f"Failed to delete temp file {path}", e)
+
+
+def parse_ai_message_content(content: str | list[str | dict]) -> str:
+    if isinstance(content, str):
+        return content
+    elif isinstance(content, list):
+        full_text = []
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "text":
+                full_text.append(block.get("text", ""))
+            elif isinstance(block, str):
+                full_text.append(block)
+        if not full_text:
+            raise AssertionError(f"Received an unexpected content list from the model: {content}")
+        return "\n".join(full_text)
+    else:
+        raise AssertionError(f"Received an unexpected content from the model: {content}")
