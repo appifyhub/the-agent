@@ -41,5 +41,7 @@ trigger: always_on
 
 - Never write plans or walkthroughs unless the user specifically asks you to
 - Never assume anything. Ask validating questions. Sync with the user to validate your assumptions. Optimize for accuracy, not speed
+- Only operate on verified facts. For every code change or idea you want to introduce, verify via code search if it will make sense
 - Consistency is key. Look at coding patterns in and around the file you are editing as if you have OCD
 - Tests must run offline. Write tests if the unit is simply testable. If the unit requires extensive mocking, advise the user before proceeding
+- Unless explicitly asked, you should not build plans or walkthrough documents – default to keeping it short and simple, in the chat
