@@ -468,9 +468,9 @@ IMAGE_GENERATION_EDITING_FLUX_2_PRO = ExternalTool(
     provider = REPLICATE,
     types = [ToolType.images_gen, ToolType.images_edit],
     cost_estimate = CostEstimate(
-        image_1k = 15,
-        image_2k = 25,
-        image_4k = 35,
+        image_1k = 8,
+        image_2k = 10,
+        image_4k = 12,
     ),
 )
 
@@ -480,9 +480,9 @@ IMAGE_GENERATION_EDITING_FLUX_2_MAX = ExternalTool(
     provider = REPLICATE,
     types = [ToolType.images_gen, ToolType.images_edit],
     cost_estimate = CostEstimate(
-        image_1k = 35,
-        image_2k = 50,
-        image_4k = 70,
+        image_1k = 16,
+        image_2k = 20,
+        image_4k = 25,
     ),
 )
 
