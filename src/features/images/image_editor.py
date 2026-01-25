@@ -3,7 +3,6 @@ import tempfile
 from urllib.parse import urlparse
 
 import requests
-from replicate.client import Client
 
 from di.di import DI
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
@@ -30,7 +29,6 @@ class ImageEditor:
     __input_mime_type: str | None
     __aspect_ratio: str | None
     __size: str | None
-    __replicate: Client
     __di: DI
 
     def __init__(
@@ -50,7 +48,6 @@ class ImageEditor:
         self.__aspect_ratio = aspect_ratio
         self.__size = size
         self.__di = di
-        self.__replicate = self.__di.replicate_client(configured_tool, BOOT_AND_RUN_TIMEOUT_S, self.__size)
 
     def execute(self) -> str | None:
         log.d("Starting photo editing")
@@ -73,10 +70,8 @@ class ImageEditor:
                     }
                     log.t("Calling Replicate image editing with params", dict_params)
 
-                    prediction = self.__replicate.predictions.create(
-                        version = tool.id,
-                        input = dict_params,
-                    )
+                    replicate = self.__di.replicate_client(self.__configured_tool, BOOT_AND_RUN_TIMEOUT_S, unified_params.size)
+                    prediction = replicate.predictions.create(version = tool.id, input = dict_params)
                     prediction.wait()
 
                     result = prediction.output
