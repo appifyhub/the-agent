@@ -53,12 +53,21 @@ class ExchangeRateFetcherTest(unittest.TestCase):
         # Create a DI mock and set required properties
         self.mock_di = MagicMock(spec = DI)
         self.mock_di.invoker = self.user
+
+        # Mock chat for usage tracking
+        mock_chat = MagicMock()
+        mock_chat.chat_id = UUID(int = 2)
+        self.mock_di.require_invoker_chat = MagicMock(return_value = mock_chat)
+
         self.mock_di.tools_cache_crud = MagicMock(spec = ToolsCacheCRUD)
         self.mock_di.access_token_resolver = MagicMock()
 
         # Mock web_fetcher to return a mock WebFetcher instance
         self.mock_web_fetcher = MagicMock(spec = WebFetcher)
         self.mock_di.web_fetcher.return_value = self.mock_web_fetcher
+
+        # Mock tracked_web_fetcher to return the same mock WebFetcher instance
+        self.mock_di.tracked_web_fetcher.return_value = self.mock_web_fetcher
 
         # Mock access token resolver
         self.mock_di.access_token_resolver.require_access_token_for_tool.return_value.get_secret_value.return_value = "test_token"

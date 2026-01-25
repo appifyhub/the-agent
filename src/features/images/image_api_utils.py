@@ -4,7 +4,7 @@ from typing import IO
 
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import (
-    GEMINI_2_5_FLASH_IMAGE,
+    GEMINI_3_PRO_IMAGE,
     IMAGE_EDITING_FLUX_KONTEXT_PRO,
     IMAGE_EDITING_GOOGLE_NANO_BANANA,
     IMAGE_EDITING_GOOGLE_NANO_BANANA_PRO,
@@ -56,7 +56,7 @@ class UnifiedImageParameters:
     sequential_image_generation: str = "disabled"
     # safety
     moderation: str = "low"
-    safety_tolerance: int = 1
+    safety_tolerance: int = 2
     safety_filter_level: str = "block_only_high"
     # input
     input_fidelity: str = "high"
@@ -88,11 +88,11 @@ def map_to_model_parameters(
     )
 
     if tool == IMAGE_GENERATION_FLUX_1_1:
-        return unified_params
+        return replace(unified_params, safety_tolerance = 6)
     elif tool == IMAGE_GENERATION_EDITING_FLUX_2_PRO:
-        return replace(unified_params, resolution = convert_size_to_mp(unified_params.size))
+        return replace(unified_params, resolution = convert_size_to_mp(unified_params.size), safety_tolerance = 5)
     elif tool == IMAGE_GENERATION_EDITING_FLUX_2_MAX:
-        return replace(unified_params, resolution = convert_size_to_mp(unified_params.size))
+        return replace(unified_params, resolution = convert_size_to_mp(unified_params.size), safety_tolerance = 5)
     elif tool == IMAGE_EDITING_FLUX_KONTEXT_PRO:
         return unified_params
     elif tool == IMAGE_GENERATION_EDITING_GPT_IMAGE_1_5:
@@ -105,7 +105,7 @@ def map_to_model_parameters(
         return unified_params
     elif tool == IMAGE_GENERATION_EDITING_SEEDREAM_4:
         return replace(unified_params, size = convert_size_to_k(unified_params.size))
-    elif tool == GEMINI_2_5_FLASH_IMAGE:
+    elif tool == GEMINI_3_PRO_IMAGE:
         return replace(unified_params, image_size = convert_size_to_k(unified_params.size))
     elif tool == IMAGE_GENERATION_GEMINI_2_5_FLASH_IMAGE:
         return replace(unified_params, image_size = convert_size_to_k(unified_params.size))
