@@ -78,12 +78,6 @@ class ToolChoiceResolver:
                 return self.__di.invoker.tool_choice_images_gen
             case ToolType.images_edit:
                 return self.__di.invoker.tool_choice_images_edit
-            case ToolType.images_restoration:
-                return self.__di.invoker.tool_choice_images_restoration
-            case ToolType.images_inpainting:
-                return self.__di.invoker.tool_choice_images_inpainting
-            case ToolType.images_background_removal:
-                return self.__di.invoker.tool_choice_images_background_removal
             case ToolType.search:
                 return self.__di.invoker.tool_choice_search
             case ToolType.embedding:
