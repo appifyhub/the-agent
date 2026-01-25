@@ -156,7 +156,7 @@ class UsageTrackingServiceTest(unittest.TestCase):
                 tool_purpose = ToolType.chat,
                 runtime_seconds = 1,
             )
-        self.assertIn("all token fields are None", str(context.exception))
+        self.assertIn("all token and duration fields are None", str(context.exception))
 
     def test_track_image_model_with_tokens(self):
         tool = self._create_tool(api_call = 5)

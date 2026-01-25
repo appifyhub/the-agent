@@ -25,9 +25,12 @@ class UsageTrackingService:
         total_tokens: int | None = None,
         remote_runtime_seconds: float | None = None,
     ) -> UsageRecord:
-        if all(t is None for t in [input_tokens, output_tokens, search_tokens, total_tokens]):
+        # ensure that we have at least some usage metadata
+        has_token_usage = any(t is not None for t in [input_tokens, output_tokens, search_tokens, total_tokens])
+        has_duration_usage = remote_runtime_seconds is not None
+        if not has_token_usage and not has_duration_usage:
             raise ValueError(
-                f"No usage metadata available for LLM {tool.id} - all token fields are None",
+                f"No usage metadata available for LLM {tool.id} - all token and duration fields are None",
             )
 
         model_cost_credits: float = self.__calculate_llm_cost(tool.cost_estimate, input_tokens, output_tokens, search_tokens)

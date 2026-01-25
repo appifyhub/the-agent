@@ -102,14 +102,17 @@ class AudioTranscriber:
             buffer = io.BytesIO(self.__audio_content)
             buffer.name = f"audio.{self.__extension}"
             transcriber_tool, _, _ = self.__transcriber_tool
-            transcript = self.__transcriber.audio.transcriptions.create(
+
+            # output format depends on the type of the model used, we need to be careful
+            response_format = "verbose_json" if transcriber_tool.cost_estimate.second_of_runtime else "json"
+            transcript_response = self.__transcriber.audio.transcriptions.create(
                 model = transcriber_tool.id,
                 file = buffer,
-                response_format = "text",
+                response_format = response_format,
             )
-            raw_transcription = str(transcript)
+            raw_transcription = transcript_response.text
 
-            # then fix the transcription using the copywriter
+            # then (try to) fix the raw transcription using the copywriter
             system_prompt = prompt_resolvers.copywriting_computer_hearing(self.__di.invoker_chat)
             copywriter_messages = [SystemMessage(system_prompt), HumanMessage(raw_transcription)]
             answer = self.__copywriter.invoke(copywriter_messages)
