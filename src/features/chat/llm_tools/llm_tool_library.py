@@ -11,8 +11,9 @@ from langchain_core.runnables import Runnable
 from langchain_core.tools import tool
 
 from di.di import DI
-from features.chat.attachments_describer import AttachmentsDescriber
-from features.chat.chat_imaging_service import ChatImagingService
+from features.chat.chat_agent import ChatAgent
+from features.chat.chat_attachments_analyzer import ChatAttachmentsAnalyzer
+from features.chat.chat_image_edit_service import ChatImageEditService
 from features.chat.dev_announcements_service import DevAnnouncementsService
 from features.images.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
 from features.integrations.integrations import add_messaging_frequency_warning, resolve_private_chat_id
@@ -23,21 +24,23 @@ from util.config import config
 
 TOOL_TRUNCATE_LENGTH = 8192  # to save some tokens
 
+KEYWORD_ATTACHMENT_ANALYZE = "analyze"
+KEYWORD_ATTACHMENT_IMAGE_EDIT = "image-edit"
+ATTACHMENT_OPERATIONS = [KEYWORD_ATTACHMENT_ANALYZE, KEYWORD_ATTACHMENT_IMAGE_EDIT]
+
 
 def process_attachments(
     di: DI,
     attachment_ids: str,
-    operation: str = "describe",
+    operation: str = KEYWORD_ATTACHMENT_ANALYZE,
     context: str | None = None,
     aspect_ratio: str | None = None,
     size: str | None = None,
 ) -> str:
     """
     Processes the contents of the given attachments. Allowed operations are:
-        - 'describe' (default): Describes the image contents, transcribes audio, searches docs
-        - 'edit-image': Regenerates or transforms the image based on the provided instructions (e.g. "Replace background with a space vortex", "Generate the next frame")
-        - 'remove-background': Removes the image background
-        - 'restore-image': Restores an old/broken image (primarily faces)
+        - 'analyze' (default): Analyzes the image contents using vision, transcribes audio, searches documents
+        - 'image-edit': Edits image attachments based on the context and user instructions
 
     Args:
         attachment_ids: [mandatory] A comma-separated list of verbatim, unique 📎 attachment IDs that need to be processed (located in each message); include any dashes, underscores or other symbols; these IDs are not to be cleaned or truncated
@@ -48,21 +51,19 @@ def process_attachments(
     """
     try:
         operation = operation.lower().strip()
-        editing_operations = ChatImagingService.Operation.values()
-        allowed_operations = ["describe"] + editing_operations
         attachment_ids_list = attachment_ids.split(",")
-        if operation == "describe":
-            # Resolve the attachments into text
-            describer = di.attachments_describer(context, attachment_ids_list)
-            result = describer.execute()
-            if result == AttachmentsDescriber.Result.failed:
+        if operation == KEYWORD_ATTACHMENT_ANALYZE:
+            # Analyze the attachments and convert contents to text descriptions
+            analyzer = di.chat_attachments_analyzer(context, attachment_ids_list)
+            result = analyzer.execute()
+            if result == ChatAttachmentsAnalyzer.Result.failed:
                 raise ValueError("Failed to resolve attachments")
-            return json.dumps({"result": result.value, "attachments": describer.result})
-        elif operation in editing_operations:
+            return json.dumps({"result": result.value, "attachments": analyzer.result})
+        elif operation == KEYWORD_ATTACHMENT_IMAGE_EDIT:
             log.d(f"LLM requested to process {len(attachment_ids_list)} images in aspect ratio {aspect_ratio}, size {size}")
-            # Generate images based on the provided context
-            result, details = di.chat_imaging_service(attachment_ids_list, operation, context, aspect_ratio, size).execute()
-            if result == ChatImagingService.Result.failed:
+            # Generate images based on the provided context and attachments
+            result, details = di.chat_image_edit_service(attachment_ids_list, context, aspect_ratio, size).execute()
+            if result == ChatImageEditService.Result.failed:
                 raise ValueError("Failed to edit the images! Details: " + str(details))
             return __success(
                 {
@@ -73,7 +74,7 @@ def process_attachments(
                 },
             )
         else:
-            raise ValueError(f"Unknown operation '{operation}'; try one of: [{', '.join(allowed_operations)}]")
+            raise ValueError(f"Unknown operation '{operation}'; try one of: [{', '.join(ATTACHMENT_OPERATIONS)}]")
     except Exception as e:
         return __error(e)
 
@@ -85,7 +86,7 @@ def generate_image(
     size: str | None = None,
 ) -> str:
     """
-    Generates (draws) an image based on the given prompt using Generative AI.
+    Generates (draws) a new image based on the given prompt using Generative AI.
 
     Args:
         prompt: [mandatory] The user's description or prompt for the generated image
@@ -202,7 +203,7 @@ def list_currency_price_alerts(di: DI) -> str:
 
 def ai_web_search(di: DI, search_query: str) -> str:
     """
-    Searches the web for the given query, and responds using AI.
+    Searches the web for the given query, and responds using AI. To be used any time there's missing information or upon user request.
 
     Args:
         search_query: [mandatory] The user's search query, in English
@@ -361,9 +362,11 @@ def get_version(di: DI) -> str:
     """
     try:
         log.t(f"Getting version for chat '{di.invoker_chat_id}'")
+        tool, _, _ = di.tool_choice_resolver.require_tool(ChatAgent.TOOL_TYPE, ChatAgent.DEFAULT_TOOL)
         return __success(
             {
-                "version": f"v{config.version}",
+                "service_version": f"v{config.version}",
+                "chat_agent_version": f"{tool.name} from {tool.provider.name}",
                 "next_step": "Notify the user of the current (latest) version",
             },
         )

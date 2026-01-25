@@ -1,10 +1,6 @@
 from dataclasses import asdict
 
-from google import genai
-from google.genai.client import Client as GoogleClient
-from google.genai.types import GenerateContentConfig, HttpOptions, ImageConfig
-from httpx import Timeout
-from replicate.client import Client as ReplicateClient
+from google.genai.types import GenerateContentConfig, ImageConfig
 
 from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ToolType
@@ -26,8 +22,6 @@ class SimpleStableDiffusionGenerator:
     error: str | None
     __prompt: str
     __configured_tool: ConfiguredTool
-    __replicate: ReplicateClient | None
-    __google_ai: GoogleClient | None
     __aspect_ratio: str | None
     __size: str | None
     __di: DI
@@ -45,56 +39,43 @@ class SimpleStableDiffusionGenerator:
         self.__configured_tool = configured_tool
         self.__aspect_ratio = aspect_ratio
         self.__size = size
-        tool, token, _ = self.__configured_tool
-
-        self.__replicate = None
-        self.__google_ai = None
-        if tool.provider == GOOGLE_AI:
-            self.__google_ai = genai.Client(
-                api_key = token.get_secret_value(),
-                http_options = HttpOptions(
-                    timeout = config.web_timeout_s * 5 * 1000,  # this takes quite long, and Google requires milliseconds
-                ),
-            )
-        elif tool.provider == REPLICATE:
-            self.__replicate = ReplicateClient(
-                api_token = token.get_secret_value(),
-                timeout = Timeout(config.web_timeout_s * 5),  # this takes quite long
-            )
-        else:
-            raise ValueError(f"Unsupported provider: '{tool.provider}'")
 
     def execute(self) -> str | None:
         log.t(f"Starting text-stable-diffusion generator with prompt: '{self.__prompt}'")
-        tool, _, _ = self.__configured_tool
         self.error = None
         try:
-            if tool.provider == REPLICATE:
+            external_tool, _, _ = self.__configured_tool
+            if external_tool.provider == REPLICATE:
                 return self.__generate_with_replicate()
-            elif tool.provider == GOOGLE_AI:
+            elif external_tool.provider == GOOGLE_AI:
                 return self.__generate_with_google_ai()
             else:
-                raise ValueError(f"Unsupported provider: '{tool.provider}'")
+                raise ValueError(f"Unsupported provider: '{external_tool.provider}'")
         except Exception as e:
             self.error = log.e("Failed to generate image", e)
             return None
 
     def __generate_with_replicate(self) -> str | None:
         log.t("Generating image with Replicate")
-        tool, _, _ = self.__configured_tool
-        if not self.__replicate:
-            raise ValueError("Replicate client is not initialized")
 
+        external_tool, token, tool_type = self.__configured_tool
         unified_params = map_to_model_parameters(
-            tool = tool, prompt = self.__prompt,
+            tool = external_tool, prompt = self.__prompt,
             aspect_ratio = self.__aspect_ratio, size = self.__size,
         )
         dict_params = {
             k: v for k, v in unified_params.__dict__.items() if v is not None
         }
         log.t("Calling Replicate image generator with params", dict_params)
-        result = self.__replicate.run(tool.id, input = dict_params)
 
+        replicate = self.__di.replicate_client(self.__configured_tool, config.web_timeout_s * 10, unified_params.size)
+        prediction = replicate.predictions.create(
+            version = external_tool.id,
+            input = dict_params,
+        )
+        prediction.wait()
+
+        result = prediction.output
         log.d("Result", result)
         if not result:
             raise ValueError("No result returned from image generation")
@@ -102,24 +83,19 @@ class SimpleStableDiffusionGenerator:
 
     def __generate_with_google_ai(self) -> str | None:
         log.t("Generating image with Google AI")
-        tool, _, _ = self.__configured_tool
-        if not self.__google_ai:
-            raise ValueError("Google AI client is not initialized")
 
+        external_tool, token, tool_type = self.__configured_tool
         unified_params = map_to_model_parameters(
-            tool = tool, prompt = self.__prompt,
+            tool = external_tool, prompt = self.__prompt,
             aspect_ratio = self.__aspect_ratio, size = self.__size,
         )
         dict_params = asdict(unified_params)
         log.t("Calling Google AI image generator API with params", dict_params)
 
-        image_config = ImageConfig(
-            aspect_ratio = unified_params.aspect_ratio,
-            image_size = unified_params.size,
-        )
-
-        response = self.__google_ai.models.generate_content(
-            model = tool.id,
+        google_ai = self.__di.google_ai_client(self.__configured_tool, config.web_timeout_s * 10, unified_params.size)
+        image_config = ImageConfig(aspect_ratio = unified_params.aspect_ratio, image_size = unified_params.size)
+        response = google_ai.models.generate_content(
+            model = external_tool.id,
             contents = self.__prompt,
             config = GenerateContentConfig(
                 response_modalities = ["TEXT", "IMAGE"],

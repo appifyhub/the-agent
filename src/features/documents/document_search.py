@@ -4,7 +4,6 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.vectorstores import InMemoryVectorStore
-from langchain_openai import OpenAIEmbeddings
 
 from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ToolType
@@ -46,10 +45,7 @@ class DocumentSearch:
         self.__loaded_pages = PyMuPDFLoader(document_url).load()
         log.t(f"Loaded document pages: {len(self.__loaded_pages)}")
         self.__additional_context = additional_context or DEFAULT_QUESTION
-        embedding_model, embedding_token, _ = embedding_tool
-        # noinspection PyArgumentList
-        self.__embeddings = OpenAIEmbeddings(model = embedding_model.id, api_key = embedding_token)
-        # noinspection PyArgumentList
+        self.__embeddings = di.openai_embeddings(embedding_tool)
         self.__copywriter = di.chat_langchain_model(copywriter_tool)
         self.__di = di
 
