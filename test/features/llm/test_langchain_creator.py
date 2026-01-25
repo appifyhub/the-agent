@@ -7,7 +7,7 @@ from langchain_openai import ChatOpenAI
 from langchain_perplexity import ChatPerplexity
 from pydantic import SecretStr
 
-from features.external_tools.external_tool import ExternalTool, ExternalToolProvider, ToolType
+from features.external_tools.external_tool import CostEstimate, ExternalTool, ExternalToolProvider, ToolType
 from features.external_tools.external_tool_provider_library import ANTHROPIC, GOOGLE_AI, OPEN_AI, PERPLEXITY
 from features.llm.langchain_creator import create
 
@@ -20,11 +20,13 @@ class LangchainCreatorTest(unittest.TestCase):
         self.mock_google_ai_provider = GOOGLE_AI
         self.mock_perplexity_provider = PERPLEXITY
 
+        default_cost = CostEstimate()
         self.mock_openai_tool = ExternalTool(
             id = "gpt-4o-mini",
             name = "GPT-4o Mini",
             provider = self.mock_openai_provider,
             types = [ToolType.chat, ToolType.reasoning],
+            cost_estimate = default_cost,
         )
 
         self.mock_anthropic_tool = ExternalTool(
@@ -32,6 +34,7 @@ class LangchainCreatorTest(unittest.TestCase):
             name = "Claude 3.7 Sonnet",
             provider = self.mock_anthropic_provider,
             types = [ToolType.chat, ToolType.reasoning],
+            cost_estimate = default_cost,
         )
 
         self.mock_google_ai_tool = ExternalTool(
@@ -39,6 +42,7 @@ class LangchainCreatorTest(unittest.TestCase):
             name = "Gemini 1.5 Flash",
             provider = self.mock_google_ai_provider,
             types = [ToolType.chat, ToolType.reasoning],
+            cost_estimate = default_cost,
         )
 
         self.mock_perplexity_tool = ExternalTool(
@@ -46,6 +50,7 @@ class LangchainCreatorTest(unittest.TestCase):
             name = "Llama 3.1 Sonar Small",
             provider = self.mock_perplexity_provider,
             types = [ToolType.search],
+            cost_estimate = default_cost,
         )
 
     @patch("features.llm.langchain_creator.config")
@@ -134,6 +139,7 @@ class LangchainCreatorTest(unittest.TestCase):
             name = "Unsupported Model",
             provider = unsupported_provider,
             types = [ToolType.chat],
+            cost_estimate = CostEstimate(),
         )
 
         api_key = SecretStr("test-key")
@@ -185,6 +191,7 @@ class LangchainCreatorTest(unittest.TestCase):
             name = "Unknown Model",
             provider = unsupported_provider,
             types = [ToolType.chat],
+            cost_estimate = CostEstimate(),
         )
 
         api_key = SecretStr("test-key")
@@ -337,6 +344,7 @@ class LangchainCreatorTest(unittest.TestCase):
             name = "Chat Only",
             provider = self.mock_openai_provider,
             types = [ToolType.chat],
+            cost_estimate = CostEstimate(),
         )
         configured_tool_chat_only = (chat_only_tool, api_key, ToolType.chat)
         result_chat_only = create(configured_tool_chat_only)
