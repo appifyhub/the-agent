@@ -158,7 +158,7 @@ GPT_4O_MINI = ExternalTool(
 
 GPT_O3_MINI = ExternalTool(
     id = "o3-mini",
-    name = "GPT O3 Mini",
+    name = "GPT o3 Mini",
     provider = OPEN_AI,
     types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting],
     cost_estimate = CostEstimate(
@@ -169,7 +169,7 @@ GPT_O3_MINI = ExternalTool(
 
 GPT_O4_MINI = ExternalTool(
     id = "o4-mini",
-    name = "GPT O4 Mini",
+    name = "GPT o4 Mini",
     provider = OPEN_AI,
     types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
     cost_estimate = CostEstimate(
@@ -178,7 +178,7 @@ GPT_O4_MINI = ExternalTool(
     ),
 )
 
-GPT_40_TRANSCRIBE = ExternalTool(
+GPT_4O_TRANSCRIBE = ExternalTool(
     id = "gpt-4o-transcribe",
     name = "GPT 4o Transcribe",
     provider = OPEN_AI,
@@ -189,7 +189,7 @@ GPT_40_TRANSCRIBE = ExternalTool(
     ),
 )
 
-GPT_40_MINI_TRANSCRIBE = ExternalTool(
+GPT_4O_MINI_TRANSCRIBE = ExternalTool(
     id = "gpt-4o-mini-transcribe",
     name = "GPT 4o Mini Transcribe",
     provider = OPEN_AI,
@@ -460,9 +460,9 @@ CRYPTO_CURRENCY_EXCHANGE = ExternalTool(
 
 ###  Replicate  ###
 
-IMAGE_GENERATION_FLUX_1_1 = ExternalTool(
+IMAGE_GEN_FLUX_1_1 = ExternalTool(
     id = "black-forest-labs/flux-1.1-pro",
-    name = "Black Forest's Flux 1.1 Pro",
+    name = "Black Forest Labs: Flux 1.1 Pro",
     provider = REPLICATE,
     types = [ToolType.images_gen],
     cost_estimate = CostEstimate(
@@ -472,9 +472,21 @@ IMAGE_GENERATION_FLUX_1_1 = ExternalTool(
     ),
 )
 
-IMAGE_GENERATION_EDITING_FLUX_2_PRO = ExternalTool(
+IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO = ExternalTool(
+    id = "black-forest-labs/flux-kontext-pro",
+    name = "Black Forest Labs: Flux Kontext Pro",
+    provider = REPLICATE,
+    types = [ToolType.images_gen, ToolType.images_edit],
+    cost_estimate = CostEstimate(
+        image_1k = 4,
+        image_2k = 4,
+        image_4k = 4,
+    ),
+)
+
+IMAGE_GEN_EDIT_FLUX_2_PRO = ExternalTool(
     id = "black-forest-labs/flux-2-pro",
-    name = "Black Forest's Flux 2 Pro",
+    name = "Black Forest Labs: Flux 2 Pro",
     provider = REPLICATE,
     types = [ToolType.images_gen, ToolType.images_edit],
     cost_estimate = CostEstimate(
@@ -484,9 +496,9 @@ IMAGE_GENERATION_EDITING_FLUX_2_PRO = ExternalTool(
     ),
 )
 
-IMAGE_GENERATION_EDITING_FLUX_2_MAX = ExternalTool(
+IMAGE_GEN_EDIT_FLUX_2_MAX = ExternalTool(
     id = "black-forest-labs/flux-2-max",
-    name = "Black Forest's Flux 2 Max",
+    name = "Black Forest Labs: Flux 2 Max",
     provider = REPLICATE,
     types = [ToolType.images_gen, ToolType.images_edit],
     cost_estimate = CostEstimate(
@@ -496,9 +508,9 @@ IMAGE_GENERATION_EDITING_FLUX_2_MAX = ExternalTool(
     ),
 )
 
-IMAGE_GENERATION_EDITING_GPT_IMAGE_1_5 = ExternalTool(
+IMAGE_GEN_EDIT_GPT_IMAGE_1_5 = ExternalTool(
     id = "openai/gpt-image-1.5",
-    name = "OpenAI's GPT Image 1.5",
+    name = "OpenAI: GPT Image 1.5",
     provider = REPLICATE,
     types = [ToolType.images_gen, ToolType.images_edit],
     cost_estimate = CostEstimate(
@@ -508,23 +520,12 @@ IMAGE_GENERATION_EDITING_GPT_IMAGE_1_5 = ExternalTool(
     ),
 )
 
-IMAGE_EDITING_FLUX_KONTEXT_PRO = ExternalTool(
-    id = "black-forest-labs/flux-kontext-pro",
-    name = "Black Forest's Flux Kontext Pro",
+
+IMAGE_GEN_EDIT_SEEDREAM_4 = ExternalTool(
+    id = "bytedance/seedream-4",
+    name = "ByteDance: SeeDream v4",
     provider = REPLICATE,
     types = [ToolType.images_gen, ToolType.images_edit],
-    cost_estimate = CostEstimate(
-        image_1k = 4,
-        image_2k = 4,
-        image_4k = 4,
-    ),
-)
-
-IMAGE_EDITING_SEED_EDIT_3 = ExternalTool(
-    id = "bytedance/seededit-3.0",
-    name = "ByteDance's SeedEdit v3",
-    provider = REPLICATE,
-    types = [ToolType.images_edit],
     cost_estimate = CostEstimate(
         image_1k = 3,
         image_2k = 3,
@@ -532,9 +533,9 @@ IMAGE_EDITING_SEED_EDIT_3 = ExternalTool(
     ),
 )
 
-IMAGE_GENERATION_EDITING_SEEDREAM_4 = ExternalTool(
-    id = "bytedance/seedream-4",
-    name = "ByteDance's SeeDream v4",
+IMAGE_GEN_EDIT_SEEDREAM_4_5 = ExternalTool(
+    id = "bytedance/seedream-4.5",
+    name = "ByteDance: SeeDream v4.5",
     provider = REPLICATE,
     types = [ToolType.images_gen, ToolType.images_edit],
     cost_estimate = CostEstimate(
@@ -544,9 +545,9 @@ IMAGE_GENERATION_EDITING_SEEDREAM_4 = ExternalTool(
     ),
 )
 
-IMAGE_GENERATION_GEMINI_2_5_FLASH_IMAGE = ExternalTool(
+IMAGE_GEN_GEMINI_2_5_FLASH_IMAGE = ExternalTool(
     id = "google/gemini-2.5-flash-image",
-    name = "Google's Gemini 2.5 Flash Image",
+    name = "Google: Gemini 2.5 Flash Image",
     provider = REPLICATE,
     types = [ToolType.images_gen],
     cost_estimate = CostEstimate(
@@ -557,9 +558,9 @@ IMAGE_GENERATION_GEMINI_2_5_FLASH_IMAGE = ExternalTool(
     ),
 )
 
-IMAGE_EDITING_GOOGLE_NANO_BANANA = ExternalTool(
+IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA = ExternalTool(
     id = "google/nano-banana",
-    name = "Google's Nano Banana",
+    name = "Google: Nano Banana",
     provider = REPLICATE,
     types = [ToolType.images_gen, ToolType.images_edit],
     cost_estimate = CostEstimate(
@@ -569,9 +570,9 @@ IMAGE_EDITING_GOOGLE_NANO_BANANA = ExternalTool(
     ),
 )
 
-IMAGE_EDITING_GOOGLE_NANO_BANANA_PRO = ExternalTool(
+IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO = ExternalTool(
     id = "google/nano-banana-pro",
-    name = "Google's Nano Banana Pro",
+    name = "Google: Nano Banana Pro",
     provider = REPLICATE,
     types = [ToolType.images_gen, ToolType.images_edit],
     cost_estimate = CostEstimate(
@@ -600,8 +601,8 @@ ALL_EXTERNAL_TOOLS = [
     GPT_4O_MINI,
     GPT_O3_MINI,
     GPT_O4_MINI,
-    GPT_40_TRANSCRIBE,
-    GPT_40_MINI_TRANSCRIBE,
+    GPT_4O_TRANSCRIBE,
+    GPT_4O_MINI_TRANSCRIBE,
     WHISPER_1,
     TEXT_EMBEDDING_3_SMALL,
     TEXT_EMBEDDING_5_LARGE,
@@ -629,14 +630,14 @@ ALL_EXTERNAL_TOOLS = [
     # CoinMarketCap
     CRYPTO_CURRENCY_EXCHANGE,
     # Replicate
-    IMAGE_GENERATION_FLUX_1_1,
-    IMAGE_GENERATION_EDITING_FLUX_2_PRO,
-    IMAGE_GENERATION_EDITING_FLUX_2_MAX,
-    IMAGE_GENERATION_EDITING_GPT_IMAGE_1_5,
-    IMAGE_EDITING_FLUX_KONTEXT_PRO,
-    IMAGE_EDITING_SEED_EDIT_3,
-    IMAGE_GENERATION_EDITING_SEEDREAM_4,
-    IMAGE_GENERATION_GEMINI_2_5_FLASH_IMAGE,
-    IMAGE_EDITING_GOOGLE_NANO_BANANA,
-    IMAGE_EDITING_GOOGLE_NANO_BANANA_PRO,
+    IMAGE_GEN_FLUX_1_1,
+    IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO,
+    IMAGE_GEN_EDIT_FLUX_2_PRO,
+    IMAGE_GEN_EDIT_FLUX_2_MAX,
+    IMAGE_GEN_EDIT_GPT_IMAGE_1_5,
+    IMAGE_GEN_EDIT_SEEDREAM_4,
+    IMAGE_GEN_EDIT_SEEDREAM_4_5,
+    IMAGE_GEN_GEMINI_2_5_FLASH_IMAGE,
+    IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA,
+    IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO,
 ]

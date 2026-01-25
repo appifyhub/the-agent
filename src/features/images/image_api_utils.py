@@ -5,16 +5,16 @@ from typing import IO
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import (
     GEMINI_3_PRO_IMAGE,
-    IMAGE_EDITING_FLUX_KONTEXT_PRO,
-    IMAGE_EDITING_GOOGLE_NANO_BANANA,
-    IMAGE_EDITING_GOOGLE_NANO_BANANA_PRO,
-    IMAGE_EDITING_SEED_EDIT_3,
-    IMAGE_GENERATION_EDITING_FLUX_2_MAX,
-    IMAGE_GENERATION_EDITING_FLUX_2_PRO,
-    IMAGE_GENERATION_EDITING_GPT_IMAGE_1_5,
-    IMAGE_GENERATION_EDITING_SEEDREAM_4,
-    IMAGE_GENERATION_FLUX_1_1,
-    IMAGE_GENERATION_GEMINI_2_5_FLASH_IMAGE,
+    IMAGE_GEN_EDIT_FLUX_2_MAX,
+    IMAGE_GEN_EDIT_FLUX_2_PRO,
+    IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO,
+    IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA,
+    IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO,
+    IMAGE_GEN_EDIT_GPT_IMAGE_1_5,
+    IMAGE_GEN_EDIT_SEEDREAM_4,
+    IMAGE_GEN_EDIT_SEEDREAM_4_5,
+    IMAGE_GEN_FLUX_1_1,
+    IMAGE_GEN_GEMINI_2_5_FLASH_IMAGE,
 )
 from util import log
 
@@ -87,27 +87,27 @@ def map_to_model_parameters(
         input_images = input_files,
     )
 
-    if tool == IMAGE_GENERATION_FLUX_1_1:
+    if tool == IMAGE_GEN_FLUX_1_1:
         return replace(unified_params, safety_tolerance = 6)
-    elif tool == IMAGE_GENERATION_EDITING_FLUX_2_PRO:
+    elif tool == IMAGE_GEN_EDIT_FLUX_2_PRO:
         return replace(unified_params, resolution = convert_size_to_mp(unified_params.size), safety_tolerance = 5)
-    elif tool == IMAGE_GENERATION_EDITING_FLUX_2_MAX:
+    elif tool == IMAGE_GEN_EDIT_FLUX_2_MAX:
         return replace(unified_params, resolution = convert_size_to_mp(unified_params.size), safety_tolerance = 5)
-    elif tool == IMAGE_EDITING_FLUX_KONTEXT_PRO:
+    elif tool == IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO:
         return unified_params
-    elif tool == IMAGE_GENERATION_EDITING_GPT_IMAGE_1_5:
+    elif tool == IMAGE_GEN_EDIT_GPT_IMAGE_1_5:
         return unified_params
-    elif tool == IMAGE_EDITING_GOOGLE_NANO_BANANA:
+    elif tool == IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA:
         return unified_params
-    elif tool == IMAGE_EDITING_GOOGLE_NANO_BANANA_PRO:
+    elif tool == IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO:
         return replace(unified_params, resolution = convert_size_to_k(unified_params.size))
-    elif tool == IMAGE_EDITING_SEED_EDIT_3:
-        return unified_params
-    elif tool == IMAGE_GENERATION_EDITING_SEEDREAM_4:
+    elif tool == IMAGE_GEN_EDIT_SEEDREAM_4:
+        return replace(unified_params, size = convert_size_to_k(unified_params.size))
+    elif tool == IMAGE_GEN_EDIT_SEEDREAM_4_5:
         return replace(unified_params, size = convert_size_to_k(unified_params.size))
     elif tool == GEMINI_3_PRO_IMAGE:
         return replace(unified_params, image_size = convert_size_to_k(unified_params.size))
-    elif tool == IMAGE_GENERATION_GEMINI_2_5_FLASH_IMAGE:
+    elif tool == IMAGE_GEN_GEMINI_2_5_FLASH_IMAGE:
         return replace(unified_params, image_size = convert_size_to_k(unified_params.size))
     else:
         log.w(f"Unknown model '{tool.id}', using default mapping")

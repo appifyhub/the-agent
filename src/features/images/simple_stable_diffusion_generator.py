@@ -4,7 +4,7 @@ from google.genai.types import GenerateContentConfig, ImageConfig
 
 from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ToolType
-from features.external_tools.external_tool_library import IMAGE_GENERATION_FLUX_1_1
+from features.external_tools.external_tool_library import IMAGE_GEN_FLUX_1_1
 from features.external_tools.external_tool_provider_library import GOOGLE_AI, REPLICATE
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.images.image_api_utils import map_to_model_parameters
@@ -16,7 +16,7 @@ from util.functions import extract_url_from_replicate_result
 # Not tested as it's just a proxy
 class SimpleStableDiffusionGenerator:
 
-    DEFAULT_TOOL: ExternalTool = IMAGE_GENERATION_FLUX_1_1
+    DEFAULT_TOOL: ExternalTool = IMAGE_GEN_FLUX_1_1
     TOOL_TYPE: ToolType = ToolType.images_gen
 
     error: str | None

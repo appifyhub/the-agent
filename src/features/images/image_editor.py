@@ -7,7 +7,7 @@ import requests
 from di.di import DI
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from features.external_tools.external_tool import ExternalTool, ToolType
-from features.external_tools.external_tool_library import IMAGE_EDITING_FLUX_KONTEXT_PRO
+from features.external_tools.external_tool_library import IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.images.image_api_utils import map_to_model_parameters
 from util import log
@@ -19,7 +19,7 @@ BOOT_AND_RUN_TIMEOUT_S = 120
 # Not tested as it's just a proxy
 class ImageEditor:
 
-    DEFAULT_TOOL: ExternalTool = IMAGE_EDITING_FLUX_KONTEXT_PRO
+    DEFAULT_TOOL: ExternalTool = IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO
     TOOL_TYPE: ToolType = ToolType.images_edit
 
     error: str | None
