@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timezone
 
 from di.di import DI
@@ -165,12 +166,18 @@ class UsageTrackingService:
         if input_tokens is not None or output_tokens is not None or total_tokens is not None:
             return self.__calculate_llm_cost(cost, input_tokens, output_tokens, search_tokens = None)
 
-        image_size_lower = image_size.lower().strip() if image_size else None
-        if image_size_lower == "1k" and cost.image_1k:
+        # normalize image size formats such as {"2K", "2 K", "2M", "2 MB", "2 MP" , ...} to "1k" | "2k" | "4k"
+        normalized: str | None = None
+        if image_size:
+            # remove spaces and clean up variant units to "k"
+            normalized = re.sub(r"\s+", "", image_size.lower()) \
+                .replace("mb", "k").replace("mp", "k").replace("m", "k")
+
+        if normalized == "1k" and cost.image_1k:
             return float(cost.image_1k)
-        if image_size_lower == "2k" and cost.image_2k:
+        if normalized == "2k" and cost.image_2k:
             return float(cost.image_2k)
-        if image_size_lower == "4k" and cost.image_4k:
+        if normalized == "4k" and cost.image_4k:
             return float(cost.image_4k)
 
         # fallback to 1k if specific size pricing is missing (and image_size was provided)

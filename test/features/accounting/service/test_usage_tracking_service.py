@@ -226,6 +226,41 @@ class UsageTrackingServiceTest(unittest.TestCase):
 
         self.assertEqual(record.model_cost_credits, 50.0)
 
+    def test_track_image_model_normalizes_size_formats(self):
+        tool = self._create_tool(image_1k = 10, image_2k = 20, image_4k = 40)
+
+        # test various 2K format variants
+        variants_2k = [
+            "2K", "2k", "2 K", "2 k", "2M", "2m", "2 M", "2 m",
+            "2MB", "2mb", "2 MB", "2 mb", "2MP", "2mp", "2 MP", "2 mp",
+        ]
+        for size_variant in variants_2k:
+            record = self.service.track_image_model(
+                tool = tool,
+                tool_purpose = ToolType.chat,
+                runtime_seconds = 1,
+                image_size = size_variant,
+            )
+            self.assertEqual(record.model_cost_credits, 20.0, f"Failed for variant: {size_variant}")
+
+        # test 1K variants
+        record = self.service.track_image_model(
+            tool = tool,
+            tool_purpose = ToolType.chat,
+            runtime_seconds = 1,
+            image_size = "1 MP",
+        )
+        self.assertEqual(record.model_cost_credits, 10.0)
+
+        # test 4K variants
+        record = self.service.track_image_model(
+            tool = tool,
+            tool_purpose = ToolType.chat,
+            runtime_seconds = 1,
+            image_size = "4 MB",
+        )
+        self.assertEqual(record.model_cost_credits, 40.0)
+
     def test_track_image_model_calculates_total_from_components(self):
         tool = self._create_tool(image_1k = 50)
         record = self.service.track_image_model(
