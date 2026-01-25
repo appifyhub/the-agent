@@ -466,9 +466,13 @@ class DI:
         from features.accounting.decorators.chat_model_usage_tracking_decorator import ChatModelUsageTrackingDecorator
         from features.llm import langchain_creator
 
-        external_tool, _, tool_type = configured_tool
         base_model = langchain_creator.create(configured_tool)
-        return ChatModelUsageTrackingDecorator(base_model, self.usage_tracking_service, external_tool, tool_type)
+        return ChatModelUsageTrackingDecorator(
+            base_model,
+            self.usage_tracking_service,
+            configured_tool.definition,
+            configured_tool.purpose,
+        )
 
     def base_replicate_client(self, api_token: str, timeout_s: float | None = None) -> "ReplicateSDKClient":
         from httpx import Timeout
@@ -487,10 +491,13 @@ class DI:
     ) -> "ReplicateUsageTrackingDecorator":
         from features.accounting.decorators.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
 
-        external_tool, token, tool_type = configured_tool
-        base_client = self.base_replicate_client(token.get_secret_value(), timeout_s)
+        base_client = self.base_replicate_client(configured_tool.token.get_secret_value(), timeout_s)
         return ReplicateUsageTrackingDecorator(
-            base_client, self.usage_tracking_service, external_tool, tool_type, image_size,
+            base_client,
+            self.usage_tracking_service,
+            configured_tool.definition,
+            configured_tool.purpose,
+            image_size,
         )
 
     def base_google_ai_client(
@@ -514,10 +521,13 @@ class DI:
     ) -> "GoogleAIUsageTrackingDecorator":
         from features.accounting.decorators.google_ai_usage_tracking_decorator import GoogleAIUsageTrackingDecorator
 
-        external_tool, token, tool_type = configured_tool
-        base_client = self.base_google_ai_client(token.get_secret_value(), timeout_s)
+        base_client = self.base_google_ai_client(configured_tool.token.get_secret_value(), timeout_s)
         return GoogleAIUsageTrackingDecorator(
-            base_client, self.usage_tracking_service, external_tool, tool_type, image_size,
+            base_client,
+            self.usage_tracking_service,
+            configured_tool.definition,
+            configured_tool.purpose,
+            image_size,
         )
 
     def base_open_ai_client(
@@ -527,8 +537,7 @@ class DI:
     ) -> "OpenAI":
         from openai import OpenAI
 
-        _, token, _ = configured_tool
-        return OpenAI(api_key = token.get_secret_value(), timeout = timeout_s)
+        return OpenAI(api_key = configured_tool.token.get_secret_value(), timeout = timeout_s)
 
     def open_ai_client(
         self,
@@ -537,22 +546,28 @@ class DI:
     ) -> "OpenAIUsageTrackingDecorator":
         from features.accounting.decorators.openai_usage_tracking_decorator import OpenAIUsageTrackingDecorator
 
-        external_tool, _, tool_type = configured_tool
         base_client = self.base_open_ai_client(configured_tool, timeout_s)
-        return OpenAIUsageTrackingDecorator(base_client, self.usage_tracking_service, external_tool, tool_type)
+        return OpenAIUsageTrackingDecorator(
+            base_client,
+            self.usage_tracking_service,
+            configured_tool.definition,
+            configured_tool.purpose,
+        )
 
     def openai_embeddings(self, configured_tool: ConfiguredTool) -> "LangChainEmbeddingsAdapter":
         from features.documents.langchain_embeddings_adapter import LangChainEmbeddingsAdapter
 
-        embedding_model, _, _ = configured_tool
         client = self.open_ai_client(configured_tool)
-        return LangChainEmbeddingsAdapter(client, embedding_model.id)
+        return LangChainEmbeddingsAdapter(client, configured_tool.definition.id)
 
     def tracked_http_get(self, configured_tool: ConfiguredTool) -> "HTTPUsageTrackingDecorator":
         from features.accounting.decorators.http_usage_tracking_decorator import HTTPUsageTrackingDecorator
 
-        external_tool, _, tool_purpose = configured_tool
-        return HTTPUsageTrackingDecorator(self.usage_tracking_service, external_tool, tool_purpose)
+        return HTTPUsageTrackingDecorator(
+            self.usage_tracking_service,
+            configured_tool.definition,
+            configured_tool.purpose,
+        )
 
     @property
     def llm_tool_library(self) -> "LLMToolLibrary":
@@ -622,7 +637,6 @@ class DI:
     ) -> "WebFetcherUsageTrackingDecorator":
         from features.accounting.decorators.web_fetcher_usage_tracking_decorator import WebFetcherUsageTrackingDecorator
 
-        external_tool, _, tool_purpose = configured_tool
         base_fetcher = self.web_fetcher(
             url, headers, params,
             cache_ttl_html, cache_ttl_json,
@@ -631,8 +645,8 @@ class DI:
         return WebFetcherUsageTrackingDecorator(
             base_fetcher,
             self.usage_tracking_service,
-            external_tool,
-            tool_purpose,
+            configured_tool.definition,
+            configured_tool.purpose,
         )
 
     def html_content_cleaner(self, raw_html: str) -> "HTMLContentCleaner":

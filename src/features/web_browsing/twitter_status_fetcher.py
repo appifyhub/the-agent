@@ -56,18 +56,16 @@ class TwitterStatusFetcher:
             return cached_content
 
         # prepare the base API contents
-        twitter_api_tool, twitter_api_token, _ = self.__twitter_api_tool
-        api_url = f"https://{twitter_api_tool.id}/base/apitools/tweetSimple"
+        api_url = f"https://{self.__twitter_api_tool.definition.id}/base/apitools/tweetSimple"
         headers = {
-            "X-RapidAPI-Key": twitter_api_token.get_secret_value(),
-            "X-RapidAPI-Host": twitter_api_tool.id,
+            "X-RapidAPI-Key": self.__twitter_api_tool.token.get_secret_value(),
+            "X-RapidAPI-Host": self.__twitter_api_tool.definition.id,
         }
         # prepare the enterprise API contents
-        _, twitter_token, _ = self.__twitter_enterprise_tool
         enterprise_params = {
             "resFormat": "json",
             "id": self.__tweet_id,
-            "apiKey": twitter_token.get_secret_value(),
+            "apiKey": self.__twitter_enterprise_tool.token.get_secret_value(),
             "cursor": "-1",
         }
 
@@ -142,7 +140,6 @@ class TwitterStatusFetcher:
                     mime_type = (
                         KNOWN_IMAGE_FORMATS.get(extension) if extension else KNOWN_IMAGE_FORMATS.get("png")
                     )  # default to PNG
-                    vision_tool, vision_token, _ = self.__vision_tool
                     analyzer = self.__di.computer_vision_analyzer(
                         job_id = f"tweet-{self.__tweet_id}",
                         image_mime_type = str(mime_type),

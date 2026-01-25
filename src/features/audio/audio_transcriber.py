@@ -101,12 +101,11 @@ class AudioTranscriber:
             # first resolve the transcription
             buffer = io.BytesIO(self.__audio_content)
             buffer.name = f"audio.{self.__extension}"
-            transcriber_tool, _, _ = self.__transcriber_tool
 
             # output format depends on the type of the model used, we need to be careful
-            response_format = "verbose_json" if transcriber_tool.cost_estimate.second_of_runtime else "json"
+            response_format = "verbose_json" if self.__transcriber_tool.definition.cost_estimate.second_of_runtime else "json"
             transcript_response = self.__transcriber.audio.transcriptions.create(
-                model = transcriber_tool.id,
+                model = self.__transcriber_tool.definition.id,
                 file = buffer,
                 response_format = response_format,
             )

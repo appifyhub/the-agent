@@ -59,9 +59,8 @@ class ImageEditor:
                 temp_file.write(response.content)
                 temp_file.flush()
                 with open(temp_file.name, "rb") as file:
-                    tool, _, _ = self.__configured_tool
                     unified_params = map_to_model_parameters(
-                        tool = tool, prompt = self.__prompt,
+                        tool = self.__configured_tool.definition, prompt = self.__prompt,
                         aspect_ratio = self.__aspect_ratio, size = self.__size,
                         input_files = [file],
                     )
@@ -71,7 +70,7 @@ class ImageEditor:
                     log.t("Calling Replicate image editing with params", dict_params)
 
                     replicate = self.__di.replicate_client(self.__configured_tool, BOOT_AND_RUN_TIMEOUT_S, unified_params.size)
-                    prediction = replicate.predictions.create(version = tool.id, input = dict_params)
+                    prediction = replicate.predictions.create(version = self.__configured_tool.definition.id, input = dict_params)
                     prediction.wait()
 
                     result = prediction.output

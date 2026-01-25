@@ -362,11 +362,11 @@ def get_version(di: DI) -> str:
     """
     try:
         log.t(f"Getting version for chat '{di.invoker_chat_id}'")
-        tool, _, _ = di.tool_choice_resolver.require_tool(ChatAgent.TOOL_TYPE, ChatAgent.DEFAULT_TOOL)
+        configured_tool = di.tool_choice_resolver.require_tool(ChatAgent.TOOL_TYPE, ChatAgent.DEFAULT_TOOL)
         return __success(
             {
                 "service_version": f"v{config.version}",
-                "chat_agent_version": f"{tool.name} from {tool.provider.name}",
+                "chat_agent_version": f"{configured_tool.definition.name} from {configured_tool.definition.provider.name}",
                 "next_step": "Notify the user of the current (latest) version",
             },
         )

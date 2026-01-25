@@ -44,13 +44,12 @@ class SimpleStableDiffusionGenerator:
         log.t(f"Starting text-stable-diffusion generator with prompt: '{self.__prompt}'")
         self.error = None
         try:
-            external_tool, _, _ = self.__configured_tool
-            if external_tool.provider == REPLICATE:
+            if self.__configured_tool.definition.provider == REPLICATE:
                 return self.__generate_with_replicate()
-            elif external_tool.provider == GOOGLE_AI:
+            elif self.__configured_tool.definition.provider == GOOGLE_AI:
                 return self.__generate_with_google_ai()
             else:
-                raise ValueError(f"Unsupported provider: '{external_tool.provider}'")
+                raise ValueError(f"Unsupported provider: '{self.__configured_tool.definition.provider}'")
         except Exception as e:
             self.error = log.e("Failed to generate image", e)
             return None
@@ -58,9 +57,8 @@ class SimpleStableDiffusionGenerator:
     def __generate_with_replicate(self) -> str | None:
         log.t("Generating image with Replicate")
 
-        external_tool, token, tool_type = self.__configured_tool
         unified_params = map_to_model_parameters(
-            tool = external_tool, prompt = self.__prompt,
+            tool = self.__configured_tool.definition, prompt = self.__prompt,
             aspect_ratio = self.__aspect_ratio, size = self.__size,
         )
         dict_params = {
@@ -70,7 +68,7 @@ class SimpleStableDiffusionGenerator:
 
         replicate = self.__di.replicate_client(self.__configured_tool, config.web_timeout_s * 10, unified_params.size)
         prediction = replicate.predictions.create(
-            version = external_tool.id,
+            version = self.__configured_tool.definition.id,
             input = dict_params,
         )
         prediction.wait()
@@ -84,9 +82,8 @@ class SimpleStableDiffusionGenerator:
     def __generate_with_google_ai(self) -> str | None:
         log.t("Generating image with Google AI")
 
-        external_tool, token, tool_type = self.__configured_tool
         unified_params = map_to_model_parameters(
-            tool = external_tool, prompt = self.__prompt,
+            tool = self.__configured_tool.definition, prompt = self.__prompt,
             aspect_ratio = self.__aspect_ratio, size = self.__size,
         )
         dict_params = asdict(unified_params)
@@ -95,7 +92,7 @@ class SimpleStableDiffusionGenerator:
         google_ai = self.__di.google_ai_client(self.__configured_tool, config.web_timeout_s * 10, unified_params.size)
         image_config = ImageConfig(aspect_ratio = unified_params.aspect_ratio, image_size = unified_params.size)
         response = google_ai.models.generate_content(
-            model = external_tool.id,
+            model = self.__configured_tool.definition.id,
             contents = self.__prompt,
             config = GenerateContentConfig(
                 response_modalities = ["TEXT", "IMAGE"],

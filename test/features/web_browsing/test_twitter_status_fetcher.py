@@ -61,15 +61,27 @@ class TwitterStatusFetcherTest(unittest.TestCase):
         # Set up configured tools
         mock_twitter_tool = MagicMock()
         mock_twitter_tool.id = "twitter-api-v1-1-enterprise.p.rapidapi.com"
-        self.mock_twitter_api_tool = (mock_twitter_tool, SecretStr("test_twitter_token"), MagicMock())
+        self.mock_twitter_api_tool = ConfiguredTool(
+            definition = mock_twitter_tool,
+            token = SecretStr("test_twitter_token"),
+            purpose = MagicMock(),
+        )
 
         mock_vision_tool = MagicMock()
         mock_vision_tool.id = "vision-tool-id"
-        self.mock_vision_tool = (mock_vision_tool, SecretStr("test_vision_token"), MagicMock())
+        self.mock_vision_tool = ConfiguredTool(
+            definition = mock_vision_tool,
+            token = SecretStr("test_vision_token"),
+            purpose = MagicMock(),
+        )
 
         mock_enterprise_tool = MagicMock()
         mock_enterprise_tool.id = "enterprise-tool-id"
-        self.mock_twitter_enterprise_tool = (mock_enterprise_tool, SecretStr("test_enterprise_token"), MagicMock())
+        self.mock_twitter_enterprise_tool = ConfiguredTool(
+            definition = mock_enterprise_tool,
+            token = SecretStr("test_enterprise_token"),
+            purpose = MagicMock(),
+        )
 
     # noinspection PyUnusedLocal
     @requests_mock.Mocker()
