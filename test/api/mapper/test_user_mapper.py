@@ -39,9 +39,6 @@ class UserMapperTest(unittest.TestCase):
             tool_choice_hearing = "whisper-1",
             tool_choice_images_gen = "dall-e-3",
             tool_choice_images_edit = "dall-e-2",
-            tool_choice_images_restoration = "replicate-restoration",
-            tool_choice_images_inpainting = "replicate-inpainting",
-            tool_choice_images_background_removal = "replicate-background",
             tool_choice_search = "perplexity-online",
             tool_choice_embedding = "text-embedding-3-large",
             tool_choice_api_fiat_exchange = "rapid-api-fiat",
@@ -67,9 +64,6 @@ class UserMapperTest(unittest.TestCase):
             tool_choice_hearing = "whisper-1-turbo",
             tool_choice_images_gen = "dall-e-3-hd",
             tool_choice_images_edit = "dall-e-3",
-            tool_choice_images_restoration = "new-restoration",
-            tool_choice_images_inpainting = "new-inpainting",
-            tool_choice_images_background_removal = "new-background",
             tool_choice_search = "perplexity-pro",
             tool_choice_embedding = "text-embedding-3-small",
             tool_choice_api_fiat_exchange = "new-fiat-api",
@@ -94,9 +88,6 @@ class UserMapperTest(unittest.TestCase):
         self.assertEqual(user_save.tool_choice_hearing, "whisper-1-turbo")
         self.assertEqual(user_save.tool_choice_images_gen, "dall-e-3-hd")
         self.assertEqual(user_save.tool_choice_images_edit, "dall-e-3")
-        self.assertEqual(user_save.tool_choice_images_restoration, "new-restoration")
-        self.assertEqual(user_save.tool_choice_images_inpainting, "new-inpainting")
-        self.assertEqual(user_save.tool_choice_images_background_removal, "new-background")
         self.assertEqual(user_save.tool_choice_search, "perplexity-pro")
         self.assertEqual(user_save.tool_choice_embedding, "text-embedding-3-small")
         self.assertEqual(user_save.tool_choice_api_fiat_exchange, "new-fiat-api")
@@ -222,9 +213,6 @@ class UserMapperTest(unittest.TestCase):
         self.assertEqual(masked_user.tool_choice_hearing, self.user.tool_choice_hearing)
         self.assertEqual(masked_user.tool_choice_images_gen, self.user.tool_choice_images_gen)
         self.assertEqual(masked_user.tool_choice_images_edit, self.user.tool_choice_images_edit)
-        self.assertEqual(masked_user.tool_choice_images_restoration, self.user.tool_choice_images_restoration)
-        self.assertEqual(masked_user.tool_choice_images_inpainting, self.user.tool_choice_images_inpainting)
-        self.assertEqual(masked_user.tool_choice_images_background_removal, self.user.tool_choice_images_background_removal)
         self.assertEqual(masked_user.tool_choice_search, self.user.tool_choice_search)
         self.assertEqual(masked_user.tool_choice_embedding, self.user.tool_choice_embedding)
         self.assertEqual(masked_user.tool_choice_api_fiat_exchange, self.user.tool_choice_api_fiat_exchange)

@@ -46,6 +46,7 @@ class Config(metaclass = Singleton):
     uploadcare_cdn_id: str
     url_shortener_base_url: str
     version: str
+    usage_maintenance_fee_credits: float
 
     db_url: SecretStr
     api_key: SecretStr
@@ -116,6 +117,7 @@ class Config(metaclass = Singleton):
         def_uploadcare_cdn_id: str = "invalid",
         def_url_shortener_base_url: str = "https://urls.appifyhub.com",
         def_version: str = "dev",
+        def_usage_maintenance_fee_credits: float = 0.0,
 
         def_db_user: SecretStr = SecretStr("root"),
         def_db_pass: SecretStr = SecretStr("root"),
@@ -170,6 +172,7 @@ class Config(metaclass = Singleton):
         self.uploadcare_cdn_id = self.__env("UPLOADCARE_CDN_ID", lambda: def_uploadcare_cdn_id)
         self.url_shortener_base_url = self.__env("URL_SHORTENER_BASE_URL", lambda: def_url_shortener_base_url)
         self.version = self.__env("VERSION", lambda: def_version)
+        self.usage_maintenance_fee_credits = float(self.__env("USAGE_MAINTENANCE_FEE_CREDITS", lambda: str(def_usage_maintenance_fee_credits)))
 
         self.__set_up_db(def_db_user, def_db_pass, def_db_host, def_db_name)
         self.api_key = self.__senv("API_KEY", lambda: def_api_key)

@@ -14,11 +14,11 @@ from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
 from util import log
 from util.functions import digest_md5
 
-CACHE_PREFIX = "attachments-describer"
+CACHE_PREFIX = "attachments-analyzer"
 CACHE_TTL = timedelta(weeks = 13)
 
 
-class AttachmentsDescriber:
+class ChatAttachmentsAnalyzer:
 
     class Result(Enum):
         failed = "Failed"
@@ -65,20 +65,20 @@ class AttachmentsDescriber:
     @property
     def __resolution_status(self) -> Result:
         if not self.__attachments:
-            return AttachmentsDescriber.Result.failed
+            return ChatAttachmentsAnalyzer.Result.failed
         contents_match_attachments = len(self.__attachments) == len(self.__contents)
         # failure -> attachments don't match contents (system error)
         if not contents_match_attachments:
-            return AttachmentsDescriber.Result.failed
+            return ChatAttachmentsAnalyzer.Result.failed
         successful_contents = sum(1 for content in self.__contents if content is not None)
         # failure -> 0% success (no content resolved)
         if successful_contents == 0:
-            return AttachmentsDescriber.Result.failed
+            return ChatAttachmentsAnalyzer.Result.failed
         # success -> 100% success (all content resolved)
         if successful_contents == len(self.__attachments):
-            return AttachmentsDescriber.Result.success
+            return ChatAttachmentsAnalyzer.Result.success
         # partial -> some content resolved, some failed
-        return AttachmentsDescriber.Result.partial
+        return ChatAttachmentsAnalyzer.Result.partial
 
     @property
     def result(self) -> list[dict[str, str]]:

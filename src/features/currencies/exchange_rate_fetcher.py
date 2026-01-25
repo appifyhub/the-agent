@@ -6,7 +6,9 @@ from typing import Any, Dict
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from di.di import DI
 from features.currencies.supported_currencies import SUPPORTED_CRYPTO, SUPPORTED_FIAT
+from features.external_tools.external_tool import ToolType
 from features.external_tools.external_tool_library import CRYPTO_CURRENCY_EXCHANGE, FIAT_CURRENCY_EXCHANGE
+from features.external_tools.tool_choice_resolver import ConfiguredTool
 from util import log
 
 DEFAULT_FIAT = "USD"
@@ -125,18 +127,22 @@ class ExchangeRateFetcher:
 
         rate: float
         api_url = f"https://pro-api.coinmarketcap.com/{CRYPTO_CURRENCY_EXCHANGE.id.replace(".", "/")}"
-        cmc_token = self.__di.access_token_resolver.require_access_token_for_tool(CRYPTO_CURRENCY_EXCHANGE).get_secret_value()
-        headers = {"Accept": "application/json", "X-CMC_PRO_API_KEY": cmc_token}
+        cmc_token = self.__di.access_token_resolver.require_access_token_for_tool(CRYPTO_CURRENCY_EXCHANGE)
+        headers = {"Accept": "application/json", "X-CMC_PRO_API_KEY": cmc_token.get_secret_value()}
+        crypto_tool: ConfiguredTool = (CRYPTO_CURRENCY_EXCHANGE, cmc_token, ToolType.api_crypto_exchange)
+
         if base_currency_code != DEFAULT_FIAT and desired_currency_code != DEFAULT_FIAT:
             # due to API limitations, we must traverse both cryptos through USD
             params_base = {"symbol": base_currency_code, "convert": DEFAULT_FIAT}
             sleep(RATE_LIMIT_DELAY_S)
-            fetcher_base = self.__di.web_fetcher(api_url, headers, params_base, cache_ttl_json = CACHE_TTL)
+            fetcher_base = self.__di.tracked_web_fetcher(crypto_tool, api_url, headers, params_base, cache_ttl_json = CACHE_TTL)
             response_base = fetcher_base.fetch_json() or {}
 
             params_desired = {"symbol": desired_currency_code, "convert": DEFAULT_FIAT}
             sleep(RATE_LIMIT_DELAY_S)
-            fetcher_desired = self.__di.web_fetcher(api_url, headers, params_desired, cache_ttl_json = CACHE_TTL)
+            fetcher_desired = self.__di.tracked_web_fetcher(
+                crypto_tool, api_url, headers, params_desired, cache_ttl_json = CACHE_TTL,
+            )
             response_desired = fetcher_desired.fetch_json() or {}
 
             base_rate = float(response_base["data"][base_currency_code]["quote"][DEFAULT_FIAT]["price"])
@@ -147,7 +153,7 @@ class ExchangeRateFetcher:
             symbol = desired_currency_code if base_currency_code == DEFAULT_FIAT else base_currency_code
             params = {"symbol": symbol, "convert": DEFAULT_FIAT}
             sleep(RATE_LIMIT_DELAY_S)
-            fetcher = self.__di.web_fetcher(api_url, headers, params, cache_ttl_json = CACHE_TTL)
+            fetcher = self.__di.tracked_web_fetcher(crypto_tool, api_url, headers, params, cache_ttl_json = CACHE_TTL)
             response = fetcher.fetch_json() or {}
 
             rate = float(response["data"][symbol]["quote"][DEFAULT_FIAT]["price"])
@@ -174,9 +180,11 @@ class ExchangeRateFetcher:
         sleep(RATE_LIMIT_DELAY_S)
         api_url = f"https://{FIAT_CURRENCY_EXCHANGE.id}/currency/convert"
         params = {"format": "json", "from": base_currency_code, "to": desired_currency_code, "amount": "1.0"}
-        rapid_api_token = self.__di.access_token_resolver.require_access_token_for_tool(FIAT_CURRENCY_EXCHANGE).get_secret_value()
-        headers = {"X-RapidAPI-Key": rapid_api_token, "X-RapidAPI-Host": FIAT_CURRENCY_EXCHANGE.id}
-        fetcher = self.__di.web_fetcher(api_url, headers, params, cache_ttl_json = CACHE_TTL)
+        rapid_api_token = self.__di.access_token_resolver.require_access_token_for_tool(FIAT_CURRENCY_EXCHANGE)
+        headers = {"X-RapidAPI-Key": rapid_api_token.get_secret_value(), "X-RapidAPI-Host": FIAT_CURRENCY_EXCHANGE.id}
+        fiat_tool: ConfiguredTool = (FIAT_CURRENCY_EXCHANGE, rapid_api_token, ToolType.api_fiat_exchange)
+
+        fetcher = self.__di.tracked_web_fetcher(fiat_tool, api_url, headers, params, cache_ttl_json = CACHE_TTL)
         response = fetcher.fetch_json() or {}
 
         rate = float(response["rates"][desired_currency_code]["rate_for_amount"])
