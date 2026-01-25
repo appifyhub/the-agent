@@ -242,6 +242,7 @@ CLAUDE_3_5_HAIKU = ExternalTool(
     cost_estimate = CostEstimate(
         input_1m_tokens = 80,
         output_1m_tokens = 400,
+        search_1m_tokens = 40,  # used with vision queries
     ),
 )
 
@@ -253,6 +254,7 @@ CLAUDE_3_7_SONNET = ExternalTool(
     cost_estimate = CostEstimate(
         input_1m_tokens = 300,
         output_1m_tokens = 1500,
+        search_1m_tokens = 150,  # used with vision queries
     ),
 )
 
@@ -264,6 +266,7 @@ CLAUDE_4_SONNET = ExternalTool(
     cost_estimate = CostEstimate(
         input_1m_tokens = 300,
         output_1m_tokens = 1500,
+        search_1m_tokens = 150,  # used with vision queries
     ),
 )
 
@@ -275,6 +278,7 @@ CLAUDE_4_5_HAIKU = ExternalTool(
     cost_estimate = CostEstimate(
         input_1m_tokens = 100,
         output_1m_tokens = 500,
+        search_1m_tokens = 50,  # used with vision queries
     ),
 )
 
@@ -286,6 +290,7 @@ CLAUDE_4_5_SONNET = ExternalTool(
     cost_estimate = CostEstimate(
         input_1m_tokens = 300,
         output_1m_tokens = 1500,
+        search_1m_tokens = 150,  # used with vision queries
     ),
 )
 
@@ -299,6 +304,7 @@ GEMINI_2_5_FLASH_LITE = ExternalTool(
     cost_estimate = CostEstimate(
         input_1m_tokens = 10,
         output_1m_tokens = 40,
+        search_1m_tokens = 5,  # used with vision queries
     ),
 )
 
@@ -310,6 +316,7 @@ GEMINI_2_5_FLASH = ExternalTool(
     cost_estimate = CostEstimate(
         input_1m_tokens = 30,
         output_1m_tokens = 250,
+        search_1m_tokens = 15,  # used with vision queries
     ),
 )
 
@@ -321,6 +328,7 @@ GEMINI_2_5_PRO = ExternalTool(
     cost_estimate = CostEstimate(
         input_1m_tokens = 190,
         output_1m_tokens = 1250,
+        search_1m_tokens = 95,  # used with vision queries
     ),
 )
 
@@ -332,6 +340,7 @@ GEMINI_3_FLASH = ExternalTool(
     cost_estimate = CostEstimate(
         input_1m_tokens = 50,
         output_1m_tokens = 300,
+        search_1m_tokens = 25,  # used with vision queries
     ),
 )
 
@@ -343,6 +352,7 @@ GEMINI_3_PRO = ExternalTool(
     cost_estimate = CostEstimate(
         input_1m_tokens = 300,
         output_1m_tokens = 1500,
+        search_1m_tokens = 150,  # used with vision queries
     ),
 )
 
