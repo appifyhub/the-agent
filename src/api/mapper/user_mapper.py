@@ -11,6 +11,7 @@ def api_to_domain(payload: UserSettingsPayload, existing_user: User) -> UserSave
     # All fields are already stripped in the payload model validators
     user_save = UserSave(**existing_user.model_dump())
 
+    # @formatter:off
     if payload.full_name is not None:
         user_save.full_name = payload.full_name if payload.full_name else None
     if payload.about_me is not None:
@@ -45,32 +46,17 @@ def api_to_domain(payload: UserSettingsPayload, existing_user: User) -> UserSave
         user_save.tool_choice_images_gen = payload.tool_choice_images_gen if payload.tool_choice_images_gen else None
     if payload.tool_choice_images_edit is not None:
         user_save.tool_choice_images_edit = payload.tool_choice_images_edit if payload.tool_choice_images_edit else None
-    if payload.tool_choice_images_restoration is not None:
-        user_save.tool_choice_images_restoration = (
-            payload.tool_choice_images_restoration if payload.tool_choice_images_restoration else None
-        )
-    if payload.tool_choice_images_inpainting is not None:
-        user_save.tool_choice_images_inpainting = (
-            payload.tool_choice_images_inpainting if payload.tool_choice_images_inpainting else None
-        )
-    if payload.tool_choice_images_background_removal is not None:
-        user_save.tool_choice_images_background_removal = (
-            payload.tool_choice_images_background_removal if payload.tool_choice_images_background_removal else None
-        )
     if payload.tool_choice_search is not None:
         user_save.tool_choice_search = payload.tool_choice_search if payload.tool_choice_search else None
     if payload.tool_choice_embedding is not None:
         user_save.tool_choice_embedding = payload.tool_choice_embedding if payload.tool_choice_embedding else None
     if payload.tool_choice_api_fiat_exchange is not None:
-        user_save.tool_choice_api_fiat_exchange = (
-            payload.tool_choice_api_fiat_exchange if payload.tool_choice_api_fiat_exchange else None
-        )
+        user_save.tool_choice_api_fiat_exchange = payload.tool_choice_api_fiat_exchange if payload.tool_choice_api_fiat_exchange else None  # noqa: E501
     if payload.tool_choice_api_crypto_exchange is not None:
-        user_save.tool_choice_api_crypto_exchange = (
-            payload.tool_choice_api_crypto_exchange if payload.tool_choice_api_crypto_exchange else None
-        )
+        user_save.tool_choice_api_crypto_exchange = payload.tool_choice_api_crypto_exchange if payload.tool_choice_api_crypto_exchange else None  # noqa: E501
     if payload.tool_choice_api_twitter is not None:
         user_save.tool_choice_api_twitter = payload.tool_choice_api_twitter if payload.tool_choice_api_twitter else None
+    # @formatter:on
 
     return user_save
 
@@ -102,9 +88,6 @@ def domain_to_api(user: User) -> UserSettingsResponse:
         tool_choice_hearing = user.tool_choice_hearing,
         tool_choice_images_gen = user.tool_choice_images_gen,
         tool_choice_images_edit = user.tool_choice_images_edit,
-        tool_choice_images_restoration = user.tool_choice_images_restoration,
-        tool_choice_images_inpainting = user.tool_choice_images_inpainting,
-        tool_choice_images_background_removal = user.tool_choice_images_background_removal,
         tool_choice_search = user.tool_choice_search,
         tool_choice_embedding = user.tool_choice_embedding,
         tool_choice_api_fiat_exchange = user.tool_choice_api_fiat_exchange,

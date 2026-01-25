@@ -7,6 +7,8 @@ from PIL import Image
 
 from util import log
 
+MAX_ITERATIONS = 30
+
 
 class ImageResizer:
 
@@ -21,7 +23,7 @@ class ImageResizer:
         try:
             original_size = Path(input_path).stat().st_size
             if original_size <= max_size_bytes:
-                log.t("Image is within size limit, no resizing needed")
+                log.w("Image is within size limit, no resizing needed")
                 return input_path
 
             with Image.open(input_path) as image:
@@ -43,7 +45,18 @@ class ImageResizer:
                 prev_diff: float | None = None
 
                 # resize the image until it fits the size limit
+                iteration = 0
                 while True:
+                    iteration += 1
+                    if iteration >= MAX_ITERATIONS:
+                        log.w("Max iterations reached, returning best effort")
+                        if best_under is not None:
+                            return ImageResizer.__write_temp_file(best_under, suffix)
+                        if best_any is not None:
+                            return ImageResizer.__write_temp_file(best_any, suffix)
+                        raise ValueError(f"Could not resize image to acceptable size in {MAX_ITERATIONS} iterations")
+                    log.d(f"Resizing in iteration {iteration}, scale_factor: {scale_factor}, quality: {quality}")
+
                     output = io.BytesIO()
                     current_image = image.copy()
 
