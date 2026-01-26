@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import requests
+from pydantic import SecretStr
 from requests.exceptions import RequestException, Timeout
 
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
@@ -70,10 +71,10 @@ class WebFetcher:
                 TwitterStatusFetcher.DEFAULT_VISION_TOOL,
             )
             # load the system tool for now (will be migrated away)
-            twitter_enterprise_tool: ConfiguredTool = (
-                TwitterStatusFetcher.DEFAULT_TWITTER_TOOL,
-                config.rapid_api_twitter_token,
-                TwitterStatusFetcher.TWITTER_TOOL_TYPE,
+            twitter_enterprise_tool: ConfiguredTool = ConfiguredTool(
+                definition = TwitterStatusFetcher.DEFAULT_TWITTER_TOOL,
+                token = SecretStr(config.rapid_api_twitter_token),
+                purpose = TwitterStatusFetcher.TWITTER_TOOL_TYPE,
             )
             self.__tweet_fetcher = di.twitter_status_fetcher(
                 self.__tweet_id, twitter_api_tool, vision_tool, twitter_enterprise_tool,
