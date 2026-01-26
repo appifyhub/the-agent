@@ -272,7 +272,7 @@ CLAUDE_4_SONNET = ExternalTool(
 
 CLAUDE_4_5_HAIKU = ExternalTool(
     id = "claude-haiku-4-5",
-    name = "Claude Haiku 4.5",
+    name = "Claude 4.5 Haiku",
     provider = ANTHROPIC,
     types = [ToolType.chat, ToolType.copywriting, ToolType.vision],
     cost_estimate = CostEstimate(
@@ -456,10 +456,15 @@ IMAGE_GEN_EDIT_FLUX_2_PRO = ExternalTool(
     provider = REPLICATE,
     types = [ToolType.images_gen, ToolType.images_edit],
     cost_estimate = CostEstimate(
+        output_image_1k = 2,
+        output_image_2k = 3,
+        output_image_4k = 6,
+        input_image_1k = 2,
+        input_image_2k = 3,
+        input_image_4k = 6,
+        input_image_8k = 12,
+        input_image_12k = 18,
         api_call = 2,
-        output_image_1k = 8,
-        output_image_2k = 10,
-        output_image_4k = 12,
     ),
 )
 
@@ -469,9 +474,15 @@ IMAGE_GEN_EDIT_FLUX_2_MAX = ExternalTool(
     provider = REPLICATE,
     types = [ToolType.images_gen, ToolType.images_edit],
     cost_estimate = CostEstimate(
-        output_image_1k = 16,
-        output_image_2k = 20,
-        output_image_4k = 25,
+        output_image_1k = 3,
+        output_image_2k = 6,
+        output_image_4k = 12,
+        input_image_1k = 3,
+        input_image_2k = 6,
+        input_image_4k = 12,
+        input_image_8k = 24,
+        input_image_12k = 36,
+        api_call = 4,
     ),
 )
 
@@ -481,9 +492,9 @@ IMAGE_GEN_EDIT_GPT_IMAGE_1_5 = ExternalTool(
     provider = REPLICATE,
     types = [ToolType.images_gen, ToolType.images_edit],
     cost_estimate = CostEstimate(
-        output_image_1k = 15,
-        output_image_2k = 15,
-        output_image_4k = 15,
+        output_image_1k = 14,
+        output_image_2k = 14,
+        output_image_4k = 14,
     ),
 )
 
@@ -518,7 +529,6 @@ IMAGE_GEN_GEMINI_2_5_FLASH_IMAGE = ExternalTool(
     provider = REPLICATE,
     types = [ToolType.images_gen],
     cost_estimate = CostEstimate(
-        input_1m_tokens = 30,
         output_image_1k = 4,
         output_image_2k = 4,
         output_image_4k = 4,
