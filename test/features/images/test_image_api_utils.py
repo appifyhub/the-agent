@@ -133,7 +133,7 @@ class ImageApiUtilsTest(unittest.TestCase):
             tool = IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO,
             prompt = "test prompt",
             aspect_ratio = "1:1",
-            size = "2K",
+            output_size = "2K",
             input_files = input_files,
         )
 

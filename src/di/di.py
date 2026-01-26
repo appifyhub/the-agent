@@ -698,11 +698,11 @@ class DI:
         configured_copywriter_tool: ConfiguredTool,
         configured_image_gen_tool: ConfiguredTool,
         aspect_ratio: str | None = None,
-        size: str | None = None,
+        output_size: str | None = None,
     ) -> "SmartStableDiffusionGenerator":
         from features.images.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
         return SmartStableDiffusionGenerator(
-            raw_prompt, configured_copywriter_tool, configured_image_gen_tool, self, aspect_ratio, size,
+            raw_prompt, configured_copywriter_tool, configured_image_gen_tool, self, aspect_ratio, output_size,
         )
 
     # noinspection PyMethodMayBeStatic
@@ -711,10 +711,10 @@ class DI:
         prompt: str,
         configured_tool: ConfiguredTool,
         aspect_ratio: str | None = None,
-        size: str | None = None,
+        output_size: str | None = None,
     ) -> "SimpleStableDiffusionGenerator":
         from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
-        return SimpleStableDiffusionGenerator(prompt, configured_tool, self, aspect_ratio, size)
+        return SimpleStableDiffusionGenerator(prompt, configured_tool, self, aspect_ratio, output_size)
 
     # noinspection PyMethodMayBeStatic
     def image_uploader(
@@ -741,10 +741,10 @@ class DI:
         attachment_ids: list[str],
         operation_guidance: str | None,
         aspect_ratio: str | None = None,
-        size: str | None = None,
+        output_size: str | None = None,
     ) -> "ChatImageEditService":
         from features.chat.chat_image_edit_service import ChatImageEditService
-        return ChatImageEditService(attachment_ids, operation_guidance, aspect_ratio, size, self)
+        return ChatImageEditService(attachment_ids, operation_guidance, aspect_ratio, output_size, self)
 
     def image_editor(
         self,
@@ -753,10 +753,10 @@ class DI:
         prompt: str,
         input_mime_type: str | None = None,
         aspect_ratio: str | None = None,
-        size: str | None = None,
+        output_size: str | None = None,
     ) -> "ImageEditor":
         from features.images.image_editor import ImageEditor
-        return ImageEditor(image_url, configured_tool, prompt, self, input_mime_type, aspect_ratio, size)
+        return ImageEditor(image_url, configured_tool, prompt, self, input_mime_type, aspect_ratio, output_size)
 
     def computer_vision_analyzer(
         self,

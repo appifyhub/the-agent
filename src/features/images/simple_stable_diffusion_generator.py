@@ -23,7 +23,7 @@ class SimpleStableDiffusionGenerator:
     __prompt: str
     __configured_tool: ConfiguredTool
     __aspect_ratio: str | None
-    __size: str | None
+    __output_size: str | None
     __di: DI
 
     def __init__(
@@ -32,13 +32,13 @@ class SimpleStableDiffusionGenerator:
         configured_tool: ConfiguredTool,
         di: DI,
         aspect_ratio: str | None = None,
-        size: str | None = None,
+        output_size: str | None = None,
     ):
         self.__di = di
         self.__prompt = prompt
         self.__configured_tool = configured_tool
         self.__aspect_ratio = aspect_ratio
-        self.__size = size
+        self.__output_size = output_size
 
     def execute(self) -> str | None:
         log.t(f"Starting text-stable-diffusion generator with prompt: '{self.__prompt}'")
@@ -59,7 +59,7 @@ class SimpleStableDiffusionGenerator:
 
         unified_params = map_to_model_parameters(
             tool = self.__configured_tool.definition, prompt = self.__prompt,
-            aspect_ratio = self.__aspect_ratio, size = self.__size,
+            aspect_ratio = self.__aspect_ratio, output_size = self.__output_size,
         )
         dict_params = {
             k: v for k, v in unified_params.__dict__.items() if v is not None
@@ -89,7 +89,7 @@ class SimpleStableDiffusionGenerator:
 
         unified_params = map_to_model_parameters(
             tool = self.__configured_tool.definition, prompt = self.__prompt,
-            aspect_ratio = self.__aspect_ratio, size = self.__size,
+            aspect_ratio = self.__aspect_ratio, output_size = self.__output_size,
         )
         dict_params = asdict(unified_params)
         log.t("Calling Google AI image generator API with params", dict_params)

@@ -76,7 +76,7 @@ class ChatImageEditServiceTest(unittest.TestCase):
                 attachment_ids = self.attachment_ids,
                 operation_guidance = self.operation_guidance,
                 aspect_ratio = None,
-                size = None,
+                output_size = None,
                 di = self.mock_di,
             )
             self.assertIsInstance(service, ChatImageEditService)
@@ -97,7 +97,7 @@ class ChatImageEditServiceTest(unittest.TestCase):
             attachment_ids = self.attachment_ids,
             operation_guidance = self.operation_guidance,
             aspect_ratio = None,
-            size = None,
+            output_size = None,
             di = self.mock_di,
         )
         result, details = service.execute()
@@ -128,7 +128,7 @@ class ChatImageEditServiceTest(unittest.TestCase):
             attachment_ids = self.attachment_ids,
             operation_guidance = self.operation_guidance,
             aspect_ratio = None,
-            size = None,
+            output_size = None,
             di = self.mock_di,
         )
         result, details = service.execute()
@@ -152,7 +152,7 @@ class ChatImageEditServiceTest(unittest.TestCase):
             attachment_ids = self.attachment_ids,
             operation_guidance = self.operation_guidance,
             aspect_ratio = None,
-            size = None,
+            output_size = None,
             di = self.mock_di,
         )
         result, details = service.execute()
@@ -185,7 +185,7 @@ class ChatImageEditServiceTest(unittest.TestCase):
             attachment_ids = self.attachment_ids,
             operation_guidance = self.operation_guidance,
             aspect_ratio = None,
-            size = None,
+            output_size = None,
             di = self.mock_di,
         )
         result, details = service.execute()

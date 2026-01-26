@@ -30,7 +30,7 @@ class SmartStableDiffusionGenerator:
     __image_gen_tool: ConfiguredTool
     __copywriter: BaseChatModel
     __aspect_ratio: str | None
-    __size: str | None
+    __output_size: str | None
     __di: DI
 
     def __init__(
@@ -40,14 +40,14 @@ class SmartStableDiffusionGenerator:
         configured_image_gen_tool: ConfiguredTool,
         di: DI,
         aspect_ratio: str | None = None,
-        size: str | None = None,
+        output_size: str | None = None,
     ):
         system_prompt = prompt_resolvers.copywriting_image_prompt_upscaler(di.require_invoker_chat_type())
         self.__llm_input = [SystemMessage(system_prompt), HumanMessage(raw_prompt)]
         self.__copywriter = di.chat_langchain_model(configured_copywriter_tool)
         self.__image_gen_tool = configured_image_gen_tool
         self.__aspect_ratio = aspect_ratio
-        self.__size = size
+        self.__output_size = output_size
         self.__di = di
 
     def execute(self) -> Result:
@@ -72,7 +72,7 @@ class SmartStableDiffusionGenerator:
             log.t("Starting image generation")
             generator = self.__di.simple_stable_diffusion_generator(
                 configured_tool = self.__image_gen_tool, prompt = prompt,
-                aspect_ratio = self.__aspect_ratio, size = self.__size,
+                aspect_ratio = self.__aspect_ratio, output_size = self.__output_size,
             )
             image_url = generator.execute()
             if generator.error:

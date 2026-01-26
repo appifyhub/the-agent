@@ -29,7 +29,7 @@ class ImageEditor:
     __configured_tool: ConfiguredTool
     __input_mime_type: str | None
     __aspect_ratio: str | None
-    __size: str | None
+    __output_size: str | None
     __di: DI
 
     def __init__(
@@ -40,14 +40,14 @@ class ImageEditor:
         di: DI,
         input_mime_type: str | None = None,
         aspect_ratio: str | None = None,
-        size: str | None = None,
+        output_size: str | None = None,
     ):
         self.__prompt = prompt
         self.__image_url = image_url
         self.__configured_tool = configured_tool
         self.__input_mime_type = input_mime_type
         self.__aspect_ratio = aspect_ratio
-        self.__size = size
+        self.__output_size = output_size
         self.__di = di
 
     def execute(self) -> str | None:
@@ -70,7 +70,7 @@ class ImageEditor:
                 with open(temp_file.name, "rb") as file:
                     unified_params = map_to_model_parameters(
                         tool = self.__configured_tool.definition, prompt = self.__prompt,
-                        aspect_ratio = self.__aspect_ratio, size = self.__size,
+                        aspect_ratio = self.__aspect_ratio, output_size = self.__output_size,
                         input_files = [file],
                     )
                     dict_params = {

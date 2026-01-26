@@ -72,7 +72,7 @@ def map_to_model_parameters(
     tool: ExternalTool,
     prompt: str = "",
     aspect_ratio: str | None = None,
-    size: str | None = None,
+    output_size: str | None = None,
     input_files: list[IO[bytes]] | None = None,
 ) -> UnifiedImageParameters:
     log.d(f"Mapping image parameters for model '{tool.id}'")
@@ -80,7 +80,7 @@ def map_to_model_parameters(
     unified_params = UnifiedImageParameters(
         prompt = prompt,
         aspect_ratio = resolve_aspect_ratio(tool, aspect_ratio, input_files),
-        size = size or "2K",
+        size = output_size or "2K",
         image = input_files[0] if input_files else None,
         input_image = input_files[0] if input_files else None,
         image_input = input_files,

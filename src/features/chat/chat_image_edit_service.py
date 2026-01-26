@@ -19,7 +19,7 @@ class ChatImageEditService:
     __attachments: list[ChatMessageAttachment]
     __operation_guidance: str | None
     __aspect_ratio: str | None
-    __size: str | None
+    __output_size: str | None
     __di: DI
 
     def __init__(
@@ -27,7 +27,7 @@ class ChatImageEditService:
         attachment_ids: list[str],
         operation_guidance: str | None,
         aspect_ratio: str | None,
-        size: str | None,
+        output_size: str | None,
         di: DI,
     ):
         if not attachment_ids:
@@ -36,7 +36,7 @@ class ChatImageEditService:
         self.__attachments = self.__di.platform_bot_sdk().refresh_attachments_by_ids(attachment_ids)
         self.__operation_guidance = operation_guidance
         self.__aspect_ratio = aspect_ratio
-        self.__size = size
+        self.__output_size = output_size
 
     def __edit_image(self) -> tuple[Result, URLList, ErrorList]:
         log.t(f"Editing {len(self.__attachments)} images in aspect ratio {self.__aspect_ratio}")
@@ -57,7 +57,7 @@ class ChatImageEditService:
                     prompt = self.__operation_guidance or "<empty>",
                     input_mime_type = attachment.mime_type,
                     aspect_ratio = self.__aspect_ratio,
-                    size = self.__size,
+                    output_size = self.__output_size,
                 )
                 editing_result = editor.execute()
                 if editor.error:
