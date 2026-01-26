@@ -12,13 +12,13 @@ from db.schema.chat_config import ChatConfig
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.tools_cache import ToolsCache
 from db.schema.user import User
-from features.chat.attachments_describer import CACHE_TTL, AttachmentsDescriber
+from features.chat.chat_attachments_analyzer import CACHE_TTL, ChatAttachmentsAnalyzer
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.integrations.platform_bot_sdk import PlatformBotSDK
 from util.config import config
 
 
-class AttachmentsDescriberTest(unittest.TestCase):
+class ChatAttachmentsAnalyzerTest(unittest.TestCase):
 
     def setUp(self):
         config.web_retries = 1
@@ -106,14 +106,14 @@ class AttachmentsDescriberTest(unittest.TestCase):
         mock_cv_instance.execute.return_value = self.cached_content
         self.mock_di.computer_vision_analyzer.return_value = mock_cv_instance
 
-        resolver = AttachmentsDescriber(
+        resolver = ChatAttachmentsAnalyzer(
             additional_context = "context",
             attachment_ids = ["1"],
             di = self.mock_di,
         )
         result = resolver.execute()
 
-        self.assertEqual(result, AttachmentsDescriber.Result.success)
+        self.assertEqual(result, ChatAttachmentsAnalyzer.Result.success)
         # Use the public get_result property if available, otherwise check the result length
         self.assertEqual(len(resolver.result), 1)
         self.assertEqual(resolver.result[0]["text_content"], self.cached_content)
@@ -131,14 +131,14 @@ class AttachmentsDescriberTest(unittest.TestCase):
         self.mock_di.tool_choice_resolver.require_tool.return_value = MagicMock()
         self.mock_access_token_resolver.require_access_token_for_tool.return_value = "**********"
 
-        resolver = AttachmentsDescriber(
+        resolver = ChatAttachmentsAnalyzer(
             additional_context = "context",
             attachment_ids = ["1"],
             di = self.mock_di,
         )
         result = resolver.execute()
 
-        self.assertEqual(result, AttachmentsDescriber.Result.success)
+        self.assertEqual(result, ChatAttachmentsAnalyzer.Result.success)
         self.assertEqual(len(resolver.result), 1)
         self.assertEqual(resolver.result[0]["text_content"], self.cached_content)
         mock_cv_instance.execute.assert_called_once()
@@ -146,7 +146,7 @@ class AttachmentsDescriberTest(unittest.TestCase):
 
     def test_empty_attachment_ids_list(self):
         with self.assertRaises(ValueError) as context:
-            AttachmentsDescriber(
+            ChatAttachmentsAnalyzer(
                 additional_context = "context",
                 attachment_ids = [],
                 di = self.mock_di,
@@ -155,7 +155,7 @@ class AttachmentsDescriberTest(unittest.TestCase):
 
     def test_empty_attachment_id_string(self):
         with self.assertRaises(ValueError) as context:
-            AttachmentsDescriber(
+            ChatAttachmentsAnalyzer(
                 additional_context = "context",
                 attachment_ids = [""],
                 di = self.mock_di,
@@ -166,7 +166,7 @@ class AttachmentsDescriberTest(unittest.TestCase):
         self.mock_chat_message_attachment_crud.get.return_value = None
 
         with self.assertRaises(ValueError) as context:
-            AttachmentsDescriber(
+            ChatAttachmentsAnalyzer(
                 additional_context = "context",
                 attachment_ids = ["nonexistent"],
                 di = self.mock_di,
@@ -190,7 +190,7 @@ class AttachmentsDescriberTest(unittest.TestCase):
         mock_audio_instance.execute.return_value = "Audio transcription"
         self.mock_di.audio_transcriber.return_value = mock_audio_instance
 
-        resolver = AttachmentsDescriber(
+        resolver = ChatAttachmentsAnalyzer(
             additional_context = "context",
             attachment_ids = ["2"],
             di = self.mock_di,
@@ -217,7 +217,7 @@ class AttachmentsDescriberTest(unittest.TestCase):
         mock_document_instance.execute.return_value = "Document search results"
         self.mock_di.document_search.return_value = mock_document_instance
 
-        resolver = AttachmentsDescriber(
+        resolver = ChatAttachmentsAnalyzer(
             additional_context = "context",
             attachment_ids = ["4"],
             di = self.mock_di,
@@ -240,7 +240,7 @@ class AttachmentsDescriberTest(unittest.TestCase):
         )
         m.get(str(unsupported_attachment.last_url), content = b"pdf data", status_code = 200)
 
-        resolver = AttachmentsDescriber(
+        resolver = ChatAttachmentsAnalyzer(
             additional_context = "context",
             attachment_ids = ["3"],
             di = self.mock_di,

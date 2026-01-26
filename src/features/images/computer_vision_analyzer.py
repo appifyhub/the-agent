@@ -8,6 +8,7 @@ from features.external_tools.external_tool_library import GPT_4_1_MINI
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.integrations import prompt_resolvers
 from util import log
+from util.functions import parse_ai_message_content
 
 
 # Not tested as it's just a proxy
@@ -65,9 +66,7 @@ class ComputerVisionAnalyzer:
             answer = self.__vision_model.invoke(self.__messages)
             if not isinstance(answer, AIMessage):
                 raise AssertionError(f"Received a non-AI message from the model: {answer}")
-            if not answer.content or not isinstance(answer.content, str):
-                raise AssertionError(f"Received an unexpected content from the model: {answer}")
-            return str(answer.content)
+            return parse_ai_message_content(answer.content)
         except Exception as e:
             self.error = log.e("Computer vision analysis failed", e)
             return None
