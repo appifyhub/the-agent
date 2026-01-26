@@ -27,6 +27,5 @@ class UsageRecord:
     search_tokens: int | None = None
     total_tokens: int | None = None
     # image-related properties
-    image_count: int | None = None
-    output_image_size: str | None = None
-    input_image_size: str | None = None
+    output_image_sizes: list[str] | None = None
+    input_image_sizes: list[str] | None = None

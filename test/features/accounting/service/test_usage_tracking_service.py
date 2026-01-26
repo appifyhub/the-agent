@@ -193,10 +193,10 @@ class UsageTrackingServiceTest(unittest.TestCase):
             tool = tool,
             tool_purpose = ToolType.chat,
             runtime_seconds = 5,
-            output_image_size = "1k",
+            output_image_sizes = ["1k"],
         )
 
-        self.assertEqual(record.output_image_size, "1k")
+        self.assertEqual(record.output_image_sizes, ["1k"])
         self.assertEqual(record.model_cost_credits, 50.0)
 
     def test_track_image_model_with_size_2k(self):
@@ -205,7 +205,7 @@ class UsageTrackingServiceTest(unittest.TestCase):
             tool = tool,
             tool_purpose = ToolType.chat,
             runtime_seconds = 5,
-            output_image_size = "2k",
+            output_image_sizes = ["2k"],
         )
 
         self.assertEqual(record.model_cost_credits, 100.0)
@@ -216,7 +216,7 @@ class UsageTrackingServiceTest(unittest.TestCase):
             tool = tool,
             tool_purpose = ToolType.chat,
             runtime_seconds = 5,
-            output_image_size = "4k",
+            output_image_sizes = ["4k"],
         )
 
         self.assertEqual(record.model_cost_credits, 200.0)
@@ -227,7 +227,7 @@ class UsageTrackingServiceTest(unittest.TestCase):
             tool = tool,
             tool_purpose = ToolType.chat,
             runtime_seconds = 5,
-            output_image_size = "unknown",
+            output_image_sizes = ["unknown"],
         )
 
         self.assertEqual(record.model_cost_credits, 50.0)
@@ -245,7 +245,7 @@ class UsageTrackingServiceTest(unittest.TestCase):
                 tool = tool,
                 tool_purpose = ToolType.chat,
                 runtime_seconds = 1,
-                output_image_size = size_variant,
+                output_image_sizes = [size_variant],
             )
             self.assertEqual(record.model_cost_credits, 20.0, f"Failed for variant: {size_variant}")
 
@@ -254,7 +254,7 @@ class UsageTrackingServiceTest(unittest.TestCase):
             tool = tool,
             tool_purpose = ToolType.chat,
             runtime_seconds = 1,
-            output_image_size = "1 MP",
+            output_image_sizes = ["1 MP"],
         )
         self.assertEqual(record.model_cost_credits, 10.0)
 
@@ -263,7 +263,7 @@ class UsageTrackingServiceTest(unittest.TestCase):
             tool = tool,
             tool_purpose = ToolType.chat,
             runtime_seconds = 1,
-            output_image_size = "4 MB",
+            output_image_sizes = ["4 MB"],
         )
         self.assertEqual(record.model_cost_credits, 40.0)
 
@@ -276,7 +276,7 @@ class UsageTrackingServiceTest(unittest.TestCase):
             input_tokens = 100,
             output_tokens = 200,
             total_tokens = 300,
-            output_image_size = "1k",
+            output_image_sizes = ["1k"],
         )
 
         self.assertEqual(record.total_tokens, 300)
@@ -298,7 +298,7 @@ class UsageTrackingServiceTest(unittest.TestCase):
                 tool = tool,
                 tool_purpose = ToolType.chat,
                 runtime_seconds = 1,
-                output_image_size = "1k",
+                output_image_sizes = ["1k"],
             )
         self.assertIn("Cannot calculate cost for image", str(context.exception))
 
@@ -406,7 +406,7 @@ class UsageTrackingServiceTest(unittest.TestCase):
             tool = tool,
             tool_purpose = ToolType.chat,
             runtime_seconds = 5,
-            output_image_size = "1k",
+            output_image_sizes = ["1k"],
             remote_runtime_seconds = 8.0,
         )
         # Runtime cost: 3 credits/second * 8.0 seconds = 24.0 credits

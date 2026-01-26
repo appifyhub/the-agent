@@ -24,7 +24,7 @@ class ReplicateUsageTrackingDecoratorTest(unittest.TestCase):
             tracking_service = self.mock_tracking_service,
             external_tool = self.external_tool,
             tool_purpose = self.tool_purpose,
-            output_image_size = self.image_size,
+            output_image_sizes = [self.image_size],
         )
 
     def test_predictions_property_returns_proxy(self):
@@ -70,7 +70,7 @@ class PredictionUsageTrackingDecoratorTest(unittest.TestCase):
             tracking_service = self.mock_tracking_service,
             external_tool = self.external_tool,
             tool_purpose = self.tool_purpose,
-            output_image_size = self.image_size,
+            output_image_sizes = [self.image_size],
         )
 
     def test_wait_tracks_usage(self):
@@ -85,7 +85,7 @@ class PredictionUsageTrackingDecoratorTest(unittest.TestCase):
         call_args = self.mock_tracking_service.track_image_model.call_args
         self.assertEqual(call_args.kwargs["tool"], self.external_tool)
         self.assertEqual(call_args.kwargs["tool_purpose"], self.tool_purpose)
-        self.assertEqual(call_args.kwargs["output_image_size"], self.image_size)
+        self.assertEqual(call_args.kwargs["output_image_sizes"], [self.image_size])
         self.assertEqual(call_args.kwargs["remote_runtime_seconds"], 1.5)
         self.assertIsNotNone(call_args.kwargs["runtime_seconds"])
         self.assertGreater(call_args.kwargs["runtime_seconds"], 0)

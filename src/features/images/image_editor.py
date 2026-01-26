@@ -81,8 +81,8 @@ class ImageEditor:
                     replicate = self.__di.replicate_client(
                         configured_tool = self.__configured_tool,
                         timeout_s = BOOT_AND_RUN_TIMEOUT_S,
-                        output_image_size = unified_params.size,
-                        input_image_size = input_image_size,
+                        output_image_sizes = [unified_params.size] if unified_params.size else None,
+                        input_image_sizes = [input_image_size] if input_image_size else None,
                     )
                     prediction = replicate.predictions.create(version = self.__configured_tool.definition.id, input = dict_params)
                     prediction.wait()

@@ -23,7 +23,7 @@ class GoogleAIUsageTrackingDecoratorTest(unittest.TestCase):
             tracking_service = self.mock_tracking_service,
             external_tool = self.external_tool,
             tool_purpose = self.tool_purpose,
-            output_image_size = self.image_size,
+            output_image_sizes = [self.image_size],
         )
 
     def test_models_property_returns_proxy(self):
@@ -47,7 +47,7 @@ class GoogleAIUsageTrackingDecoratorTest(unittest.TestCase):
         call_args = self.mock_tracking_service.track_image_model.call_args
         self.assertEqual(call_args.kwargs["tool"], self.external_tool)
         self.assertEqual(call_args.kwargs["tool_purpose"], self.tool_purpose)
-        self.assertEqual(call_args.kwargs["output_image_size"], self.image_size)
+        self.assertEqual(call_args.kwargs["output_image_sizes"], [self.image_size])
         self.assertEqual(call_args.kwargs["input_tokens"], 100)
         self.assertEqual(call_args.kwargs["output_tokens"], 200)
         self.assertEqual(call_args.kwargs["total_tokens"], 300)

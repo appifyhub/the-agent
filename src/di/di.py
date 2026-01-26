@@ -486,8 +486,8 @@ class DI:
         self,
         configured_tool: ConfiguredTool,
         timeout_s: float | None = None,
-        output_image_size: str | None = None,
-        input_image_size: str | None = None,
+        output_image_sizes: list[str] | None = None,
+        input_image_sizes: list[str] | None = None,
     ) -> "ReplicateUsageTrackingDecorator":
         from features.accounting.decorators.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
 
@@ -497,8 +497,8 @@ class DI:
             self.usage_tracking_service,
             configured_tool.definition,
             configured_tool.purpose,
-            output_image_size,
-            input_image_size,
+            output_image_sizes,
+            input_image_sizes,
         )
 
     def base_google_ai_client(
@@ -518,8 +518,8 @@ class DI:
         self,
         configured_tool: ConfiguredTool,
         timeout_s: float | None = None,
-        output_image_size: str | None = None,
-        input_image_size: str | None = None,
+        output_image_sizes: list[str] | None = None,
+        input_image_sizes: list[str] | None = None,
     ) -> "GoogleAIUsageTrackingDecorator":
         from features.accounting.decorators.google_ai_usage_tracking_decorator import GoogleAIUsageTrackingDecorator
 
@@ -529,8 +529,8 @@ class DI:
             self.usage_tracking_service,
             configured_tool.definition,
             configured_tool.purpose,
-            output_image_size,
-            input_image_size,
+            output_image_sizes,
+            input_image_sizes,
         )
 
     def base_open_ai_client(

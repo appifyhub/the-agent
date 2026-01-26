@@ -70,18 +70,19 @@ class UsageTrackingService:
         input_tokens: int | None = None,
         output_tokens: int | None = None,
         total_tokens: int | None = None,
-        image_count: int = 1,
-        output_image_size: str | None = None,
-        input_image_size: str | None = None,
+        output_image_sizes: list[str] | None = None,
+        input_image_sizes: list[str] | None = None,
         remote_runtime_seconds: float | None = None,
     ) -> UsageRecord:
-        if all(t is None for t in [input_tokens, output_tokens, total_tokens, output_image_size, input_image_size]):
+        has_token_usage = any(t is not None for t in [input_tokens, output_tokens, total_tokens])
+        has_image_sizes = bool(output_image_sizes or input_image_sizes)
+        if not has_token_usage and not has_image_sizes:
             raise ValueError(
                 f"No usage metadata available for image tool {tool.id} - all metrics (tokens, sizes) are None",
             )
 
         model_cost_credits: float = self.__calculate_image_cost(
-            tool.cost_estimate, output_image_size, input_image_size, input_tokens, output_tokens, total_tokens,
+            tool.cost_estimate, output_image_sizes, input_image_sizes, input_tokens, output_tokens, total_tokens,
         )
         api_cost_credits: float = float(tool.cost_estimate.api_call or 0)
         remote_runtime_cost_credits: float = (tool.cost_estimate.second_of_runtime or 0) \
@@ -105,9 +106,8 @@ class UsageTrackingService:
             input_tokens = input_tokens,
             output_tokens = output_tokens,
             total_tokens = total_tokens,
-            image_count = image_count,
-            output_image_size = output_image_size,
-            input_image_size = input_image_size,
+            output_image_sizes = output_image_sizes,
+            input_image_sizes = input_image_sizes,
         )
         log.d("Image Usage Tracked", record)
         return record
@@ -158,8 +158,8 @@ class UsageTrackingService:
     def __calculate_image_cost(
         self,
         cost: CostEstimate,
-        output_image_size: str | None,
-        input_image_size: str | None,
+        output_image_sizes: list[str] | None,
+        input_image_sizes: list[str] | None,
         input_tokens: int | None,
         output_tokens: int | None,
         total_tokens: int | None,
@@ -171,51 +171,45 @@ class UsageTrackingService:
 
         # calculate output image cost
         total_cost = 0.0
-        if output_image_size:
-            # normalize image size formats such as {"2K", "2 K", "2M", "2 MB", "2 MP" , ...} to "1k" | "2k" | "4k"
-            normalized: str | None = None
-            # remove spaces and clean up variant units to "k"
-            normalized = re.sub(r"\s+", "", output_image_size.lower()) \
-                .replace("mb", "k").replace("mp", "k").replace("m", "k")
+        if output_image_sizes:
+            for output_image_size in output_image_sizes:
+                # remove spaces and clean up variant units to "k"
+                normalized: str = re.sub(r"\s+", "", output_image_size.lower()) \
+                    .replace("mb", "k").replace("mp", "k").replace("m", "k")
 
-            if normalized == "1k" and cost.output_image_1k:
-                total_cost += float(cost.output_image_1k)
-            elif normalized == "2k" and cost.output_image_2k:
-                total_cost += float(cost.output_image_2k)
-            elif normalized == "4k" and cost.output_image_4k:
-                total_cost += float(cost.output_image_4k)
-            elif cost.output_image_1k:
-                # fallback to 1k if specific size pricing is missing
-                log.w(f"No pricing for output image size '{output_image_size}', using 1K pricing")
-                total_cost += float(cost.output_image_1k)
+                if normalized == "1k" and cost.output_image_1k:
+                    total_cost += float(cost.output_image_1k)
+                elif normalized == "2k" and cost.output_image_2k:
+                    total_cost += float(cost.output_image_2k)
+                elif normalized == "4k" and cost.output_image_4k:
+                    total_cost += float(cost.output_image_4k)
+                elif cost.output_image_1k:
+                    # fallback to 1k if specific size pricing is missing
+                    log.w(f"No pricing for output image size '{output_image_size}', using 1K pricing")
+                    total_cost += float(cost.output_image_1k)
 
         # calculate input image cost
-        if input_image_size:
-            # normalize image size formats such as {"2K", "2 K", "2M", "2 MB", "2 MP" , ...} to "1k" | "2k" | "4k" | "8k" | "12k"
-            normalized: str | None = None
-            # remove spaces and clean up variant units to "k"
-            normalized = re.sub(r"\s+", "", input_image_size.lower()) \
-                .replace("mb", "k").replace("mp", "k").replace("m", "k")
-
-            if normalized == "1k" and cost.input_image_1k:
-                total_cost += float(cost.input_image_1k)
-            elif normalized == "2k" and cost.input_image_2k:
-                total_cost += float(cost.input_image_2k)
-            elif normalized == "4k" and cost.input_image_4k:
-                total_cost += float(cost.input_image_4k)
-            elif normalized == "8k" and cost.input_image_8k:
-                total_cost += float(cost.input_image_8k)
-            elif normalized == "12k" and cost.input_image_12k:
-                total_cost += float(cost.input_image_12k)
-            elif cost.input_image_1k:
-                # fallback to 1k if specific size pricing is missing
-                log.w(f"No pricing for input image size '{input_image_size}', using 1K pricing")
-                total_cost += float(cost.input_image_1k)
+        if input_image_sizes:
+            for input_image_size in input_image_sizes:
+                if input_image_size == "1k" and cost.input_image_1k:
+                    total_cost += float(cost.input_image_1k)
+                elif input_image_size == "2k" and cost.input_image_2k:
+                    total_cost += float(cost.input_image_2k)
+                elif input_image_size == "4k" and cost.input_image_4k:
+                    total_cost += float(cost.input_image_4k)
+                elif input_image_size == "8k" and cost.input_image_8k:
+                    total_cost += float(cost.input_image_8k)
+                elif input_image_size == "12k" and cost.input_image_12k:
+                    total_cost += float(cost.input_image_12k)
+                elif cost.input_image_1k:
+                    # fallback to 1k if specific size pricing is missing
+                    log.w(f"No pricing for input image size '{input_image_size}', using 1K pricing")
+                    total_cost += float(cost.input_image_1k)
 
         if total_cost > 0:
             return total_cost
 
         raise ValueError(
             f"Cannot calculate cost for image: no token usage and no pricing for sizes "
-            f"(output: '{output_image_size}', input: '{input_image_size}')",
+            f"(output: {output_image_sizes}, input: {input_image_sizes})",
         )

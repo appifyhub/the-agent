@@ -66,7 +66,12 @@ class SimpleStableDiffusionGenerator:
         }
         log.t("Calling Replicate image generator with params", dict_params)
 
-        replicate = self.__di.replicate_client(self.__configured_tool, config.web_timeout_s * 10, unified_params.size)
+        replicate = self.__di.replicate_client(
+            self.__configured_tool,
+            config.web_timeout_s * 10,
+            output_image_sizes = [unified_params.size] if unified_params.size else None,
+            input_image_sizes = None,
+        )
         prediction = replicate.predictions.create(
             version = self.__configured_tool.definition.id,
             input = dict_params,
@@ -89,7 +94,12 @@ class SimpleStableDiffusionGenerator:
         dict_params = asdict(unified_params)
         log.t("Calling Google AI image generator API with params", dict_params)
 
-        google_ai = self.__di.google_ai_client(self.__configured_tool, config.web_timeout_s * 10, unified_params.size)
+        google_ai = self.__di.google_ai_client(
+            self.__configured_tool,
+            config.web_timeout_s * 10,
+            output_image_sizes = [unified_params.size] if unified_params.size else None,
+            input_image_sizes = None,
+        )
         image_config = ImageConfig(aspect_ratio = unified_params.aspect_ratio, image_size = unified_params.size)
         response = google_ai.models.generate_content(
             model = self.__configured_tool.definition.id,
