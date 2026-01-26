@@ -718,16 +718,17 @@ class SettingsControllerTest(unittest.TestCase):
         from features.external_tools.external_tool import CostEstimate
 
         # Create tool with actual cost estimate values
+        mock_provider = ExternalToolProvider(
+            id = "test-provider",
+            name = "Test Provider",
+            token_management_url = "https://example.com",
+            token_format = "test-format",
+            tools = ["test-tool"],
+        )
         mock_tool = ExternalTool(
             id = "test-tool",
             name = "Test Tool",
-            provider = ExternalToolProvider(
-                id = "test-provider",
-                name = "Test Provider",
-                token_management_url = "https://example.com",
-                token_format = "test-format",
-                tools = ["test-tool"],
-            ),
+            provider = mock_provider,
             types = [ToolType.chat],
             cost_estimate = CostEstimate(
                 input_1m_tokens = 100,
@@ -743,11 +744,10 @@ class SettingsControllerTest(unittest.TestCase):
         cloned_access_token_resolver = MagicMock()
         cloned_di.access_token_resolver = cloned_access_token_resolver
         self.mock_di.clone.return_value = cloned_di
-        cloned_access_token_resolver.get_access_token_for_tool.return_value = SecretStr("token")
         cloned_access_token_resolver.get_access_token.return_value = None
 
         with patch("api.settings_controller.ALL_EXTERNAL_TOOLS", [mock_tool]):
-            with patch("api.settings_controller.ALL_PROVIDERS", []):
+            with patch("api.settings_controller.ALL_PROVIDERS", [mock_provider]):
                 controller = SettingsController(self.mock_di)
                 result = controller.fetch_external_tools(self.invoker_user.id.hex)
 
@@ -837,3 +837,129 @@ class SettingsControllerTest(unittest.TestCase):
             controller.create_help_link()
 
         self.assertIn("User never sent a private message, cannot create settings link", str(context.exception))
+
+    def test_fetch_external_tools_sorts_by_provider_order_then_name(self):
+        """Verify that tools are sorted by provider order first, then by tool name"""
+        from features.external_tools.external_tool import CostEstimate
+
+        # Create providers in specific order
+        provider_a = ExternalToolProvider(
+            id = "provider-a",
+            name = "Provider A",
+            token_management_url = "https://example.com",
+            token_format = "test-format",
+            tools = ["tool-a1", "tool-a2"],
+        )
+        provider_b = ExternalToolProvider(
+            id = "provider-b",
+            name = "Provider B",
+            token_management_url = "https://example.com",
+            token_format = "test-format",
+            tools = ["tool-b1", "tool-b2"],
+        )
+
+        # Create tools, intentionally out of order
+        # Tools for Provider A: tool-a2, tool-a1 (wrong order)
+        tool_a2 = ExternalTool(
+            id = "tool-a2",
+            name = "Tool A2",
+            provider = provider_a,
+            types = [ToolType.chat],
+            cost_estimate = CostEstimate(),
+        )
+        tool_a1 = ExternalTool(
+            id = "tool-a1",
+            name = "Tool A1",
+            provider = provider_a,
+            types = [ToolType.chat],
+            cost_estimate = CostEstimate(),
+        )
+        # Tools for Provider B: tool-b2, tool-b1 (wrong order)
+        tool_b2 = ExternalTool(
+            id = "tool-b2",
+            name = "Tool B2",
+            provider = provider_b,
+            types = [ToolType.chat],
+            cost_estimate = CostEstimate(),
+        )
+        tool_b1 = ExternalTool(
+            id = "tool-b1",
+            name = "Tool B1",
+            provider = provider_b,
+            types = [ToolType.chat],
+            cost_estimate = CostEstimate(),
+        )
+
+        # Mock the clone method to return a new DI instance
+        cloned_di = MagicMock(spec = DI)
+        cloned_access_token_resolver = MagicMock()
+        cloned_di.access_token_resolver = cloned_access_token_resolver
+        self.mock_di.clone.return_value = cloned_di
+
+        # All tools and providers are configured
+        cloned_access_token_resolver.get_access_token.return_value = SecretStr("test-token")
+
+        with patch("api.settings_controller.ALL_EXTERNAL_TOOLS", [tool_a2, tool_a1, tool_b2, tool_b1]):
+            with patch("api.settings_controller.ALL_PROVIDERS", [provider_a, provider_b]):
+                controller = SettingsController(self.mock_di)
+                result = controller.fetch_external_tools(self.invoker_user.id.hex)
+
+        # Verify result structure
+        self.assertIn("tools", result)
+        self.assertEqual(len(result["tools"]), 4)
+
+        # Extract tool IDs and check sorting
+        tool_ids = [tool["definition"]["id"] for tool in result["tools"]]
+
+        # Expected order: Provider A tools first (sorted by name), then Provider B tools (sorted by name)
+        expected_order = ["tool-a1", "tool-a2", "tool-b1", "tool-b2"]
+        self.assertEqual(tool_ids, expected_order, f"Tools not sorted correctly. Got {tool_ids}, expected {expected_order}")
+
+    def test_fetch_external_tools_uses_provider_configuration_cache(self):
+        """Verify that tool configuration is determined from provider configuration (not checked per tool)"""
+        from features.external_tools.external_tool import CostEstimate
+
+        provider = ExternalToolProvider(
+            id = "test-provider",
+            name = "Test Provider",
+            token_management_url = "https://example.com",
+            token_format = "test-format",
+            tools = ["tool-1", "tool-2", "tool-3"],
+        )
+
+        # Create three tools under the same provider
+        tools = [
+            ExternalTool(
+                id = f"tool-{i}",
+                name = f"Tool {i}",
+                provider = provider,
+                types = [ToolType.chat],
+                cost_estimate = CostEstimate(),
+            )
+            for i in range(1, 4)
+        ]
+
+        cloned_di = MagicMock(spec = DI)
+        cloned_access_token_resolver = MagicMock()
+        cloned_di.access_token_resolver = cloned_access_token_resolver
+        self.mock_di.clone.return_value = cloned_di
+
+        # Provider is configured
+        cloned_access_token_resolver.get_access_token.return_value = SecretStr("test-token")
+
+        with patch("api.settings_controller.ALL_EXTERNAL_TOOLS", tools):
+            with patch("api.settings_controller.ALL_PROVIDERS", [provider]):
+                controller = SettingsController(self.mock_di)
+                result = controller.fetch_external_tools(self.invoker_user.id.hex)
+
+        # Verify all tools have the same configuration status as the provider
+        for tool in result["tools"]:
+            self.assertTrue(tool["is_configured"], "All tools should be configured since provider is configured")
+
+        # Verify get_access_token was called only once for the provider
+        # (not three times for each tool)
+        call_count = sum(
+            1 for call in cloned_access_token_resolver.get_access_token.call_args_list
+            if call[0][0].id == provider.id
+        )
+        self.assertEqual(call_count, 1, "Provider configuration should be checked only once, not per tool")
