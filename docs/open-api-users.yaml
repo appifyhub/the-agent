@@ -932,18 +932,38 @@ components:
           type: integer
           nullable: true
           description: Cost per 1 million search tokens in credits
-        image_1k:
+        input_image_1k:
           type: integer
           nullable: true
-          description: Cost per 1k resolution image in credits
-        image_2k:
+          description: Cost per 1k resolution input image in credits
+        input_image_2k:
           type: integer
           nullable: true
-          description: Cost per 2k resolution image in credits
-        image_4k:
+          description: Cost per 2k resolution input image in credits
+        input_image_4k:
           type: integer
           nullable: true
-          description: Cost per 4k resolution image in credits
+          description: Cost per 4k resolution input image in credits
+        input_image_8k:
+          type: integer
+          nullable: true
+          description: Cost per 8k resolution input image in credits
+        input_image_12k:
+          type: integer
+          nullable: true
+          description: Cost per 12k resolution input image in credits
+        output_image_1k:
+          type: integer
+          nullable: true
+          description: Cost per 1k resolution output image in credits
+        output_image_2k:
+          type: integer
+          nullable: true
+          description: Cost per 2k resolution output image in credits
+        output_image_4k:
+          type: integer
+          nullable: true
+          description: Cost per 4k resolution output image in credits
         api_call:
           type: integer
           nullable: true

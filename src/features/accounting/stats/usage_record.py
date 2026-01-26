@@ -28,4 +28,5 @@ class UsageRecord:
     total_tokens: int | None = None
     # image-related properties
     image_count: int | None = None
-    image_size: str | None = None
+    output_image_size: str | None = None
+    input_image_size: str | None = None

@@ -63,7 +63,6 @@ if TYPE_CHECKING:
     from features.external_tools.tool_choice_resolver import ConfiguredTool, ToolChoiceResolver
     from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
     from features.images.image_editor import ImageEditor
-    from features.images.image_resizer import ImageResizer
     from features.images.image_uploader import ImageUploader
     from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
     from features.images.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
@@ -487,7 +486,8 @@ class DI:
         self,
         configured_tool: ConfiguredTool,
         timeout_s: float | None = None,
-        image_size: str | None = None,
+        output_image_size: str | None = None,
+        input_image_size: str | None = None,
     ) -> "ReplicateUsageTrackingDecorator":
         from features.accounting.decorators.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
 
@@ -497,7 +497,8 @@ class DI:
             self.usage_tracking_service,
             configured_tool.definition,
             configured_tool.purpose,
-            image_size,
+            output_image_size,
+            input_image_size,
         )
 
     def base_google_ai_client(
@@ -517,7 +518,8 @@ class DI:
         self,
         configured_tool: ConfiguredTool,
         timeout_s: float | None = None,
-        image_size: str | None = None,
+        output_image_size: str | None = None,
+        input_image_size: str | None = None,
     ) -> "GoogleAIUsageTrackingDecorator":
         from features.accounting.decorators.google_ai_usage_tracking_decorator import GoogleAIUsageTrackingDecorator
 
@@ -527,7 +529,8 @@ class DI:
             self.usage_tracking_service,
             configured_tool.definition,
             configured_tool.purpose,
-            image_size,
+            output_image_size,
+            input_image_size,
         )
 
     def base_open_ai_client(
@@ -723,12 +726,6 @@ class DI:
     ) -> "ImageUploader":
         from features.images.image_uploader import ImageUploader
         return ImageUploader(binary_image, base64_image, expiration_s, name)
-
-    # noinspection PyMethodMayBeStatic
-    @property
-    def image_resizer(self) -> "ImageResizer":
-        from features.images.image_resizer import ImageResizer
-        return ImageResizer()
 
     # noinspection PyMethodMayBeStatic
     def file_uploader(

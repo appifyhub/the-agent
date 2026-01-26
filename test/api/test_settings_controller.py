@@ -733,7 +733,7 @@ class SettingsControllerTest(unittest.TestCase):
                 input_1m_tokens = 100,
                 output_1m_tokens = 500,
                 search_1m_tokens = 300,
-                image_1k = 10,
+                output_image_1k = 10,
                 api_call = 5,
                 second_of_runtime = 0.01,
             ),
@@ -763,9 +763,9 @@ class SettingsControllerTest(unittest.TestCase):
         self.assertEqual(cost_est["input_1m_tokens"], 100)
         self.assertEqual(cost_est["output_1m_tokens"], 500)
         self.assertEqual(cost_est["search_1m_tokens"], 300)
-        self.assertEqual(cost_est["image_1k"], 10)
-        self.assertIsNone(cost_est.get("image_2k"))  # Not set
-        self.assertIsNone(cost_est.get("image_4k"))  # Not set
+        self.assertEqual(cost_est["output_image_1k"], 10)
+        self.assertIsNone(cost_est.get("output_image_2k"))  # Not set
+        self.assertIsNone(cost_est.get("output_image_4k"))  # Not set
         self.assertEqual(cost_est["api_call"], 5)
         self.assertEqual(cost_est["second_of_runtime"], 0.01)
 

@@ -364,9 +364,9 @@ GEMINI_3_PRO_IMAGE = ExternalTool(
     cost_estimate = CostEstimate(
         input_1m_tokens = 200,
         output_1m_tokens = 12000,
-        image_1k = 14,
-        image_2k = 14,
-        image_4k = 24,
+        output_image_1k = 14,
+        output_image_2k = 14,
+        output_image_4k = 24,
     ),
 )
 
@@ -424,6 +424,131 @@ SONAR_DEEP_RESEARCH = ExternalTool(
     ),
 )
 
+###  Replicate  ###
+
+IMAGE_GEN_FLUX_1_1 = ExternalTool(
+    id = "black-forest-labs/flux-1.1-pro",
+    name = "Black Forest Labs: Flux 1.1 Pro",
+    provider = REPLICATE,
+    types = [ToolType.images_gen],
+    cost_estimate = CostEstimate(
+        output_image_1k = 4,
+        output_image_2k = 4,
+        output_image_4k = 4,
+    ),
+)
+
+IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO = ExternalTool(
+    id = "black-forest-labs/flux-kontext-pro",
+    name = "Black Forest Labs: Flux Kontext Pro",
+    provider = REPLICATE,
+    types = [ToolType.images_gen, ToolType.images_edit],
+    cost_estimate = CostEstimate(
+        output_image_1k = 4,
+        output_image_2k = 4,
+        output_image_4k = 4,
+    ),
+)
+
+IMAGE_GEN_EDIT_FLUX_2_PRO = ExternalTool(
+    id = "black-forest-labs/flux-2-pro",
+    name = "Black Forest Labs: Flux 2 Pro",
+    provider = REPLICATE,
+    types = [ToolType.images_gen, ToolType.images_edit],
+    cost_estimate = CostEstimate(
+        api_call = 2,
+        output_image_1k = 8,
+        output_image_2k = 10,
+        output_image_4k = 12,
+    ),
+)
+
+IMAGE_GEN_EDIT_FLUX_2_MAX = ExternalTool(
+    id = "black-forest-labs/flux-2-max",
+    name = "Black Forest Labs: Flux 2 Max",
+    provider = REPLICATE,
+    types = [ToolType.images_gen, ToolType.images_edit],
+    cost_estimate = CostEstimate(
+        output_image_1k = 16,
+        output_image_2k = 20,
+        output_image_4k = 25,
+    ),
+)
+
+IMAGE_GEN_EDIT_GPT_IMAGE_1_5 = ExternalTool(
+    id = "openai/gpt-image-1.5",
+    name = "OpenAI: GPT Image 1.5",
+    provider = REPLICATE,
+    types = [ToolType.images_gen, ToolType.images_edit],
+    cost_estimate = CostEstimate(
+        output_image_1k = 15,
+        output_image_2k = 15,
+        output_image_4k = 15,
+    ),
+)
+
+
+IMAGE_GEN_EDIT_SEEDREAM_4 = ExternalTool(
+    id = "bytedance/seedream-4",
+    name = "ByteDance: SeeDream v4",
+    provider = REPLICATE,
+    types = [ToolType.images_gen, ToolType.images_edit],
+    cost_estimate = CostEstimate(
+        output_image_1k = 3,
+        output_image_2k = 3,
+        output_image_4k = 3,
+    ),
+)
+
+IMAGE_GEN_EDIT_SEEDREAM_4_5 = ExternalTool(
+    id = "bytedance/seedream-4.5",
+    name = "ByteDance: SeeDream v4.5",
+    provider = REPLICATE,
+    types = [ToolType.images_gen, ToolType.images_edit],
+    cost_estimate = CostEstimate(
+        output_image_1k = 4,
+        output_image_2k = 4,
+        output_image_4k = 4,
+    ),
+)
+
+IMAGE_GEN_GEMINI_2_5_FLASH_IMAGE = ExternalTool(
+    id = "google/gemini-2.5-flash-image",
+    name = "Google: Gemini 2.5 Flash Image",
+    provider = REPLICATE,
+    types = [ToolType.images_gen],
+    cost_estimate = CostEstimate(
+        input_1m_tokens = 30,
+        output_image_1k = 4,
+        output_image_2k = 4,
+        output_image_4k = 4,
+    ),
+)
+
+IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA = ExternalTool(
+    id = "google/nano-banana",
+    name = "Google: Nano Banana",
+    provider = REPLICATE,
+    types = [ToolType.images_gen, ToolType.images_edit],
+    cost_estimate = CostEstimate(
+        output_image_1k = 4,
+        output_image_2k = 4,
+        output_image_4k = 4,
+    ),
+)
+
+IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO = ExternalTool(
+    id = "google/nano-banana-pro",
+    name = "Google: Nano Banana Pro",
+    provider = REPLICATE,
+    types = [ToolType.images_gen, ToolType.images_edit],
+    cost_estimate = CostEstimate(
+        output_image_1k = 15,
+        output_image_2k = 15,
+        output_image_4k = 30,
+    ),
+)
+
 ###  Rapid API  ###
 
 FIAT_CURRENCY_EXCHANGE = ExternalTool(
@@ -455,130 +580,6 @@ CRYPTO_CURRENCY_EXCHANGE = ExternalTool(
     types = [ToolType.api_crypto_exchange],
     cost_estimate = CostEstimate(
         api_call = 0,
-    ),
-)
-
-###  Replicate  ###
-
-IMAGE_GEN_FLUX_1_1 = ExternalTool(
-    id = "black-forest-labs/flux-1.1-pro",
-    name = "Black Forest Labs: Flux 1.1 Pro",
-    provider = REPLICATE,
-    types = [ToolType.images_gen],
-    cost_estimate = CostEstimate(
-        image_1k = 4,
-        image_2k = 4,
-        image_4k = 4,
-    ),
-)
-
-IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO = ExternalTool(
-    id = "black-forest-labs/flux-kontext-pro",
-    name = "Black Forest Labs: Flux Kontext Pro",
-    provider = REPLICATE,
-    types = [ToolType.images_gen, ToolType.images_edit],
-    cost_estimate = CostEstimate(
-        image_1k = 4,
-        image_2k = 4,
-        image_4k = 4,
-    ),
-)
-
-IMAGE_GEN_EDIT_FLUX_2_PRO = ExternalTool(
-    id = "black-forest-labs/flux-2-pro",
-    name = "Black Forest Labs: Flux 2 Pro",
-    provider = REPLICATE,
-    types = [ToolType.images_gen, ToolType.images_edit],
-    cost_estimate = CostEstimate(
-        image_1k = 8,
-        image_2k = 10,
-        image_4k = 12,
-    ),
-)
-
-IMAGE_GEN_EDIT_FLUX_2_MAX = ExternalTool(
-    id = "black-forest-labs/flux-2-max",
-    name = "Black Forest Labs: Flux 2 Max",
-    provider = REPLICATE,
-    types = [ToolType.images_gen, ToolType.images_edit],
-    cost_estimate = CostEstimate(
-        image_1k = 16,
-        image_2k = 20,
-        image_4k = 25,
-    ),
-)
-
-IMAGE_GEN_EDIT_GPT_IMAGE_1_5 = ExternalTool(
-    id = "openai/gpt-image-1.5",
-    name = "OpenAI: GPT Image 1.5",
-    provider = REPLICATE,
-    types = [ToolType.images_gen, ToolType.images_edit],
-    cost_estimate = CostEstimate(
-        image_1k = 15,
-        image_2k = 15,
-        image_4k = 15,
-    ),
-)
-
-
-IMAGE_GEN_EDIT_SEEDREAM_4 = ExternalTool(
-    id = "bytedance/seedream-4",
-    name = "ByteDance: SeeDream v4",
-    provider = REPLICATE,
-    types = [ToolType.images_gen, ToolType.images_edit],
-    cost_estimate = CostEstimate(
-        image_1k = 3,
-        image_2k = 3,
-        image_4k = 3,
-    ),
-)
-
-IMAGE_GEN_EDIT_SEEDREAM_4_5 = ExternalTool(
-    id = "bytedance/seedream-4.5",
-    name = "ByteDance: SeeDream v4.5",
-    provider = REPLICATE,
-    types = [ToolType.images_gen, ToolType.images_edit],
-    cost_estimate = CostEstimate(
-        image_1k = 4,
-        image_2k = 4,
-        image_4k = 4,
-    ),
-)
-
-IMAGE_GEN_GEMINI_2_5_FLASH_IMAGE = ExternalTool(
-    id = "google/gemini-2.5-flash-image",
-    name = "Google: Gemini 2.5 Flash Image",
-    provider = REPLICATE,
-    types = [ToolType.images_gen],
-    cost_estimate = CostEstimate(
-        input_1m_tokens = 30,
-        image_1k = 4,
-        image_2k = 4,
-        image_4k = 4,
-    ),
-)
-
-IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA = ExternalTool(
-    id = "google/nano-banana",
-    name = "Google: Nano Banana",
-    provider = REPLICATE,
-    types = [ToolType.images_gen, ToolType.images_edit],
-    cost_estimate = CostEstimate(
-        image_1k = 4,
-        image_2k = 4,
-        image_4k = 4,
-    ),
-)
-
-IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO = ExternalTool(
-    id = "google/nano-banana-pro",
-    name = "Google: Nano Banana Pro",
-    provider = REPLICATE,
-    types = [ToolType.images_gen, ToolType.images_edit],
-    cost_estimate = CostEstimate(
-        image_1k = 15,
-        image_2k = 15,
-        image_4k = 30,
     ),
 )
 
@@ -624,11 +625,6 @@ ALL_EXTERNAL_TOOLS = [
     SONAR_PRO,
     SONAR_REASONING_PRO,
     SONAR_DEEP_RESEARCH,
-    # Rapid API
-    FIAT_CURRENCY_EXCHANGE,
-    TWITTER_API,
-    # CoinMarketCap
-    CRYPTO_CURRENCY_EXCHANGE,
     # Replicate
     IMAGE_GEN_FLUX_1_1,
     IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO,
@@ -640,4 +636,9 @@ ALL_EXTERNAL_TOOLS = [
     IMAGE_GEN_GEMINI_2_5_FLASH_IMAGE,
     IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA,
     IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO,
+    # Rapid API
+    FIAT_CURRENCY_EXCHANGE,
+    TWITTER_API,
+    # CoinMarketCap
+    CRYPTO_CURRENCY_EXCHANGE,
 ]

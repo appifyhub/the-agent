@@ -8,9 +8,14 @@ class CostEstimate:
     input_1m_tokens: int | None = None
     output_1m_tokens: int | None = None
     search_1m_tokens: int | None = None
-    image_1k: int | None = None
-    image_2k: int | None = None
-    image_4k: int | None = None
+    input_image_1k: int | None = None
+    input_image_2k: int | None = None
+    input_image_4k: int | None = None
+    input_image_8k: int | None = None
+    input_image_12k: int | None = None
+    output_image_1k: int | None = None
+    output_image_2k: int | None = None
+    output_image_4k: int | None = None
     api_call: int | None = None
     second_of_runtime: float | None = None
 

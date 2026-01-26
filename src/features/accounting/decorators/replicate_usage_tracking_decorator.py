@@ -18,7 +18,8 @@ class PredictionUsageTrackingDecorator:
     __tracking_service: UsageTrackingService
     __external_tool: ExternalTool
     __tool_purpose: ToolType
-    __image_size: str | None
+    __output_image_size: str | None
+    __input_image_size: str | None
     __result: Any | None
 
     def __init__(
@@ -27,14 +28,16 @@ class PredictionUsageTrackingDecorator:
         tracking_service: UsageTrackingService,
         external_tool: ExternalTool,
         tool_purpose: ToolType,
-        image_size: str | None = None,
+        output_image_size: str | None = None,
+        input_image_size: str | None = None,
     ):
         self.__start_timestamp = time()
         self.__wrapped_prediction = wrapped_prediction
         self.__tracking_service = tracking_service
         self.__external_tool = external_tool
         self.__tool_purpose = tool_purpose
-        self.__image_size = image_size
+        self.__output_image_size = output_image_size
+        self.__input_image_size = input_image_size
         self.__result = None
 
     def wait(self) -> Any:
@@ -54,7 +57,8 @@ class PredictionUsageTrackingDecorator:
             tool = self.__external_tool,
             tool_purpose = self.__tool_purpose,
             runtime_seconds = runtime_seconds,
-            image_size = self.__image_size,
+            output_image_size = self.__output_image_size,
+            input_image_size = self.__input_image_size,
             remote_runtime_seconds = stats.remote_runtime_seconds,
             input_tokens = stats.input_tokens,
             output_tokens = stats.output_tokens,
@@ -71,7 +75,8 @@ class ReplicateUsageTrackingDecorator:
     __tracking_service: UsageTrackingService
     __external_tool: ExternalTool
     __tool_purpose: ToolType
-    __image_size: str | None
+    __output_image_size: str | None
+    __input_image_size: str | None
 
     def __init__(
         self,
@@ -79,13 +84,15 @@ class ReplicateUsageTrackingDecorator:
         tracking_service: UsageTrackingService,
         external_tool: ExternalTool,
         tool_purpose: ToolType,
-        image_size: str | None = None,
+        output_image_size: str | None = None,
+        input_image_size: str | None = None,
     ):
         self.__wrapped_client = wrapped_client
         self.__tracking_service = tracking_service
         self.__external_tool = external_tool
         self.__tool_purpose = tool_purpose
-        self.__image_size = image_size
+        self.__output_image_size = output_image_size
+        self.__input_image_size = input_image_size
 
     @property
     def predictions(self) -> Any:
@@ -103,7 +110,12 @@ class ReplicateUsageTrackingDecorator:
         def wrapper(**kwargs: Any) -> PredictionUsageTrackingDecorator:
             prediction = original_method(**kwargs)
             return PredictionUsageTrackingDecorator(
-                prediction, self.__tracking_service, self.__external_tool, self.__tool_purpose, self.__image_size,
+                prediction,
+                self.__tracking_service,
+                self.__external_tool,
+                self.__tool_purpose,
+                self.__output_image_size,
+                self.__input_image_size,
             )
         return wrapper
 
