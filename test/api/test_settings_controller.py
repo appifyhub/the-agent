@@ -633,6 +633,7 @@ class SettingsControllerTest(unittest.TestCase):
 
     def test_fetch_external_tools_success_mixed_configuration(self):
         # Create mock tools and providers
+        from features.external_tools.external_tool import CostEstimate
         mock_tool_1 = ExternalTool(
             id = "configured-tool",
             name = "Configured Tool",
@@ -644,6 +645,7 @@ class SettingsControllerTest(unittest.TestCase):
                 tools = ["configured-tool"],
             ),
             types = [ToolType.chat],
+            cost_estimate = CostEstimate(),
         )
         mock_tool_2 = ExternalTool(
             id = "unconfigured-tool",
@@ -656,6 +658,7 @@ class SettingsControllerTest(unittest.TestCase):
                 tools = ["unconfigured-tool"],
             ),
             types = [ToolType.vision],
+            cost_estimate = CostEstimate(),
         )
         mock_provider_1 = ExternalToolProvider(
             id = "configured-provider",
@@ -709,6 +712,62 @@ class SettingsControllerTest(unittest.TestCase):
         unconfigured_providers = [provider for provider in result["providers"] if not provider["is_configured"]]
         self.assertEqual(len(configured_providers), 1)
         self.assertEqual(len(unconfigured_providers), 1)
+
+    def test_fetch_external_tools_includes_cost_estimate(self):
+        """Verify that cost_estimate is properly serialized in API response"""
+        from features.external_tools.external_tool import CostEstimate
+
+        # Create tool with actual cost estimate values
+        mock_tool = ExternalTool(
+            id = "test-tool",
+            name = "Test Tool",
+            provider = ExternalToolProvider(
+                id = "test-provider",
+                name = "Test Provider",
+                token_management_url = "https://example.com",
+                token_format = "test-format",
+                tools = ["test-tool"],
+            ),
+            types = [ToolType.chat],
+            cost_estimate = CostEstimate(
+                input_1m_tokens = 100,
+                output_1m_tokens = 500,
+                search_1m_tokens = 300,
+                output_image_1k = 10,
+                api_call = 5,
+                second_of_runtime = 0.01,
+            ),
+        )
+
+        cloned_di = MagicMock(spec = DI)
+        cloned_access_token_resolver = MagicMock()
+        cloned_di.access_token_resolver = cloned_access_token_resolver
+        self.mock_di.clone.return_value = cloned_di
+        cloned_access_token_resolver.get_access_token_for_tool.return_value = SecretStr("token")
+        cloned_access_token_resolver.get_access_token.return_value = None
+
+        with patch("api.settings_controller.ALL_EXTERNAL_TOOLS", [mock_tool]):
+            with patch("api.settings_controller.ALL_PROVIDERS", []):
+                controller = SettingsController(self.mock_di)
+                result = controller.fetch_external_tools(self.invoker_user.id.hex)
+
+        # Verify cost_estimate is in response
+        self.assertEqual(len(result["tools"]), 1)
+        tool_response = result["tools"][0]
+
+        # Verify cost_estimate exists and has correct structure
+        self.assertIn("definition", tool_response)
+        self.assertIn("cost_estimate", tool_response["definition"])
+
+        cost_est = tool_response["definition"]["cost_estimate"]
+        self.assertEqual(cost_est["input_1m_tokens"], 100)
+        self.assertEqual(cost_est["output_1m_tokens"], 500)
+        self.assertEqual(cost_est["search_1m_tokens"], 300)
+        self.assertEqual(cost_est["output_image_1k"], 10)
+        self.assertIsNone(cost_est.get("output_image_2k"))  # Not set
+        self.assertIsNone(cost_est.get("output_image_4k"))  # Not set
+        self.assertEqual(cost_est["api_call"], 5)
+        self.assertEqual(cost_est["second_of_runtime"], 0.01)
 
     @patch("api.auth.create_jwt_token")
     def test_create_help_link_success(self, mock_create_jwt_token):

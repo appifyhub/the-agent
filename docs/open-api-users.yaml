@@ -535,18 +535,6 @@ components:
           type: string
           nullable: true
           description: Tool choice for image editing
-        tool_choice_images_restoration:
-          type: string
-          nullable: true
-          description: Tool choice for image restoration
-        tool_choice_images_inpainting:
-          type: string
-          nullable: true
-          description: Tool choice for image inpainting
-        tool_choice_images_background_removal:
-          type: string
-          nullable: true
-          description: Tool choice for background removal
         tool_choice_search:
           type: string
           nullable: true
@@ -650,15 +638,6 @@ components:
           type: string
           nullable: true
         tool_choice_images_edit:
-          type: string
-          nullable: true
-        tool_choice_images_restoration:
-          type: string
-          nullable: true
-        tool_choice_images_inpainting:
-          type: string
-          nullable: true
-        tool_choice_images_background_removal:
           type: string
           nullable: true
         tool_choice_search:
@@ -896,11 +875,14 @@ components:
           items:
             type: string
           description: Tool types/capabilities
+        cost_estimate:
+          $ref: "#/components/schemas/CostEstimate"
       required:
         - id
         - name
         - provider
         - types
+        - cost_estimate
 
     ExternalToolProvider:
       type: object
@@ -933,6 +915,64 @@ components:
         - token_management_url
         - token_format
         - tools
+
+    CostEstimate:
+      type: object
+      description: Cost estimation for using an external tool (all costs in credits)
+      properties:
+        input_1m_tokens:
+          type: integer
+          nullable: true
+          description: Cost per 1 million input tokens in credits
+        output_1m_tokens:
+          type: integer
+          nullable: true
+          description: Cost per 1 million output tokens in credits
+        search_1m_tokens:
+          type: integer
+          nullable: true
+          description: Cost per 1 million search tokens in credits
+        input_image_1k:
+          type: integer
+          nullable: true
+          description: Cost per 1k resolution input image in credits
+        input_image_2k:
+          type: integer
+          nullable: true
+          description: Cost per 2k resolution input image in credits
+        input_image_4k:
+          type: integer
+          nullable: true
+          description: Cost per 4k resolution input image in credits
+        input_image_8k:
+          type: integer
+          nullable: true
+          description: Cost per 8k resolution input image in credits
+        input_image_12k:
+          type: integer
+          nullable: true
+          description: Cost per 12k resolution input image in credits
+        output_image_1k:
+          type: integer
+          nullable: true
+          description: Cost per 1k resolution output image in credits
+        output_image_2k:
+          type: integer
+          nullable: true
+          description: Cost per 2k resolution output image in credits
+        output_image_4k:
+          type: integer
+          nullable: true
+          description: Cost per 4k resolution output image in credits
+        api_call:
+          type: integer
+          nullable: true
+          description: Fixed cost per API call in credits
+        second_of_runtime:
+          type: number
+          format: float
+          nullable: true
+          description: Cost per second of runtime in credits
 
     SponsorshipsResponse:
       type: object

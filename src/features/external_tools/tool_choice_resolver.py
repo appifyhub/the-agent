@@ -1,3 +1,5 @@
+from typing import NamedTuple
+
 from pydantic import SecretStr
 
 from di.di import DI
@@ -6,7 +8,13 @@ from features.external_tools.external_tool_library import ALL_EXTERNAL_TOOLS
 from util import log
 
 ToolsByProvider = dict[ExternalToolProvider, list[ExternalTool]]
-ConfiguredTool = tuple[ExternalTool, SecretStr, ToolType]
+
+
+class ConfiguredTool(NamedTuple):
+
+    definition: ExternalTool
+    token: SecretStr
+    purpose: ToolType
 
 
 class ToolResolutionError(Exception):
@@ -50,7 +58,7 @@ class ToolChoiceResolver:
                 log.t(f"Found available tool '{tool.id}' from provider '{tool.provider.name}'")
                 log.t(f"  · Matches user choice '{user_choice_tool_id}'? {'Yes' if tool.id == user_choice_tool else 'No'}")
                 log.t(f"  · Matches default tool '{default_tool_id}'? {'Yes' if tool.id == default_tool_id else 'No'}")
-                return tool, access_token, purpose
+                return ConfiguredTool(definition = tool, token = access_token, purpose = purpose)
             log.t(f"No access to tool '{tool.id}' from provider '{tool.provider.name}'")
 
         log.t(f"No available tools found for type '{purpose.value}'")
@@ -78,12 +86,6 @@ class ToolChoiceResolver:
                 return self.__di.invoker.tool_choice_images_gen
             case ToolType.images_edit:
                 return self.__di.invoker.tool_choice_images_edit
-            case ToolType.images_restoration:
-                return self.__di.invoker.tool_choice_images_restoration
-            case ToolType.images_inpainting:
-                return self.__di.invoker.tool_choice_images_inpainting
-            case ToolType.images_background_removal:
-                return self.__di.invoker.tool_choice_images_background_removal
             case ToolType.search:
                 return self.__di.invoker.tool_choice_search
             case ToolType.embedding:

@@ -40,9 +40,6 @@ class UserCRUDTest(unittest.TestCase):
             tool_choice_hearing = "whisper-1",
             tool_choice_images_gen = "dall-e-3",
             tool_choice_images_edit = "dall-e-2",
-            tool_choice_images_restoration = "replicate-restoration",
-            tool_choice_images_inpainting = "replicate-inpainting",
-            tool_choice_images_background_removal = "replicate-bg-removal",
             tool_choice_search = "perplexity-search",
             tool_choice_embedding = "text-embedding-3-large",
             tool_choice_api_fiat_exchange = "rapid-api-fiat",
@@ -79,9 +76,6 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(user.tool_choice_hearing, user_data.tool_choice_hearing)
         self.assertEqual(user.tool_choice_images_gen, user_data.tool_choice_images_gen)
         self.assertEqual(user.tool_choice_images_edit, user_data.tool_choice_images_edit)
-        self.assertEqual(user.tool_choice_images_restoration, user_data.tool_choice_images_restoration)
-        self.assertEqual(user.tool_choice_images_inpainting, user_data.tool_choice_images_inpainting)
-        self.assertEqual(user.tool_choice_images_background_removal, user_data.tool_choice_images_background_removal)
         self.assertEqual(user.tool_choice_search, user_data.tool_choice_search)
         self.assertEqual(user.tool_choice_embedding, user_data.tool_choice_embedding)
         self.assertEqual(user.tool_choice_api_fiat_exchange, user_data.tool_choice_api_fiat_exchange)
@@ -446,7 +440,6 @@ class UserCRUDTest(unittest.TestCase):
             tool_choice_copywriting = "claude-3-7-sonnet-latest",
             tool_choice_images_edit = "dall-e-3",
             tool_choice_api_fiat_exchange = "updated-rapid-api-fiat",
-            tool_choice_images_restoration = "replicate-restoration",
             tool_choice_api_crypto_exchange = "coinmarketcap-api",
             group = UserDB.Group.developer,
         )
@@ -474,7 +467,6 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(updated_user.tool_choice_copywriting, update_data.tool_choice_copywriting)
         self.assertEqual(updated_user.tool_choice_images_edit, update_data.tool_choice_images_edit)
         self.assertEqual(updated_user.tool_choice_api_fiat_exchange, update_data.tool_choice_api_fiat_exchange)
-        self.assertEqual(updated_user.tool_choice_images_restoration, update_data.tool_choice_images_restoration)
         self.assertEqual(updated_user.tool_choice_api_crypto_exchange, update_data.tool_choice_api_crypto_exchange)
         self.assertEqual(updated_user.group.value, update_data.group.value)
 
@@ -493,8 +485,6 @@ class UserCRUDTest(unittest.TestCase):
             replicate_key = SecretStr("test-replicate-key"),
             rapid_api_key = SecretStr("test-rapid-api-key"),
             coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
-            tool_choice_images_inpainting = "replicate-inpainting",
-            tool_choice_images_background_removal = "replicate-bg-removal",
             group = UserDB.Group.standard,
         )
         created_user = self.sql.user_crud().create(user_data)
