@@ -3,8 +3,8 @@ from io import BytesIO
 from typing import IO
 
 from features.external_tools.external_tool_library import (
-    IMAGE_EDITING_FLUX_KONTEXT_PRO,
-    IMAGE_GENERATION_FLUX_1_1,
+    IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO,
+    IMAGE_GEN_FLUX_1_1,
 )
 from features.images import image_api_utils
 
@@ -12,86 +12,86 @@ from features.images import image_api_utils
 class ImageApiUtilsTest(unittest.TestCase):
 
     def test_resolve_aspect_ratio_none_for_generation(self):
-        result = image_api_utils.resolve_aspect_ratio(IMAGE_GENERATION_FLUX_1_1, None)
+        result = image_api_utils.resolve_aspect_ratio(IMAGE_GEN_FLUX_1_1, None)
         self.assertEqual(result, "2:3")
 
     def test_resolve_aspect_ratio_none_for_editing_with_files(self):
         input_files: list[IO[bytes]] = [BytesIO(b"fake_image")]
-        result = image_api_utils.resolve_aspect_ratio(IMAGE_EDITING_FLUX_KONTEXT_PRO, None, input_files)
+        result = image_api_utils.resolve_aspect_ratio(IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO, None, input_files)
         self.assertEqual(result, "match_input_image")
 
     def test_resolve_aspect_ratio_none_for_editing_without_files(self):
-        result = image_api_utils.resolve_aspect_ratio(IMAGE_EDITING_FLUX_KONTEXT_PRO, None)
+        result = image_api_utils.resolve_aspect_ratio(IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO, None)
         self.assertEqual(result, "2:3")
 
     def test_resolve_aspect_ratio_valid_ratio(self):
-        result = image_api_utils.resolve_aspect_ratio(IMAGE_GENERATION_FLUX_1_1, "1:1")
+        result = image_api_utils.resolve_aspect_ratio(IMAGE_GEN_FLUX_1_1, "1:1")
         self.assertEqual(result, "1:1")
 
     def test_resolve_aspect_ratio_valid_ratio_portrait(self):
-        result = image_api_utils.resolve_aspect_ratio(IMAGE_GENERATION_FLUX_1_1, "2:3")
+        result = image_api_utils.resolve_aspect_ratio(IMAGE_GEN_FLUX_1_1, "2:3")
         self.assertEqual(result, "2:3")
 
     def test_resolve_aspect_ratio_16_9(self):
-        result = image_api_utils.resolve_aspect_ratio(IMAGE_GENERATION_FLUX_1_1, "16:9")
+        result = image_api_utils.resolve_aspect_ratio(IMAGE_GEN_FLUX_1_1, "16:9")
         self.assertEqual(result, "16:9")
 
     def test_resolve_aspect_ratio_match_input_image_with_editing_tool_and_files(self):
         input_files: list[IO[bytes]] = [BytesIO(b"fake_image")]
-        result = image_api_utils.resolve_aspect_ratio(IMAGE_EDITING_FLUX_KONTEXT_PRO, "match_input_image", input_files)
+        result = image_api_utils.resolve_aspect_ratio(IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO, "match_input_image", input_files)
         self.assertEqual(result, "match_input_image")
 
     def test_resolve_aspect_ratio_match_input_image_without_files_falls_back(self):
-        result = image_api_utils.resolve_aspect_ratio(IMAGE_EDITING_FLUX_KONTEXT_PRO, "match_input_image")
+        result = image_api_utils.resolve_aspect_ratio(IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO, "match_input_image")
         self.assertEqual(result, "2:3")
 
     def test_resolve_aspect_ratio_match_input_image_for_generation_falls_back(self):
-        result = image_api_utils.resolve_aspect_ratio(IMAGE_GENERATION_FLUX_1_1, "match_input_image")
+        result = image_api_utils.resolve_aspect_ratio(IMAGE_GEN_FLUX_1_1, "match_input_image")
         self.assertEqual(result, "2:3")
 
     def test_resolve_aspect_ratio_with_spaces(self):
-        result = image_api_utils.resolve_aspect_ratio(IMAGE_GENERATION_FLUX_1_1, "2 : 3")
+        result = image_api_utils.resolve_aspect_ratio(IMAGE_GEN_FLUX_1_1, "2 : 3")
         self.assertEqual(result, "2:3")
 
     def test_resolve_aspect_ratio_with_multiple_spaces(self):
-        result = image_api_utils.resolve_aspect_ratio(IMAGE_GENERATION_FLUX_1_1, "  1  :  1  ")
+        result = image_api_utils.resolve_aspect_ratio(IMAGE_GEN_FLUX_1_1, "  1  :  1  ")
         self.assertEqual(result, "1:1")
 
     def test_resolve_aspect_ratio_with_tabs(self):
-        result = image_api_utils.resolve_aspect_ratio(IMAGE_GENERATION_FLUX_1_1, "1\t:\t1")
+        result = image_api_utils.resolve_aspect_ratio(IMAGE_GEN_FLUX_1_1, "1\t:\t1")
         self.assertEqual(result, "1:1")
 
     def test_resolve_aspect_ratio_closest_match_slightly_off(self):
-        result = image_api_utils.resolve_aspect_ratio(IMAGE_GENERATION_FLUX_1_1, "2.1:3")
+        result = image_api_utils.resolve_aspect_ratio(IMAGE_GEN_FLUX_1_1, "2.1:3")
         self.assertEqual(result, "2:3")
 
     def test_resolve_aspect_ratio_closest_match_between_two(self):
-        result = image_api_utils.resolve_aspect_ratio(IMAGE_GENERATION_FLUX_1_1, "3.5:4")
+        result = image_api_utils.resolve_aspect_ratio(IMAGE_GEN_FLUX_1_1, "3.5:4")
         self.assertIn(result, ["3:4", "1:1"])
 
     def test_resolve_aspect_ratio_closest_match_landscape(self):
-        result = image_api_utils.resolve_aspect_ratio(IMAGE_GENERATION_FLUX_1_1, "3.8:2")
+        result = image_api_utils.resolve_aspect_ratio(IMAGE_GEN_FLUX_1_1, "3.8:2")
         self.assertEqual(result, "16:9")
 
     def test_resolve_aspect_ratio_invalid_format_no_colon(self):
-        result = image_api_utils.resolve_aspect_ratio(IMAGE_GENERATION_FLUX_1_1, "2x3")
+        result = image_api_utils.resolve_aspect_ratio(IMAGE_GEN_FLUX_1_1, "2x3")
         self.assertEqual(result, "2:3")
 
     def test_resolve_aspect_ratio_invalid_format_multiple_colons(self):
-        result = image_api_utils.resolve_aspect_ratio(IMAGE_GENERATION_FLUX_1_1, "2:3:4")
+        result = image_api_utils.resolve_aspect_ratio(IMAGE_GEN_FLUX_1_1, "2:3:4")
         self.assertEqual(result, "2:3")
 
     def test_resolve_aspect_ratio_invalid_non_numeric(self):
-        result = image_api_utils.resolve_aspect_ratio(IMAGE_GENERATION_FLUX_1_1, "a:b")
+        result = image_api_utils.resolve_aspect_ratio(IMAGE_GEN_FLUX_1_1, "a:b")
         self.assertEqual(result, "2:3")
 
     def test_resolve_aspect_ratio_zero_division(self):
-        result = image_api_utils.resolve_aspect_ratio(IMAGE_GENERATION_FLUX_1_1, "2:0")
+        result = image_api_utils.resolve_aspect_ratio(IMAGE_GEN_FLUX_1_1, "2:0")
         self.assertEqual(result, "2:3")
 
     def test_resolve_aspect_ratio_invalid_for_editing_with_files(self):
         input_files: list[IO[bytes]] = [BytesIO(b"fake_image")]
-        result = image_api_utils.resolve_aspect_ratio(IMAGE_EDITING_FLUX_KONTEXT_PRO, "invalid", input_files)
+        result = image_api_utils.resolve_aspect_ratio(IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO, "invalid", input_files)
         self.assertEqual(result, "match_input_image")
 
     def test_convert_size_to_mp_from_k(self):
@@ -130,10 +130,10 @@ class ImageApiUtilsTest(unittest.TestCase):
         input_files: list[IO[bytes]] = [file1, file2]
 
         result = image_api_utils.map_to_model_parameters(
-            tool = IMAGE_EDITING_FLUX_KONTEXT_PRO,
+            tool = IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO,
             prompt = "test prompt",
             aspect_ratio = "1:1",
-            size = "2K",
+            output_size = "2K",
             input_files = input_files,
         )
 

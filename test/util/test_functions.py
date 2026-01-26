@@ -245,3 +245,45 @@ class FunctionsTest(unittest.TestCase):
     def test_normalize_username_mixed_chars(self):
         from util.functions import normalize_username
         self.assertEqual(normalize_username("@ +user name+"), "username")
+
+    def test_parse_ai_message_content_string(self):
+        from util.functions import parse_ai_message_content
+        result = parse_ai_message_content("Hello world")
+        self.assertEqual(result, "Hello world")
+
+    def test_parse_ai_message_content_list_with_text_blocks(self):
+        from util.functions import parse_ai_message_content
+        content = [
+            {"type": "text", "text": "Part 1."},
+            {"type": "text", "text": "Part 2."},
+            {"type": "image_url", "image_url": "http://example.com"},
+        ]
+        result = parse_ai_message_content(content)
+        self.assertEqual(result, "Part 1.\nPart 2.")
+
+    def test_parse_ai_message_content_list_with_strings(self):
+        from util.functions import parse_ai_message_content
+        content = ["Part 1.", "Part 2."]
+        result = parse_ai_message_content(content)
+        self.assertEqual(result, "Part 1.\nPart 2.")
+
+    def test_parse_ai_message_content_list_mixed(self):
+        from util.functions import parse_ai_message_content
+        content = [
+            "Part 1.",
+            {"type": "text", "text": "Part 2."},
+        ]
+        result = parse_ai_message_content(content)
+        self.assertEqual(result, "Part 1.\nPart 2.")
+
+    def test_parse_ai_message_content_empty_result(self):
+        from util.functions import parse_ai_message_content
+        with self.assertRaises(AssertionError) as context:
+            parse_ai_message_content([])
+        self.assertIn("Received an unexpected content list", str(context.exception))
+
+    def test_parse_ai_message_content_unexpected_type(self):
+        from util.functions import parse_ai_message_content
+        with self.assertRaises(AssertionError) as context:
+            parse_ai_message_content(12345)
+        self.assertIn("Received an unexpected content", str(context.exception))
