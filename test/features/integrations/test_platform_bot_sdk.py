@@ -16,7 +16,6 @@ def _make_di() -> DI:
     di.telegram_bot_sdk = Mock()
     di.telegram_bot_sdk.send_photo = Mock(return_value = "sent")
     di.whatsapp_bot_sdk = Mock()
-    di.image_resizer = MagicMock()
     di.image_uploader = MagicMock()
     return di
 
@@ -47,17 +46,18 @@ class PlatformBotSDKTest(unittest.TestCase):
         """Test that send_photo resizes large images and uploads them"""
         di = _make_di()
         resized_path = _make_temp_file(b"resized")
-        di.image_resizer.resize_file.return_value = resized_path
         uploader = Mock()
         uploader.execute.return_value = "uploaded-url"
         di.image_uploader.return_value = uploader
         sdk = PlatformBotSDK(di = di)
         with patch("features.integrations.platform_bot_sdk.requests.head") as mock_head, \
-                patch("features.integrations.platform_bot_sdk.requests.get") as mock_get:
+                patch("features.integrations.platform_bot_sdk.requests.get") as mock_get, \
+                patch("features.integrations.platform_bot_sdk.resize_file") as mock_resize:
             mock_head.return_value = _mock_response(content_length = 6 * 1024 * 1024)
             mock_get.return_value = _mock_response(body = b"x" * (6 * 1024 * 1024))
+            mock_resize.return_value = resized_path
             result = sdk.send_photo(chat_id = 1, photo_url = "http://example.com/img.png")
-        di.image_resizer.resize_file.assert_called_once()
+        mock_resize.assert_called_once()
         di.telegram_bot_sdk.send_photo.assert_called_once_with(1, "uploaded-url", None)
         self.assertEqual(result, "sent")
 
@@ -65,32 +65,34 @@ class PlatformBotSDKTest(unittest.TestCase):
         """Test that send_photo handles HEAD request failure gracefully"""
         di = _make_di()
         resized_path = _make_temp_file(b"resized")
-        di.image_resizer.resize_file.return_value = resized_path
         uploader = Mock()
         uploader.execute.return_value = "uploaded-url"
         di.image_uploader.return_value = uploader
         sdk = PlatformBotSDK(di = di)
         with patch("features.integrations.platform_bot_sdk.requests.head") as mock_head, \
-                patch("features.integrations.platform_bot_sdk.requests.get") as mock_get:
+                patch("features.integrations.platform_bot_sdk.requests.get") as mock_get, \
+                patch("features.integrations.platform_bot_sdk.resize_file") as mock_resize:
             mock_head.side_effect = Exception("head failed")
             mock_get.return_value = _mock_response(body = b"x" * (6 * 1024 * 1024))
+            mock_resize.return_value = resized_path
             result = sdk.send_photo(chat_id = 1, photo_url = "http://example.com/img.png")
-        di.image_resizer.resize_file.assert_called_once()
+        mock_resize.assert_called_once()
         di.telegram_bot_sdk.send_photo.assert_called_once_with(1, "uploaded-url", None)
         self.assertEqual(result, "sent")
 
     def test_send_photo_resize_failure_falls_back_to_original(self):
         """Test that send_photo uses original URL if resizing fails"""
         di = _make_di()
-        di.image_resizer.resize_file.side_effect = Exception("resize failed")
         uploader = Mock()
         uploader.execute.return_value = "uploaded-url"
         di.image_uploader.return_value = uploader
         sdk = PlatformBotSDK(di = di)
         with patch("features.integrations.platform_bot_sdk.requests.head") as mock_head, \
-                patch("features.integrations.platform_bot_sdk.requests.get") as mock_get:
+                patch("features.integrations.platform_bot_sdk.requests.get") as mock_get, \
+                patch("features.integrations.platform_bot_sdk.resize_file") as mock_resize:
             mock_head.return_value = _mock_response(content_length = 6 * 1024 * 1024)
             mock_get.return_value = _mock_response(body = b"x" * (6 * 1024 * 1024))
+            mock_resize.side_effect = Exception("resize failed")
             result = sdk.send_photo(chat_id = 1, photo_url = "http://example.com/img.png")
         di.telegram_bot_sdk.send_photo.assert_called_once_with(1, "http://example.com/img.png", None)
         self.assertEqual(result, "sent")
@@ -99,15 +101,16 @@ class PlatformBotSDKTest(unittest.TestCase):
         """Test that send_photo uses original URL if upload fails"""
         di = _make_di()
         resized_path = _make_temp_file(b"resized")
-        di.image_resizer.resize_file.return_value = resized_path
         uploader = Mock()
         uploader.execute.side_effect = Exception("upload failed")
         di.image_uploader.return_value = uploader
         sdk = PlatformBotSDK(di = di)
         with patch("features.integrations.platform_bot_sdk.requests.head") as mock_head, \
-                patch("features.integrations.platform_bot_sdk.requests.get") as mock_get:
+                patch("features.integrations.platform_bot_sdk.requests.get") as mock_get, \
+                patch("features.integrations.platform_bot_sdk.resize_file") as mock_resize:
             mock_head.return_value = _mock_response(content_length = 6 * 1024 * 1024)
             mock_get.return_value = _mock_response(body = b"x" * (6 * 1024 * 1024))
+            mock_resize.return_value = resized_path
             result = sdk.send_photo(chat_id = 1, photo_url = "http://example.com/img.png")
         di.telegram_bot_sdk.send_photo.assert_called_once_with(1, "http://example.com/img.png", None)
         self.assertEqual(result, "sent")

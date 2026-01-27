@@ -21,9 +21,6 @@ class UserSettingsPayloadTest(unittest.TestCase):
             tool_choice_hearing = "whisper-1",
             tool_choice_images_gen = "dall-e-3",
             tool_choice_images_edit = "dall-e-2",
-            tool_choice_images_restoration = "replicate-restoration",
-            tool_choice_images_inpainting = "replicate-inpainting",
-            tool_choice_images_background_removal = "replicate-bg-removal",
             tool_choice_search = "perplexity-search",
             tool_choice_embedding = "text-embedding-3-large",
             tool_choice_api_fiat_exchange = "rapid-api-fiat",
@@ -44,9 +41,6 @@ class UserSettingsPayloadTest(unittest.TestCase):
         self.assertEqual(payload.tool_choice_hearing, "whisper-1")
         self.assertEqual(payload.tool_choice_images_gen, "dall-e-3")
         self.assertEqual(payload.tool_choice_images_edit, "dall-e-2")
-        self.assertEqual(payload.tool_choice_images_restoration, "replicate-restoration")
-        self.assertEqual(payload.tool_choice_images_inpainting, "replicate-inpainting")
-        self.assertEqual(payload.tool_choice_images_background_removal, "replicate-bg-removal")
         self.assertEqual(payload.tool_choice_search, "perplexity-search")
         self.assertEqual(payload.tool_choice_embedding, "text-embedding-3-large")
         self.assertEqual(payload.tool_choice_api_fiat_exchange, "rapid-api-fiat")
@@ -75,9 +69,6 @@ class UserSettingsPayloadTest(unittest.TestCase):
         self.assertIsNone(payload.tool_choice_hearing)
         self.assertIsNone(payload.tool_choice_images_gen)
         self.assertIsNone(payload.tool_choice_images_edit)
-        self.assertIsNone(payload.tool_choice_images_restoration)
-        self.assertIsNone(payload.tool_choice_images_inpainting)
-        self.assertIsNone(payload.tool_choice_images_background_removal)
         self.assertIsNone(payload.tool_choice_search)
         self.assertIsNone(payload.tool_choice_embedding)
         self.assertIsNone(payload.tool_choice_api_fiat_exchange)
@@ -170,9 +161,6 @@ class UserSettingsPayloadTest(unittest.TestCase):
         self.assertIsNone(payload.tool_choice_hearing)
         self.assertIsNone(payload.tool_choice_images_gen)
         self.assertIsNone(payload.tool_choice_images_edit)
-        self.assertIsNone(payload.tool_choice_images_restoration)
-        self.assertIsNone(payload.tool_choice_images_inpainting)
-        self.assertIsNone(payload.tool_choice_images_background_removal)
         self.assertIsNone(payload.tool_choice_search)
         self.assertIsNone(payload.tool_choice_embedding)
         self.assertIsNone(payload.tool_choice_api_fiat_exchange)
@@ -208,9 +196,6 @@ class UserSettingsPayloadTest(unittest.TestCase):
         self.assertIsNone(payload.tool_choice_copywriting)
         self.assertIsNone(payload.tool_choice_hearing)
         self.assertIsNone(payload.tool_choice_images_edit)
-        self.assertIsNone(payload.tool_choice_images_restoration)
-        self.assertIsNone(payload.tool_choice_images_inpainting)
-        self.assertIsNone(payload.tool_choice_images_background_removal)
         self.assertIsNone(payload.tool_choice_embedding)
         self.assertIsNone(payload.tool_choice_api_fiat_exchange)
         self.assertIsNone(payload.tool_choice_api_crypto_exchange)

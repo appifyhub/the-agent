@@ -3,14 +3,14 @@ import tempfile
 from urllib.parse import urlparse
 
 import requests
-from httpx import Timeout
-from replicate.client import Client
 
+from di.di import DI
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from features.external_tools.external_tool import ExternalTool, ToolType
-from features.external_tools.external_tool_library import IMAGE_EDITING_FLUX_KONTEXT_PRO
+from features.external_tools.external_tool_library import IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.images.image_api_utils import map_to_model_parameters
+from features.images.image_size_utils import calculate_image_size_category
 from util import log
 from util.functions import extract_url_from_replicate_result, first_key_with_value
 
@@ -20,7 +20,7 @@ BOOT_AND_RUN_TIMEOUT_S = 120
 # Not tested as it's just a proxy
 class ImageEditor:
 
-    DEFAULT_TOOL: ExternalTool = IMAGE_EDITING_FLUX_KONTEXT_PRO
+    DEFAULT_TOOL: ExternalTool = IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO
     TOOL_TYPE: ToolType = ToolType.images_edit
 
     error: str | None
@@ -29,29 +29,26 @@ class ImageEditor:
     __configured_tool: ConfiguredTool
     __input_mime_type: str | None
     __aspect_ratio: str | None
-    __size: str | None
-    __replicate: Client
+    __output_size: str | None
+    __di: DI
 
     def __init__(
         self,
         image_url: str,
         configured_tool: ConfiguredTool,
         prompt: str,
+        di: DI,
         input_mime_type: str | None = None,
         aspect_ratio: str | None = None,
-        size: str | None = None,
+        output_size: str | None = None,
     ):
         self.__prompt = prompt
         self.__image_url = image_url
         self.__configured_tool = configured_tool
         self.__input_mime_type = input_mime_type
         self.__aspect_ratio = aspect_ratio
-        self.__size = size
-        _, token, _ = configured_tool
-        self.__replicate = Client(
-            api_token = token.get_secret_value(),
-            timeout = Timeout(BOOT_AND_RUN_TIMEOUT_S),
-        )
+        self.__output_size = output_size
+        self.__di = di
 
     def execute(self) -> str | None:
         log.d("Starting photo editing")
@@ -62,18 +59,35 @@ class ImageEditor:
                 response = requests.get(self.__image_url)
                 temp_file.write(response.content)
                 temp_file.flush()
+
+                # Calculate input image size
+                input_image_size: str | None = None
+                try:
+                    input_image_size = calculate_image_size_category(temp_file.name)
+                except Exception as e:
+                    log.e(f"Failed to calculate input image size, will proceed without it: {e}")
+
                 with open(temp_file.name, "rb") as file:
-                    tool, _, _ = self.__configured_tool
                     unified_params = map_to_model_parameters(
-                        tool = tool, prompt = self.__prompt,
-                        aspect_ratio = self.__aspect_ratio, size = self.__size,
+                        tool = self.__configured_tool.definition, prompt = self.__prompt,
+                        aspect_ratio = self.__aspect_ratio, output_size = self.__output_size,
                         input_files = [file],
                     )
                     dict_params = {
                         k: v for k, v in unified_params.__dict__.items() if v is not None
                     }
                     log.t("Calling Replicate image editing with params", dict_params)
-                    result = self.__replicate.run(tool.id, input = dict_params)
+
+                    replicate = self.__di.replicate_client(
+                        configured_tool = self.__configured_tool,
+                        timeout_s = BOOT_AND_RUN_TIMEOUT_S,
+                        output_image_sizes = [unified_params.size] if unified_params.size else None,
+                        input_image_sizes = [input_image_size] if input_image_size else None,
+                    )
+                    prediction = replicate.predictions.create(version = self.__configured_tool.definition.id, input = dict_params)
+                    prediction.wait()
+
+                    result = prediction.output
             if not result:
                 raise ValueError("Failed to edit the image (no result returned)")
             log.d("Image edit successful")

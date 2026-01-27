@@ -10,15 +10,13 @@ from db.model.chat_message_attachment import ChatMessageAttachmentDB
 from db.model.user import UserDB
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.user import User
-from features.chat.chat_imaging_service import ChatImagingService
-from features.images.image_contents_restorer import ImageContentsRestorer
+from features.chat.chat_image_edit_service import ChatImageEditService
 
 
-class ChatImagingServiceTest(unittest.TestCase):
+class ChatImageEditServiceTest(unittest.TestCase):
 
     def setUp(self):
         self.attachment_ids = ["attachment1", "attachment2"]
-        self.operation_name = "remove-background"
         self.operation_guidance = None
         self.mock_di = MagicMock()
         self.mock_platform_sdk = MagicMock()
@@ -34,8 +32,6 @@ class ChatImagingServiceTest(unittest.TestCase):
         self.mock_di.require_invoker_chat = MagicMock(return_value = mock_chat)
         self.mock_di.require_invoker_chat_type = MagicMock(return_value = ChatConfigDB.ChatType.telegram)
         self.mock_di.tool_choice_resolver = MagicMock()
-        self.mock_di.image_background_remover = MagicMock()
-        self.mock_di.image_contents_restorer = MagicMock()
         self.mock_di.image_editor = MagicMock()
 
         self.user = User(
@@ -76,56 +72,43 @@ class ChatImagingServiceTest(unittest.TestCase):
 
     def test_init_success(self):
         with patch.object(self.mock_platform_sdk, "refresh_attachments_by_ids", return_value = [self.attachment]):
-            service = ChatImagingService(
+            service = ChatImageEditService(
                 attachment_ids = self.attachment_ids,
-                operation_name = self.operation_name,
                 operation_guidance = self.operation_guidance,
                 aspect_ratio = None,
-                size = None,
+                output_size = None,
                 di = self.mock_di,
             )
-            self.assertIsInstance(service, ChatImagingService)
+            self.assertIsInstance(service, ChatImageEditService)
 
-    def test_init_invalid_operation(self):
-        with self.assertRaises(ValueError):
-            ChatImagingService(
-                attachment_ids = self.attachment_ids,
-                operation_name = "invalid-operation",
-                operation_guidance = self.operation_guidance,
-                aspect_ratio = None,
-                size = None,
-                di = self.mock_di,
-            )
-
-    def test_execute_remove_background_partial(self):
+    def test_execute_edit_image_partial(self):
         self.mock_platform_sdk.refresh_attachments_by_ids.return_value = [self.attachment, self.attachment]
-        mock_remover_instance1 = MagicMock()
-        mock_remover_instance1.execute.return_value = "http://test.com/edited_image.png"
-        mock_remover_instance1.error = None
-        mock_remover_instance2 = MagicMock()
-        mock_remover_instance2.execute.return_value = None
-        mock_remover_instance2.error = "Processing failed"
-        self.mock_di.image_background_remover.side_effect = [mock_remover_instance1, mock_remover_instance2]
+        mock_editor_instance1 = MagicMock()
+        mock_editor_instance1.execute.return_value = "http://test.com/edited_image.png"
+        mock_editor_instance1.error = None
+        mock_editor_instance2 = MagicMock()
+        mock_editor_instance2.execute.return_value = None
+        mock_editor_instance2.error = "Processing failed"
+        self.mock_di.image_editor.side_effect = [mock_editor_instance1, mock_editor_instance2]
         self.mock_platform_sdk.send_document.return_value = {"result": {"message_id": 123}}
         self.mock_platform_sdk.send_photo.return_value = {"result": {"message_id": 124}}
 
-        service = ChatImagingService(
+        service = ChatImageEditService(
             attachment_ids = self.attachment_ids,
-            operation_name = "remove-background",
             operation_guidance = self.operation_guidance,
             aspect_ratio = None,
-            size = None,
+            output_size = None,
             di = self.mock_di,
         )
         result, details = service.execute()
 
-        self.assertEqual(result, ChatImagingService.Result.partial)
+        self.assertEqual(result, ChatImageEditService.Result.partial)
         expected_details = [
             {"url": "http://test.com/edited_image.png", "error": None, "status": "delivered"},
-            {"url": None, "error": "Error removing background from attachment 'attachment1': Processing failed"},
+            {"url": None, "error": "Error editing image from attachment 'attachment1': Processing failed"},
         ]
         self.assertEqual(details, expected_details)
-        self.assertEqual(self.mock_di.image_background_remover.call_count, 2)
+        self.assertEqual(self.mock_di.image_editor.call_count, 2)
         self.mock_platform_sdk.smart_send_photo.assert_called_once_with(
             media_mode = ChatConfigDB.MediaMode.all,
             chat_id = "test_chat_id",
@@ -134,139 +117,87 @@ class ChatImagingServiceTest(unittest.TestCase):
             thumbnail = "http://test.com/edited_image.png",
         )
 
-    def test_execute_remove_background_failed(self):
+    def test_execute_edit_image_failed(self):
         self.mock_platform_sdk.refresh_attachments_by_ids.return_value = [self.attachment]
-        mock_remover_instance = MagicMock()
-        mock_remover_instance.execute.return_value = None
-        mock_remover_instance.error = "Background removal failed"
-        self.mock_di.image_background_remover.return_value = mock_remover_instance
+        mock_editor_instance = MagicMock()
+        mock_editor_instance.execute.return_value = None
+        mock_editor_instance.error = "Image editing failed"
+        self.mock_di.image_editor.return_value = mock_editor_instance
 
-        service = ChatImagingService(
+        service = ChatImageEditService(
             attachment_ids = self.attachment_ids,
-            operation_name = "remove-background",
             operation_guidance = self.operation_guidance,
             aspect_ratio = None,
-            size = None,
+            output_size = None,
             di = self.mock_di,
         )
         result, details = service.execute()
 
-        self.assertEqual(result, ChatImagingService.Result.failed)
+        self.assertEqual(result, ChatImageEditService.Result.failed)
         expected_details = [
-            {"url": None, "error": "Error removing background from attachment 'attachment1': Background removal failed"},
+            {"url": None, "error": "Error editing image from attachment 'attachment1': Image editing failed"},
         ]
         self.assertEqual(details, expected_details)
-        mock_remover_instance.execute.assert_called_once()
+        mock_editor_instance.execute.assert_called_once()
         self.mock_platform_sdk.send_document.assert_not_called()
 
-    def test_execute_remove_background_exception(self):
+    def test_execute_edit_image_exception(self):
         self.mock_platform_sdk.refresh_attachments_by_ids.return_value = [self.attachment]
-        mock_remover_instance = MagicMock()
-        mock_remover_instance.execute.side_effect = Exception("Test exception")
-        mock_remover_instance.error = None
-        self.mock_di.image_background_remover.return_value = mock_remover_instance
+        mock_editor_instance = MagicMock()
+        mock_editor_instance.execute.side_effect = Exception("Test exception")
+        mock_editor_instance.error = None
+        self.mock_di.image_editor.return_value = mock_editor_instance
 
-        service = ChatImagingService(
+        service = ChatImageEditService(
             attachment_ids = self.attachment_ids,
-            operation_name = "remove-background",
             operation_guidance = self.operation_guidance,
             aspect_ratio = None,
-            size = None,
+            output_size = None,
             di = self.mock_di,
         )
         result, details = service.execute()
 
-        self.assertEqual(result, ChatImagingService.Result.failed)
+        self.assertEqual(result, ChatImageEditService.Result.failed)
         expected_details = [
             {
                 "url": None,
                 "error": (
-                    "Failed to remove background from attachment 'attachment1'\n"
+                    "Failed to edit image from attachment 'attachment1'\n"
                     " ├─ ! Exception (see below)\n"
                     " ├─ Exception: Test exception"
                 ),
             },
         ]
         self.assertEqual(details, expected_details)
-        mock_remover_instance.execute.assert_called_once()
+        mock_editor_instance.execute.assert_called_once()
         self.mock_platform_sdk.send_document.assert_not_called()
 
-    def test_execute_unknown_operation(self):
+    def test_execute_edit_image_success(self):
         self.mock_platform_sdk.refresh_attachments_by_ids.return_value = [self.attachment]
-        # Patch Operation.resolve to return a mock operation with value 'unknown-operation'
-        with patch.object(ChatImagingService.Operation, "resolve", return_value = MagicMock(value = "unknown-operation")):
-            service = ChatImagingService(
-                attachment_ids = self.attachment_ids,
-                operation_name = "remove-background",
-                operation_guidance = self.operation_guidance,
-                aspect_ratio = None,
-                size = None,
-                di = self.mock_di,
-            )
-            with self.assertRaises(ValueError):
-                service.execute()
-
-    def test_execute_remove_background_success(self):
-        self.mock_platform_sdk.refresh_attachments_by_ids.return_value = [self.attachment]
-        mock_remover_instance = MagicMock()
-        mock_remover_instance.execute.return_value = "http://test.com/edited_image.png"
-        mock_remover_instance.error = None
-        self.mock_di.image_background_remover.return_value = mock_remover_instance
+        mock_editor_instance = MagicMock()
+        mock_editor_instance.execute.return_value = "http://test.com/edited_image.png"
+        mock_editor_instance.error = None
+        self.mock_di.image_editor.return_value = mock_editor_instance
         self.mock_platform_sdk.send_document.return_value = {"result": {"message_id": 123}}
         self.mock_platform_sdk.send_photo.return_value = {"result": {"message_id": 124}}
 
-        service = ChatImagingService(
+        service = ChatImageEditService(
             attachment_ids = self.attachment_ids,
-            operation_name = "remove-background",
             operation_guidance = self.operation_guidance,
             aspect_ratio = None,
-            size = None,
+            output_size = None,
             di = self.mock_di,
         )
         result, details = service.execute()
 
-        self.assertEqual(result, ChatImagingService.Result.success)
+        self.assertEqual(result, ChatImageEditService.Result.success)
         expected_details = [{"url": "http://test.com/edited_image.png", "error": None, "status": "delivered"}]
         self.assertEqual(details, expected_details)
-        mock_remover_instance.execute.assert_called_once()
+        mock_editor_instance.execute.assert_called_once()
         self.mock_platform_sdk.smart_send_photo.assert_called_once_with(
             media_mode = ChatConfigDB.MediaMode.all,
             chat_id = "test_chat_id",
             photo_url = "http://test.com/edited_image.png",
             caption = "📸",
             thumbnail = "http://test.com/edited_image.png",
-        )
-
-    def test_execute_restore_image_success(self):
-        self.mock_platform_sdk.refresh_attachments_by_ids.return_value = [self.attachment]
-        mock_restorer_instance = MagicMock()
-        mock_restorer_instance.execute.return_value = ImageContentsRestorer.Result(
-            restored_url = "http://test.com/restored_image.png",
-            inpainted_url = "http://test.com/inpainted_image.png",
-            error = None,
-        )
-        self.mock_di.image_contents_restorer.return_value = mock_restorer_instance
-        self.mock_platform_sdk.send_document.return_value = {"result": {"message_id": 123}}
-        self.mock_platform_sdk.send_photo.return_value = {"result": {"message_id": 124}}
-
-        service = ChatImagingService(
-            attachment_ids = self.attachment_ids,
-            operation_name = "restore-image",
-            operation_guidance = self.operation_guidance,
-            aspect_ratio = None,
-            size = None,
-            di = self.mock_di,
-        )
-        result, details = service.execute()
-
-        self.assertEqual(result, ChatImagingService.Result.success)
-        expected_details = [{"url": "http://test.com/inpainted_image.png", "error": None, "status": "delivered"}]
-        self.assertEqual(details, expected_details)
-        mock_restorer_instance.execute.assert_called_once()
-        self.mock_platform_sdk.smart_send_photo.assert_called_once_with(
-            media_mode = ChatConfigDB.MediaMode.all,
-            chat_id = "test_chat_id",
-            photo_url = "http://test.com/inpainted_image.png",
-            caption = "📸",
-            thumbnail = "http://test.com/inpainted_image.png",
         )
