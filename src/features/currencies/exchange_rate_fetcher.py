@@ -129,7 +129,11 @@ class ExchangeRateFetcher:
         api_url = f"https://pro-api.coinmarketcap.com/{CRYPTO_CURRENCY_EXCHANGE.id.replace(".", "/")}"
         cmc_token = self.__di.access_token_resolver.require_access_token_for_tool(CRYPTO_CURRENCY_EXCHANGE)
         headers = {"Accept": "application/json", "X-CMC_PRO_API_KEY": cmc_token.get_secret_value()}
-        crypto_tool: ConfiguredTool = (CRYPTO_CURRENCY_EXCHANGE, cmc_token, ToolType.api_crypto_exchange)
+        crypto_tool: ConfiguredTool = ConfiguredTool(
+            definition = CRYPTO_CURRENCY_EXCHANGE,
+            token = cmc_token,
+            purpose = ToolType.api_crypto_exchange,
+        )
 
         if base_currency_code != DEFAULT_FIAT and desired_currency_code != DEFAULT_FIAT:
             # due to API limitations, we must traverse both cryptos through USD
@@ -182,7 +186,11 @@ class ExchangeRateFetcher:
         params = {"format": "json", "from": base_currency_code, "to": desired_currency_code, "amount": "1.0"}
         rapid_api_token = self.__di.access_token_resolver.require_access_token_for_tool(FIAT_CURRENCY_EXCHANGE)
         headers = {"X-RapidAPI-Key": rapid_api_token.get_secret_value(), "X-RapidAPI-Host": FIAT_CURRENCY_EXCHANGE.id}
-        fiat_tool: ConfiguredTool = (FIAT_CURRENCY_EXCHANGE, rapid_api_token, ToolType.api_fiat_exchange)
+        fiat_tool: ConfiguredTool = ConfiguredTool(
+            definition = FIAT_CURRENCY_EXCHANGE,
+            token = rapid_api_token,
+            purpose = ToolType.api_fiat_exchange,
+        )
 
         fetcher = self.__di.tracked_web_fetcher(fiat_tool, api_url, headers, params, cache_ttl_json = CACHE_TTL)
         response = fetcher.fetch_json() or {}
