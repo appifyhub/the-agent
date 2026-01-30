@@ -8,6 +8,7 @@ from db.model.chat_config import ChatConfigDB
 from db.schema.chat_message import ChatMessage
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from di.di import DI
+from features.images.image_size_utils import resize_file
 from features.integrations.integration_config import TELEGRAM_MAX_PHOTO_SIZE_BYTES, WHATSAPP_MAX_PHOTO_SIZE_BYTES
 from util import log
 from util.functions import delete_file_safe
@@ -208,7 +209,7 @@ class PlatformBotSDK:
                 return photo_url
 
             log.i(f"Image exceeds size limit ({downloaded_size / 1024 / 1024:.2f} MB > {size_mb:.2f} MB), resizing...")
-            resized_path = self.__di.image_resizer.resize_file(temp_path, max_size_bytes)
+            resized_path = resize_file(temp_path, max_size_bytes)
 
             log.t(f"Resizing complete, uploading resized image from {resized_path}")
             uploader = self.__di.image_uploader(binary_image = Path(resized_path).read_bytes())

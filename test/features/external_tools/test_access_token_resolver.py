@@ -89,11 +89,13 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         self.openai_provider = OPEN_AI
         self.anthropic_provider = ANTHROPIC
+        from features.external_tools.external_tool import CostEstimate
         self.openai_tool = ExternalTool(
             id = "test-gpt-4",
             name = "Test GPT-4",
             provider = self.openai_provider,
             types = [ToolType.chat],
+            cost_estimate = CostEstimate(),
         )
 
     def test_init_with_user_object_success(self):
