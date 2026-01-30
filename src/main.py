@@ -4,6 +4,7 @@ import random
 import subprocess
 import sys
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -33,6 +34,8 @@ from api.settings_controller import SettingsType
 from db.model.chat_config import ChatConfigDB
 from db.sql import get_session, initialize_db
 from di.di import DI
+from features.accounting.stats.usage_aggregates import UsageAggregates
+from features.accounting.stats.usage_record import UsageRecord
 from features.chat.telegram.currency_alert_responder import respond_with_currency_alerts
 from features.chat.telegram.model.update import Update as TelegramUpdate
 from features.chat.telegram.release_summary_responder import respond_with_summary
@@ -321,6 +324,64 @@ def unsponsor_self(
         raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to unsponsor self", e)})
 
 
+@app.get("/user/{resource_id}/usage")
+def get_usage_records(
+    resource_id: str,
+    skip: int = 0,
+    limit: int = 50,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    exclude_self: bool = False,
+    include_sponsored: bool = False,
+    db = Depends(get_session),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
+) -> list[UsageRecord]:
+    try:
+        invoker_id_hex = get_user_id_from_jwt(token)
+        log.d(f"  Invoker ID: {invoker_id_hex}")
+        start_date_obj = datetime.fromisoformat(start_date) if start_date else None
+        end_date_obj = datetime.fromisoformat(end_date) if end_date else None
+        di = DI(db, invoker_id_hex)
+        return di.usage_controller.fetch_usage_records(
+            user_id_hex = resource_id,
+            skip = skip,
+            limit = limit,
+            start_date = start_date_obj,
+            end_date = end_date_obj,
+            exclude_self = exclude_self,
+            include_sponsored = include_sponsored,
+        )
+    except Exception as e:
+        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get usage records", e)})
+
+
+@app.get("/user/{resource_id}/usage/stats")
+def get_usage_stats(
+    resource_id: str,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    exclude_self: bool = False,
+    include_sponsored: bool = False,
+    db = Depends(get_session),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
+) -> UsageAggregates:
+    try:
+        invoker_id_hex = get_user_id_from_jwt(token)
+        log.d(f"  Invoker ID: {invoker_id_hex}")
+        start_date_obj = datetime.fromisoformat(start_date) if start_date else None
+        end_date_obj = datetime.fromisoformat(end_date) if end_date else None
+        di = DI(db, invoker_id_hex)
+        return di.usage_controller.fetch_usage_aggregates(
+            user_id_hex = resource_id,
+            start_date = start_date_obj,
+            end_date = end_date_obj,
+            exclude_self = exclude_self,
+            include_sponsored = include_sponsored,
+        )
+    except Exception as e:
+        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get usage stats", e)})
+
+
 @app.get("/user/{user_id_hex}/connect-key")
 def get_connect_key(
     user_id_hex: str,
@@ -379,7 +440,7 @@ def connect_profiles(
 if __name__ == "__main__":
     if "--dev" in sys.argv:  # when running locally...
         os.environ["LOG_LEVEL"] = "debug"
-        config.log_level = "debug"
+        config.log_level = "trace"
         os.environ["API_KEY"] = "developer"
         config.api_key = SecretStr("developer")
         workers = 1

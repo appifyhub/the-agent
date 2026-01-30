@@ -59,8 +59,7 @@ class UsageTrackingService:
             total_tokens = total_tokens,
             search_tokens = search_tokens,
         )
-        log.d("LLM Usage Tracked", record)
-        return record
+        return self.__di.usage_record_repo.create(record)
 
     def track_image_model(
         self,
@@ -109,8 +108,7 @@ class UsageTrackingService:
             output_image_sizes = output_image_sizes,
             input_image_sizes = input_image_sizes,
         )
-        log.d("Image Usage Tracked", record)
-        return record
+        return self.__di.usage_record_repo.create(record)
 
     def track_api_call(
         self,
@@ -136,8 +134,7 @@ class UsageTrackingService:
             total_cost_credits = total_cost_credits,
             runtime_seconds = runtime_seconds,
         )
-        log.d("API Call Tracked", record)
-        return record
+        return self.__di.usage_record_repo.create(record)
 
     def __calculate_llm_cost(
         self,

@@ -30,6 +30,10 @@ class UsageTrackingServiceTest(unittest.TestCase):
         self.mock_di.require_invoker_chat = MagicMock(return_value = mock_chat)
         self.mock_di.invoker_chat = mock_chat
 
+        mock_repo = Mock()
+        mock_repo.create = MagicMock(side_effect = lambda x: x)
+        self.mock_di.usage_record_repo = mock_repo
+
         self.original_fee = config.usage_maintenance_fee_credits
         config.usage_maintenance_fee_credits = 1.0
 
@@ -434,3 +438,33 @@ class UsageTrackingServiceTest(unittest.TestCase):
         # Runtime cost should fallback to wall clock runtime_seconds (5 * 2 = 10)
         self.assertEqual(record.remote_runtime_cost_credits, 10.0)
         self.assertEqual(record.total_cost_credits, 0.1 + 10.0 + config.usage_maintenance_fee_credits)
+
+    def test_track_text_model_persists_to_repo(self):
+        tool = self._create_tool()
+        self.service.track_text_model(
+            tool = tool,
+            tool_purpose = ToolType.chat,
+            runtime_seconds = 1,
+            input_tokens = 100,
+            total_tokens = 100,
+        )
+        self.mock_di.usage_record_repo.create.assert_called_once()
+
+    def test_track_image_model_persists_to_repo(self):
+        tool = self._create_tool(output_image_1k = 10)
+        self.service.track_image_model(
+            tool = tool,
+            tool_purpose = ToolType.images_gen,
+            runtime_seconds = 1,
+            output_image_sizes = ["1k"],
+        )
+        self.mock_di.usage_record_repo.create.assert_called_once()
+
+    def test_track_api_call_persists_to_repo(self):
+        tool = self._create_tool(api_call = 5)
+        self.service.track_api_call(
+            tool = tool,
+            tool_purpose = ToolType.api_twitter,
+            runtime_seconds = 1,
+        )
+        self.mock_di.usage_record_repo.create.assert_called_once()

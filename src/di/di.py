@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from api.profile_connect_controller import ProfileConnectController
     from api.settings_controller import SettingsController
     from api.sponsorships_controller import SponsorshipsController
+    from api.usage_controller import UsageController
     from db.crud.chat_config import ChatConfigCRUD
     from db.crud.chat_message import ChatMessageCRUD
     from db.crud.chat_message_attachment import ChatMessageAttachmentCRUD
@@ -34,6 +35,7 @@ if TYPE_CHECKING:
     from features.accounting.decorators.openai_usage_tracking_decorator import OpenAIUsageTrackingDecorator
     from features.accounting.decorators.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
     from features.accounting.decorators.web_fetcher_usage_tracking_decorator import WebFetcherUsageTrackingDecorator
+    from features.accounting.repo.usage_record_repo import UsageRecordRepository
     from features.accounting.service.usage_tracking_service import UsageTrackingService
     from features.announcements.release_summary_service import ReleaseSummaryService
     from features.announcements.sys_announcements_service import SysAnnouncementsService
@@ -102,6 +104,7 @@ class DI:
     _sponsorship_crud: "SponsorshipCRUD | None"
     _tools_cache_crud: "ToolsCacheCRUD | None"
     _price_alert_crud: "PriceAlertCRUD | None"
+    _usage_record_repo: "UsageRecordRepository | None"
     # Services
     _sponsorship_service: "SponsorshipService | None"
     _profile_connect_service: "ProfileConnectService | None"
@@ -110,6 +113,7 @@ class DI:
     # Controllers
     _settings_controller: "SettingsController | None"
     _sponsorships_controller: "SponsorshipsController | None"
+    _usage_controller: "UsageController | None"
     _profile_connect_controller: "ProfileConnectController | None"
     # Internal tools
     _access_token_resolver: "AccessTokenResolver | None"
@@ -149,6 +153,7 @@ class DI:
         self._sponsorship_crud = None
         self._tools_cache_crud = None
         self._price_alert_crud = None
+        self._usage_record_repo = None
         # Services
         self._sponsorship_service = None
         self._profile_connect_service = None
@@ -157,6 +162,7 @@ class DI:
         # Controllers
         self._settings_controller = None
         self._sponsorships_controller = None
+        self._usage_controller = None
         self._profile_connect_controller = None
         # Internal tools
         self._access_token_resolver = None
@@ -350,6 +356,13 @@ class DI:
             self._price_alert_crud = PriceAlertCRUD(self.db)
         return self._price_alert_crud
 
+    @property
+    def usage_record_repo(self) -> "UsageRecordRepository":
+        if self._usage_record_repo is None:
+            from features.accounting.repo.usage_record_repo import UsageRecordRepository
+            self._usage_record_repo = UsageRecordRepository(self.db)
+        return self._usage_record_repo
+
     # === Services ===
 
     @property
@@ -395,6 +408,13 @@ class DI:
             from api.sponsorships_controller import SponsorshipsController
             self._sponsorships_controller = SponsorshipsController(self)
         return self._sponsorships_controller
+
+    @property
+    def usage_controller(self) -> "UsageController":
+        if self._usage_controller is None:
+            from api.usage_controller import UsageController
+            self._usage_controller = UsageController(self)
+        return self._usage_controller
 
     @property
     def profile_connect_controller(self) -> "ProfileConnectController":
