@@ -40,6 +40,7 @@ pillow = "*"
 pytest = "*"
 requests-mock = "*"
 ruff = "*"
+the-agent = {path = ".", editable = true}
 
 [requires]
 # Python 3.12: keep in sync with pyproject.toml

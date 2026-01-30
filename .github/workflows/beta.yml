@@ -30,8 +30,10 @@ jobs:
         with:
           python-version: "3.12.6"
 
-      - name: Install pipenv
-        run: pip install --no-cache-dir pipenv
+      - name: Install dependencies
+        run: |
+          pip install --no-cache-dir pipenv
+          pipenv install --dev
 
       - name: Lint checks
         run: ./tools/run_lint.sh
@@ -39,7 +41,8 @@ jobs:
       - name: Test the service
         env:
           BUILD_QUALITY: "BETA"
-        run: ./tools/run_tests.sh
+          LOG_LEVEL: "trace"
+        run: pipenv run pytest -v
 
       - name: Build Docker image
         run: docker build . --file Dockerfile --tag the-agent
