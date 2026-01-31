@@ -79,7 +79,7 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
             configured_tool = self.mock_configured_image_gen_tool,
             prompt = "Refined prompt",
             aspect_ratio = None,
-            size = None,
+            output_size = None,
         )
         # noinspection PyUnresolvedReferences
         self.mock_platform_sdk.smart_send_photo.assert_called_once_with(
