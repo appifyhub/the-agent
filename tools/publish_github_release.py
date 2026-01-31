@@ -3,6 +3,7 @@ import datetime
 import json
 import os
 import re
+import tomllib
 from typing import Any
 
 import requests
@@ -66,13 +67,14 @@ print("✅  GitHub token is set")
 target_version: str | None = os.getenv("VERSION")
 if not target_version:
     try:
-        with open(".version", "r") as file:
-            target_version = file.read().strip()
+        with open("pyproject.toml", "rb") as file:
+            data = tomllib.load(file)
+            target_version = data.get("project", {}).get("version", "").strip()
             if not target_version:
-                print("❌  Version file is empty")
+                print("❌  Version field empty in pyproject.toml")
                 exit(1)
     except Exception:
-        print("❌  Set 'VERSION' environment variable or create a .version file to enable GitHub releases")
+        print("❌  Set 'VERSION' environment variable or ensure pyproject.toml exists with a valid version")
         exit(1)
 print(f"✅  Version is set to {target_version}")
 
