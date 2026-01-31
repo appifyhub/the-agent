@@ -189,13 +189,14 @@ class UsageRecordRepositoryTest(unittest.TestCase):
 
         self.assertEqual(stats.total_records, 3)
         self.assertEqual(stats.total_cost_credits, 35.0)
+        self.assertEqual(stats.total_runtime_seconds, 3.0)
 
-        # by_tool
+        # by_tool (keyed by tool_id)
         self.assertEqual(len(stats.by_tool), 2)
-        self.assertEqual(stats.by_tool[GPT_4O.name].record_count, 2)
-        self.assertEqual(stats.by_tool[GPT_4O.name].total_cost, 15.0)
-        self.assertEqual(stats.by_tool[CLAUDE_3_5_HAIKU.name].record_count, 1)
-        self.assertEqual(stats.by_tool[CLAUDE_3_5_HAIKU.name].total_cost, 20.0)
+        self.assertEqual(stats.by_tool[GPT_4O.id].record_count, 2)
+        self.assertEqual(stats.by_tool[GPT_4O.id].total_cost, 15.0)
+        self.assertEqual(stats.by_tool[CLAUDE_3_5_HAIKU.id].record_count, 1)
+        self.assertEqual(stats.by_tool[CLAUDE_3_5_HAIKU.id].total_cost, 20.0)
 
         # by_purpose
         self.assertEqual(len(stats.by_purpose), 2)
@@ -204,16 +205,17 @@ class UsageRecordRepositoryTest(unittest.TestCase):
         self.assertEqual(stats.by_purpose[ToolType.images_gen.value].record_count, 1)
         self.assertEqual(stats.by_purpose[ToolType.images_gen.value].total_cost, 20.0)
 
-        # by_provider
+        # by_provider (keyed by provider_id)
         self.assertEqual(len(stats.by_provider), 2)
-        self.assertEqual(stats.by_provider[GPT_4O.provider.name].record_count, 2)
-        self.assertEqual(stats.by_provider[GPT_4O.provider.name].total_cost, 15.0)
-        self.assertEqual(stats.by_provider[CLAUDE_3_5_HAIKU.provider.name].record_count, 1)
-        self.assertEqual(stats.by_provider[CLAUDE_3_5_HAIKU.provider.name].total_cost, 20.0)
+        self.assertEqual(stats.by_provider[GPT_4O.provider.id].record_count, 2)
+        self.assertEqual(stats.by_provider[GPT_4O.provider.id].total_cost, 15.0)
+        self.assertEqual(stats.by_provider[CLAUDE_3_5_HAIKU.provider.id].record_count, 1)
+        self.assertEqual(stats.by_provider[CLAUDE_3_5_HAIKU.provider.id].total_cost, 20.0)
 
-        # all_*_used lists
-        self.assertIn(GPT_4O.name, stats.all_tools_used)
-        self.assertIn(CLAUDE_3_5_HAIKU.name, stats.all_tools_used)
+        # all_tools_used (list of ToolInfo)
+        tool_ids = [t.id for t in stats.all_tools_used]
+        self.assertIn(GPT_4O.id, tool_ids)
+        self.assertIn(CLAUDE_3_5_HAIKU.id, tool_ids)
         self.assertIn(ToolType.chat.value, stats.all_purposes_used)
         self.assertIn(ToolType.images_gen.value, stats.all_purposes_used)
 
@@ -222,6 +224,7 @@ class UsageRecordRepositoryTest(unittest.TestCase):
 
         self.assertEqual(stats.total_records, 0)
         self.assertEqual(stats.total_cost_credits, 0.0)
+        self.assertEqual(stats.total_runtime_seconds, 0.0)
         self.assertEqual(len(stats.by_tool), 0)
         self.assertEqual(len(stats.by_purpose), 0)
         self.assertEqual(len(stats.by_provider), 0)
@@ -262,3 +265,75 @@ class UsageRecordRepositoryTest(unittest.TestCase):
 
         self.assertEqual(stats.total_records, 2)
         self.assertEqual(stats.total_cost_credits, 30.0)
+
+    def test_get_by_user_tool_filter(self):
+        self.repo.create(self._create_record(tool = GPT_4O))
+        self.repo.create(self._create_record(tool = GPT_4O))
+        self.repo.create(self._create_record(tool = CLAUDE_3_5_HAIKU))
+
+        records = self.repo.get_by_user(self.user.id, tool_id = GPT_4O.id)
+
+        self.assertEqual(len(records), 2)
+        for r in records:
+            self.assertEqual(r.tool.id, GPT_4O.id)
+
+    def test_get_by_user_purpose_filter(self):
+        self.repo.create(self._create_record(tool_purpose = ToolType.chat))
+        self.repo.create(self._create_record(tool_purpose = ToolType.chat))
+        self.repo.create(self._create_record(tool_purpose = ToolType.images_gen))
+
+        records = self.repo.get_by_user(self.user.id, purpose = ToolType.chat.value)
+
+        self.assertEqual(len(records), 2)
+        for r in records:
+            self.assertEqual(r.tool_purpose, ToolType.chat)
+
+    def test_get_by_user_provider_filter(self):
+        self.repo.create(self._create_record(tool = GPT_4O))
+        self.repo.create(self._create_record(tool = GPT_4O))
+        self.repo.create(self._create_record(tool = CLAUDE_3_5_HAIKU))
+
+        records = self.repo.get_by_user(self.user.id, provider_id = GPT_4O.provider.id)
+
+        self.assertEqual(len(records), 2)
+        for r in records:
+            self.assertEqual(r.tool.provider.id, GPT_4O.provider.id)
+
+    def test_get_aggregates_by_user_with_filter_keeps_all_lists_unfiltered(self):
+        # Create records with different tools
+        self.repo.create(self._create_record(
+            tool = GPT_4O,
+            tool_purpose = ToolType.chat,
+            total_cost_credits = 10,
+        ))
+        self.repo.create(self._create_record(
+            tool = CLAUDE_3_5_HAIKU,
+            tool_purpose = ToolType.images_gen,
+            total_cost_credits = 20,
+        ))
+
+        # Filter by GPT_4O only
+        stats = self.repo.get_aggregates_by_user(self.user.id, tool_id = GPT_4O.id)
+
+        # Totals should be filtered (only GPT_4O)
+        self.assertEqual(stats.total_records, 1)
+        self.assertEqual(stats.total_cost_credits, 10.0)
+        self.assertEqual(len(stats.by_tool), 1)
+        self.assertIn(GPT_4O.id, stats.by_tool)
+
+        # But all_*_used lists should include ALL tools in the date range (unfiltered)
+        tool_ids = [t.id for t in stats.all_tools_used]
+        self.assertEqual(len(tool_ids), 2)
+        self.assertIn(GPT_4O.id, tool_ids)
+        self.assertIn(CLAUDE_3_5_HAIKU.id, tool_ids)
+
+        # Same for purposes
+        self.assertEqual(len(stats.all_purposes_used), 2)
+        self.assertIn(ToolType.chat.value, stats.all_purposes_used)
+        self.assertIn(ToolType.images_gen.value, stats.all_purposes_used)
+
+        # Same for providers
+        provider_ids = [p.id for p in stats.all_providers_used]
+        self.assertEqual(len(provider_ids), 2)
+        self.assertIn(GPT_4O.provider.id, provider_ids)
+        self.assertIn(CLAUDE_3_5_HAIKU.provider.id, provider_ids)

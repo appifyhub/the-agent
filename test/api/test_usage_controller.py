@@ -11,7 +11,7 @@ from db.model.user import UserDB
 from db.schema.user import User
 from di.di import DI
 from features.accounting.repo.usage_record_repo import UsageRecordRepository
-from features.accounting.stats.usage_aggregates import AggregateStats, ProviderInfo, UsageAggregates
+from features.accounting.stats.usage_aggregates import AggregateStats, ProviderInfo, ToolInfo, UsageAggregates
 from features.accounting.stats.usage_record import UsageRecord
 from features.external_tools.external_tool import ToolType
 from features.external_tools.external_tool_library import GPT_4O
@@ -121,6 +121,9 @@ class UsageControllerTest(unittest.TestCase):
             end_date = None,
             exclude_self = False,
             include_sponsored = False,
+            tool_id = None,
+            purpose = None,
+            provider_id = None,
         )
 
     def test_fetch_usage_records_with_date_filters(self):
@@ -145,6 +148,9 @@ class UsageControllerTest(unittest.TestCase):
             end_date = end,
             exclude_self = False,
             include_sponsored = False,
+            tool_id = None,
+            purpose = None,
+            provider_id = None,
         )
 
     def test_fetch_usage_records_with_sponsored_flags(self):
@@ -165,6 +171,9 @@ class UsageControllerTest(unittest.TestCase):
             end_date = None,
             exclude_self = True,
             include_sponsored = True,
+            tool_id = None,
+            purpose = None,
+            provider_id = None,
         )
 
     def test_fetch_usage_records_empty_result(self):
@@ -204,12 +213,13 @@ class UsageControllerTest(unittest.TestCase):
         aggregates = UsageAggregates(
             total_records = 10,
             total_cost_credits = 100.0,
+            total_runtime_seconds = 15.0,
             by_tool = {"gpt-4o": AggregateStats(record_count = 10, total_cost = 100.0)},
             by_purpose = {"chat": AggregateStats(record_count = 10, total_cost = 100.0)},
-            by_provider = {"openai": AggregateStats(record_count = 10, total_cost = 100.0)},
-            all_tools_used = ["gpt-4o"],
+            by_provider = {"open-ai": AggregateStats(record_count = 10, total_cost = 100.0)},
+            all_tools_used = [ToolInfo(id = "gpt-4o", name = "GPT 4o")],
             all_purposes_used = ["chat"],
-            all_providers_used = [ProviderInfo(id = "openai", name = "OpenAI")],
+            all_providers_used = [ProviderInfo(id = "open-ai", name = "OpenAI")],
         )
         self.mock_usage_record_repo.get_aggregates_by_user.return_value = aggregates
 
@@ -218,9 +228,10 @@ class UsageControllerTest(unittest.TestCase):
 
         self.assertEqual(result.total_records, 10)
         self.assertEqual(result.total_cost_credits, 100.0)
+        self.assertEqual(result.total_runtime_seconds, 15.0)
         self.assertIn("gpt-4o", result.by_tool)
         self.assertIn("chat", result.by_purpose)
-        self.assertIn("openai", result.by_provider)
+        self.assertIn("open-ai", result.by_provider)
         self.mock_authorization_service.authorize_for_user.assert_called_once_with(
             self.invoker_user, self.invoker_user.id.hex,
         )
@@ -231,6 +242,7 @@ class UsageControllerTest(unittest.TestCase):
         aggregates = UsageAggregates(
             total_records = 0,
             total_cost_credits = 0.0,
+            total_runtime_seconds = 0.0,
             by_tool = {},
             by_purpose = {},
             by_provider = {},
@@ -253,12 +265,16 @@ class UsageControllerTest(unittest.TestCase):
             end_date = end,
             exclude_self = False,
             include_sponsored = False,
+            tool_id = None,
+            purpose = None,
+            provider_id = None,
         )
 
     def test_fetch_usage_aggregates_with_sponsored_flags(self):
         aggregates = UsageAggregates(
             total_records = 0,
             total_cost_credits = 0.0,
+            total_runtime_seconds = 0.0,
             by_tool = {},
             by_purpose = {},
             by_provider = {},
@@ -281,6 +297,9 @@ class UsageControllerTest(unittest.TestCase):
             end_date = None,
             exclude_self = True,
             include_sponsored = True,
+            tool_id = None,
+            purpose = None,
+            provider_id = None,
         )
 
     def test_fetch_usage_aggregates_authorization_failure(self):
@@ -298,6 +317,7 @@ class UsageControllerTest(unittest.TestCase):
         aggregates = UsageAggregates(
             total_records = 0,
             total_cost_credits = 0.0,
+            total_runtime_seconds = 0.0,
             by_tool = {},
             by_purpose = {},
             by_provider = {},
@@ -312,5 +332,6 @@ class UsageControllerTest(unittest.TestCase):
 
         self.assertEqual(result.total_records, 0)
         self.assertEqual(result.total_cost_credits, 0.0)
+        self.assertEqual(result.total_runtime_seconds, 0.0)
         self.assertEqual(len(result.by_tool), 0)
         self.assertEqual(len(result.all_tools_used), 0)

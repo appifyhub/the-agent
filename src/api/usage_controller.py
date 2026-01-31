@@ -22,6 +22,9 @@ class UsageController:
         end_date: datetime | None = None,
         exclude_self: bool = False,
         include_sponsored: bool = False,
+        tool_id: str | None = None,
+        purpose: str | None = None,
+        provider_id: str | None = None,
     ) -> list[UsageRecord]:
         log.d(f"Fetching usage records for user '{user_id_hex}'")
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
@@ -33,6 +36,9 @@ class UsageController:
             end_date = end_date,
             exclude_self = exclude_self,
             include_sponsored = include_sponsored,
+            tool_id = tool_id,
+            purpose = purpose,
+            provider_id = provider_id,
         )
 
     def fetch_usage_aggregates(
@@ -42,6 +48,9 @@ class UsageController:
         end_date: datetime | None = None,
         exclude_self: bool = False,
         include_sponsored: bool = False,
+        tool_id: str | None = None,
+        purpose: str | None = None,
+        provider_id: str | None = None,
     ) -> UsageAggregates:
         log.d(f"Fetching usage aggregates for user '{user_id_hex}'")
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
@@ -51,4 +60,7 @@ class UsageController:
             end_date = end_date,
             exclude_self = exclude_self,
             include_sponsored = include_sponsored,
+            tool_id = tool_id,
+            purpose = purpose,
+            provider_id = provider_id,
         )

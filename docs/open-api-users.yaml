@@ -431,6 +431,24 @@ paths:
             type: boolean
             default: false
           description: Include stats from all users sponsored by current user
+        - name: tool_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter aggregates to a specific tool by its ID (e.g., "gpt-4o", "claude-3-5-haiku-latest")
+        - name: purpose
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter aggregates to a specific purpose (e.g., "chat", "images_gen", "vision")
+        - name: provider_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter aggregates to a specific provider by its ID (e.g., "open-ai", "anthropic", "google-ai")
       responses:
         "200":
           description: Usage statistics retrieved successfully
@@ -1216,10 +1234,15 @@ components:
           format: float
           nullable: false
           description: Total cost in credits for all usage records
+        total_runtime_seconds:
+          type: number
+          format: float
+          nullable: false
+          description: Total runtime in seconds for all usage records
         by_tool:
           type: object
           nullable: false
-          description: Aggregated stats grouped by tool name
+          description: Aggregated stats grouped by tool ID (keyed by tool_id for filtering)
           additionalProperties:
             $ref: "#/components/schemas/AggregateStats"
         by_purpose:
@@ -1231,15 +1254,15 @@ components:
         by_provider:
           type: object
           nullable: false
-          description: Aggregated stats grouped by provider name
+          description: Aggregated stats grouped by provider ID (keyed by provider_id for filtering)
           additionalProperties:
             $ref: "#/components/schemas/AggregateStats"
         all_tools_used:
           type: array
           nullable: false
           items:
-            type: string
-          description: List of distinct tool names used in the timeframe (for dropdown filters)
+            $ref: "#/components/schemas/ToolInfo"
+          description: List of distinct tools used in the timeframe (for dropdown filters)
         all_purposes_used:
           type: array
           nullable: false
@@ -1255,6 +1278,7 @@ components:
       required:
         - total_records
         - total_cost_credits
+        - total_runtime_seconds
         - by_tool
         - by_purpose
         - by_provider
@@ -1278,15 +1302,32 @@ components:
         - record_count
         - total_cost
 
+    ToolInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: false
+          description: Tool ID for filtering (e.g., "gpt-4o", "claude-3-5-haiku-latest")
+        name:
+          type: string
+          nullable: false
+          description: Tool display name (e.g., "GPT 4o", "Claude 3.5 Haiku")
+      required:
+        - id
+        - name
+
     ProviderInfo:
       type: object
       properties:
         id:
           type: string
           nullable: false
+          description: Provider ID for filtering (e.g., "open-ai", "anthropic")
         name:
           type: string
           nullable: false
+          description: Provider display name (e.g., "OpenAI", "Anthropic")
       required:
         - id
         - name

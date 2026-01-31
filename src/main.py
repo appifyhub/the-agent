@@ -333,6 +333,9 @@ def get_usage_records(
     end_date: str | None = None,
     exclude_self: bool = False,
     include_sponsored: bool = False,
+    tool_id: str | None = None,
+    purpose: str | None = None,
+    provider_id: str | None = None,
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> list[UsageRecord]:
@@ -350,6 +353,9 @@ def get_usage_records(
             end_date = end_date_obj,
             exclude_self = exclude_self,
             include_sponsored = include_sponsored,
+            tool_id = tool_id,
+            purpose = purpose,
+            provider_id = provider_id,
         )
     except Exception as e:
         raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get usage records", e)})
@@ -362,6 +368,9 @@ def get_usage_stats(
     end_date: str | None = None,
     exclude_self: bool = False,
     include_sponsored: bool = False,
+    tool_id: str | None = None,
+    purpose: str | None = None,
+    provider_id: str | None = None,
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> UsageAggregates:
@@ -377,6 +386,9 @@ def get_usage_stats(
             end_date = end_date_obj,
             exclude_self = exclude_self,
             include_sponsored = include_sponsored,
+            tool_id = tool_id,
+            purpose = purpose,
+            provider_id = provider_id,
         )
     except Exception as e:
         raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get usage stats", e)})
@@ -440,7 +452,7 @@ def connect_profiles(
 if __name__ == "__main__":
     if "--dev" in sys.argv:  # when running locally...
         os.environ["LOG_LEVEL"] = "debug"
-        config.log_level = "trace"
+        config.log_level = "debug"
         os.environ["API_KEY"] = "developer"
         config.api_key = SecretStr("developer")
         workers = 1
