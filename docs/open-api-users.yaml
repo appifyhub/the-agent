@@ -372,6 +372,24 @@ paths:
             type: boolean
             default: false
           description: Include usage records from all users sponsored by current user
+        - name: tool_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter records to a specific tool by its ID (e.g., "gpt-4o", "claude-3-5-haiku-latest")
+        - name: purpose
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter records to a specific purpose (e.g., "chat", "images_gen", "vision")
+        - name: provider_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter records to a specific provider by its ID (e.g., "open-ai", "anthropic", "google-ai")
       responses:
         "200":
           description: Usage records retrieved successfully
