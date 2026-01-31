@@ -32,9 +32,9 @@ langchain-anthropic = "*"
 langchain-google-genai = "*"
 readabilipy = "*"
 langchain-perplexity = "*"
-google-genai = "*"
 pyuploadcare = "*"
 pillow = "*"
+google-genai = "*"
 
 [dev-packages]
 pytest = "*"

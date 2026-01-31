@@ -711,12 +711,12 @@
         },
         "google-genai": {
             "hashes": [
-                "sha256:967338378ffecebec19a8ed90cf8797b26818bacbefd7846a9280beb1099f7f3",
-                "sha256:9768061775fddfaecfefb0d6d7a6cabefb3952ebd246cd5f65247151c07d33d1"
+                "sha256:5773a4e8ad5b2ebcd54a633a67d8e9c4f413032fef07977ee47ffa34a6d3bbdf",
+                "sha256:cb073ef8287581476c1c3f4d8e735426ee34478e500a56deef218fa93071e3ca"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.10'",
-            "version": "==1.60.0"
+            "version": "==1.61.0"
         },
         "gunicorn": {
             "hashes": [
@@ -1023,11 +1023,11 @@
         },
         "langsmith": {
             "hashes": [
-                "sha256:64ba70e7b795cff3c498fe6f2586314da1cc855471a5e5b6a357950324af3874",
-                "sha256:fe655e73b198cd00d0ecd00a26046eaf1f78cd0b2f0d94d1e5591f3143c5f592"
+                "sha256:4bd4372b8bf724b86314f64644562b5598407614e04e74b536c09490d153bd61",
+                "sha256:d89c604a18fc606b7835d8e7924f7cdbe130ca2207bdff8f989590e50d65b802"
             ],
             "markers": "python_version >= '3.10'",
-            "version": "==0.6.6"
+            "version": "==0.6.7"
         },
         "lxml": {
             "hashes": [
