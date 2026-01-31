@@ -104,15 +104,27 @@ class SettingsController:
     def fetch_external_tools(self, user_id_hex: str) -> dict[str, Any]:
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
         scoped_di = self.__di.clone(invoker_id = user.id.hex)
-        tools: List[ExternalToolResponse] = []
-        providers: List[ExternalToolProviderResponse] = []
-        for tool in ALL_EXTERNAL_TOOLS:
-            is_configured = scoped_di.access_token_resolver.get_access_token_for_tool(tool) is not None
-            tools.append(ExternalToolResponse(tool, is_configured))
-        for provider in ALL_PROVIDERS:
+
+        # build the provider list first because we will need it to sort the tools (and check access from cache)
+        providers_response: List[ExternalToolProviderResponse] = []
+        provider_is_configured_cache: dict[str, bool] = {}
+        provider_sort_order: dict[str, int] = {}
+        for i, provider in enumerate(ALL_PROVIDERS):
             is_configured = scoped_di.access_token_resolver.get_access_token(provider) is not None
-            providers.append(ExternalToolProviderResponse(provider, is_configured))
-        return asdict(ExternalToolsResponse(tools, providers))
+            providers_response.append(ExternalToolProviderResponse(provider, is_configured))
+            provider_is_configured_cache[provider.id] = is_configured
+            provider_sort_order[provider.id] = i
+
+        # now we build the tool list using cached information
+        tools_response: List[ExternalToolResponse] = []
+        for tool in ALL_EXTERNAL_TOOLS:
+            is_configured = provider_is_configured_cache[tool.provider.id]
+            tools_response.append(ExternalToolResponse(tool, is_configured))
+
+        # and finally, we sort the tools by [1] provider order and [2] tool name
+        tools_response.sort(key = lambda t: (provider_sort_order[t.definition.provider.id], t.definition.name))
+
+        return asdict(ExternalToolsResponse(tools_response, providers_response))
 
     def fetch_chat_settings(self, chat_id: str) -> dict[str, Any]:
         chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, chat_id)

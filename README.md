@@ -84,14 +84,19 @@ $ ./tools/run_prod.sh
 
 To run the development mode:
 
-```console
 $ ./tools/run_dev.sh
+```
+
+To run lint checks (and auto-fix):
+
+```console
+$ ./tools/run_lint.sh --fix
 ```
 
 And most importantly, to run all tests:
 
 ```console
-$ ./tools/run_tests.sh
+$ pipenv run pytest -v
 ```
 
 > Follow the command line instructions for more information during the execution of the scripts.

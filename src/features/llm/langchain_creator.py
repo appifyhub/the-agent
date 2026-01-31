@@ -16,13 +16,13 @@ from util.config import config
 
 
 def create(configured_tool: ConfiguredTool) -> BaseChatModel:
-    tool, api_key, purpose = configured_tool
+    definition, token, purpose = configured_tool
 
-    model_name = tool.id
+    model_name = definition.id
     temperature_percent = __get_temperature_percent(purpose)
-    temperature = __normalize_temperature(temperature_percent, tool.provider)
+    temperature = __normalize_temperature(temperature_percent, definition.provider)
     max_tokens = __get_max_tokens(purpose)
-    timeout = __get_timeout(purpose, tool)
+    timeout = __get_timeout(purpose, definition)
     max_retries = config.web_retries
 
     model_args = {
@@ -31,10 +31,10 @@ def create(configured_tool: ConfiguredTool) -> BaseChatModel:
         "max_tokens": max_tokens,
         "timeout": timeout,
         "max_retries": max_retries,
-        "api_key": api_key,
+        "api_key": token,
     }
 
-    match tool.provider.id:
+    match definition.provider.id:
         case OPEN_AI.id:
             return ChatOpenAI(**model_args)
         case ANTHROPIC.id:
@@ -43,7 +43,7 @@ def create(configured_tool: ConfiguredTool) -> BaseChatModel:
             return ChatPerplexity(**model_args)
         case GOOGLE_AI.id:
             return ChatGoogleGenerativeAI(**model_args)
-    raise ValueError(f"{tool.provider.name}/{tool.name} does not support LLMs")
+    raise ValueError(f"{definition.provider.name}/{definition.name} does not support LLMs")
 
 
 def __get_temperature_percent(tool_type: ToolType) -> float:

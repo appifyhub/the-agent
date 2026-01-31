@@ -178,12 +178,6 @@ class ProfileConnectService:
             merged.tool_choice_images_gen = casualty.tool_choice_images_gen
         if not merged.tool_choice_images_edit and casualty.tool_choice_images_edit:
             merged.tool_choice_images_edit = casualty.tool_choice_images_edit
-        if not merged.tool_choice_images_restoration and casualty.tool_choice_images_restoration:
-            merged.tool_choice_images_restoration = casualty.tool_choice_images_restoration
-        if not merged.tool_choice_images_inpainting and casualty.tool_choice_images_inpainting:
-            merged.tool_choice_images_inpainting = casualty.tool_choice_images_inpainting
-        if not merged.tool_choice_images_background_removal and casualty.tool_choice_images_background_removal:
-            merged.tool_choice_images_background_removal = casualty.tool_choice_images_background_removal
         if not merged.tool_choice_search and casualty.tool_choice_search:
             merged.tool_choice_search = casualty.tool_choice_search
         if not merged.tool_choice_embedding and casualty.tool_choice_embedding:

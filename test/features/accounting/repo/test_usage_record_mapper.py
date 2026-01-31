@@ -1,0 +1,119 @@
+import unittest
+import uuid
+from datetime import datetime, timezone
+from unittest.mock import patch
+
+from db.model.usage_record import UsageRecordDB
+from features.accounting.repo.usage_record_mapper import db, domain
+from features.accounting.stats.usage_record import UsageRecord
+from features.external_tools.external_tool import ToolType
+from features.external_tools.external_tool_library import GPT_4O
+
+
+class UsageRecordMapperTest(unittest.TestCase):
+
+    def setUp(self):
+        self.maxDiff = None
+        # Use a real tool as requested by the user
+        self.tool = GPT_4O
+
+        self.db_record = UsageRecordDB(
+            id = uuid.uuid4(),
+            user_id = uuid.uuid4(),
+            chat_id = uuid.uuid4(),
+            tool_id = self.tool.id,
+            tool_name = self.tool.name,
+            provider_id = self.tool.provider.id,
+            provider_name = self.tool.provider.name,
+            purpose = "chat",
+            timestamp = datetime.now(timezone.utc),
+            runtime_seconds = 1.5,
+            remote_runtime_seconds = 0.5,
+            model_cost_credits = 0.1,
+            remote_runtime_cost_credits = 0.2,
+            api_call_cost_credits = 0.3,
+            maintenance_fee_credits = 0.4,
+            total_cost_credits = 1.0,
+            input_tokens = 100,
+            output_tokens = 200,
+            search_tokens = 50,
+            total_tokens = 350,
+            output_image_sizes = ["1024x1024"],
+            input_image_sizes = ["512x512"],
+        )
+
+        self.domain_record = UsageRecord(
+            user_id = self.db_record.user_id,
+            chat_id = self.db_record.chat_id,
+            tool = self.tool,
+            tool_purpose = ToolType.chat,
+            timestamp = self.db_record.timestamp,
+            runtime_seconds = 1.5,
+            remote_runtime_seconds = 0.5,
+            model_cost_credits = 0.1,
+            remote_runtime_cost_credits = 0.2,
+            api_call_cost_credits = 0.3,
+            maintenance_fee_credits = 0.4,
+            total_cost_credits = 1.0,
+            input_tokens = 100,
+            output_tokens = 200,
+            search_tokens = 50,
+            total_tokens = 350,
+            output_image_sizes = ["1024x1024"],
+            input_image_sizes = ["512x512"],
+        )
+
+    def test_domain_to_db_none(self):
+        db_obj = db(None)
+        self.assertIsNone(db_obj)
+
+    def test_domain_to_db(self):
+        # The mapper.db function takes a domain model and returns a DB model
+        # Note: generated IDs like 'id' are not part of domain model usually, but created by DB or passed in.
+        # UsageRecord domain model doesn't have an ID.
+
+        db_obj = db(self.domain_record)
+
+        self.assertIsInstance(db_obj, UsageRecordDB)
+        self.assertEqual(db_obj.user_id, self.domain_record.user_id)
+        self.assertEqual(db_obj.tool_id, self.tool.id)
+        self.assertEqual(db_obj.timestamp, self.domain_record.timestamp)
+        self.assertEqual(db_obj.output_image_sizes, ["1024x1024"])
+        self.assertEqual(db_obj.total_cost_credits, 1.0)
+        self.assertEqual(db_obj.purpose, "chat")
+
+    def test_db_to_domain(self):
+        # The domain() mapper iterates over ALL_EXTERNAL_TOOLS imported in the module.
+        # Since we are using a real tool (GPT_4O), it should be found automatically.
+
+        domain_obj = domain(self.db_record)
+
+        self.assertIsInstance(domain_obj, UsageRecord)
+        self.assertEqual(domain_obj.user_id, self.db_record.user_id)
+        self.assertEqual(domain_obj.tool.id, self.tool.id)
+        self.assertEqual(domain_obj.tool.name, self.tool.name)
+        self.assertEqual(domain_obj.output_image_sizes, ["1024x1024"])
+        self.assertEqual(domain_obj.total_cost_credits, 1.0)
+
+        # Verify tool_purpose conversion string -> Enum
+        self.assertEqual(domain_obj.tool_purpose, ToolType.chat)
+
+    def test_db_to_domain_none(self):
+        domain_obj = domain(None)
+        self.assertIsNone(domain_obj)
+
+    def test_db_to_domain_deprecated_tool_and_purpose(self):
+        # Test case where tool is not found in library and purpose is invalid
+        self.db_record.purpose = "unknown_purpose_that_does_not_exist"
+
+        with patch("features.accounting.repo.usage_record_mapper.ALL_EXTERNAL_TOOLS", []):
+            domain_obj = domain(self.db_record)
+
+            self.assertIsInstance(domain_obj, UsageRecord)
+            # Should have reconstructed a deprecated tool
+            self.assertEqual(domain_obj.tool.id, self.tool.id)
+            self.assertEqual(domain_obj.tool.name, self.tool.name)
+            self.assertEqual(domain_obj.tool.types, [])
+            self.assertEqual(domain_obj.tool.provider.id, self.tool.provider.id)
+            # Purpose should fall back to deprecated
+            self.assertEqual(domain_obj.tool_purpose, ToolType.deprecated)
