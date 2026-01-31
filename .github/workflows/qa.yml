@@ -56,7 +56,7 @@ jobs:
         env:
           PR_NUMBER: ${{ github.event.number }}
         run: |
-          VERSION=$(cat .version | tr -d '[:space:]')
+          VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
           echo "Tagging images with version '$VERSION'..."
           docker tag the-agent docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:"$VERSION".pr_$PR_NUMBER
           docker tag the-agent docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:latest_pr
@@ -67,7 +67,7 @@ jobs:
         env:
           PR_NUMBER: ${{ github.event.number }}
         run: |
-          VERSION=$(cat .version | tr -d '[:space:]')
+          VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
           echo "Publishing images with version '$VERSION'..."
           docker push docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:"$VERSION".pr_$PR_NUMBER
           docker push docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:latest_pr
@@ -79,7 +79,7 @@ jobs:
           TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
           PR_NUMBER: ${{ github.event.number }}
         run: |
-          VERSION=$(cat .version | tr -d '[:space:]')
+          VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
           docker login docker.io -u $USER -p $TOKEN
           echo "Publishing images with version '$VERSION'..."
           docker push appifyhub/the-agent:"$VERSION".pr_$PR_NUMBER

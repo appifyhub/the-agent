@@ -54,7 +54,7 @@ jobs:
 
       - name: Tag Docker image
         run: |
-          VERSION=$(cat .version | tr -d '[:space:]')
+          VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
           echo "Tagging images with version '$VERSION'..."
           docker tag the-agent docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:$VERSION
           docker tag the-agent docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:latest
@@ -63,7 +63,7 @@ jobs:
 
       - name: Publish Docker images to GitHub
         run: |
-          VERSION=$(cat .version | tr -d '[:space:]')
+          VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
           echo "Publishing images with version '$VERSION'..."
           docker push docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:$VERSION
           docker push docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:latest
@@ -74,7 +74,7 @@ jobs:
           USER: ${{ secrets.DOCKER_HUB_USER }}
           TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
         run: |
-          VERSION=$(cat .version | tr -d '[:space:]')
+          VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
           docker login docker.io -u $USER -p $TOKEN
           echo "Publishing images with version '$VERSION'..."
           docker push appifyhub/the-agent:$VERSION

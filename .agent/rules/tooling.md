@@ -32,7 +32,7 @@ trigger: always_on
 
 - All scripts are in `tools` directory and use common `messages.sh` for colored output
 - Scripts validate project root location and fail safely if run from wrong directory
-- Version is managed through `.version` file in project root
+- Version is managed through `pyproject.toml` in project root
 - You can see other rules in `.cursor` directory, if you need those rules
 - You can see the CI/CD pipeline in `.github/workflows` directory
 - You can see the API docs in `docs/` directory (keep it updated!)

@@ -3,6 +3,7 @@ import os
 import random
 import subprocess
 import sys
+import tomllib
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
@@ -474,16 +475,18 @@ if __name__ == "__main__":
     uvicorn_log_level = "debug" if config.log_level == "local" else config.log_level
 
     # get the service version
-    if (version_file := Path("./.version")).exists():
-        version_name = version_file.read_text().strip()
+    if (pyproject_file := Path("./pyproject.toml")).exists():
+        with open(pyproject_file, "rb") as f:
+            data = tomllib.load(f)
+            version_name = data.get("project", {}).get("version", "").strip()
         if version_name:
             os.environ["VERSION"] = version_name
             config.version = version_name
-            print("INFO:     Version file found", f"v{config.version}")
+            print("INFO:     Version loaded from pyproject.toml", f"v{config.version}")
         else:
-            print("ERROR:    Version file empty", file = sys.stderr)
+            print("WARN:     Version field empty in pyproject.toml, using dev version", file = sys.stderr)
     else:
-        print("ERROR:    Version file not found, using dev version", file = sys.stderr)
+        print("WARN:     pyproject.toml not found, using dev version", file = sys.stderr)
 
     # finally, start the server
     uvicorn.run(
