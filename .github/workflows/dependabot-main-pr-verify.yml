@@ -61,9 +61,8 @@ jobs:
       - name: Test the service
         env:
           BUILD_QUALITY: "PR"
-        run: |
-          pip install --no-cache-dir pipenv
-          ./tools/run_tests.sh
+          LOG_LEVEL: "trace"
+        run: pipenv run pytest -v
 
       - name: Label PR as verified
         uses: actions-ecosystem/action-add-labels@v1

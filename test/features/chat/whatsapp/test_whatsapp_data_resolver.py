@@ -324,9 +324,6 @@ class WhatsAppDataResolverTest(unittest.TestCase):
             tool_choice_hearing = "openai",
             tool_choice_images_gen = "replicate",
             tool_choice_images_edit = "replicate",
-            tool_choice_images_restoration = "replicate",
-            tool_choice_images_inpainting = "replicate",
-            tool_choice_images_background_removal = "replicate",
             tool_choice_search = "perplexity",
             tool_choice_embedding = "openai",
             tool_choice_api_fiat_exchange = "rapidapi",
@@ -371,9 +368,6 @@ class WhatsAppDataResolverTest(unittest.TestCase):
         self.assertEqual(result.tool_choice_hearing, existing_user.tool_choice_hearing)
         self.assertEqual(result.tool_choice_images_gen, existing_user.tool_choice_images_gen)
         self.assertEqual(result.tool_choice_images_edit, existing_user.tool_choice_images_edit)
-        self.assertEqual(result.tool_choice_images_restoration, existing_user.tool_choice_images_restoration)
-        self.assertEqual(result.tool_choice_images_inpainting, existing_user.tool_choice_images_inpainting)
-        self.assertEqual(result.tool_choice_images_background_removal, existing_user.tool_choice_images_background_removal)
         self.assertEqual(result.tool_choice_search, existing_user.tool_choice_search)
         self.assertEqual(result.tool_choice_embedding, existing_user.tool_choice_embedding)
         self.assertEqual(result.tool_choice_api_fiat_exchange, existing_user.tool_choice_api_fiat_exchange)
