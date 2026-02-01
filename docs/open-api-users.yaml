@@ -1370,6 +1370,10 @@ components:
     SponsorshipInfo:
       type: object
       properties:
+        user_id_hex:
+          type: string
+          nullable: false
+          description: Sponsored user's ID in hexadecimal format (UUID without hyphens)
         full_name:
           type: string
           nullable: true
@@ -1394,6 +1398,7 @@ components:
           format: date-time
           description: When the sponsorship was accepted
       required:
+        - user_id_hex
         - platform
         - sponsored_at
 
