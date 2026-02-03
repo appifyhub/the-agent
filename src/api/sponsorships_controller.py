@@ -46,6 +46,7 @@ class SponsorshipsController:
             platform_handle, platform_type = resolve_any_external_handle(receiver_user)
             output_sponsorships.append(
                 {
+                    "user_id_hex": receiver_user.id.hex,
                     "full_name": receiver_user.full_name,
                     "platform_handle": platform_handle,
                     "platform": platform_type.value if platform_type else None,

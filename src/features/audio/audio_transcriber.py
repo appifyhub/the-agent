@@ -58,8 +58,7 @@ class AudioTranscriber:
         self.__transcriber_tool = transcriber_tool
         self.__language_name = language_name
         self.__language_iso_code = language_iso_code
-        _, transcriber_token, _ = transcriber_tool
-        self.__transcriber = OpenAI(api_key = transcriber_token.get_secret_value())
+        self.__transcriber = di.open_ai_client(transcriber_tool)
         self.__copywriter = di.chat_langchain_model(copywriter_tool)
         self.__di = di
 
@@ -102,15 +101,17 @@ class AudioTranscriber:
             # first resolve the transcription
             buffer = io.BytesIO(self.__audio_content)
             buffer.name = f"audio.{self.__extension}"
-            transcriber_tool, _, _ = self.__transcriber_tool
-            transcript = self.__transcriber.audio.transcriptions.create(
-                model = transcriber_tool.id,
-                file = buffer,
-                response_format = "text",
-            )
-            raw_transcription = str(transcript)
 
-            # then fix the transcription using the copywriter
+            # output format depends on the type of the model used, we need to be careful
+            response_format = "verbose_json" if self.__transcriber_tool.definition.cost_estimate.second_of_runtime else "json"
+            transcript_response = self.__transcriber.audio.transcriptions.create(
+                model = self.__transcriber_tool.definition.id,
+                file = buffer,
+                response_format = response_format,
+            )
+            raw_transcription = transcript_response.text
+
+            # then (try to) fix the raw transcription using the copywriter
             system_prompt = prompt_resolvers.copywriting_computer_hearing(self.__di.invoker_chat)
             copywriter_messages = [SystemMessage(system_prompt), HumanMessage(raw_transcription)]
             answer = self.__copywriter.invoke(copywriter_messages)

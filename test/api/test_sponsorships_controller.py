@@ -137,6 +137,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
         self.assertIn("max_sponsorships", result)
         self.assertEqual(len(result["sponsorships"]), 1)
         sponsorship_result = result["sponsorships"][0]
+        self.assertEqual(sponsorship_result["user_id_hex"], self.receiver_user.id.hex)
         self.assertEqual(sponsorship_result["full_name"], self.receiver_user.full_name)
         self.assertEqual(sponsorship_result["platform_handle"], self.receiver_user.telegram_username)
         self.assertEqual(sponsorship_result["platform"], "telegram")
@@ -221,6 +222,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
         self.assertIn("max_sponsorships", result)
         self.assertEqual(len(result["sponsorships"]), 1)
         sponsorship_result = result["sponsorships"][0]
+        self.assertEqual(sponsorship_result["user_id_hex"], self.receiver_user.id.hex)
         self.assertEqual(sponsorship_result["full_name"], self.receiver_user.full_name)
         self.assertEqual(sponsorship_result["platform_handle"], self.receiver_user.telegram_username)
         self.assertEqual(sponsorship_result["platform"], "telegram")
