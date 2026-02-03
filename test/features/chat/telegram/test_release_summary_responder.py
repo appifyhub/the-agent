@@ -136,7 +136,43 @@ class ReleaseSummaryResponderTest(unittest.TestCase):
         self.assertIn("Failed to decode release notes", result["summary"])
         self.assertEqual(result["summaries_created"], 0)
 
-    def test_successful_summary(self):
+    @patch("features.chat.telegram.release_summary_responder.config")
+    def test_version_mismatch(self, mock_config):
+        mock_config.version = "1.0.0"
+        release_output_json = {
+            "latest_version": "1.0.0",
+            "new_target_version": "1.0.1",
+            "release_quality": "stable",
+            "release_notes_b64": base64.b64encode(b"notes").decode(),
+        }
+        payload = ReleaseOutputPayload(
+            release_output_b64 = base64.b64encode(json.dumps(release_output_json).encode()).decode(),
+        )
+        result = respond_with_summary(payload, self.mock_di)
+        self.assertIn("Skipping release processing", result["summary"])
+        self.assertIn("1.0.0", result["summary"])
+        self.assertIn("1.0.1", result["summary"])
+        self.assertEqual(result["summaries_created"], 0)
+        self.assertEqual(result["chats_notified"], 0)
+        self.assertTrue(result["should_retry"])
+
+    @patch("features.chat.telegram.release_summary_responder.config")
+    def test_version_match(self, mock_config):
+        mock_config.version = "1.0.1"
+        mock_configured_tool = Mock()
+        self.mock_di.tool_choice_resolver.require_tool.return_value = mock_configured_tool
+        mock_summary_service = Mock(spec = ReleaseSummaryService)
+        mock_summary_service.execute.return_value = Mock(content = "Test summary")
+        self.mock_di.release_summary_service.return_value = mock_summary_service
+        self.mock_di.chat_config_crud.get_all.return_value = []
+        result = respond_with_summary(self.payload, self.mock_di)
+        self.assertEqual(result["summaries_created"], 1)
+        self.assertNotIn("Skipping", result["summary"])
+        self.assertFalse(result["should_retry"])
+
+    @patch("features.chat.telegram.release_summary_responder.config")
+    def test_successful_summary(self, mock_config):
+        mock_config.version = "1.0.1"
         # Mock tool choice resolver and release summary service
         mock_configured_tool = Mock()
         self.mock_di.tool_choice_resolver.require_tool.return_value = mock_configured_tool
@@ -161,7 +197,9 @@ class ReleaseSummaryResponderTest(unittest.TestCase):
         # noinspection PyUnresolvedReferences
         mock_platform_sdk.send_text_message.assert_called_once_with("1234", "Test summary")
 
-    def test_multiple_languages(self):
+    @patch("features.chat.telegram.release_summary_responder.config")
+    def test_multiple_languages(self, mock_config):
+        mock_config.version = "1.0.1"
         mock_summarizer = Mock(spec = ReleaseSummaryService)
         mock_summarizer.execute.return_value = AIMessage(content = "Summary")
         self.mock_di.release_summary_service.return_value = mock_summarizer
@@ -214,7 +252,9 @@ class ReleaseSummaryResponderTest(unittest.TestCase):
         result = respond_with_summary(self.payload, self.mock_di)
         self.assertEqual(result["chats_eligible"], 0)
 
-    def test_all_translations(self):
+    @patch("features.chat.telegram.release_summary_responder.config")
+    def test_all_translations(self, mock_config):
+        mock_config.version = "1.0.1"
         mock_sum = Mock(spec = ReleaseSummaryService)
         mock_sum.execute.return_value = Mock(content = "Gen summary")
         self.mock_di.release_summary_service.return_value = mock_sum
