@@ -10,6 +10,7 @@ from db.schema.chat_config import ChatConfig
 from di.di import DI
 from features.announcements.release_summary_service import ReleaseSummaryService
 from util import log
+from util.config import config
 
 
 class SummaryResult:
@@ -20,6 +21,7 @@ class SummaryResult:
     chats_unsubscribed: int
     chats_notified: int
     summaries_created: int
+    should_retry: bool
 
     def __init__(
         self,
@@ -29,6 +31,7 @@ class SummaryResult:
         chats_unsubscribed: int = 0,
         chats_notified: int = 0,
         summaries_created: int = 0,
+        should_retry: bool = False,
     ):
         self.summary = summary
         self.chats_eligible = chats_eligible
@@ -36,6 +39,7 @@ class SummaryResult:
         self.chats_unsubscribed = chats_unsubscribed
         self.chats_notified = chats_notified
         self.summaries_created = summaries_created
+        self.should_retry = should_retry
 
     def to_dict(self):
         return {
@@ -45,6 +49,7 @@ class SummaryResult:
             "chats_unsubscribed": self.chats_unsubscribed,
             "chats_notified": self.chats_notified,
             "summaries_created": self.summaries_created,
+            "should_retry": self.should_retry,
         }
 
 
@@ -66,6 +71,16 @@ def respond_with_summary(payload: ReleaseOutputPayload, di: DI) -> dict:
         log.i(f"  · Change log: {json.dumps(release_notes[:15])}...")
     except Exception as e:
         result.summary = log.e("Failed to decode release notes", e)
+        return result.to_dict()
+
+    # check if this instance should process the release
+    if config.version != new_target_version:
+        result.summary = (
+            f"Skipping release processing: current version ({config.version}) "
+            f"does not match target version ({new_target_version})"
+        )
+        result.should_retry = True
+        log.w(result.summary)
         return result.to_dict()
 
     # summarize for the default language first
