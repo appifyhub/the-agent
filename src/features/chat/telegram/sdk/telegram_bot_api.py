@@ -1,11 +1,10 @@
-import re
-
 import requests
 from pydantic import TypeAdapter
 from requests import RequestException, Response
 
 from features.chat.telegram.model.attachment.file import File
 from features.chat.telegram.model.chat_member import ChatMember
+from features.chat.telegram.telegram_markdown_utils import escape_markdown
 from util import log
 from util.config import config
 
@@ -35,7 +34,7 @@ class TelegramBotAPI:
     ) -> dict:
         log.t(f"Sending message to chat #{chat_id}")
         url = f"{self.__bot_api_url}/sendMessage"
-        cleaned_text = re.sub(r"(?<!\b)_(?!\b)", r"\\_", text)
+        cleaned_text = escape_markdown(text)
         if link_preview_options is None:
             link_preview_options = {
                 "is_disabled": False,
@@ -69,7 +68,7 @@ class TelegramBotAPI:
             "disable_notification": disable_notification,
         }
         if caption:
-            payload["caption"] = re.sub(r"(?<!\b)_(?!\b)", r"\\_", caption)
+            payload["caption"] = escape_markdown(caption)
             payload["parse_mode"] = parse_mode
         response = requests.post(url, json = payload, timeout = config.web_timeout_s)
         self.__raise_for_status(response)
@@ -94,7 +93,7 @@ class TelegramBotAPI:
         if thumbnail:
             payload["thumbnail"] = thumbnail
         if caption:
-            payload["caption"] = re.sub(r"(?<!\b)_(?!\b)", r"\\_", caption)
+            payload["caption"] = escape_markdown(caption)
             payload["parse_mode"] = parse_mode
         response = requests.post(url, json = payload, timeout = config.web_timeout_s)
         self.__raise_for_status(response)
