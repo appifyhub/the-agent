@@ -143,15 +143,33 @@ jobs:
           NOTIFICATION_ENDPOINT: ${{ secrets.NOTIFICATION_URL_STAGING }}
           RELEASE_OUTPUT_B64: ${{ steps.publish_github_release.outputs.release_output_b64 }} # stored in Python
         run: |
-          SUMMARY_RESPONSE=$(curl -X POST \
-            -L "$NOTIFICATION_ENDPOINT" \
-            -H "X-API-Key: $NOTIFICATION_AUTH_KEY" \
-            -H "Content-Type: application/json" \
-            -d "{\"release_output_b64\": \"$RELEASE_OUTPUT_B64\"}" \
-            --silent --show-error)
-          SUMMARY=$(echo "$SUMMARY_RESPONSE" | jq -r '.summary // empty')
-          SUMMARY_B64=$(printf "%s" "$SUMMARY" | base64 -w 0)
-          echo "summary_b64=$SUMMARY_B64" >> $GITHUB_OUTPUT
+          INTERVAL=15
+          MAX_ATTEMPTS=20
+          echo "Notifying release endpoint with retry support"
+          echo "Will retry every $INTERVAL seconds for up to $MAX_ATTEMPTS attempts if needed"
+          for ((i=1;i<=MAX_ATTEMPTS;i++)); do
+            echo "Attempt $i/$MAX_ATTEMPTS: sending notification..."
+            SUMMARY_RESPONSE=$(curl -X POST \
+              -L "$NOTIFICATION_ENDPOINT" \
+              -H "X-API-Key: $NOTIFICATION_AUTH_KEY" \
+              -H "Content-Type: application/json" \
+              -d "{\"release_output_b64\": \"$RELEASE_OUTPUT_B64\"}" \
+              -s || true)
+            SHOULD_RETRY=$(echo "$SUMMARY_RESPONSE" | grep -o '"should_retry"[[:space:]]*:[[:space:]]*[^,}]*' | head -n1 | sed 's/.*:[[:space:]]*\([^,}]*\).*/\1/')
+            if [[ "$SHOULD_RETRY" != "true" ]]; then
+              echo "Notification successful (should_retry = $SHOULD_RETRY)"
+              SUMMARY=$(echo "$SUMMARY_RESPONSE" | grep -o '"summary"[[:space:]]*:[[:space:]]*"[^"]*"' | head -n1 | sed 's/.*: *"\([^"]*\)".*/\1/')
+              SUMMARY_B64=$(printf "%s" "$SUMMARY" | base64 -w 0)
+              echo "summary_b64=$SUMMARY_B64" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            echo "Instance not ready yet (should_retry = true), waiting $INTERVAL seconds..."
+            sleep $INTERVAL
+          done
+          echo "Reached maximum attempts ($MAX_ATTEMPTS). Last response:"
+          echo "$SUMMARY_RESPONSE"
+          echo "Continuing without summary."
+          exit 0
 
       - name: Update GitHub Release with summary
         if: steps.notify_release.outputs.summary_b64 != ''
