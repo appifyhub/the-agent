@@ -48,6 +48,7 @@ from features.chat.whatsapp.whatsapp_update_responder import respond_to_update a
 from features.integrations.integrations import resolve_agent_user
 from util import log
 from util.config import Config, config
+from util.functions import parse_gumroad_form
 
 
 # noinspection PyUnusedLocal
@@ -135,7 +136,8 @@ async def gumroad_ping(
     verify_gumroad_auth_key(auth_token)
     try:
         form_data = await request.form()
-        payload = GumroadPingPayload.model_validate(dict(form_data))
+        form_dict = parse_gumroad_form(dict(form_data))
+        payload = GumroadPingPayload.model_validate(form_dict)
         di = DI(db)
         di.gumroad_controller.handle_ping(payload)
         return {"status": "OK"}
