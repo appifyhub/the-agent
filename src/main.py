@@ -20,6 +20,7 @@ from api.auth import (
     get_chat_type_from_jwt,
     get_user_id_from_jwt,
     verify_api_key,
+    verify_gumroad_auth_key,
     verify_jwt_credentials,
     verify_telegram_auth_key,
     verify_whatsapp_signature,
@@ -27,6 +28,7 @@ from api.auth import (
 )
 from api.model.chat_settings_payload import ChatSettingsPayload
 from api.model.connect_key_response import ConnectKeyResponse
+from api.model.gumroad_ping_payload import GumroadPingPayload
 from api.model.release_output_payload import ReleaseOutputPayload
 from api.model.settings_link_response import SettingsLinkResponse
 from api.model.sponsorship_payload import SponsorshipPayload
@@ -46,6 +48,7 @@ from features.chat.whatsapp.whatsapp_update_responder import respond_to_update a
 from features.integrations.integrations import resolve_agent_user
 from util import log
 from util.config import Config, config
+from util.functions import parse_gumroad_form
 
 
 # noinspection PyUnusedLocal
@@ -122,6 +125,24 @@ async def whatsapp_chat_update(
     log.d(f"Received WhatsApp update: {update}")
     offloader.add_task(respond_to_whatsapp_update, update)
     return {"status": "ok"}
+
+
+@app.post("/webhooks/gumroad/ping/{auth_token}")
+async def gumroad_ping(
+    auth_token: str,
+    request: Request,
+    db = Depends(get_session),
+) -> dict:
+    verify_gumroad_auth_key(auth_token)
+    try:
+        form_data = await request.form()
+        form_dict = parse_gumroad_form(dict(form_data))
+        payload = GumroadPingPayload.model_validate(form_dict)
+        di = DI(db)
+        di.gumroad_controller.handle_ping(payload)
+        return {"status": "OK"}
+    except Exception as e:
+        raise HTTPException(status_code = 500, detail = {"reason": log.e("Gumroad ping failed", e)})
 
 
 @app.post("/notify/price-alerts")

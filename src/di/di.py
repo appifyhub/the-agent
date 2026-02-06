@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from replicate.client import Client as ReplicateSDKClient
 
     from api.authorization_service import AuthorizationService
+    from api.gumroad_controller import GumroadController
     from api.profile_connect_controller import ProfileConnectController
     from api.settings_controller import SettingsController
     from api.sponsorships_controller import SponsorshipsController
@@ -115,6 +116,7 @@ class DI:
     _sponsorships_controller: "SponsorshipsController | None"
     _usage_controller: "UsageController | None"
     _profile_connect_controller: "ProfileConnectController | None"
+    _gumroad_controller: "GumroadController | None"
     # Internal tools
     _access_token_resolver: "AccessTokenResolver | None"
     _tool_choice_resolver: "ToolChoiceResolver | None"
@@ -164,6 +166,7 @@ class DI:
         self._sponsorships_controller = None
         self._usage_controller = None
         self._profile_connect_controller = None
+        self._gumroad_controller = None
         # Internal tools
         self._access_token_resolver = None
         self._tool_choice_resolver = None
@@ -422,6 +425,13 @@ class DI:
             from api.profile_connect_controller import ProfileConnectController
             self._profile_connect_controller = ProfileConnectController(self)
         return self._profile_connect_controller
+
+    @property
+    def gumroad_controller(self) -> "GumroadController":
+        if self._gumroad_controller is None:
+            from api.gumroad_controller import GumroadController
+            self._gumroad_controller = GumroadController(self)
+        return self._gumroad_controller
 
     # === Internal tools ===
 
