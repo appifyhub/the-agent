@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "4eab4b1d9c44c1f2937d38a0ca3fc86d6c732a85d792029cb2e9966d01a5da7b"
+            "sha256": "b23ca4aedede4204c9c6c9aa154e4848b9cca09e84c7e4b7f3cfa3768896e3c9"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -2197,6 +2197,15 @@
             ],
             "markers": "python_version >= '3.9'",
             "version": "==3.5.0"
+        },
+        "python-multipart": {
+            "hashes": [
+                "sha256:2b2cd894c83d21bf49d702499531c7bafd057d730c201782048f7945d82de155",
+                "sha256:7340bef99a7e0032613f56dc36027b959fd3b30a787ed62d310e951f7c3a3a58"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.10'",
+            "version": "==0.0.22"
         },
         "pyuploadcare": {
             "hashes": [

@@ -42,6 +42,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.telegram_api_base_url, "https://api.telegram.org")
         self.assertEqual(config.telegram_must_auth, False)
         self.assertEqual(config.whatsapp_must_auth, False)
+        self.assertEqual(config.gumroad_must_auth, False)
         self.assertEqual(config.whatsapp_phone_number_id, "invalid")
         self.assertEqual(config.whatsapp_bot_phone_number, "11234567890")
         self.assertEqual(config.chat_history_depth, 30)
@@ -63,6 +64,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.telegram_bot_token.get_secret_value(), "invalid")
         self.assertEqual(config.whatsapp_auth_key.get_secret_value(), "it_is_really_whatsapp")
         self.assertEqual(config.whatsapp_app_secret.get_secret_value(), "invalid")
+        self.assertEqual(config.gumroad_auth_key.get_secret_value(), "it_is_really_gumroad")
         self.assertEqual(config.jwt_secret_key.get_secret_value(), "default")
         self.assertEqual(config.github_issues_token.get_secret_value(), "invalid")
         self.assertEqual(config.rapid_api_twitter_token.get_secret_value(), "invalid")
@@ -92,6 +94,7 @@ class ConfigTest(unittest.TestCase):
         os.environ["TELEGRAM_API_BASE_URL"] = "https://new.api.telegram.org"
         os.environ["TELEGRAM_AUTH_ON"] = "True"
         os.environ["WHATSAPP_AUTH_ON"] = "True"
+        os.environ["GUMROAD_AUTH_ON"] = "True"
         os.environ["WHATSAPP_PHONE_NUMBER_ID"] = "9876543210"
         os.environ["WHATSAPP_BOT_PHONE_NUMBER"] = "19876543210"
         os.environ["CHAT_HISTORY_DEPTH"] = "10"
@@ -117,6 +120,7 @@ class ConfigTest(unittest.TestCase):
         os.environ["WHATSAPP_API_UPDATE_AUTH_TOKEN"] = "efgh5678"
         os.environ["WHATSAPP_APP_SECRET"] = "ijkl9012"
         os.environ["WHATSAPP_BOT_TOKEN"] = "bot_token_123"
+        os.environ["GUMROAD_PING_AUTH_TOKEN"] = "mnop3456"
         os.environ["JWT_SECRET_KEY"] = "custom"
         os.environ["THE_AGENT_ISSUES_TOKEN"] = "sk-gi-valid"
         os.environ["RAPID_API_TWITTER_TOKEN"] = "sk-rt-valid"
@@ -147,6 +151,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.telegram_api_base_url, "https://new.api.telegram.org")
         self.assertEqual(config.telegram_must_auth, True)
         self.assertEqual(config.whatsapp_must_auth, True)
+        self.assertEqual(config.gumroad_must_auth, True)
         self.assertEqual(config.whatsapp_phone_number_id, "9876543210")
         self.assertEqual(config.whatsapp_bot_phone_number, "19876543210")
         self.assertEqual(config.chat_history_depth, 10)
@@ -169,6 +174,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.whatsapp_auth_key.get_secret_value(), "efgh5678")
         self.assertEqual(config.whatsapp_app_secret.get_secret_value(), "ijkl9012")
         self.assertEqual(config.whatsapp_bot_token.get_secret_value(), "bot_token_123")
+        self.assertEqual(config.gumroad_auth_key.get_secret_value(), "mnop3456")
         self.assertEqual(config.jwt_secret_key.get_secret_value(), "custom")
         self.assertEqual(config.github_issues_token.get_secret_value(), "sk-gi-valid")
         self.assertEqual(config.rapid_api_twitter_token.get_secret_value(), "sk-rt-valid")

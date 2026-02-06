@@ -35,6 +35,7 @@ langchain-perplexity = "*"
 pyuploadcare = "*"
 pillow = "*"
 google-genai = "*"
+python-multipart = "*"
 
 [dev-packages]
 pytest = "*"

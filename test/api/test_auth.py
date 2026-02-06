@@ -12,6 +12,7 @@ from api.auth import (
     get_chat_type_from_jwt,
     get_user_id_from_jwt,
     verify_api_key,
+    verify_gumroad_auth_key,
     verify_jwt_credentials,
     verify_telegram_auth_key,
     verify_whatsapp_signature,
@@ -211,3 +212,23 @@ class AuthTest(unittest.TestCase):
     def test_whatsapp_signature_verification_auth_disabled(self):
         payload = b'{"test": "data"}'
         verify_whatsapp_signature(payload, None)
+
+    @patch("api.auth.config")
+    def test_invalid_gumroad_auth_key(self, mock_config: MagicMock):
+        mock_config.gumroad_must_auth = True
+        mock_config.gumroad_auth_key = SecretStr("VALI-DKEY")
+        with self.assertRaises(HTTPException) as context:
+            verify_gumroad_auth_key("NOTA-VALI-DKEY")
+        self.assertEqual(context.exception.status_code, HTTP_403_FORBIDDEN)
+        self.assertEqual(context.exception.detail, "Invalid auth token")
+
+    @patch("api.auth.config")
+    def test_disabled_gumroad_auth_key(self, mock_config: MagicMock):
+        mock_config.gumroad_must_auth = False
+        verify_gumroad_auth_key("any-token")
+
+    @patch("api.auth.config")
+    def test_valid_gumroad_auth_key(self, mock_config: MagicMock):
+        mock_config.gumroad_must_auth = True
+        mock_config.gumroad_auth_key = SecretStr("VALI-DKEY")
+        verify_gumroad_auth_key("VALI-DKEY")
