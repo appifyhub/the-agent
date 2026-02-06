@@ -33,6 +33,7 @@ class Config(metaclass = Singleton):
     telegram_api_base_url: str
     telegram_must_auth: bool
     whatsapp_must_auth: bool
+    gumroad_must_auth: bool
     whatsapp_phone_number_id: str
     whatsapp_bot_phone_number: str
     chat_history_depth: int
@@ -55,6 +56,7 @@ class Config(metaclass = Singleton):
     whatsapp_auth_key: SecretStr
     whatsapp_app_secret: SecretStr
     whatsapp_bot_token: SecretStr
+    gumroad_auth_key: SecretStr
     jwt_secret_key: SecretStr
     github_issues_token: SecretStr
     rapid_api_twitter_token: SecretStr
@@ -72,6 +74,7 @@ class Config(metaclass = Singleton):
             self.whatsapp_auth_key,
             self.whatsapp_app_secret,
             self.whatsapp_bot_token,
+            self.gumroad_auth_key,
             self.jwt_secret_key,
             self.github_issues_token,
             self.rapid_api_twitter_token,
@@ -104,6 +107,7 @@ class Config(metaclass = Singleton):
         def_telegram_api_base_url: str = "https://api.telegram.org",
         def_telegram_must_auth: bool = False,
         def_whatsapp_must_auth: bool = False,
+        def_gumroad_must_auth: bool = False,
         def_whatsapp_phone_number_id: str = "invalid",
         def_whatsapp_bot_phone_number: str = "11234567890",
         def_chat_history_depth: int = 30,
@@ -129,6 +133,7 @@ class Config(metaclass = Singleton):
         def_whatsapp_auth_key: SecretStr = SecretStr("it_is_really_whatsapp"),
         def_whatsapp_app_secret: SecretStr = SecretStr("invalid"),
         def_whatsapp_bot_token: SecretStr = SecretStr("invalid"),
+        def_gumroad_auth_key: SecretStr = SecretStr("it_is_really_gumroad"),
         def_jwt_secret_key: SecretStr = SecretStr("default"),
         def_github_issues_token: SecretStr = SecretStr("invalid"),
         def_rapid_api_twitter_token: SecretStr = SecretStr("invalid"),
@@ -159,6 +164,7 @@ class Config(metaclass = Singleton):
         self.telegram_api_base_url = self.__env("TELEGRAM_API_BASE_URL", lambda: def_telegram_api_base_url)
         self.telegram_must_auth = self.__env("TELEGRAM_AUTH_ON", lambda: str(def_telegram_must_auth)).lower() == "true"
         self.whatsapp_must_auth = self.__env("WHATSAPP_AUTH_ON", lambda: str(def_whatsapp_must_auth)).lower() == "true"
+        self.gumroad_must_auth = self.__env("GUMROAD_AUTH_ON", lambda: str(def_gumroad_must_auth)).lower() == "true"
         self.whatsapp_phone_number_id = self.__env("WHATSAPP_PHONE_NUMBER_ID", lambda: def_whatsapp_phone_number_id)
         self.whatsapp_bot_phone_number = self.__env("WHATSAPP_BOT_PHONE_NUMBER", lambda: def_whatsapp_bot_phone_number)
         self.chat_history_depth = int(self.__env("CHAT_HISTORY_DEPTH", lambda: str(def_chat_history_depth)))
@@ -181,6 +187,7 @@ class Config(metaclass = Singleton):
         self.whatsapp_auth_key = self.__senv("WHATSAPP_API_UPDATE_AUTH_TOKEN", lambda: def_whatsapp_auth_key)
         self.whatsapp_app_secret = self.__senv("WHATSAPP_APP_SECRET", lambda: def_whatsapp_app_secret)
         self.whatsapp_bot_token = self.__senv("WHATSAPP_BOT_TOKEN", lambda: def_whatsapp_bot_token)
+        self.gumroad_auth_key = self.__senv("GUMROAD_PING_AUTH_TOKEN", lambda: def_gumroad_auth_key)
         self.jwt_secret_key = self.__senv("JWT_SECRET_KEY", lambda: def_jwt_secret_key)
         self.github_issues_token = self.__senv("THE_AGENT_ISSUES_TOKEN", lambda: def_github_issues_token)
         self.rapid_api_twitter_token = self.__senv("RAPID_API_TWITTER_TOKEN", lambda: def_rapid_api_twitter_token)
