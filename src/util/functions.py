@@ -114,3 +114,29 @@ def parse_ai_message_content(content: str | list[str | dict]) -> str:
         return "\n".join(full_text)
     else:
         raise AssertionError(f"Received an unexpected content from the model: {content}")
+
+
+def parse_gumroad_form(form_dict: dict[str, str]) -> dict[str, Any]:
+    url_params = {}
+    custom_fields = {}
+    keys_to_remove = []
+
+    for key, value in form_dict.items():
+        if key.startswith("url_params[") and key.endswith("]"):
+            param_name = key[11:-1]
+            url_params[param_name] = value
+            keys_to_remove.append(key)
+        elif key.startswith("custom_fields[") and key.endswith("]"):
+            field_name = key[14:-1]
+            custom_fields[field_name] = value
+            keys_to_remove.append(key)
+
+    for key in keys_to_remove:
+        del form_dict[key]
+
+    if url_params:
+        form_dict["url_params"] = url_params
+    if custom_fields:
+        form_dict["custom_fields"] = custom_fields
+
+    return form_dict

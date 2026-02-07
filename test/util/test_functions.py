@@ -5,6 +5,7 @@ from util.functions import (
     first_key_with_value,
     generate_short_uuid,
     mask_secret,
+    parse_gumroad_form,
     silent,
 )
 
@@ -287,3 +288,74 @@ class FunctionsTest(unittest.TestCase):
         with self.assertRaises(AssertionError) as context:
             parse_ai_message_content(12345)
         self.assertIn("Received an unexpected content", str(context.exception))
+
+    def test_parse_gumroad_form_no_params(self):
+        form_dict = {
+            "seller_id": "abc123",
+            "sale_id": "sale456",
+            "price": "1299",
+        }
+        result = parse_gumroad_form(form_dict)
+        self.assertEqual(result, {
+            "seller_id": "abc123",
+            "sale_id": "sale456",
+            "price": "1299",
+        })
+
+    def test_parse_gumroad_form_with_url_params(self):
+        form_dict = {
+            "seller_id": "abc123",
+            "url_params[user_id]": "user123",
+            "url_params[campaign]": "spring2024",
+            "price": "1299",
+        }
+        result = parse_gumroad_form(form_dict)
+        self.assertEqual(result, {
+            "seller_id": "abc123",
+            "price": "1299",
+            "url_params": {
+                "user_id": "user123",
+                "campaign": "spring2024",
+            },
+        })
+
+    def test_parse_gumroad_form_with_custom_fields(self):
+        form_dict = {
+            "seller_id": "abc123",
+            "custom_fields[referral]": "twitter",
+            "custom_fields[notes]": "test purchase",
+            "price": "1299",
+        }
+        result = parse_gumroad_form(form_dict)
+        self.assertEqual(result, {
+            "seller_id": "abc123",
+            "price": "1299",
+            "custom_fields": {
+                "referral": "twitter",
+                "notes": "test purchase",
+            },
+        })
+
+    def test_parse_gumroad_form_with_both(self):
+        form_dict = {
+            "seller_id": "abc123",
+            "url_params[user_id]": "user123",
+            "custom_fields[referral]": "twitter",
+            "price": "1299",
+        }
+        result = parse_gumroad_form(form_dict)
+        self.assertEqual(result, {
+            "seller_id": "abc123",
+            "price": "1299",
+            "url_params": {
+                "user_id": "user123",
+            },
+            "custom_fields": {
+                "referral": "twitter",
+            },
+        })
+
+    def test_parse_gumroad_form_empty_dict(self):
+        form_dict = {}
+        result = parse_gumroad_form(form_dict)
+        self.assertEqual(result, {})
