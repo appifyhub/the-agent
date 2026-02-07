@@ -43,6 +43,8 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.telegram_must_auth, False)
         self.assertEqual(config.whatsapp_must_auth, False)
         self.assertEqual(config.gumroad_must_auth, False)
+        self.assertEqual(config.gumroad_seller_id_check, False)
+        self.assertEqual(config.gumroad_seller_id, "invalid")
         self.assertEqual(config.whatsapp_phone_number_id, "invalid")
         self.assertEqual(config.whatsapp_bot_phone_number, "11234567890")
         self.assertEqual(config.chat_history_depth, 30)
@@ -95,6 +97,8 @@ class ConfigTest(unittest.TestCase):
         os.environ["TELEGRAM_AUTH_ON"] = "True"
         os.environ["WHATSAPP_AUTH_ON"] = "True"
         os.environ["GUMROAD_AUTH_ON"] = "True"
+        os.environ["GUMROAD_SELLER_ID_CHECK"] = "True"
+        os.environ["GUMROAD_SELLER_ID"] = "test-seller-123"
         os.environ["WHATSAPP_PHONE_NUMBER_ID"] = "9876543210"
         os.environ["WHATSAPP_BOT_PHONE_NUMBER"] = "19876543210"
         os.environ["CHAT_HISTORY_DEPTH"] = "10"
@@ -152,6 +156,8 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.telegram_must_auth, True)
         self.assertEqual(config.whatsapp_must_auth, True)
         self.assertEqual(config.gumroad_must_auth, True)
+        self.assertEqual(config.gumroad_seller_id_check, True)
+        self.assertEqual(config.gumroad_seller_id, "test-seller-123")
         self.assertEqual(config.whatsapp_phone_number_id, "9876543210")
         self.assertEqual(config.whatsapp_bot_phone_number, "19876543210")
         self.assertEqual(config.chat_history_depth, 10)

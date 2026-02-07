@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from api.authorization_service import AuthorizationService
     from api.gumroad_controller import GumroadController
     from api.profile_connect_controller import ProfileConnectController
+    from api.purchases_controller import PurchasesController
     from api.settings_controller import SettingsController
     from api.sponsorships_controller import SponsorshipsController
     from api.usage_controller import UsageController
@@ -36,6 +37,8 @@ if TYPE_CHECKING:
     from features.accounting.decorators.openai_usage_tracking_decorator import OpenAIUsageTrackingDecorator
     from features.accounting.decorators.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
     from features.accounting.decorators.web_fetcher_usage_tracking_decorator import WebFetcherUsageTrackingDecorator
+    from features.accounting.purchases.purchase_record_repo import PurchaseRecordRepository
+    from features.accounting.purchases.purchase_service import PurchaseService
     from features.accounting.repo.usage_record_repo import UsageRecordRepository
     from features.accounting.service.usage_tracking_service import UsageTrackingService
     from features.announcements.release_summary_service import ReleaseSummaryService
@@ -106,17 +109,20 @@ class DI:
     _tools_cache_crud: "ToolsCacheCRUD | None"
     _price_alert_crud: "PriceAlertCRUD | None"
     _usage_record_repo: "UsageRecordRepository | None"
+    _purchase_record_repo: "PurchaseRecordRepository | None"
     # Services
     _sponsorship_service: "SponsorshipService | None"
     _profile_connect_service: "ProfileConnectService | None"
     _authorization_service: "AuthorizationService | None"
     _usage_tracking_service: "UsageTrackingService | None"
+    _purchase_service: "PurchaseService | None"
     # Controllers
     _settings_controller: "SettingsController | None"
     _sponsorships_controller: "SponsorshipsController | None"
     _usage_controller: "UsageController | None"
     _profile_connect_controller: "ProfileConnectController | None"
     _gumroad_controller: "GumroadController | None"
+    _purchases_controller: "PurchasesController | None"
     # Internal tools
     _access_token_resolver: "AccessTokenResolver | None"
     _tool_choice_resolver: "ToolChoiceResolver | None"
@@ -156,17 +162,20 @@ class DI:
         self._tools_cache_crud = None
         self._price_alert_crud = None
         self._usage_record_repo = None
+        self._purchase_record_repo = None
         # Services
         self._sponsorship_service = None
         self._profile_connect_service = None
         self._authorization_service = None
         self._usage_tracking_service = None
+        self._purchase_service = None
         # Controllers
         self._settings_controller = None
         self._sponsorships_controller = None
         self._usage_controller = None
         self._profile_connect_controller = None
         self._gumroad_controller = None
+        self._purchases_controller = None
         # Internal tools
         self._access_token_resolver = None
         self._tool_choice_resolver = None
@@ -366,6 +375,13 @@ class DI:
             self._usage_record_repo = UsageRecordRepository(self.db)
         return self._usage_record_repo
 
+    @property
+    def purchase_record_repo(self) -> "PurchaseRecordRepository":
+        if self._purchase_record_repo is None:
+            from features.accounting.purchases.purchase_record_repo import PurchaseRecordRepository
+            self._purchase_record_repo = PurchaseRecordRepository(self.db)
+        return self._purchase_record_repo
+
     # === Services ===
 
     @property
@@ -395,6 +411,13 @@ class DI:
             from features.connect.profile_connect_service import ProfileConnectService
             self._profile_connect_service = ProfileConnectService(self)
         return self._profile_connect_service
+
+    @property
+    def purchase_service(self) -> "PurchaseService":
+        if self._purchase_service is None:
+            from features.accounting.purchases.purchase_service import PurchaseService
+            self._purchase_service = PurchaseService(self)
+        return self._purchase_service
 
     # === Controllers ===
 
@@ -432,6 +455,13 @@ class DI:
             from api.gumroad_controller import GumroadController
             self._gumroad_controller = GumroadController(self)
         return self._gumroad_controller
+
+    @property
+    def purchases_controller(self) -> "PurchasesController":
+        if self._purchases_controller is None:
+            from api.purchases_controller import PurchasesController
+            self._purchases_controller = PurchasesController(self)
+        return self._purchases_controller
 
     # === Internal tools ===
 

@@ -26,6 +26,7 @@ from api.auth import (
     verify_whatsapp_signature,
     verify_whatsapp_webhook_challenge,
 )
+from api.model.bind_license_key_payload import BindLicenseKeyPayload
 from api.model.chat_settings_payload import ChatSettingsPayload
 from api.model.connect_key_response import ConnectKeyResponse
 from api.model.gumroad_ping_payload import GumroadPingPayload
@@ -37,6 +38,8 @@ from api.settings_controller import SettingsType
 from db.model.chat_config import ChatConfigDB
 from db.sql import get_session, initialize_db
 from di.di import DI
+from features.accounting.purchases.purchase_aggregates import PurchaseAggregates
+from features.accounting.purchases.purchase_record import PurchaseRecord
 from features.accounting.stats.usage_aggregates import UsageAggregates
 from features.accounting.stats.usage_record import UsageRecord
 from features.chat.telegram.currency_alert_responder import respond_with_currency_alerts
@@ -414,6 +417,79 @@ def get_usage_stats(
         )
     except Exception as e:
         raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get usage stats", e)})
+
+
+@app.get("/user/{resource_id}/purchases")
+def get_purchase_records(
+    resource_id: str,
+    skip: int = 0,
+    limit: int = 50,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    product_id: str | None = None,
+    db = Depends(get_session),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
+) -> list[PurchaseRecord]:
+    try:
+        invoker_id_hex = get_user_id_from_jwt(token)
+        log.d(f"  Invoker ID: {invoker_id_hex}")
+        start_date_obj = datetime.fromisoformat(start_date) if start_date else None
+        end_date_obj = datetime.fromisoformat(end_date) if end_date else None
+        di = DI(db, invoker_id_hex)
+        return di.purchases_controller.fetch_purchase_records(
+            user_id_hex = resource_id,
+            skip = skip,
+            limit = limit,
+            start_date = start_date_obj,
+            end_date = end_date_obj,
+            product_id = product_id,
+        )
+    except Exception as e:
+        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get purchase records", e)})
+
+
+@app.get("/user/{resource_id}/purchases/stats")
+def get_purchase_stats(
+    resource_id: str,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    product_id: str | None = None,
+    db = Depends(get_session),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
+) -> PurchaseAggregates:
+    try:
+        invoker_id_hex = get_user_id_from_jwt(token)
+        log.d(f"  Invoker ID: {invoker_id_hex}")
+        start_date_obj = datetime.fromisoformat(start_date) if start_date else None
+        end_date_obj = datetime.fromisoformat(end_date) if end_date else None
+        di = DI(db, invoker_id_hex)
+        return di.purchases_controller.fetch_purchase_aggregates(
+            user_id_hex = resource_id,
+            start_date = start_date_obj,
+            end_date = end_date_obj,
+            product_id = product_id,
+        )
+    except Exception as e:
+        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get purchase stats", e)})
+
+
+@app.post("/user/{resource_id}/purchases")
+def bind_purchase_license_key(
+    resource_id: str,
+    payload: BindLicenseKeyPayload,
+    db = Depends(get_session),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
+) -> PurchaseRecord:
+    try:
+        invoker_id_hex = get_user_id_from_jwt(token)
+        log.d(f"  Invoker ID: {invoker_id_hex}")
+        di = DI(db, invoker_id_hex)
+        return di.purchases_controller.bind_license_key(
+            user_id_hex = resource_id,
+            license_key = payload.license_key,
+        )
+    except Exception as e:
+        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to bind license key", e)})
 
 
 @app.get("/user/{user_id_hex}/connect-key")

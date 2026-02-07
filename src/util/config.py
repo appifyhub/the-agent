@@ -34,6 +34,8 @@ class Config(metaclass = Singleton):
     telegram_must_auth: bool
     whatsapp_must_auth: bool
     gumroad_must_auth: bool
+    gumroad_seller_id_check: bool
+    gumroad_seller_id: str
     whatsapp_phone_number_id: str
     whatsapp_bot_phone_number: str
     chat_history_depth: int
@@ -108,6 +110,8 @@ class Config(metaclass = Singleton):
         def_telegram_must_auth: bool = False,
         def_whatsapp_must_auth: bool = False,
         def_gumroad_must_auth: bool = False,
+        def_gumroad_seller_id_check: bool = False,
+        def_gumroad_seller_id: str = "invalid",
         def_whatsapp_phone_number_id: str = "invalid",
         def_whatsapp_bot_phone_number: str = "11234567890",
         def_chat_history_depth: int = 30,
@@ -165,6 +169,8 @@ class Config(metaclass = Singleton):
         self.telegram_must_auth = self.__env("TELEGRAM_AUTH_ON", lambda: str(def_telegram_must_auth)).lower() == "true"
         self.whatsapp_must_auth = self.__env("WHATSAPP_AUTH_ON", lambda: str(def_whatsapp_must_auth)).lower() == "true"
         self.gumroad_must_auth = self.__env("GUMROAD_AUTH_ON", lambda: str(def_gumroad_must_auth)).lower() == "true"
+        self.gumroad_seller_id_check = self.__env("GUMROAD_SELLER_ID_CHECK", lambda: str(def_gumroad_seller_id_check)).lower() == "true"
+        self.gumroad_seller_id = self.__env("GUMROAD_SELLER_ID", lambda: def_gumroad_seller_id)
         self.whatsapp_phone_number_id = self.__env("WHATSAPP_PHONE_NUMBER_ID", lambda: def_whatsapp_phone_number_id)
         self.whatsapp_bot_phone_number = self.__env("WHATSAPP_BOT_PHONE_NUMBER", lambda: def_whatsapp_bot_phone_number)
         self.chat_history_depth = int(self.__env("CHAT_HISTORY_DEPTH", lambda: str(def_chat_history_depth)))

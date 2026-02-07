@@ -26,6 +26,8 @@ class UsageController:
         purpose: str | None = None,
         provider_id: str | None = None,
     ) -> list[UsageRecord]:
+        if limit > 100:
+            raise ValueError("limit cannot exceed 100")
         log.d(f"Fetching usage records for user '{user_id_hex}'")
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
         return self.__di.usage_record_repo.get_by_user(
