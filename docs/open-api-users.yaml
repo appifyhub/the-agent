@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: The Agent's user-facing API
   description: The user-facing parts of The Agent's API service (excluding system-level endpoints, chat completion, maintenance endpoints, etc.)
-  version: 4.3.1
+  version: 4.15.4
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -343,7 +343,8 @@ paths:
           schema:
             type: integer
             default: 50
-          description: Maximum number of records to return
+            maximum: 100
+          description: Maximum number of records to return (max 100)
         - name: start_date
           in: query
           required: false
@@ -474,6 +475,155 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UsageAggregatesResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /user/{resource_id}/purchases:
+    get:
+      summary: Get user's purchase records
+      description: Retrieve paginated purchase records for a user with optional date range and product filtering
+      operationId: getPurchaseRecords
+      tags: [Purchases]
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+        - name: skip
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+          description: Number of records to skip for pagination
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+          description: Maximum number of records to return (max 100)
+        - name: start_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Start date for filtering (inclusive). Accepts ISO 8601 format, e.g. "2024-01-15", "2024-01-15T10:30:00", or "2024-01-15T10:30:00+00:00"
+        - name: end_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: End date for filtering (inclusive). Accepts ISO 8601 format, e.g. "2024-12-31", "2024-12-31T23:59:59", or "2024-12-31T23:59:59+00:00"
+        - name: product_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter records to a specific product by its ID
+      responses:
+        "200":
+          description: Purchase records retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PurchaseRecord"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+    post:
+      summary: Bind license key to user account
+      description: Associate a Gumroad license key with the user's account for purchases made without a user_id
+      operationId: bindLicenseKey
+      tags: [Purchases]
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BindLicenseKeyPayload"
+      responses:
+        "200":
+          description: License key bound successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchaseRecord"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /user/{resource_id}/purchases/stats:
+    get:
+      summary: Get user's purchase aggregates
+      description: Retrieve aggregated purchase statistics including total revenue, net revenue, and breakdown by product
+      operationId: getPurchaseStats
+      tags: [Purchases]
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+        - name: start_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Start date for filtering (inclusive). Accepts ISO 8601 format, e.g. "2024-01-15", "2024-01-15T10:30:00", or "2024-01-15T10:30:00+00:00"
+        - name: end_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: End date for filtering (inclusive). Accepts ISO 8601 format, e.g. "2024-12-31", "2024-12-31T23:59:59", or "2024-12-31T23:59:59+00:00"
+        - name: product_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter aggregates to a specific product by its ID
+      responses:
+        "200":
+          description: Purchase statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchaseAggregates"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "403":
@@ -1349,6 +1499,187 @@ components:
       required:
         - id
         - name
+
+    PurchaseRecord:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: false
+          description: Purchase record ID in hexadecimal format (UUID without hyphens)
+        user_id:
+          type: string
+          nullable: true
+          description: User ID in hexadecimal format (UUID without hyphens), null if not yet bound
+        seller_id:
+          type: string
+          nullable: false
+          description: Gumroad seller ID
+        sale_id:
+          type: string
+          nullable: false
+          description: Gumroad sale ID (unique)
+        sale_timestamp:
+          type: string
+          nullable: false
+          format: date-time
+          description: When the purchase occurred (ISO 8601 format with timezone, e.g. "2024-01-15T10:30:00+00:00")
+        price:
+          type: integer
+          nullable: false
+          description: Purchase price in cents
+        product_id:
+          type: string
+          nullable: false
+          description: Gumroad product ID
+        product_name:
+          type: string
+          nullable: false
+          description: Product name
+        product_permalink:
+          type: string
+          nullable: false
+          description: Product permalink URL
+        short_product_id:
+          type: string
+          nullable: false
+          description: Short product ID
+        license_key:
+          type: string
+          nullable: true
+          description: License key (if applicable)
+        quantity:
+          type: integer
+          nullable: false
+          description: Quantity purchased
+        gumroad_fee:
+          type: integer
+          nullable: false
+          description: Gumroad fee in cents
+        affiliate_credit_amount_cents:
+          type: integer
+          nullable: false
+          description: Affiliate credit amount in cents
+        discover_fee_charge:
+          type: boolean
+          nullable: false
+          description: Whether discover fee was charged
+        url_params:
+          type: object
+          nullable: true
+          description: URL parameters from the purchase
+        custom_fields:
+          type: object
+          nullable: true
+          description: Custom fields from Gumroad
+        test:
+          type: boolean
+          nullable: false
+          description: Whether this was a test purchase
+        is_preorder_authorization:
+          type: boolean
+          nullable: false
+          description: Whether this is a preorder authorization
+        refunded:
+          type: boolean
+          nullable: false
+          description: Whether this purchase was refunded
+      required:
+        - id
+        - seller_id
+        - sale_id
+        - sale_timestamp
+        - price
+        - product_id
+        - product_name
+        - product_permalink
+        - short_product_id
+        - quantity
+        - gumroad_fee
+        - affiliate_credit_amount_cents
+        - discover_fee_charge
+        - test
+        - is_preorder_authorization
+        - refunded
+
+    PurchaseAggregates:
+      type: object
+      properties:
+        total_purchase_count:
+          type: integer
+          nullable: false
+          description: Total number of purchases in the timeframe
+        total_cost_cents:
+          type: integer
+          nullable: false
+          description: Total revenue in cents for all purchases
+        total_net_cost_cents:
+          type: integer
+          nullable: false
+          description: Total net revenue in cents (after Gumroad fees and affiliate credits)
+        by_product:
+          type: object
+          nullable: false
+          description: Aggregated stats grouped by product ID
+          additionalProperties:
+            $ref: "#/components/schemas/ProductAggregateStats"
+        all_products_used:
+          type: array
+          nullable: false
+          items:
+            $ref: "#/components/schemas/ProductInfo"
+          description: List of distinct products purchased in the timeframe (for dropdown filters)
+      required:
+        - total_purchase_count
+        - total_cost_cents
+        - total_net_cost_cents
+        - by_product
+        - all_products_used
+
+    ProductAggregateStats:
+      type: object
+      properties:
+        record_count:
+          type: integer
+          nullable: false
+          description: Number of purchase records
+        total_cost_cents:
+          type: integer
+          nullable: false
+          description: Total revenue in cents
+        total_net_cost_cents:
+          type: integer
+          nullable: false
+          description: Total net revenue in cents (after fees)
+      required:
+        - record_count
+        - total_cost_cents
+        - total_net_cost_cents
+
+    ProductInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: false
+          description: Product ID for filtering
+        name:
+          type: string
+          nullable: false
+          description: Product display name
+      required:
+        - id
+        - name
+
+    BindLicenseKeyPayload:
+      type: object
+      properties:
+        license_key:
+          type: string
+          nullable: false
+          description: License key to bind to the user's account
+      required:
+        - license_key
 
     SponsorshipsResponse:
       type: object

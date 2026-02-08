@@ -61,6 +61,16 @@ def verify_whatsapp_signature(payload: bytes, signature_header: str | None) -> N
     log.i("WhatsApp signature verified successfully")
 
 
+def verify_gumroad_auth_key(auth_key: str) -> None:
+    if not config.gumroad_must_auth:
+        log.i("Gumroad auth verification skipped (auth disabled)")
+        return
+    if auth_key != config.gumroad_auth_key.get_secret_value():
+        log.w("Gumroad auth verification failed: token mismatch")
+        raise HTTPException(status_code = HTTP_403_FORBIDDEN, detail = "Invalid auth token")
+    log.i("Gumroad auth verified successfully")
+
+
 def verify_jwt_credentials(authorization: HTTPAuthorizationCredentials = Security(jwt_header)) -> Dict[str, Any]:
     try:
         return verify_jwt_token(authorization.credentials)

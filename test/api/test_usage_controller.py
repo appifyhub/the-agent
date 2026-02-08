@@ -184,6 +184,16 @@ class UsageControllerTest(unittest.TestCase):
 
         self.assertEqual(len(result), 0)
 
+    def test_fetch_usage_records_limit_exceeds_maximum(self):
+        controller = UsageController(self.mock_di)
+
+        with self.assertRaises(ValueError) as context:
+            controller.fetch_usage_records(self.invoker_user.id.hex, limit = 101)
+
+        self.assertIn("limit cannot exceed 100", str(context.exception))
+        self.mock_authorization_service.authorize_for_user.assert_not_called()
+        self.mock_usage_record_repo.get_by_user.assert_not_called()
+
     def test_fetch_usage_records_authorization_failure(self):
         self.mock_authorization_service.authorize_for_user.side_effect = ValueError("Unauthorized")
 
