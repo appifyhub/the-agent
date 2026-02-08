@@ -257,6 +257,27 @@ class PurchasesControllerTest(unittest.TestCase):
         self.assertIn("Unauthorized", str(context.exception))
         self.mock_purchase_service.get_aggregates_by_user.assert_not_called()
 
+    def test_fetch_purchase_aggregates_excludes_refunded(self):
+        aggregates = PurchaseAggregates(
+            total_purchase_count = 2,
+            total_cost_cents = 3000,
+            total_net_cost_cents = 2700,
+            by_product = {"product-123": ProductAggregateStats(
+                record_count = 2,
+                total_cost_cents = 3000,
+                total_net_cost_cents = 2700,
+            )},
+            all_products_used = [ProductInfo(id = "product-123", name = "Test Product")],
+        )
+        self.mock_purchase_service.get_aggregates_by_user.return_value = aggregates
+
+        controller = PurchasesController(self.mock_di)
+        result = controller.fetch_purchase_aggregates(self.invoker_user.id.hex)
+
+        self.assertEqual(result.total_purchase_count, 2)
+        self.assertEqual(result.total_cost_cents, 3000)
+        self.assertEqual(result.total_net_cost_cents, 2700)
+
     def test_bind_license_key_success(self):
         bound_record = self._create_purchase_record(self.invoker_user.id)
         self.mock_purchase_service.bind_license_key.return_value = bound_record

@@ -224,6 +224,44 @@ class PurchaseRecordRepositoryTest(unittest.TestCase):
         self.assertIn("product-A", product_ids)
         self.assertIn("product-B", product_ids)
 
+    def test_get_aggregates_by_user_excludes_refunded_purchases(self):
+        self.repo.save(self._create_record(
+            product_id = "product-A",
+            price = 1000,
+            refunded = False,
+        ))
+        self.repo.save(self._create_record(
+            product_id = "product-A",
+            price = 500,
+            refunded = False,
+        ))
+        self.repo.save(self._create_record(
+            product_id = "product-A",
+            price = 3000,
+            refunded = True,
+        ))
+        self.repo.save(self._create_record(
+            product_id = "product-B",
+            price = 2000,
+            refunded = True,
+        ))
+
+        stats = self.repo.get_aggregates_by_user(self.user.id)
+
+        self.assertEqual(stats.total_purchase_count, 2)
+        self.assertEqual(stats.total_cost_cents, 1500)
+        self.assertEqual(stats.total_net_cost_cents, 1500 - (2 * (100 + 50)))
+
+        self.assertEqual(len(stats.by_product), 1)
+        self.assertIn("product-A", stats.by_product)
+        self.assertEqual(stats.by_product["product-A"].record_count, 2)
+        self.assertEqual(stats.by_product["product-A"].total_cost_cents, 1500)
+
+        self.assertEqual(len(stats.all_products_used), 1)
+        product_ids = [p.id for p in stats.all_products_used]
+        self.assertIn("product-A", product_ids)
+        self.assertNotIn("product-B", product_ids)
+
     def test_bind_license_key_to_user_success(self):
         record = self._create_record(user_id = None, license_key = "LICENSE-123")
         self.repo.save(record)

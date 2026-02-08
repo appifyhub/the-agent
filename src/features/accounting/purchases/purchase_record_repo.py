@@ -92,14 +92,20 @@ class PurchaseRecordRepository:
         end_date: datetime | None = None,
         product_id: str | None = None,
     ) -> PurchaseAggregates:
-        unfiltered_query = self._db.query(PurchaseRecordDB).filter(PurchaseRecordDB.user_id == user_id)
+        unfiltered_query = self._db.query(PurchaseRecordDB).filter(
+            PurchaseRecordDB.user_id == user_id,
+            PurchaseRecordDB.refunded.is_(False),
+        )
         if start_date is not None:
             unfiltered_query = unfiltered_query.filter(PurchaseRecordDB.sale_timestamp >= start_date)
         if end_date is not None:
             unfiltered_query = unfiltered_query.filter(PurchaseRecordDB.sale_timestamp <= end_date)
         unfiltered_subquery = unfiltered_query.subquery()
 
-        filtered_query = self._db.query(PurchaseRecordDB).filter(PurchaseRecordDB.user_id == user_id)
+        filtered_query = self._db.query(PurchaseRecordDB).filter(
+            PurchaseRecordDB.user_id == user_id,
+            PurchaseRecordDB.refunded.is_(False),
+        )
         if start_date is not None:
             filtered_query = filtered_query.filter(PurchaseRecordDB.sale_timestamp >= start_date)
         if end_date is not None:
