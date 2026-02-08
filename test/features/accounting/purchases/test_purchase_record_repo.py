@@ -258,6 +258,26 @@ class PurchaseRecordRepositoryTest(unittest.TestCase):
 
         self.assertIn("already bound", str(context.exception))
 
+    def test_bind_license_key_to_user_test_order(self):
+        record = self._create_record(user_id = None, license_key = "LICENSE-TEST")
+        record.test = True
+        self.repo.save(record)
+
+        with self.assertRaises(ValueError) as context:
+            self.repo.bind_license_key_to_user("LICENSE-TEST", self.user.id)
+
+        self.assertIn("test order", str(context.exception))
+
+    def test_bind_license_key_to_user_preorder(self):
+        record = self._create_record(user_id = None, license_key = "LICENSE-PREORDER")
+        record.is_preorder_authorization = True
+        self.repo.save(record)
+
+        with self.assertRaises(ValueError) as context:
+            self.repo.bind_license_key_to_user("LICENSE-PREORDER", self.user.id)
+
+        self.assertIn("preorder", str(context.exception))
+
     def test_save_preserves_user_id_when_update_has_none(self):
         original = self._create_record(
             user_id = self.user.id,

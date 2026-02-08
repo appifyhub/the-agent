@@ -167,6 +167,12 @@ class PurchaseRecordRepository:
         if db_model.refunded:
             raise ValueError(f"License key {license_key} is refunded and cannot be bound")
 
+        if db_model.test:
+            raise ValueError(f"License key {license_key} is from a test order and cannot be bound")
+
+        if db_model.is_preorder_authorization:
+            raise ValueError(f"License key {license_key} is from a preorder and cannot be bound")
+
         if db_model.user_id is None:
             db_model.user_id = user_id
             self._db.commit()
