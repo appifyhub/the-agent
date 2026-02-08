@@ -711,12 +711,12 @@
         },
         "google-genai": {
             "hashes": [
-                "sha256:5773a4e8ad5b2ebcd54a633a67d8e9c4f413032fef07977ee47ffa34a6d3bbdf",
-                "sha256:cb073ef8287581476c1c3f4d8e735426ee34478e500a56deef218fa93071e3ca"
+                "sha256:4c3daeff3d05fafee4b9a1a31f9c07f01bc22051081aa58b4d61f58d16d1bcc0",
+                "sha256:709468a14c739a080bc240a4f3191df597bf64485b1ca3728e0fb67517774c18"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.10'",
-            "version": "==1.61.0"
+            "version": "==1.62.0"
         },
         "gunicorn": {
             "hashes": [
@@ -2575,11 +2575,11 @@
         },
         "tenacity": {
             "hashes": [
-                "sha256:1169d376c297e7de388d18b4481760d478b0e99a777cad3a9c86e556f4b697cb",
-                "sha256:f77bf36710d8b73a50b2dd155c97b870017ad21afe6ab300326b0371b3b05138"
+                "sha256:6095a360c919085f28c6527de529e76a06ad89b23659fa881ae0649b867a9d55",
+                "sha256:adb31d4c263f2bd041081ab33b498309a57c77f9acf2db65aadf0898179cf93a"
             ],
-            "markers": "python_version >= '3.9'",
-            "version": "==9.1.2"
+            "markers": "python_version >= '3.10'",
+            "version": "==9.1.4"
         },
         "tiktoken": {
             "hashes": [
