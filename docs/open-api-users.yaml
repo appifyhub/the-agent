@@ -971,6 +971,11 @@ components:
         tool_choice_api_twitter:
           type: string
           nullable: true
+        credit_balance:
+          type: number
+          format: float
+          nullable: false
+          description: Current credit balance available for tool usage
         group:
           type: string
           nullable: false
@@ -1297,6 +1302,14 @@ components:
           type: string
           nullable: false
           description: User ID in hexadecimal format (UUID without hyphens)
+        payer_id:
+          type: string
+          nullable: true
+          description: Payer ID in hexadecimal format (UUID without hyphens), identifying who was billed for this usage
+        uses_credits:
+          type: boolean
+          nullable: true
+          description: Whether credits were used for this usage record
         chat_id:
           type: string
           nullable: true
