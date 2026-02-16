@@ -193,6 +193,7 @@ class UserMapperTest(unittest.TestCase):
         self.assertEqual(masked_user.whatsapp_user_id, self.user.whatsapp_user_id)
         assert self.user.whatsapp_phone_number is not None
         self.assertEqual(masked_user.whatsapp_phone_number, self.user.whatsapp_phone_number.get_secret_value())
+        self.assertEqual(masked_user.credit_balance, self.user.credit_balance)
         self.assertEqual(masked_user.group, self.user.group.value)
         self.assertEqual(masked_user.created_at, self.user.created_at.isoformat())
 
