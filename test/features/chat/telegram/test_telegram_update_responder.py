@@ -65,6 +65,7 @@ class TelegramUpdateResponderTest(unittest.TestCase):
             group = UserDB.Group.standard,
             created_at = date.today(),
             telegram_chat_id = "123",
+            credit_balance = 0.0,
         )
 
         self.di.telegram_data_resolver.resolve.return_value = Mock(

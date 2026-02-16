@@ -31,16 +31,17 @@ if TYPE_CHECKING:
     from db.crud.sponsorship import SponsorshipCRUD
     from db.crud.tools_cache import ToolsCacheCRUD
     from db.crud.user import UserCRUD
-    from features.accounting.decorators.chat_model_usage_tracking_decorator import ChatModelUsageTrackingDecorator
-    from features.accounting.decorators.google_ai_usage_tracking_decorator import GoogleAIUsageTrackingDecorator
-    from features.accounting.decorators.http_usage_tracking_decorator import HTTPUsageTrackingDecorator
-    from features.accounting.decorators.openai_usage_tracking_decorator import OpenAIUsageTrackingDecorator
-    from features.accounting.decorators.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
-    from features.accounting.decorators.web_fetcher_usage_tracking_decorator import WebFetcherUsageTrackingDecorator
+    from features.accounting.usage.decorators.chat_model_usage_tracking_decorator import ChatModelUsageTrackingDecorator
+    from features.accounting.usage.decorators.google_ai_usage_tracking_decorator import GoogleAIUsageTrackingDecorator
+    from features.accounting.usage.decorators.http_usage_tracking_decorator import HTTPUsageTrackingDecorator
+    from features.accounting.usage.decorators.openai_usage_tracking_decorator import OpenAIUsageTrackingDecorator
+    from features.accounting.usage.decorators.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
+    from features.accounting.usage.decorators.web_fetcher_usage_tracking_decorator import WebFetcherUsageTrackingDecorator
     from features.accounting.purchases.purchase_record_repo import PurchaseRecordRepository
     from features.accounting.purchases.purchase_service import PurchaseService
-    from features.accounting.repo.usage_record_repo import UsageRecordRepository
-    from features.accounting.service.usage_tracking_service import UsageTrackingService
+    from features.accounting.spending.spending_service import SpendingService
+    from features.accounting.usage.usage_record_repo import UsageRecordRepository
+    from features.accounting.usage.usage_tracking_service import UsageTrackingService
     from features.announcements.release_summary_service import ReleaseSummaryService
     from features.announcements.sys_announcements_service import SysAnnouncementsService
     from features.audio.audio_transcriber import AudioTranscriber
@@ -66,7 +67,8 @@ if TYPE_CHECKING:
     from features.documents.document_search import DocumentSearch
     from features.documents.langchain_embeddings_adapter import LangChainEmbeddingsAdapter
     from features.external_tools.access_token_resolver import AccessTokenResolver
-    from features.external_tools.tool_choice_resolver import ConfiguredTool, ToolChoiceResolver
+    from features.external_tools.configured_tool import ConfiguredTool
+    from features.external_tools.tool_choice_resolver import ToolChoiceResolver
     from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
     from features.images.image_editor import ImageEditor
     from features.images.image_uploader import ImageUploader
@@ -116,6 +118,7 @@ class DI:
     _authorization_service: "AuthorizationService | None"
     _usage_tracking_service: "UsageTrackingService | None"
     _purchase_service: "PurchaseService | None"
+    _spending_service: "SpendingService | None"
     # Controllers
     _settings_controller: "SettingsController | None"
     _sponsorships_controller: "SponsorshipsController | None"
@@ -169,6 +172,7 @@ class DI:
         self._authorization_service = None
         self._usage_tracking_service = None
         self._purchase_service = None
+        self._spending_service = None
         # Controllers
         self._settings_controller = None
         self._sponsorships_controller = None
@@ -371,7 +375,7 @@ class DI:
     @property
     def usage_record_repo(self) -> "UsageRecordRepository":
         if self._usage_record_repo is None:
-            from features.accounting.repo.usage_record_repo import UsageRecordRepository
+            from features.accounting.usage.usage_record_repo import UsageRecordRepository
             self._usage_record_repo = UsageRecordRepository(self.db)
         return self._usage_record_repo
 
@@ -401,7 +405,7 @@ class DI:
     @property
     def usage_tracking_service(self) -> "UsageTrackingService":
         if self._usage_tracking_service is None:
-            from features.accounting.service.usage_tracking_service import UsageTrackingService
+            from features.accounting.usage.usage_tracking_service import UsageTrackingService
             self._usage_tracking_service = UsageTrackingService(self)
         return self._usage_tracking_service
 
@@ -418,6 +422,13 @@ class DI:
             from features.accounting.purchases.purchase_service import PurchaseService
             self._purchase_service = PurchaseService(self)
         return self._purchase_service
+
+    @property
+    def spending_service(self) -> "SpendingService":
+        if self._spending_service is None:
+            from features.accounting.spending.spending_service import SpendingService
+            self._spending_service = SpendingService(self)
+        return self._spending_service
 
     # === Controllers ===
 
@@ -522,15 +533,15 @@ class DI:
     # === Features & Dynamic Instances ===
 
     def chat_langchain_model(self, configured_tool: ConfiguredTool) -> "ChatModelUsageTrackingDecorator":
-        from features.accounting.decorators.chat_model_usage_tracking_decorator import ChatModelUsageTrackingDecorator
+        from features.accounting.usage.decorators.chat_model_usage_tracking_decorator import ChatModelUsageTrackingDecorator
         from features.llm import langchain_creator
 
         base_model = langchain_creator.create(configured_tool)
         return ChatModelUsageTrackingDecorator(
             base_model,
             self.usage_tracking_service,
-            configured_tool.definition,
-            configured_tool.purpose,
+            self.spending_service,
+            configured_tool,
         )
 
     def base_replicate_client(self, api_token: str, timeout_s: float | None = None) -> "ReplicateSDKClient":
@@ -549,14 +560,14 @@ class DI:
         output_image_sizes: list[str] | None = None,
         input_image_sizes: list[str] | None = None,
     ) -> "ReplicateUsageTrackingDecorator":
-        from features.accounting.decorators.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
+        from features.accounting.usage.decorators.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
 
         base_client = self.base_replicate_client(configured_tool.token.get_secret_value(), timeout_s)
         return ReplicateUsageTrackingDecorator(
             base_client,
             self.usage_tracking_service,
-            configured_tool.definition,
-            configured_tool.purpose,
+            self.spending_service,
+            configured_tool,
             output_image_sizes,
             input_image_sizes,
         )
@@ -581,14 +592,14 @@ class DI:
         output_image_sizes: list[str] | None = None,
         input_image_sizes: list[str] | None = None,
     ) -> "GoogleAIUsageTrackingDecorator":
-        from features.accounting.decorators.google_ai_usage_tracking_decorator import GoogleAIUsageTrackingDecorator
+        from features.accounting.usage.decorators.google_ai_usage_tracking_decorator import GoogleAIUsageTrackingDecorator
 
         base_client = self.base_google_ai_client(configured_tool.token.get_secret_value(), timeout_s)
         return GoogleAIUsageTrackingDecorator(
             base_client,
             self.usage_tracking_service,
-            configured_tool.definition,
-            configured_tool.purpose,
+            self.spending_service,
+            configured_tool,
             output_image_sizes,
             input_image_sizes,
         )
@@ -607,14 +618,14 @@ class DI:
         configured_tool: ConfiguredTool,
         timeout_s: float | None = None,
     ) -> "OpenAIUsageTrackingDecorator":
-        from features.accounting.decorators.openai_usage_tracking_decorator import OpenAIUsageTrackingDecorator
+        from features.accounting.usage.decorators.openai_usage_tracking_decorator import OpenAIUsageTrackingDecorator
 
         base_client = self.base_open_ai_client(configured_tool, timeout_s)
         return OpenAIUsageTrackingDecorator(
             base_client,
             self.usage_tracking_service,
-            configured_tool.definition,
-            configured_tool.purpose,
+            self.spending_service,
+            configured_tool,
         )
 
     def openai_embeddings(self, configured_tool: ConfiguredTool) -> "LangChainEmbeddingsAdapter":
@@ -624,12 +635,12 @@ class DI:
         return LangChainEmbeddingsAdapter(client, configured_tool.definition.id)
 
     def tracked_http_get(self, configured_tool: ConfiguredTool) -> "HTTPUsageTrackingDecorator":
-        from features.accounting.decorators.http_usage_tracking_decorator import HTTPUsageTrackingDecorator
+        from features.accounting.usage.decorators.http_usage_tracking_decorator import HTTPUsageTrackingDecorator
 
         return HTTPUsageTrackingDecorator(
             self.usage_tracking_service,
-            configured_tool.definition,
-            configured_tool.purpose,
+            self.spending_service,
+            configured_tool,
         )
 
     @property
@@ -698,7 +709,7 @@ class DI:
         auto_fetch_html: bool = False,
         auto_fetch_json: bool = False,
     ) -> "WebFetcherUsageTrackingDecorator":
-        from features.accounting.decorators.web_fetcher_usage_tracking_decorator import WebFetcherUsageTrackingDecorator
+        from features.accounting.usage.decorators.web_fetcher_usage_tracking_decorator import WebFetcherUsageTrackingDecorator
 
         base_fetcher = self.web_fetcher(
             url, headers, params,
@@ -708,8 +719,8 @@ class DI:
         return WebFetcherUsageTrackingDecorator(
             base_fetcher,
             self.usage_tracking_service,
-            configured_tool.definition,
-            configured_tool.purpose,
+            self.spending_service,
+            configured_tool,
         )
 
     def html_content_cleaner(self, raw_html: str) -> "HTMLContentCleaner":

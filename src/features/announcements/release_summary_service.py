@@ -6,7 +6,7 @@ from db.schema.chat_config import ChatConfig, ChatConfigSave
 from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_4_SONNET
-from features.external_tools.tool_choice_resolver import ConfiguredTool
+from features.external_tools.configured_tool import ConfiguredTool
 from features.integrations import prompt_resolvers
 from util import log
 

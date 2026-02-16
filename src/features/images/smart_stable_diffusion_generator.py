@@ -6,7 +6,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_3_5_HAIKU
-from features.external_tools.tool_choice_resolver import ConfiguredTool
+from features.external_tools.configured_tool import ConfiguredTool
 from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
 from features.integrations import prompt_resolvers
 from util import log

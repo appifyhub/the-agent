@@ -40,8 +40,8 @@ from db.sql import get_session, initialize_db
 from di.di import DI
 from features.accounting.purchases.purchase_aggregates import PurchaseAggregates
 from features.accounting.purchases.purchase_record import PurchaseRecord
-from features.accounting.stats.usage_aggregates import UsageAggregates
-from features.accounting.stats.usage_record import UsageRecord
+from features.accounting.usage.usage_aggregates import UsageAggregates
+from features.accounting.usage.usage_record import UsageRecord
 from features.chat.telegram.currency_alert_responder import respond_with_currency_alerts
 from features.chat.telegram.model.update import Update as TelegramUpdate
 from features.chat.telegram.release_summary_responder import respond_with_summary

@@ -1,11 +1,22 @@
 # ruff: noqa: E501
 
+import logging
 import os
+from dataclasses import dataclass
 from typing import Callable
 
+import yaml
 from pydantic import SecretStr
 
 from util.singleton import Singleton
+
+
+@dataclass(frozen = True)
+class ConfiguredProduct:
+    id: str
+    credits: int
+    name: str
+    url: str
 
 
 class Config(metaclass = Singleton):
@@ -50,6 +61,16 @@ class Config(metaclass = Singleton):
     url_shortener_base_url: str
     version: str
     usage_maintenance_fee_credits: float
+    products_config_path: str
+    products: dict[str, ConfiguredProduct]
+
+    platform_open_ai_key: SecretStr
+    platform_anthropic_key: SecretStr
+    platform_google_ai_key: SecretStr
+    platform_perplexity_key: SecretStr
+    platform_replicate_key: SecretStr
+    platform_rapid_api_key: SecretStr
+    platform_coinmarketcap_key: SecretStr
 
     db_url: SecretStr
     api_key: SecretStr
@@ -84,6 +105,13 @@ class Config(metaclass = Singleton):
             self.token_encrypt_secret,
             self.uploadcare_private_key,
             self.url_shortener_api_key,
+            self.platform_open_ai_key,
+            self.platform_anthropic_key,
+            self.platform_google_ai_key,
+            self.platform_perplexity_key,
+            self.platform_replicate_key,
+            self.platform_rapid_api_key,
+            self.platform_coinmarketcap_key,
         ]
 
     def __init__(
@@ -126,7 +154,14 @@ class Config(metaclass = Singleton):
         def_url_shortener_base_url: str = "https://urls.appifyhub.com",
         def_version: str = "dev",
         def_usage_maintenance_fee_credits: float = 0.0,
-
+        def_products_config_path: str = "config/products.yaml",
+        def_platform_open_ai_key: SecretStr = SecretStr("invalid"),
+        def_platform_anthropic_key: SecretStr = SecretStr("invalid"),
+        def_platform_google_ai_key: SecretStr = SecretStr("invalid"),
+        def_platform_perplexity_key: SecretStr = SecretStr("invalid"),
+        def_platform_replicate_key: SecretStr = SecretStr("invalid"),
+        def_platform_rapid_api_key: SecretStr = SecretStr("invalid"),
+        def_platform_coinmarketcap_key: SecretStr = SecretStr("invalid"),
         def_db_user: SecretStr = SecretStr("root"),
         def_db_pass: SecretStr = SecretStr("root"),
         def_db_host: SecretStr = SecretStr("localhost"),
@@ -185,6 +220,8 @@ class Config(metaclass = Singleton):
         self.url_shortener_base_url = self.__env("URL_SHORTENER_BASE_URL", lambda: def_url_shortener_base_url)
         self.version = self.__env("VERSION", lambda: def_version)
         self.usage_maintenance_fee_credits = float(self.__env("USAGE_MAINTENANCE_FEE_CREDITS", lambda: str(def_usage_maintenance_fee_credits)))
+        self.products_config_path = self.__env("PRODUCTS_CONFIG_PATH", lambda: def_products_config_path)
+        self.products = self.__load_products()
 
         self.__set_up_db(def_db_user, def_db_pass, def_db_host, def_db_name)
         self.api_key = self.__senv("API_KEY", lambda: def_api_key)
@@ -201,6 +238,13 @@ class Config(metaclass = Singleton):
         self.token_encrypt_secret = self.__senv("TOKEN_ENCRYPT_SECRET", lambda: def_token_encrypt_secret)
         self.uploadcare_private_key = self.__senv("UPLOADCARE_PRIVATE_KEY", lambda: def_uploadcare_private_key)
         self.url_shortener_api_key = self.__senv("URL_SHORTENER_API_KEY", lambda: def_url_shortener_api_key)
+        self.platform_open_ai_key = self.__senv("PLATFORM_OPEN_AI_KEY", lambda: def_platform_open_ai_key)
+        self.platform_anthropic_key = self.__senv("PLATFORM_ANTHROPIC_KEY", lambda: def_platform_anthropic_key)
+        self.platform_google_ai_key = self.__senv("PLATFORM_GOOGLE_AI_KEY", lambda: def_platform_google_ai_key)
+        self.platform_perplexity_key = self.__senv("PLATFORM_PERPLEXITY_KEY", lambda: def_platform_perplexity_key)
+        self.platform_replicate_key = self.__senv("PLATFORM_REPLICATE_KEY", lambda: def_platform_replicate_key)
+        self.platform_rapid_api_key = self.__senv("PLATFORM_RAPID_API_KEY", lambda: def_platform_rapid_api_key)
+        self.platform_coinmarketcap_key = self.__senv("PLATFORM_COINMARKETCAP_KEY", lambda: def_platform_coinmarketcap_key)
         # @formatter:on
 
     def __set_up_db(self, def_db_user: SecretStr, def_db_pass: SecretStr, def_db_host: SecretStr, def_db_name: SecretStr):
@@ -221,5 +265,16 @@ class Config(metaclass = Singleton):
         env_value = os.environ.get(name, "").strip()
         return SecretStr(env_value) if env_value else default()
 
+    def __load_products(self) -> dict[str, ConfiguredProduct]:
+        with open(self.products_config_path) as f:
+            data: dict[str, any] = yaml.safe_load(f)
+        try:
+            return {
+                p["id"]: ConfiguredProduct(id = p["id"], credits = p["credits"], name = p["name"], url = p["url"])
+                for p in data["products"]
+            }
+        except Exception as e:
+            logging.error(f"Failed to parse products config from '{self.products_config_path}': {e}")
+            return {}
 
 config = Config()

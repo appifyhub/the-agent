@@ -302,6 +302,7 @@ class SettingsControllerTest(unittest.TestCase):
             tool_choice_search = "updated-perplexity-search",
             group = self.invoker_user.group,
             created_at = self.invoker_user.created_at,
+            credit_balance = 0.0,
         )
         self.mock_user_dao.save.return_value = saved_user_db
 
@@ -585,6 +586,7 @@ class SettingsControllerTest(unittest.TestCase):
             connect_key = "SPONSR-KEY1",
             group = UserDBModel.Group.developer,
             created_at = datetime.now().date(),
+            credit_balance = 0.0,
         )
 
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = [mock_sponsorship_db]

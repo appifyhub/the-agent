@@ -373,6 +373,7 @@ class ProfileConnectServiceTest(unittest.TestCase):
             connect_key = target_connect_key,
             group = UserDB.Group.developer,
             created_at = date(2024, 1, 1),
+            credit_balance = 0.0,
         )
 
         merged_user_db = UserDB(
@@ -383,6 +384,7 @@ class ProfileConnectServiceTest(unittest.TestCase):
             connect_key = survivor_user.connect_key,
             group = UserDB.Group.developer,
             created_at = survivor_user.created_at,
+            credit_balance = 0.0,
         )
         final_user_db = UserDB(
             id = survivor_user.id,
@@ -392,6 +394,7 @@ class ProfileConnectServiceTest(unittest.TestCase):
             connect_key = "ABCD-EFGH-IJKL",
             group = UserDB.Group.developer,
             created_at = survivor_user.created_at,
+            credit_balance = 0.0,
         )
 
         self.mock_user_crud.get_by_connect_key.return_value = casualty_db
@@ -441,6 +444,7 @@ class ProfileConnectServiceTest(unittest.TestCase):
             connect_key = "NEW-KEY-9999",
             group = UserDB.Group.standard,
             created_at = user.created_at,
+            credit_balance = 0.0,
         )
         self.mock_user_crud.update.return_value = updated_user_db
 

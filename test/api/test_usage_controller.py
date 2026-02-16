@@ -10,9 +10,9 @@ from api.usage_controller import UsageController
 from db.model.user import UserDB
 from db.schema.user import User
 from di.di import DI
-from features.accounting.repo.usage_record_repo import UsageRecordRepository
-from features.accounting.stats.usage_aggregates import AggregateStats, ProviderInfo, ToolInfo, UsageAggregates
-from features.accounting.stats.usage_record import UsageRecord
+from features.accounting.usage.usage_record_repo import UsageRecordRepository
+from features.accounting.usage.usage_aggregates import AggregateStats, ProviderInfo, ToolInfo, UsageAggregates
+from features.accounting.usage.usage_record import UsageRecord
 from features.external_tools.external_tool import ToolType
 from features.external_tools.external_tool_library import GPT_4O
 

@@ -8,7 +8,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_4_SONNET
-from features.external_tools.tool_choice_resolver import ConfiguredTool
+from features.external_tools.configured_tool import ConfiguredTool
 from features.integrations import prompt_resolvers
 from features.integrations.integrations import resolve_external_handle, resolve_platform_name, resolve_user_link
 from util import log
