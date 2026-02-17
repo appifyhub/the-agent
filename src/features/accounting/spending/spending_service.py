@@ -5,6 +5,7 @@ from features.external_tools.configured_tool import ConfiguredTool
 from util import log
 from util.config import config
 
+
 class SpendingService:
 
     __di: DI
@@ -40,6 +41,7 @@ class SpendingService:
     def deduct(self, configured_tool: ConfiguredTool, amount: float) -> None:
         if not configured_tool.uses_credits:
             return
+
         def apply(user):
             available = user.credit_balance or 0.0
             if amount > available:

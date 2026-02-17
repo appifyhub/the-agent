@@ -44,7 +44,7 @@ def upgrade() -> None:
         sa.Column("is_preorder_authorization", sa.Boolean(), nullable = False),
         sa.Column("refunded", sa.Boolean(), nullable = False),
         sa.ForeignKeyConstraint(
-            ["user_id"], ["simulants.id"], name = "purchase_records_user_id_fkey"
+            ["user_id"], ["simulants.id"], name = "purchase_records_user_id_fkey",
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("sale_id"),

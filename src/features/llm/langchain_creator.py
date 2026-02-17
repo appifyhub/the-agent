@@ -14,6 +14,7 @@ from features.external_tools.external_tool_provider_library import (
 from features.external_tools.configured_tool import ConfiguredTool
 from util.config import config
 
+
 def create(configured_tool: ConfiguredTool) -> BaseChatModel:
     definition = configured_tool.definition
     purpose = configured_tool.purpose
@@ -38,6 +39,7 @@ def create(configured_tool: ConfiguredTool) -> BaseChatModel:
             return ChatGoogleGenerativeAI(**model_args)
     raise ValueError(f"{definition.provider.name}/{definition.name} does not support LLMs")
 
+
 def __normalize_temperature(temperature_percent: float, provider: ExternalToolProvider) -> float:
     match provider.id:
         case OPEN_AI.id:
@@ -49,6 +51,7 @@ def __normalize_temperature(temperature_percent: float, provider: ExternalToolPr
         case GOOGLE_AI.id:
             return temperature_percent * 2
     raise ValueError(f"{provider.name}/{provider.id} does not support temperature")
+
 
 def __get_timeout(tool_type: ToolType, tool: ExternalTool) -> float:
     match tool_type:

@@ -277,4 +277,5 @@ class Config(metaclass = Singleton):
             logging.error(f"Failed to parse products config from '{self.products_config_path}': {e}")
             return {}
 
+
 config = Config()
