@@ -9,7 +9,7 @@ from features.external_tools.external_tool import ExternalTool, ToolType
 class UsageRecord:
     # core properties
     user_id: UUID
-    payer_id: UUID | None = None
+    payer_id: UUID
     uses_credits: bool = False
     chat_id: UUID | None = None
     tool: ExternalTool

@@ -14,7 +14,7 @@ class UsageRecordDB(BaseModel):
 
     # core properties
     user_id = Column(UUID(as_uuid = True), nullable = False)
-    payer_id = Column(UUID(as_uuid = True), nullable = True)
+    payer_id = Column(UUID(as_uuid = True), nullable = False)
     uses_credits = Column(Boolean, nullable = False, server_default = "false")
     chat_id = Column(UUID(as_uuid = True), nullable = True)
     tool_id = Column(String, nullable = False)

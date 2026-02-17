@@ -6,10 +6,9 @@ from db.sql_util import SQLUtil
 
 from db.model.usage_record import UsageRecordDB
 from db.model.user import UserDB
-from db.schema.sponsorship import SponsorshipSave
 from db.schema.user import UserSave
-from features.accounting.usage.usage_record_repo import UsageRecordRepository
 from features.accounting.usage.usage_record import UsageRecord
+from features.accounting.usage.usage_record_repo import UsageRecordRepository
 from features.external_tools.external_tool import ToolType
 from features.external_tools.external_tool_library import CLAUDE_3_5_HAIKU, GPT_4O
 
@@ -31,13 +30,16 @@ class UsageRecordRepositoryTest(unittest.TestCase):
     def _create_record(
         self,
         user_id = None,
+        payer_id = None,
         tool = GPT_4O,
         tool_purpose = ToolType.chat,
         total_cost_credits = 1.0,
         timestamp = None,
     ) -> UsageRecord:
+        actual_user_id = user_id or self.user.id
         return UsageRecord(
-            user_id = user_id or self.user.id,
+            user_id = actual_user_id,
+            payer_id = payer_id or actual_user_id,
             tool = tool,
             tool_purpose = tool_purpose,
             timestamp = timestamp or datetime.now(timezone.utc),
@@ -52,6 +54,7 @@ class UsageRecordRepositoryTest(unittest.TestCase):
     def test_create(self):
         record = UsageRecord(
             user_id = self.user.id,
+            payer_id = self.user.id,
             tool = GPT_4O,
             tool_purpose = ToolType.vision,
             model_cost_credits = 0.5,
@@ -141,13 +144,13 @@ class UsageRecordRepositoryTest(unittest.TestCase):
 
     def test_get_by_user_include_sponsored(self):
         sponsored_user = self.sql.user_crud().create(UserSave(connect_key = "SPONSORED-KEY"))
-        self.sql.sponsorship_crud().create(SponsorshipSave(
-            sponsor_id = self.user.id,
-            receiver_id = sponsored_user.id,
-        ))
 
         self.repo.create(self._create_record(total_cost_credits = 10))
-        self.repo.create(self._create_record(user_id = sponsored_user.id, total_cost_credits = 20))
+        self.repo.create(self._create_record(
+            user_id = sponsored_user.id,
+            payer_id = self.user.id,
+            total_cost_credits = 20,
+        ))
 
         records = self.repo.get_by_user(self.user.id, include_sponsored = True)
 
@@ -155,13 +158,13 @@ class UsageRecordRepositoryTest(unittest.TestCase):
 
     def test_get_by_user_exclude_self(self):
         sponsored_user = self.sql.user_crud().create(UserSave(connect_key = "SPONSORED-KEY"))
-        self.sql.sponsorship_crud().create(SponsorshipSave(
-            sponsor_id = self.user.id,
-            receiver_id = sponsored_user.id,
-        ))
 
         self.repo.create(self._create_record(total_cost_credits = 10))
-        self.repo.create(self._create_record(user_id = sponsored_user.id, total_cost_credits = 20))
+        self.repo.create(self._create_record(
+            user_id = sponsored_user.id,
+            payer_id = self.user.id,
+            total_cost_credits = 20,
+        ))
 
         records = self.repo.get_by_user(self.user.id, include_sponsored = True, exclude_self = True)
 
@@ -253,13 +256,13 @@ class UsageRecordRepositoryTest(unittest.TestCase):
 
     def test_get_aggregates_by_user_include_sponsored(self):
         sponsored_user = self.sql.user_crud().create(UserSave(connect_key = "SPONSORED-KEY"))
-        self.sql.sponsorship_crud().create(SponsorshipSave(
-            sponsor_id = self.user.id,
-            receiver_id = sponsored_user.id,
-        ))
 
         self.repo.create(self._create_record(total_cost_credits = 10))
-        self.repo.create(self._create_record(user_id = sponsored_user.id, total_cost_credits = 20))
+        self.repo.create(self._create_record(
+            user_id = sponsored_user.id,
+            payer_id = self.user.id,
+            total_cost_credits = 20,
+        ))
 
         stats = self.repo.get_aggregates_by_user(self.user.id, include_sponsored = True)
 

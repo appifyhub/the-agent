@@ -1,14 +1,13 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import func, or_
+from sqlalchemy import func
 from sqlalchemy.orm import Query, Session
 
-from db.model.sponsorship import SponsorshipDB
 from db.model.usage_record import UsageRecordDB
-from features.accounting.usage.usage_record_mapper import db, domain
 from features.accounting.usage.usage_aggregates import AggregateStats, ProviderInfo, ToolInfo, UsageAggregates
 from features.accounting.usage.usage_record import UsageRecord
+from features.accounting.usage.usage_record_mapper import db, domain
 
 
 class UsageRecordRepository:
@@ -168,21 +167,13 @@ class UsageRecordRepository:
     ) -> Query:
         if not include_sponsored:
             base_query = self._db.query(UsageRecordDB).filter(UsageRecordDB.user_id == user_id)
-        else:
-            sponsored_user_ids = self._db.query(SponsorshipDB.receiver_id).filter(
-                SponsorshipDB.sponsor_id == user_id,
+        elif exclude_self:
+            base_query = self._db.query(UsageRecordDB).filter(
+                UsageRecordDB.payer_id == user_id,
+                UsageRecordDB.user_id != user_id,
             )
-            if exclude_self:
-                base_query = self._db.query(UsageRecordDB).filter(
-                    UsageRecordDB.user_id.in_(sponsored_user_ids),
-                )
-            else:
-                base_query = self._db.query(UsageRecordDB).filter(
-                    or_(
-                        UsageRecordDB.user_id == user_id,
-                        UsageRecordDB.user_id.in_(sponsored_user_ids),
-                    ),
-                )
+        else:
+            base_query = self._db.query(UsageRecordDB).filter(UsageRecordDB.payer_id == user_id)
 
         if start_date is not None:
             base_query = base_query.filter(UsageRecordDB.timestamp >= start_date)

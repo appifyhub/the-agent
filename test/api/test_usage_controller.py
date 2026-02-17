@@ -68,6 +68,7 @@ class UsageControllerTest(unittest.TestCase):
     ) -> UsageRecord:
         return UsageRecord(
             user_id = user_id,
+            payer_id = user_id,
             chat_id = UUID(int = 1),
             tool = GPT_4O,
             tool_purpose = ToolType.chat,
