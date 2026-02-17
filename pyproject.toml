@@ -51,6 +51,7 @@ select = [
     "E", # pycodestyle errors
     "W", # pycodestyle warnings
     "F", # Pyflakes
+    "I", # isort
     "COM812", # missing-trailing-comma
     "Q", # flake8-quotes (enforce quote style)
 ]
