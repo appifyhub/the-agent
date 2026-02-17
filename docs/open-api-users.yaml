@@ -82,6 +82,35 @@ paths:
       security:
         - bearerAuth: []
 
+  /settings/user/{resource_id}/products:
+    get:
+      summary: Get available products
+      description: Retrieve the list of purchasable products
+      operationId: getProducts
+      tags: [Settings]
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+      responses:
+        "200":
+          description: Products retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductsResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
   /settings/user/{user_id_hex}:
     patch:
       summary: Update user settings
@@ -1150,6 +1179,43 @@ components:
       required:
         - tools
         - providers
+
+    ProductsResponse:
+      type: object
+      properties:
+        products:
+          type: array
+          nullable: false
+          items:
+            $ref: "#/components/schemas/ConfiguredProduct"
+          description: List of purchasable products
+      required:
+        - products
+
+    ConfiguredProduct:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: false
+          description: Product ID
+        credits:
+          type: integer
+          nullable: false
+          description: Number of credits granted upon purchase
+        name:
+          type: string
+          nullable: false
+          description: Display name of the product
+        url:
+          type: string
+          nullable: false
+          description: Purchase URL
+      required:
+        - id
+        - credits
+        - name
+        - url
 
     ExternalToolResponse:
       type: object

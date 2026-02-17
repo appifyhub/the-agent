@@ -273,6 +273,22 @@ def get_tools(
         raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get external tools", e)})
 
 
+@app.get("/settings/user/{resource_id}/products")
+def get_products(
+    resource_id: str,
+    db = Depends(get_session),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
+) -> dict:
+    try:
+        log.d(f"Fetching products for {resource_id}")
+        invoker_id_hex = get_user_id_from_jwt(token)
+        log.d(f"  Invoker ID: {invoker_id_hex}")
+        di = DI(db, invoker_id_hex)
+        return di.settings_controller.fetch_products(resource_id)
+    except Exception as e:
+        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get products", e)})
+
+
 @app.get("/user/{resource_id}/sponsorships")
 def get_sponsorships(
     resource_id: str,

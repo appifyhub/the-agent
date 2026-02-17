@@ -24,6 +24,7 @@ from features.chat.telegram.model.user import User as TelegramUser
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.external_tools.access_token_resolver import AccessTokenResolver
 from features.external_tools.external_tool import ExternalTool, ExternalToolProvider, ToolType
+from util.config import ConfiguredProduct
 from util.functions import mask_secret
 
 
@@ -965,3 +966,27 @@ class SettingsControllerTest(unittest.TestCase):
             if call[0][0].id == provider.id
         )
         self.assertEqual(call_count, 1, "Provider configuration should be checked only once, not per tool")
+
+    def test_fetch_products_success(self):
+        mock_products = {
+            "prod-1": ConfiguredProduct(id = "prod-1", credits = 100, name = "Starter Pack", url = "https://example.com/prod-1"),
+            "prod-2": ConfiguredProduct(id = "prod-2", credits = 500, name = "Pro Pack", url = "https://example.com/prod-2"),
+        }
+
+        with patch("api.settings_controller.config") as mock_config:
+            mock_config.products = mock_products
+            controller = SettingsController(self.mock_di)
+            result = controller.fetch_products(self.invoker_user.id.hex)
+
+        self.mock_authorization_service.authorize_for_user.assert_called_once_with(
+            self.invoker_user,
+            self.invoker_user.id.hex,
+        )
+        self.assertIn("products", result)
+        self.assertEqual(len(result["products"]), 2)
+        product_ids = {p["id"] for p in result["products"]}
+        self.assertEqual(product_ids, {"prod-1", "prod-2"})
+        starter = next(p for p in result["products"] if p["id"] == "prod-1")
+        self.assertEqual(starter["credits"], 100)
+        self.assertEqual(starter["name"], "Starter Pack")
+        self.assertEqual(starter["url"], f"https://example.com/prod-1?user_id={self.invoker_user.id.hex}")
