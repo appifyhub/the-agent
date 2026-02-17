@@ -6,9 +6,9 @@ from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from di.di import DI
 from features.accounting.usage.decorators.http_usage_tracking_decorator import HTTPUsageTrackingDecorator
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
+from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import TWITTER_API
-from features.external_tools.configured_tool import ConfiguredTool
 from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
 from util import log
 from util.config import config

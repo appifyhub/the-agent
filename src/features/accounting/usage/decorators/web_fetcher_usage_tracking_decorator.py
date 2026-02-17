@@ -1,4 +1,5 @@
 from time import time
+
 from features.accounting.spending.spending_service import SpendingService
 from features.accounting.usage.usage_tracking_service import UsageTrackingService
 from features.external_tools.configured_tool import ConfiguredTool

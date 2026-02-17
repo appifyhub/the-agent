@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, Mock
 from uuid import UUID
 
 from di.di import DI
-from features.accounting.usage.usage_tracking_service import UsageTrackingService
 from features.accounting.usage.usage_record import UsageRecord
+from features.accounting.usage.usage_tracking_service import UsageTrackingService
 from features.external_tools.external_tool import CostEstimate, ExternalTool, ExternalToolProvider, ToolType
 from util.config import config
 

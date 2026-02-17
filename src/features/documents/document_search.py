@@ -6,9 +6,9 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.vectorstores import InMemoryVectorStore
 
 from di.di import DI
+from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_3_7_SONNET, TEXT_EMBEDDING_3_SMALL
-from features.external_tools.configured_tool import ConfiguredTool
 from features.integrations import prompt_resolvers
 from util import log
 

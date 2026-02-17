@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 from unittest.mock import patch
 
 from db.model.usage_record import UsageRecordDB
-from features.accounting.usage.usage_record_mapper import db, domain
 from features.accounting.usage.usage_record import UsageRecord
+from features.accounting.usage.usage_record_mapper import db, domain
 from features.external_tools.external_tool import ToolType
 from features.external_tools.external_tool_library import GPT_4O
 

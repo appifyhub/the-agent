@@ -4,6 +4,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langchain_perplexity import ChatPerplexity
 
+from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ExternalToolProvider, ToolType
 from features.external_tools.external_tool_provider_library import (
     ANTHROPIC,
@@ -11,7 +12,6 @@ from features.external_tools.external_tool_provider_library import (
     OPEN_AI,
     PERPLEXITY,
 )
-from features.external_tools.configured_tool import ConfiguredTool
 from util.config import config
 
 

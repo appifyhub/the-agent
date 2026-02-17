@@ -6,8 +6,8 @@ from typing import Any, Dict
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from di.di import DI
 from features.currencies.supported_currencies import SUPPORTED_CRYPTO, SUPPORTED_FIAT
-from features.external_tools.external_tool import ToolType
 from features.external_tools.configured_tool import ConfiguredTool
+from features.external_tools.external_tool import ToolType
 from features.external_tools.external_tool_library import CRYPTO_CURRENCY_EXCHANGE, FIAT_CURRENCY_EXCHANGE
 from util import log
 

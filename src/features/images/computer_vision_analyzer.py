@@ -3,9 +3,9 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 
 from di.di import DI
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
+from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import GPT_4_1_MINI
-from features.external_tools.configured_tool import ConfiguredTool
 from features.integrations import prompt_resolvers
 from util import log
 from util.functions import parse_ai_message_content

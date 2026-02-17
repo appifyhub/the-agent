@@ -1,13 +1,12 @@
 import unittest
 from unittest.mock import patch
+from uuid import UUID
 
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langchain_perplexity import ChatPerplexity
 from pydantic import SecretStr
-
-from uuid import UUID
 
 from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import CostEstimate, ExternalTool, ExternalToolProvider, ToolType

@@ -1,6 +1,5 @@
-from di.di import DI
-
 from db.schema.user import User
+from di.di import DI
 from features.external_tools.configured_tool import ConfiguredTool
 from util import log
 from util.config import config

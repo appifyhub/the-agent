@@ -31,15 +31,15 @@ if TYPE_CHECKING:
     from db.crud.sponsorship import SponsorshipCRUD
     from db.crud.tools_cache import ToolsCacheCRUD
     from db.crud.user import UserCRUD
+    from features.accounting.purchases.purchase_record_repo import PurchaseRecordRepository
+    from features.accounting.purchases.purchase_service import PurchaseService
+    from features.accounting.spending.spending_service import SpendingService
     from features.accounting.usage.decorators.chat_model_usage_tracking_decorator import ChatModelUsageTrackingDecorator
     from features.accounting.usage.decorators.google_ai_usage_tracking_decorator import GoogleAIUsageTrackingDecorator
     from features.accounting.usage.decorators.http_usage_tracking_decorator import HTTPUsageTrackingDecorator
     from features.accounting.usage.decorators.openai_usage_tracking_decorator import OpenAIUsageTrackingDecorator
     from features.accounting.usage.decorators.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
     from features.accounting.usage.decorators.web_fetcher_usage_tracking_decorator import WebFetcherUsageTrackingDecorator
-    from features.accounting.purchases.purchase_record_repo import PurchaseRecordRepository
-    from features.accounting.purchases.purchase_service import PurchaseService
-    from features.accounting.spending.spending_service import SpendingService
     from features.accounting.usage.usage_record_repo import UsageRecordRepository
     from features.accounting.usage.usage_tracking_service import UsageTrackingService
     from features.announcements.release_summary_service import ReleaseSummaryService

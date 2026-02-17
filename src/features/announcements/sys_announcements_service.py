@@ -3,9 +3,9 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 
 from db.schema.chat_config import ChatConfig
 from di.di import DI
+from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_3_7_SONNET
-from features.external_tools.configured_tool import ConfiguredTool
 from features.integrations import prompt_resolvers
 from util import log
 
