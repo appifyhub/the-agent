@@ -120,6 +120,7 @@ class TelegramDataResolver:
             mapped_data.tool_choice_api_fiat_exchange = old_user.tool_choice_api_fiat_exchange
             mapped_data.tool_choice_api_crypto_exchange = old_user.tool_choice_api_crypto_exchange
             mapped_data.tool_choice_api_twitter = old_user.tool_choice_api_twitter
+            mapped_data.credit_balance = old_user.credit_balance
             mapped_data.group = old_user.group
         else:
             # new users can only be added until the user limit is reached

@@ -123,6 +123,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
             open_ai_key = self.receiver_user.open_ai_key,
             group = self.receiver_user.group,
             created_at = self.receiver_user.created_at,
+            credit_balance = 0.0,
         )
 
         self.mock_di.sponsorship_crud.get_all_by_sponsor.return_value = [sponsorship_db]
@@ -208,6 +209,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
             open_ai_key = self.receiver_user.open_ai_key,
             group = self.receiver_user.group,
             created_at = self.receiver_user.created_at,
+            credit_balance = 0.0,
         )
 
         self.mock_di.sponsorship_crud.get_all_by_sponsor.return_value = [sponsorship_db]
@@ -251,6 +253,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
             open_ai_key = self.receiver_user.open_ai_key,
             group = self.receiver_user.group,
             created_at = self.receiver_user.created_at,
+            credit_balance = 0.0,
         )
 
         # noinspection PyPropertyAccess

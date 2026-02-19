@@ -93,6 +93,7 @@ def domain_to_api(user: User) -> UserSettingsResponse:
         tool_choice_api_fiat_exchange = user.tool_choice_api_fiat_exchange,
         tool_choice_api_crypto_exchange = user.tool_choice_api_crypto_exchange,
         tool_choice_api_twitter = user.tool_choice_api_twitter,
+        credit_balance = user.credit_balance,
         group = user.group.value,
         created_at = user.created_at.isoformat(),
     )

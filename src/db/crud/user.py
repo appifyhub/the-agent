@@ -1,3 +1,4 @@
+from typing import Callable
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -75,6 +76,17 @@ class UserCRUD:
         if updated_user:
             return updated_user  # available only if update was successful
         return self.create(data)
+
+    def update_locked(self, user_id: UUID, update_fn: Callable[[UserDB], None]) -> UserDB:
+        user = self._db.query(UserDB).filter(
+            UserDB.id == user_id,
+        ).with_for_update().first()
+        if user is None:
+            raise ValueError(f"User {user_id} not found")
+        update_fn(user)
+        self._db.commit()
+        self._db.refresh(user)
+        return user
 
     def delete(self, user_id: UUID, commit: bool = True) -> UserDB | None:
         user = self.get(user_id)
