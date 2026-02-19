@@ -9,6 +9,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     if: github.event.pull_request.user.login != 'dependabot[bot]'
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v2
         with:
@@ -48,18 +51,15 @@ jobs:
       - name: Build Docker image
         run: docker build . --file Dockerfile --tag the-agent
 
-      - name: Auth for GitHub's Docker repository
-        env:
-          USER: ${{ secrets.PACKAGES_USER }}
-          TOKEN: ${{ secrets.PACKAGES_TOKEN }}
-        run: echo $TOKEN | docker login docker.pkg.github.com --username $USER --password-stdin
+      - name: Auth for GitHub's Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
 
       - name: Tag Docker image
         run: |
           VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
           echo "Tagging images with version '$VERSION'..."
-          docker tag the-agent docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:"$VERSION".beta
-          docker tag the-agent docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:latest_beta
+          docker tag the-agent ghcr.io/$GITHUB_REPOSITORY:"$VERSION".beta
+          docker tag the-agent ghcr.io/$GITHUB_REPOSITORY:latest_beta
           docker tag the-agent appifyhub/the-agent:"$VERSION".beta
           docker tag the-agent appifyhub/the-agent:latest_beta
 
@@ -67,8 +67,8 @@ jobs:
         run: |
           VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
           echo "Publishing images with version '$VERSION'..."
-          docker push docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:"$VERSION".beta
-          docker push docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:latest_beta
+          docker push ghcr.io/$GITHUB_REPOSITORY:"$VERSION".beta
+          docker push ghcr.io/$GITHUB_REPOSITORY:latest_beta
 
       - name: Publish Docker images to DockerHub
         id: docker_publish
