@@ -1016,6 +1016,7 @@ components:
           description: User creation timestamp
       required:
         - id
+        - credit_balance
         - group
         - created_at
 
@@ -1370,15 +1371,15 @@ components:
           description: User ID in hexadecimal format (UUID without hyphens)
         payer_id:
           type: string
-          nullable: true
+          nullable: false
           description: Payer ID in hexadecimal format (UUID without hyphens), identifying who was billed for this usage
         uses_credits:
           type: boolean
-          nullable: true
+          nullable: false
           description: Whether credits were used for this usage record
         is_failed:
           type: boolean
-          nullable: true
+          nullable: false
           description: Whether the tool call failed (balance is not deducted for failed calls)
         chat_id:
           type: string
@@ -1463,6 +1464,9 @@ components:
           description: Sizes of input images processed
       required:
         - user_id
+        - payer_id
+        - uses_credits
+        - is_failed
         - tool
         - tool_purpose
         - timestamp
@@ -1798,7 +1802,7 @@ components:
           description: Platform-specific handle of sponsored user (e.g., Telegram username, WhatsApp phone number)
         platform:
           type: string
-          nullable: false
+          nullable: true
           enum: [telegram, whatsapp]
           description: Platform type where the first handle was found
         sponsored_at:
@@ -1813,7 +1817,6 @@ components:
           description: When the sponsorship was accepted
       required:
         - user_id_hex
-        - platform
         - sponsored_at
 
     StatusResponse:
