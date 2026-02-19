@@ -40,8 +40,8 @@ from db.sql import get_session, initialize_db
 from di.di import DI
 from features.accounting.purchases.purchase_aggregates import PurchaseAggregates
 from features.accounting.purchases.purchase_record import PurchaseRecord
-from features.accounting.stats.usage_aggregates import UsageAggregates
-from features.accounting.stats.usage_record import UsageRecord
+from features.accounting.usage.usage_aggregates import UsageAggregates
+from features.accounting.usage.usage_record import UsageRecord
 from features.chat.telegram.currency_alert_responder import respond_with_currency_alerts
 from features.chat.telegram.model.update import Update as TelegramUpdate
 from features.chat.telegram.release_summary_responder import respond_with_summary
@@ -271,6 +271,22 @@ def get_tools(
         return di.settings_controller.fetch_external_tools(resource_id)
     except Exception as e:
         raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get external tools", e)})
+
+
+@app.get("/settings/user/{resource_id}/products")
+def get_products(
+    resource_id: str,
+    db = Depends(get_session),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
+) -> dict:
+    try:
+        log.d(f"Fetching products for {resource_id}")
+        invoker_id_hex = get_user_id_from_jwt(token)
+        log.d(f"  Invoker ID: {invoker_id_hex}")
+        di = DI(db, invoker_id_hex)
+        return di.settings_controller.fetch_products(resource_id)
+    except Exception as e:
+        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get products", e)})
 
 
 @app.get("/user/{resource_id}/sponsorships")

@@ -14,9 +14,9 @@ from features.chat.supported_files import (
     SUPPORTED_AUDIO_FORMATS,
     TARGET_AUDIO_FORMAT,
 )
+from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_3_5_HAIKU, WHISPER_1
-from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.integrations import prompt_resolvers
 from util import log
 

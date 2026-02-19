@@ -8,9 +8,9 @@ from langchain_core.runnables import Runnable
 
 from di.di import DI
 from features.chat.command_processor import CommandProcessor
+from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import GPT_4_1_MINI
-from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.integrations import prompt_resolvers
 from features.integrations.integrations import resolve_agent_user, resolve_external_handle
 from features.prompting import prompt_library
