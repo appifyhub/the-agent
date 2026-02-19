@@ -135,10 +135,10 @@ jobs:
               -H "Content-Type: application/json" \
               -d "{\"release_output_b64\": \"$RELEASE_OUTPUT_B64\"}" \
               -s || true)
-            SHOULD_RETRY=$(echo "$SUMMARY_RESPONSE" | grep -o '"should_retry"[[:space:]]*:[[:space:]]*[^,}]*' | head -n1 | sed 's/.*:[[:space:]]*\([^,}]*\).*/\1/')
+            SHOULD_RETRY=$(echo "$SUMMARY_RESPONSE" | jq -r '.should_retry // false')
             if [[ "$SHOULD_RETRY" != "true" ]]; then
               echo "Notification successful (should_retry = $SHOULD_RETRY)"
-              SUMMARY=$(echo "$SUMMARY_RESPONSE" | grep -o '"summary"[[:space:]]*:[[:space:]]*"[^"]*"' | head -n1 | sed 's/.*: *"\([^"]*\)".*/\1/')
+              SUMMARY=$(echo "$SUMMARY_RESPONSE" | jq -r '.summary // ""')
               SUMMARY_B64=$(printf "%s" "$SUMMARY" | base64 -w 0)
               echo "summary_b64=$SUMMARY_B64" >> $GITHUB_OUTPUT
               exit 0
