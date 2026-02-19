@@ -1376,6 +1376,10 @@ components:
           type: boolean
           nullable: true
           description: Whether credits were used for this usage record
+        is_failed:
+          type: boolean
+          nullable: true
+          description: Whether the tool call failed (balance is not deducted for failed calls)
         chat_id:
           type: string
           nullable: true
