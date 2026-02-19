@@ -1,0 +1,11 @@
+products:
+
+  - id: "PROD_100"
+    credits: 100
+    name: "Pack of 100"
+    url: "https://store.appifyhub.com/l/abot-credits-100"
+
+  - id: "PROD_DONATION"
+    credits: 0
+    name: "Green Tea"
+    url: "https://store.appifyhub.com/coffee"

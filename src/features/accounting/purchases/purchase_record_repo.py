@@ -165,7 +165,7 @@ class PurchaseRecordRepository:
     def bind_license_key_to_user(self, license_key: str, user_id: UUID) -> PurchaseRecord:
         db_model = self._db.query(PurchaseRecordDB).filter(
             PurchaseRecordDB.license_key == license_key,
-        ).first()
+        ).with_for_update().first()
 
         if db_model is None:
             raise ValueError(f"License key {license_key} not found")

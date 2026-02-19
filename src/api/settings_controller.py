@@ -1,4 +1,4 @@
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import datetime, timedelta
 from typing import Annotated, Any, List, Literal, TypeAlias, get_args
 
@@ -7,6 +7,7 @@ from api.mapper.chat_mapper import domain_to_api as chat_to_api
 from api.mapper.user_mapper import api_to_domain, domain_to_api
 from api.model.chat_settings_payload import ChatSettingsPayload
 from api.model.external_tools_response import ExternalToolProviderResponse, ExternalToolResponse, ExternalToolsResponse
+from api.model.products_response import ProductsResponse
 from api.model.settings_link_response import SettingsLinkResponse
 from api.model.user_settings_payload import UserSettingsPayload
 from db.model.chat_config import ChatConfigDB
@@ -125,6 +126,14 @@ class SettingsController:
         tools_response.sort(key = lambda t: (provider_sort_order[t.definition.provider.id], t.definition.name))
 
         return asdict(ExternalToolsResponse(tools_response, providers_response))
+
+    def fetch_products(self, user_id_hex: str) -> dict[str, Any]:
+        user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
+        products = [
+            replace(product, url = f"{product.url}?user_id={user.id.hex}")
+            for product in config.products.values()
+        ]
+        return asdict(ProductsResponse(products))
 
     def fetch_chat_settings(self, chat_id: str) -> dict[str, Any]:
         chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, chat_id)
