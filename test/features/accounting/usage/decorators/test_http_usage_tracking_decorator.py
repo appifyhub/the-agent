@@ -21,6 +21,7 @@ class HTTPUsageTrackingDecoratorTest(unittest.TestCase):
         self.mock_spending_service = Mock(spec = SpendingService)
         self.tool_purpose = ToolType.api_twitter
         self.external_tool = Mock(spec = ExternalTool)
+        self.external_tool.id = "test-tool"
 
         self.mock_configured_tool = Mock(spec = ConfiguredTool)
         self.mock_configured_tool.definition = self.external_tool
@@ -83,12 +84,15 @@ class HTTPUsageTrackingDecoratorTest(unittest.TestCase):
             timeout = 30,
         )
 
-    def test_get_propagates_exceptions(self):
+    def test_get_failure_tracks_without_deduction(self):
         with unittest.mock.patch("requests.get", side_effect = requests.exceptions.HTTPError("404")):
             with self.assertRaises(requests.exceptions.HTTPError):
                 self.decorator.get("https://api.example.com/test")
 
-        self.mock_tracking_service.track_api_call.assert_not_called()
+        self.mock_tracking_service.track_api_call.assert_called_once()
+        call_args = self.mock_tracking_service.track_api_call.call_args
+        self.assertTrue(call_args.kwargs["is_failed"])
+        self.mock_spending_service.deduct.assert_not_called()
 
     def test_get_calls_validate_pre_flight(self):
         mock_response = Mock(spec = requests.Response)

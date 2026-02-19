@@ -10,6 +10,7 @@ from features.accounting.usage.image_usage_stats import ImageUsageStats
 from features.accounting.usage.proxies.namespace_proxy import NamespaceProxy
 from features.accounting.usage.usage_tracking_service import UsageTrackingService
 from features.external_tools.configured_tool import ConfiguredTool
+from util import log
 
 
 class GoogleAIUsageTrackingDecorator:
@@ -57,10 +58,15 @@ class GoogleAIUsageTrackingDecorator:
                 output_image_sizes = self.__output_image_sizes,
             )
             start_time = time()
-            response: GenerateContentResponse = original_method(*args, **kwargs)
-            runtime_seconds = time() - start_time
-            self.__track_usage(response, runtime_seconds)
-            return response
+            try:
+                response: GenerateContentResponse = original_method(*args, **kwargs)
+                runtime_seconds = time() - start_time
+                self.__track_usage(response, runtime_seconds)
+                return response
+            except Exception:
+                runtime_seconds = time() - start_time
+                self.__track_failed_usage(runtime_seconds)
+                raise
         return wrapper
 
     def __track_usage(self, response: GenerateContentResponse, runtime_seconds: float) -> None:
@@ -78,6 +84,19 @@ class GoogleAIUsageTrackingDecorator:
             total_tokens = usage_stats.total_tokens,
         )
         self.__spending_service.deduct(self.__configured_tool, record.total_cost_credits)
+
+    def __track_failed_usage(self, runtime_seconds: float) -> None:
+        log.w(f"Tool call failed for {self.__configured_tool.definition.id}, tracking without deduction")
+        self.__tracking_service.track_image_model(
+            tool = self.__configured_tool.definition,
+            tool_purpose = self.__configured_tool.purpose,
+            runtime_seconds = runtime_seconds,
+            payer_id = self.__configured_tool.payer_id,
+            uses_credits = self.__configured_tool.uses_credits,
+            output_image_sizes = self.__output_image_sizes,
+            input_image_sizes = self.__input_image_sizes,
+            is_failed = True,
+        )
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self.__wrapped_client, name)

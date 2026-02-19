@@ -4,6 +4,7 @@ from features.accounting.spending.spending_service import SpendingService
 from features.accounting.usage.usage_tracking_service import UsageTrackingService
 from features.external_tools.configured_tool import ConfiguredTool
 from features.web_browsing.web_fetcher import WebFetcher
+from util import log
 
 
 class WebFetcherUsageTrackingDecorator:
@@ -40,36 +41,53 @@ class WebFetcherUsageTrackingDecorator:
     def fetch_html(self) -> str | None:
         self.__spending_service.validate_pre_flight(self.__configured_tool)
         start_time = time()
-        result = self.__wrapped_fetcher.fetch_html()
-        runtime_seconds = time() - start_time
-
-        record = self.__tracking_service.track_api_call(
-            tool = self.__configured_tool.definition,
-            tool_purpose = self.__configured_tool.purpose,
-            runtime_seconds = runtime_seconds,
-            payer_id = self.__configured_tool.payer_id,
-            uses_credits = self.__configured_tool.uses_credits,
-        )
-        self.__spending_service.deduct(self.__configured_tool, record.total_cost_credits)
-
-        return result
+        try:
+            result = self.__wrapped_fetcher.fetch_html()
+            runtime_seconds = time() - start_time
+            record = self.__tracking_service.track_api_call(
+                tool = self.__configured_tool.definition,
+                tool_purpose = self.__configured_tool.purpose,
+                runtime_seconds = runtime_seconds,
+                payer_id = self.__configured_tool.payer_id,
+                uses_credits = self.__configured_tool.uses_credits,
+            )
+            self.__spending_service.deduct(self.__configured_tool, record.total_cost_credits)
+            return result
+        except Exception:
+            runtime_seconds = time() - start_time
+            self.__track_failed_usage(runtime_seconds)
+            raise
 
     def fetch_json(self) -> dict | None:
         self.__spending_service.validate_pre_flight(self.__configured_tool)
         start_time = time()
-        result = self.__wrapped_fetcher.fetch_json()
-        runtime_seconds = time() - start_time
+        try:
+            result = self.__wrapped_fetcher.fetch_json()
+            runtime_seconds = time() - start_time
+            record = self.__tracking_service.track_api_call(
+                tool = self.__configured_tool.definition,
+                tool_purpose = self.__configured_tool.purpose,
+                runtime_seconds = runtime_seconds,
+                payer_id = self.__configured_tool.payer_id,
+                uses_credits = self.__configured_tool.uses_credits,
+            )
+            self.__spending_service.deduct(self.__configured_tool, record.total_cost_credits)
+            return result
+        except Exception:
+            runtime_seconds = time() - start_time
+            self.__track_failed_usage(runtime_seconds)
+            raise
 
-        record = self.__tracking_service.track_api_call(
+    def __track_failed_usage(self, runtime_seconds: float) -> None:
+        log.w(f"Tool call failed for {self.__configured_tool.definition.id}, tracking without deduction")
+        self.__tracking_service.track_api_call(
             tool = self.__configured_tool.definition,
             tool_purpose = self.__configured_tool.purpose,
             runtime_seconds = runtime_seconds,
             payer_id = self.__configured_tool.payer_id,
             uses_credits = self.__configured_tool.uses_credits,
+            is_failed = True,
         )
-        self.__spending_service.deduct(self.__configured_tool, record.total_cost_credits)
-
-        return result
 
     def __getattr__(self, name):
         return getattr(self.__wrapped_fetcher, name)

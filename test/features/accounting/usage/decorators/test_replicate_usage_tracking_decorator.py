@@ -23,6 +23,7 @@ class ReplicateUsageTrackingDecoratorTest(unittest.TestCase):
         self.mock_spending_service = Mock(spec = SpendingService)
         self.tool_purpose = ToolType.images_edit
         self.external_tool = Mock(spec = ExternalTool)
+        self.external_tool.id = "test-tool"
         self.image_size = "512x512"
 
         self.mock_configured_tool = Mock(spec = ConfiguredTool)
@@ -85,6 +86,7 @@ class PredictionUsageTrackingDecoratorTest(unittest.TestCase):
         self.mock_spending_service = Mock(spec = SpendingService)
         self.tool_purpose = ToolType.images_edit
         self.external_tool = Mock(spec = ExternalTool)
+        self.external_tool.id = "test-tool"
         self.image_size = "512x512"
 
         self.mock_configured_tool = Mock(spec = ConfiguredTool)
@@ -167,3 +169,14 @@ class PredictionUsageTrackingDecoratorTest(unittest.TestCase):
         result = self.decorator.status
 
         self.assertEqual(result, "succeeded")
+
+    def test_wait_failure_tracks_without_deduction(self):
+        self.mock_prediction.wait = Mock(side_effect = RuntimeError("Prediction failed"))
+
+        with self.assertRaises(RuntimeError):
+            self.decorator.wait()
+
+        self.mock_tracking_service.track_image_model.assert_called_once()
+        call_args = self.mock_tracking_service.track_image_model.call_args
+        self.assertTrue(call_args.kwargs["is_failed"])
+        self.mock_spending_service.deduct.assert_not_called()

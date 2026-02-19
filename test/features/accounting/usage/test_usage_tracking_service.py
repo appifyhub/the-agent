@@ -167,17 +167,17 @@ class UsageTrackingServiceTest(unittest.TestCase):
         # Cost: (1000/1M * 100) + (2000/1M * 200) + (500/1M * 300) = 0.1 + 0.4 + 0.15 = 0.65
         self.assertAlmostEqual(record.model_cost_credits, 0.65, places = 5)
 
-    def test_track_text_model_raises_when_all_tokens_none(self):
+    def test_track_text_model_returns_zero_model_cost_when_all_tokens_none(self):
         tool = self._create_tool()
-        with self.assertRaises(ValueError) as context:
-            self.service.track_text_model(
-                tool = tool,
-                tool_purpose = ToolType.chat,
-                runtime_seconds = 1,
-                payer_id = self.payer_id,
-                uses_credits = False,
-            )
-        self.assertIn("all token and duration fields are None", str(context.exception))
+        record = self.service.track_text_model(
+            tool = tool,
+            tool_purpose = ToolType.chat,
+            runtime_seconds = 1,
+            payer_id = self.payer_id,
+            uses_credits = False,
+        )
+        self.assertIsNotNone(record)
+        self.assertEqual(record.model_cost_credits, 0.0)
 
     def test_track_image_model_with_tokens(self):
         tool = self._create_tool(api_call = 5)
@@ -329,30 +329,30 @@ class UsageTrackingServiceTest(unittest.TestCase):
 
         self.assertEqual(record.total_tokens, 300)
 
-    def test_track_image_model_raises_when_all_none(self):
+    def test_track_image_model_returns_zero_model_cost_when_all_none(self):
         tool = self._create_tool()
-        with self.assertRaises(ValueError) as context:
-            self.service.track_image_model(
-                tool = tool,
-                tool_purpose = ToolType.chat,
-                runtime_seconds = 1,
-                payer_id = self.payer_id,
-                uses_credits = False,
-            )
-        self.assertIn("all metrics (tokens, sizes) are None", str(context.exception))
+        record = self.service.track_image_model(
+            tool = tool,
+            tool_purpose = ToolType.chat,
+            runtime_seconds = 1,
+            payer_id = self.payer_id,
+            uses_credits = False,
+        )
+        self.assertIsNotNone(record)
+        self.assertEqual(record.model_cost_credits, 0.0)
 
-    def test_track_image_model_raises_when_no_pricing(self):
+    def test_track_image_model_returns_zero_model_cost_when_no_pricing(self):
         tool = self._create_tool(output_image_1k = None)
-        with self.assertRaises(ValueError) as context:
-            self.service.track_image_model(
-                tool = tool,
-                tool_purpose = ToolType.chat,
-                runtime_seconds = 1,
-                payer_id = self.payer_id,
-                uses_credits = False,
-                output_image_sizes = ["1k"],
-            )
-        self.assertIn("Cannot calculate cost for image", str(context.exception))
+        record = self.service.track_image_model(
+            tool = tool,
+            tool_purpose = ToolType.chat,
+            runtime_seconds = 1,
+            payer_id = self.payer_id,
+            uses_credits = False,
+            output_image_sizes = ["1k"],
+        )
+        self.assertIsNotNone(record)
+        self.assertEqual(record.model_cost_credits, 0.0)
 
     def test_track_api_call(self):
         tool = self._create_tool(api_call = 10)

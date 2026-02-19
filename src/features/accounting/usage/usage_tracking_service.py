@@ -28,14 +28,12 @@ class UsageTrackingService:
         search_tokens: int | None = None,
         total_tokens: int | None = None,
         remote_runtime_seconds: float | None = None,
+        is_failed: bool = False,
     ) -> UsageRecord:
-        # ensure that we have at least some usage metadata
         has_token_usage = any(t is not None for t in [input_tokens, output_tokens, search_tokens, total_tokens])
         has_duration_usage = remote_runtime_seconds is not None
-        if not has_token_usage and not has_duration_usage:
-            raise ValueError(
-                f"No usage metadata available for LLM {tool.id} - all token and duration fields are None",
-            )
+        if not is_failed and not has_token_usage and not has_duration_usage:
+            log.e(f"No usage metadata available for LLM {tool.id} - all token and duration fields are None")
 
         model_cost_credits: float = self.__calculate_llm_cost(tool.cost_estimate, input_tokens, output_tokens, search_tokens)
         remote_runtime_cost_credits: float = (tool.cost_estimate.second_of_runtime or 0) \
@@ -48,6 +46,7 @@ class UsageTrackingService:
             user_id = self.__di.invoker.id,
             payer_id = payer_id,
             uses_credits = uses_credits,
+            is_failed = is_failed,
             chat_id = self.__di.invoker_chat.chat_id if self.__di.invoker_chat else None,
             tool = tool,
             tool_purpose = tool_purpose,
@@ -79,13 +78,12 @@ class UsageTrackingService:
         output_image_sizes: list[str] | None = None,
         input_image_sizes: list[str] | None = None,
         remote_runtime_seconds: float | None = None,
+        is_failed: bool = False,
     ) -> UsageRecord:
         has_token_usage = any(t is not None for t in [input_tokens, output_tokens, total_tokens])
         has_image_sizes = bool(output_image_sizes or input_image_sizes)
-        if not has_token_usage and not has_image_sizes:
-            raise ValueError(
-                f"No usage metadata available for image tool {tool.id} - all metrics (tokens, sizes) are None",
-            )
+        if not is_failed and not has_token_usage and not has_image_sizes:
+            log.e(f"No usage metadata available for image tool {tool.id} - all metrics (tokens, sizes) are None")
 
         model_cost_credits: float = self.__calculate_image_cost(
             tool.cost_estimate, output_image_sizes, input_image_sizes, input_tokens, output_tokens, total_tokens,
@@ -100,6 +98,7 @@ class UsageTrackingService:
             user_id = self.__di.invoker.id,
             payer_id = payer_id,
             uses_credits = uses_credits,
+            is_failed = is_failed,
             chat_id = self.__di.invoker_chat.chat_id if self.__di.invoker_chat else None,
             tool = tool,
             tool_purpose = tool_purpose,
@@ -126,6 +125,7 @@ class UsageTrackingService:
         runtime_seconds: float,
         payer_id: UUID,
         uses_credits: bool,
+        is_failed: bool = False,
     ) -> UsageRecord:
         api_call_cost: float = float(tool.cost_estimate.api_call or 0)
         remote_runtime_cost_credits: float = (tool.cost_estimate.second_of_runtime or 0) * runtime_seconds
@@ -136,6 +136,7 @@ class UsageTrackingService:
             user_id = self.__di.invoker.id,
             payer_id = payer_id,
             uses_credits = uses_credits,
+            is_failed = is_failed,
             chat_id = self.__di.invoker_chat.chat_id if self.__di.invoker_chat else None,
             tool = tool,
             tool_purpose = tool_purpose,
@@ -217,7 +218,8 @@ class UsageTrackingService:
         if total_cost > 0:
             return total_cost
 
-        raise ValueError(
+        log.e(
             f"Cannot calculate cost for image: no token usage and no pricing for sizes "
             f"(output: {output_image_sizes}, input: {input_image_sizes})",
         )
+        return 0.0

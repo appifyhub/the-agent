@@ -22,6 +22,7 @@ class GoogleAIUsageTrackingDecoratorTest(unittest.TestCase):
         self.mock_spending_service = Mock(spec = SpendingService)
         self.tool_purpose = ToolType.images_gen
         self.external_tool = Mock(spec = ExternalTool)
+        self.external_tool.id = "test-tool"
         self.image_size = "1024x1024"
 
         self.mock_configured_tool = Mock(spec = ConfiguredTool)
@@ -137,3 +138,14 @@ class GoogleAIUsageTrackingDecoratorTest(unittest.TestCase):
         self.decorator.models.generate_content(model = "test-model", contents = "test prompt")
 
         self.mock_spending_service.validate_pre_flight.assert_called_once()
+
+    def test_generate_content_failure_tracks_without_deduction(self):
+        self.mock_client.models.generate_content = Mock(side_effect = RuntimeError("API error"))
+
+        with self.assertRaises(RuntimeError):
+            self.decorator.models.generate_content(model = "test-model", contents = "test prompt")
+
+        self.mock_tracking_service.track_image_model.assert_called_once()
+        call_args = self.mock_tracking_service.track_image_model.call_args
+        self.assertTrue(call_args.kwargs["is_failed"])
+        self.mock_spending_service.deduct.assert_not_called()

@@ -8,6 +8,7 @@ from features.accounting.usage.llm_usage_stats import LLMUsageStats
 from features.accounting.usage.proxies.namespace_proxy import NamespaceProxy
 from features.accounting.usage.usage_tracking_service import UsageTrackingService
 from features.external_tools.configured_tool import ConfiguredTool
+from util import log
 
 
 class OpenAIUsageTrackingDecorator:
@@ -62,10 +63,15 @@ class OpenAIUsageTrackingDecorator:
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             self.__spending_service.validate_pre_flight(self.__configured_tool)
             start_time = time()
-            response = original_method(*args, **kwargs)
-            runtime_seconds = time() - start_time
-            self.__track_usage(response, runtime_seconds)
-            return response
+            try:
+                response = original_method(*args, **kwargs)
+                runtime_seconds = time() - start_time
+                self.__track_usage(response, runtime_seconds)
+                return response
+            except Exception:
+                runtime_seconds = time() - start_time
+                self.__track_failed_usage(runtime_seconds)
+                raise
         return wrapper
 
     def __track_usage(self, response: Any, runtime_seconds: float) -> None:
@@ -83,6 +89,17 @@ class OpenAIUsageTrackingDecorator:
             remote_runtime_seconds = usage_stats.remote_runtime_seconds,
         )
         self.__spending_service.deduct(self.__configured_tool, record.total_cost_credits)
+
+    def __track_failed_usage(self, runtime_seconds: float) -> None:
+        log.w(f"Tool call failed for {self.__configured_tool.definition.id}, tracking without deduction")
+        self.__tracking_service.track_text_model(
+            tool = self.__configured_tool.definition,
+            tool_purpose = self.__configured_tool.purpose,
+            runtime_seconds = runtime_seconds,
+            payer_id = self.__configured_tool.payer_id,
+            uses_credits = self.__configured_tool.uses_credits,
+            is_failed = True,
+        )
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self.__wrapped_client, name)

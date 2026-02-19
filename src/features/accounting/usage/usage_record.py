@@ -11,6 +11,7 @@ class UsageRecord:
     user_id: UUID
     payer_id: UUID
     uses_credits: bool = False
+    is_failed: bool = False
     chat_id: UUID | None = None
     tool: ExternalTool
     tool_purpose: ToolType

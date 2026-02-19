@@ -9,6 +9,7 @@ from features.accounting.spending.spending_service import SpendingService
 from features.accounting.usage.llm_usage_stats import LLMUsageStats
 from features.accounting.usage.usage_tracking_service import UsageTrackingService
 from features.external_tools.configured_tool import ConfiguredTool
+from util import log
 
 
 class RunnableUsageTrackingDecorator(Runnable[LanguageModelInput, AIMessage]):
@@ -34,10 +35,15 @@ class RunnableUsageTrackingDecorator(Runnable[LanguageModelInput, AIMessage]):
     def invoke(self, input: LanguageModelInput, config: RunnableConfig | None = None, **kwargs) -> AIMessage:
         self.__spending_service.validate_pre_flight(self.__configured_tool, str(input))
         start_time = time()
-        response = self.__wrapped_runnable.invoke(input, config, **kwargs)
-        runtime_seconds = time() - start_time
-        self.__track_usage(response, runtime_seconds)
-        return response
+        try:
+            response = self.__wrapped_runnable.invoke(input, config, **kwargs)
+            runtime_seconds = time() - start_time
+            self.__track_usage(response, runtime_seconds)
+            return response
+        except Exception:
+            runtime_seconds = time() - start_time
+            self.__track_failed_usage(runtime_seconds)
+            raise
 
     def __track_usage(self, response: BaseMessage, runtime_seconds: float) -> None:
         llm_usage_stats = LLMUsageStats.from_response(response)
@@ -53,6 +59,17 @@ class RunnableUsageTrackingDecorator(Runnable[LanguageModelInput, AIMessage]):
             total_tokens = llm_usage_stats.total_tokens,
         )
         self.__spending_service.deduct(self.__configured_tool, record.total_cost_credits)
+
+    def __track_failed_usage(self, runtime_seconds: float) -> None:
+        log.w(f"Tool call failed for {self.__configured_tool.definition.id}, tracking without deduction")
+        self.__tracking_service.track_text_model(
+            tool = self.__configured_tool.definition,
+            tool_purpose = self.__configured_tool.purpose,
+            runtime_seconds = runtime_seconds,
+            payer_id = self.__configured_tool.payer_id,
+            uses_credits = self.__configured_tool.uses_credits,
+            is_failed = True,
+        )
 
 
 class ChatModelUsageTrackingDecorator:
@@ -77,10 +94,15 @@ class ChatModelUsageTrackingDecorator:
     def invoke(self, input: LanguageModelInput, config: RunnableConfig | None = None, **kwargs) -> AIMessage:
         self.__spending_service.validate_pre_flight(self.__configured_tool, str(input))
         start_time = time()
-        response = self.__wrapped_model.invoke(input, config, **kwargs)
-        runtime_seconds = time() - start_time
-        self.__track_usage(response, runtime_seconds)
-        return response
+        try:
+            response = self.__wrapped_model.invoke(input, config, **kwargs)
+            runtime_seconds = time() - start_time
+            self.__track_usage(response, runtime_seconds)
+            return response
+        except Exception:
+            runtime_seconds = time() - start_time
+            self.__track_failed_usage(runtime_seconds)
+            raise
 
     def bind_tools(self, tools: Sequence[Any], **kwargs: Any) -> Runnable[LanguageModelInput, AIMessage]:
         wrapped_runnable = self.__wrapped_model.bind_tools(tools, **kwargs)
@@ -112,3 +134,14 @@ class ChatModelUsageTrackingDecorator:
             total_tokens = llm_usage_stats.total_tokens,
         )
         self.__spending_service.deduct(self.__configured_tool, record.total_cost_credits)
+
+    def __track_failed_usage(self, runtime_seconds: float) -> None:
+        log.w(f"Tool call failed for {self.__configured_tool.definition.id}, tracking without deduction")
+        self.__tracking_service.track_text_model(
+            tool = self.__configured_tool.definition,
+            tool_purpose = self.__configured_tool.purpose,
+            runtime_seconds = runtime_seconds,
+            payer_id = self.__configured_tool.payer_id,
+            uses_credits = self.__configured_tool.uses_credits,
+            is_failed = True,
+        )

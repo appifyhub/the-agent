@@ -25,6 +25,7 @@ class ChatModelUsageTrackingDecoratorTest(unittest.TestCase):
         self.mock_spending_service = Mock(spec = SpendingService)
         self.tool_purpose = ToolType.chat
         self.external_tool = Mock(spec = ExternalTool)
+        self.external_tool.id = "test-tool"
 
         self.mock_configured_tool = Mock(spec = ConfiguredTool)
         self.mock_configured_tool.definition = self.external_tool
@@ -140,6 +141,17 @@ class ChatModelUsageTrackingDecoratorTest(unittest.TestCase):
 
         self.mock_spending_service.validate_pre_flight.assert_called_once()
 
+    def test_invoke_failure_tracks_without_deduction(self):
+        self.mock_model.invoke = Mock(side_effect = RuntimeError("API error"))
+
+        with self.assertRaises(RuntimeError):
+            self.decorator.invoke("test input")
+
+        self.mock_tracking_service.track_text_model.assert_called_once()
+        call_args = self.mock_tracking_service.track_text_model.call_args
+        self.assertTrue(call_args.kwargs["is_failed"])
+        self.mock_spending_service.deduct.assert_not_called()
+
 
 class RunnableUsageTrackingDecoratorTest(unittest.TestCase):
 
@@ -150,6 +162,7 @@ class RunnableUsageTrackingDecoratorTest(unittest.TestCase):
         self.mock_spending_service = Mock(spec = SpendingService)
         self.tool_purpose = ToolType.chat
         self.external_tool = Mock(spec = ExternalTool)
+        self.external_tool.id = "test-tool"
 
         self.mock_configured_tool = Mock(spec = ConfiguredTool)
         self.mock_configured_tool.definition = self.external_tool
@@ -204,3 +217,14 @@ class RunnableUsageTrackingDecoratorTest(unittest.TestCase):
 
         call_args = self.mock_tracking_service.track_text_model.call_args
         self.assertGreaterEqual(call_args.kwargs["runtime_seconds"], 0.01)
+
+    def test_invoke_failure_tracks_without_deduction(self):
+        self.mock_runnable.invoke = Mock(side_effect = RuntimeError("API error"))
+
+        with self.assertRaises(RuntimeError):
+            self.decorator.invoke("test input")
+
+        self.mock_tracking_service.track_text_model.assert_called_once()
+        call_args = self.mock_tracking_service.track_text_model.call_args
+        self.assertTrue(call_args.kwargs["is_failed"])
+        self.mock_spending_service.deduct.assert_not_called()

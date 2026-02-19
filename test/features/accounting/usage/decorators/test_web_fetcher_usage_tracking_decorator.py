@@ -21,6 +21,7 @@ class WebFetcherUsageTrackingDecoratorTest(unittest.TestCase):
         self.mock_spending_service = Mock(spec = SpendingService)
         self.tool_purpose = ToolType.api_fiat_exchange
         self.external_tool = Mock(spec = ExternalTool)
+        self.external_tool.id = "test-tool"
 
         self.mock_configured_tool = Mock(spec = ConfiguredTool)
         self.mock_configured_tool.definition = self.external_tool
@@ -110,3 +111,25 @@ class WebFetcherUsageTrackingDecoratorTest(unittest.TestCase):
         self.decorator.fetch_json()
 
         self.mock_spending_service.validate_pre_flight.assert_called_once()
+
+    def test_fetch_json_failure_tracks_without_deduction(self):
+        self.mock_fetcher.fetch_json = Mock(side_effect = RuntimeError("Network error"))
+
+        with self.assertRaises(RuntimeError):
+            self.decorator.fetch_json()
+
+        self.mock_tracking_service.track_api_call.assert_called_once()
+        call_args = self.mock_tracking_service.track_api_call.call_args
+        self.assertTrue(call_args.kwargs["is_failed"])
+        self.mock_spending_service.deduct.assert_not_called()
+
+    def test_fetch_html_failure_tracks_without_deduction(self):
+        self.mock_fetcher.fetch_html = Mock(side_effect = RuntimeError("Network error"))
+
+        with self.assertRaises(RuntimeError):
+            self.decorator.fetch_html()
+
+        self.mock_tracking_service.track_api_call.assert_called_once()
+        call_args = self.mock_tracking_service.track_api_call.call_args
+        self.assertTrue(call_args.kwargs["is_failed"])
+        self.mock_spending_service.deduct.assert_not_called()
