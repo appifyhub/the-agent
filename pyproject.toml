@@ -4,7 +4,87 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "the-agent"
-version = "4.15.4"
+version = "5.0.6"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+
+[tool.ruff]
+
+# Python 3.12: keep in sync with Pipfile
+target-version = "py312"
+line-length = 140
+indent-width = 4
+
+# Exclude a variety of commonly ignored directories
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+[tool.ruff.lint]
+
+# Enable preview rules for whitespace enforcement
+preview = true
+
+# Enable the trailing comma rule along with some other common rules
+select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # Pyflakes
+    "I", # isort
+    "COM812", # missing-trailing-comma
+    "Q", # flake8-quotes (enforce quote style)
+]
+
+# Specific rules for spacing around equals
+extend-select = [
+    "E225", # missing-whitespace-around-operator (spaces around = in assignments and comparisons)
+    "E252", # missing-whitespace-around-parameter-equals (spaces around = in annotated function parameters)
+]
+ignore = [
+    "E251", # unexpected-spaces-around-keyword-parameter-equals (we want spaces)
+    "E266", # too-many-leading-hashes-for-block-comment (we want ### section headers ###)
+    "Q003", # Change outer quotes to avoid escaping inner quotes
+]
+
+# Allow fix for all enabled rules (when `--fix`) is provided
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "double"
+multiline-quotes = "double"
+
+[tool.ruff.format]
+
+# Use double quotes for strings
+quote-style = "double"
+
+# Indent with spaces, rather than tabs
+indent-style = "space"
+
+# Respect magic trailing commas
+skip-magic-trailing-comma = false
+
+# Automatically detect the appropriate line ending
+line-ending = "auto"

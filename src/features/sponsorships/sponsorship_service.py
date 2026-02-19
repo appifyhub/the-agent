@@ -59,11 +59,11 @@ class SponsorshipService:
                 log.d(f"Sponsor '{sponsor_user.id}' has exceeded the maximum number of sponsorships"),
             )
 
-        # check if sponsor has any API key
-        if not sponsor_user.has_any_api_key():
+        # check if sponsor has any API key or credits
+        if not sponsor_user.has_any_api_key() and sponsor_user.credit_balance <= 0:
             return (
                 SponsorshipService.Result.failure,
-                log.d(f"Sponsor '{sponsor_user.id}' has no API keys configured"),
+                log.d(f"Sponsor '{sponsor_user.id}' has no API keys or credits configured"),
             )
 
         # check if sponsor is transitively sponsoring (sponsoring after being sponsored by someone else)

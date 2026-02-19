@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: The Agent's user-facing API
   description: The user-facing parts of The Agent's API service (excluding system-level endpoints, chat completion, maintenance endpoints, etc.)
-  version: 4.15.4
+  version: 5.0.6
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -73,6 +73,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ExternalToolsResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /settings/user/{resource_id}/products:
+    get:
+      summary: Get available products
+      description: Retrieve the list of purchasable products
+      operationId: getProducts
+      tags: [Settings]
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+      responses:
+        "200":
+          description: Products retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductsResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "403":
@@ -971,6 +1000,11 @@ components:
         tool_choice_api_twitter:
           type: string
           nullable: true
+        credit_balance:
+          type: number
+          format: float
+          nullable: false
+          description: Current credit balance available for tool usage
         group:
           type: string
           nullable: false
@@ -1146,6 +1180,43 @@ components:
         - tools
         - providers
 
+    ProductsResponse:
+      type: object
+      properties:
+        products:
+          type: array
+          nullable: false
+          items:
+            $ref: "#/components/schemas/ConfiguredProduct"
+          description: List of purchasable products
+      required:
+        - products
+
+    ConfiguredProduct:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: false
+          description: Product ID
+        credits:
+          type: integer
+          nullable: false
+          description: Number of credits granted upon purchase
+        name:
+          type: string
+          nullable: false
+          description: Display name of the product
+        url:
+          type: string
+          nullable: false
+          description: Purchase URL
+      required:
+        - id
+        - credits
+        - name
+        - url
+
     ExternalToolResponse:
       type: object
       properties:
@@ -1297,6 +1368,14 @@ components:
           type: string
           nullable: false
           description: User ID in hexadecimal format (UUID without hyphens)
+        payer_id:
+          type: string
+          nullable: true
+          description: Payer ID in hexadecimal format (UUID without hyphens), identifying who was billed for this usage
+        uses_credits:
+          type: boolean
+          nullable: true
+          description: Whether credits were used for this usage record
         chat_id:
           type: string
           nullable: true

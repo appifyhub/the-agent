@@ -65,6 +65,8 @@ class TwitterStatusFetcherTest(unittest.TestCase):
             definition = mock_twitter_tool,
             token = SecretStr("test_twitter_token"),
             purpose = MagicMock(),
+            payer_id = UUID(int = 1),
+            uses_credits = False,
         )
 
         mock_vision_tool = MagicMock()
@@ -73,6 +75,8 @@ class TwitterStatusFetcherTest(unittest.TestCase):
             definition = mock_vision_tool,
             token = SecretStr("test_vision_token"),
             purpose = MagicMock(),
+            payer_id = UUID(int = 1),
+            uses_credits = False,
         )
 
         mock_enterprise_tool = MagicMock()
@@ -81,6 +85,8 @@ class TwitterStatusFetcherTest(unittest.TestCase):
             definition = mock_enterprise_tool,
             token = SecretStr("test_enterprise_token"),
             purpose = MagicMock(),
+            payer_id = UUID(int = 1),
+            uses_credits = False,
         )
 
     # noinspection PyUnusedLocal
