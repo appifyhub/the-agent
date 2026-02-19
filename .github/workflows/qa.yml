@@ -16,18 +16,19 @@ jobs:
       - name: Print build name
         run: echo "$GITHUB_ACTOR is building PR#$PR_NUMBER in '$GITHUB_REPOSITORY' (commit $GITHUB_SHA)"
 
+      - name: Set up Python
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.12"
+
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
           path: |
             ~/.cache/pip
             ~/.local/share/virtualenvs
-          key: ${{ runner.os }}-dependency-cache
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12.12"
+          key: ${{ runner.os }}-python-${{ steps.setup-python.outputs.python-version }}-dependency-cache
 
       - name: Install dependencies
         run: |
