@@ -6,6 +6,7 @@ from di.di import DI
 from features.accounting.purchases.purchase_aggregates import PurchaseAggregates
 from features.accounting.purchases.purchase_record import PurchaseRecord
 from util import log
+from util.config import config
 
 
 class PurchaseService:
@@ -47,7 +48,11 @@ class PurchaseService:
             product_id = product_id,
         )
 
-    def record_purchase(self, payload: GumroadPingPayload) -> PurchaseRecord:
+    def record_purchase(self, payload: GumroadPingPayload) -> PurchaseRecord | None:
+        if payload.product_id not in config.products:
+            log.w(f"Ignoring unknown product: {payload.product_id}")
+            return None
+
         user_id: UUID | None = None
         if payload.url_params and "user_id" in payload.url_params:
             try:
@@ -86,7 +91,46 @@ class PurchaseService:
             refunded = payload.refunded,
         )
 
-        return self.__di.purchase_record_repo.save(record)
+        saved = self.__di.purchase_record_repo.save(record)
+        self.__try_to_allocate_credits(saved)
+        self.__try_to_deallocate_credits(saved)
+        return saved
+
+    def __get_credits_for_product(self, product_id: str) -> int:
+        product = config.products.get(product_id)
+        return product.credits if product is not None else 0
+
+    def __try_to_allocate_credits(self, record: PurchaseRecord):
+        if record.refunded or record.test or record.is_preorder_authorization:
+            return
+        if record.user_id is None:
+            return
+        credits = self.__get_credits_for_product(record.product_id)
+        if credits <= 0:
+            return
+        total = float(credits * record.quantity)
+        self.__di.user_crud.update_locked(
+            user_id = record.user_id,
+            update_fn = lambda user: setattr(user, "credit_balance", (user.credit_balance or 0.0) + total),
+        )
+        log.i(f"Allocated {total} credits to user {record.user_id} for purchase {record.id}")
+
+    def __try_to_deallocate_credits(self, record: PurchaseRecord):
+        if not record.refunded:
+            return
+        if record.user_id is None:
+            return
+        credits = self.__get_credits_for_product(record.product_id)
+        if credits <= 0:
+            return
+        total = float(credits * record.quantity)
+        self.__di.user_crud.update_locked(
+            user_id = record.user_id,
+            update_fn = lambda user: setattr(user, "credit_balance", (user.credit_balance or 0.0) - total),
+        )
+        log.i(f"Deallocated {total} credits from user {record.user_id} for purchase {record.id}")
 
     def bind_license_key(self, user_id: UUID, license_key: str) -> PurchaseRecord:
-        return self.__di.purchase_record_repo.bind_license_key_to_user(license_key, user_id)
+        saved = self.__di.purchase_record_repo.bind_license_key_to_user(license_key, user_id)
+        self.__try_to_allocate_credits(saved)
+        return saved

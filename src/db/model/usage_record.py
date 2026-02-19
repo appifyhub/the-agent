@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import JSON, Column, DateTime, Float, Index, Integer, String
+from sqlalchemy import JSON, Boolean, Column, DateTime, Float, Index, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
@@ -14,6 +14,8 @@ class UsageRecordDB(BaseModel):
 
     # core properties
     user_id = Column(UUID(as_uuid = True), nullable = False)
+    payer_id = Column(UUID(as_uuid = True), nullable = False)
+    uses_credits = Column(Boolean, nullable = False, server_default = "false")
     chat_id = Column(UUID(as_uuid = True), nullable = True)
     tool_id = Column(String, nullable = False)
     tool_name = Column(String, nullable = False)
