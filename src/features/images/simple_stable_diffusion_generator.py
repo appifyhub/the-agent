@@ -3,10 +3,10 @@ from dataclasses import asdict
 from google.genai.types import GenerateContentConfig, ImageConfig
 
 from di.di import DI
+from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import IMAGE_GEN_FLUX_1_1
 from features.external_tools.external_tool_provider_library import GOOGLE_AI, REPLICATE
-from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.images.image_api_utils import map_to_model_parameters
 from util import log
 from util.config import config

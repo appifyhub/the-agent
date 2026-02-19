@@ -290,9 +290,13 @@ class WebFetcherTest(unittest.TestCase):
         result = fetcher.fetch_json()
         self.assertEqual(result, stub)
 
+    @patch("features.web_browsing.web_fetcher.resolve_agent_user")
     @patch("features.web_browsing.web_fetcher.resolve_tweet_id")
-    def test_fetch_html_twitter(self, mock_resolve_tweet_id):
+    def test_fetch_html_twitter(self, mock_resolve_tweet_id, mock_resolve_agent_user):
         mock_resolve_tweet_id.return_value = "123456"
+        mock_agent_save = Mock()
+        mock_agent_save.id = "agent-user-id"
+        mock_resolve_agent_user.return_value = mock_agent_save
 
         # Mock the twitter_status_fetcher method and its return value
         mock_twitter_fetcher = Mock()
@@ -314,9 +318,13 @@ class WebFetcherTest(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertIn("Tweet content", str(result))
 
+    @patch("features.web_browsing.web_fetcher.resolve_agent_user")
     @patch("features.web_browsing.web_fetcher.resolve_tweet_id")
-    def test_fetch_json_twitter(self, mock_resolve_tweet_id):
+    def test_fetch_json_twitter(self, mock_resolve_tweet_id, mock_resolve_agent_user):
         mock_resolve_tweet_id.return_value = "123456"
+        mock_agent_save = Mock()
+        mock_agent_save.id = "agent-user-id"
+        mock_resolve_agent_user.return_value = mock_agent_save
 
         # Mock the twitter_status_fetcher method and its return value
         mock_twitter_fetcher = Mock()

@@ -1,0 +1,51 @@
+products:
+
+  - id: "MdNfIIA-QpvTVdbsmt2Y-Q=="
+    credits: 100
+    name: "Pack of 100"
+    url: "https://store.appifyhub.com/l/abot-credits-100"
+
+  - id: "6qh4TvbD0qz6A94Itgh1OQ=="
+    credits: 200
+    name: "Pack of 200"
+    url: "https://store.appifyhub.com/l/abot-credits-200"
+
+  - id: "JKSxTO8XziVzs6rB6OP0OQ=="
+    credits: 300
+    name: "Pack of 300"
+    url: "https://store.appifyhub.com/l/abot-credits-300"
+
+  - id: "Flvyd9RzyrGPBwF6gIc92A=="
+    credits: 500
+    name: "Pack of 500"
+    url: "https://store.appifyhub.com/l/abot-credits-500"
+
+  - id: "lKIUyknbw5PB2oD_SEruLQ=="
+    credits: 1000
+    name: "Pack of 1.000"
+    url: "https://store.appifyhub.com/l/abot-credits-1000"
+
+  - id: "IakAM0UnnX7KZsM_26zG4A=="
+    credits: 2000
+    name: "Pack of 2.000"
+    url: "https://store.appifyhub.com/l/abot-credits-2000"
+
+  - id: "LqFFt3peqn4xjDEk2pX0Gg=="
+    credits: 3000
+    name: "Pack of 3.000"
+    url: "https://store.appifyhub.com/l/abot-credits-3000"
+
+  - id: "UFnrqvu8Z_j7gv5D25zEEA=="
+    credits: 5000
+    name: "Pack of 5.000"
+    url: "https://store.appifyhub.com/l/abot-credits-5000"
+
+  - id: "PRntDF9xf2fg96XhwAo03g=="
+    credits: 10000
+    name: "Pack of 10.000"
+    url: "https://store.appifyhub.com/l/abot-credits-10000"
+
+  - id: "m4Uw8SZcfYnlQouZ4Zyx4g=="
+    credits: 0
+    name: "Green Tea (Donation)"
+    url: "https://store.appifyhub.com/coffee"

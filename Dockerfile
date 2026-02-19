@@ -1,4 +1,4 @@
-FROM python:3.12.6-slim
+FROM python:3.12.12-slim
 
 # Install system dependencies and pipenv
 RUN apt-get update && apt-get install -y --no-install-recommends \
