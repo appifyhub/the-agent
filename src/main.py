@@ -348,19 +348,14 @@ def unsponsor_self(
     resource_id: str,
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
-) -> SettingsLinkResponse:
+) -> dict:
     try:
         log.d(f"User {resource_id} is unsponsoring themselves")
         invoker_id_hex = get_user_id_from_jwt(token)
         log.d(f"  Invoker ID: {invoker_id_hex}")
         di = DI(db, invoker_id_hex)
         di.sponsorships_controller.unsponsor_self(resource_id)
-        # Extract chat_type from JWT token
-        chat_type_str = get_chat_type_from_jwt(token)
-        chat_type = ChatConfigDB.ChatType.lookup(chat_type_str)
-        if not chat_type:
-            raise ValueError(f"Invalid chat type in the access token: {chat_type_str}")
-        return di.settings_controller.create_settings_link(chat_type = chat_type)
+        return {"status": "OK"}
     except Exception as e:
         raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to unsponsor self", e)})
 
