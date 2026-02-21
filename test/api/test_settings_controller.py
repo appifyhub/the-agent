@@ -1,3 +1,5 @@
+import base64
+import json
 import unittest
 from datetime import datetime
 from unittest.mock import MagicMock, PropertyMock, patch
@@ -15,7 +17,6 @@ from db.crud.sponsorship import SponsorshipCRUD
 from db.crud.user import UserCRUD
 from db.model.chat_config import ChatConfigDB
 from db.model.user import UserDB
-from db.model.user import UserDB as UserDBModel
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
 from di.di import DI
@@ -229,6 +230,7 @@ class SettingsControllerTest(unittest.TestCase):
         self.assertEqual(result["telegram_chat_id"], self.invoker_user.telegram_chat_id)
         self.assertEqual(result["telegram_user_id"], self.invoker_user.telegram_user_id)
         self.assertEqual(result["group"], self.invoker_user.group.value)
+        self.assertFalse(result["is_sponsored"])
 
     def test_fetch_user_settings_masks_all_token_fields(self):
         self.mock_user_dao.get.return_value = self.invoker_user
@@ -574,24 +576,9 @@ class SettingsControllerTest(unittest.TestCase):
 
     def test_create_settings_link_with_sponsorship(self):
         mock_sponsorship_db = MagicMock()
-        mock_sponsorship_db.sponsor_id = UUID("87654321-4321-8765-4321-876543218765")
         mock_sponsorship_db.receiver_id = self.invoker_user.id
 
-        # Create a proper sponsor user DB object with all required fields
-        sponsor_user_db = UserDBModel(
-            id = UUID("87654321-4321-8765-4321-876543218765"),
-            full_name = "Sponsor User",
-            telegram_username = "sponsor",
-            telegram_chat_id = "987654321",
-            telegram_user_id = 987654321,
-            connect_key = "SPONSR-KEY1",
-            group = UserDBModel.Group.developer,
-            created_at = datetime.now().date(),
-            credit_balance = 0.0,
-        )
-
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = [mock_sponsorship_db]
-        self.mock_user_dao.get.return_value = sponsor_user_db
 
         controller = SettingsController(self.mock_di)
         link_response = controller.create_settings_link()
@@ -602,6 +589,12 @@ class SettingsControllerTest(unittest.TestCase):
         self.assertIn("user", link)
         self.assertIn(self.invoker_user.id.hex, link)
         self.assertIn("token=", link)
+
+        raw_token = link.split("token=")[1]
+        payload_b64 = raw_token.split(".")[1]
+        payload_b64 += "=" * (4 - len(payload_b64) % 4)
+        payload = json.loads(base64.b64decode(payload_b64).decode("utf-8"))
+        self.assertNotIn("sponsored_by", payload)
 
     def test_create_settings_link_no_telegram_chat_id(self):
         user_without_chat = User(

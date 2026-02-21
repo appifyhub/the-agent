@@ -176,7 +176,7 @@ class UserMapperTest(unittest.TestCase):
         self.assertEqual(user_save.about_me, self.user.about_me)
 
     def test_domain_to_api_conversion(self):
-        masked_user = domain_to_api(self.user)
+        masked_user = domain_to_api(self.user, is_sponsored = False)
 
         # Check basic fields
         self.assertEqual(masked_user.id, self.user.id.hex)
@@ -194,6 +194,7 @@ class UserMapperTest(unittest.TestCase):
         assert self.user.whatsapp_phone_number is not None
         self.assertEqual(masked_user.whatsapp_phone_number, self.user.whatsapp_phone_number.get_secret_value())
         self.assertEqual(masked_user.credit_balance, self.user.credit_balance)
+        self.assertFalse(masked_user.is_sponsored)
         self.assertEqual(masked_user.group, self.user.group.value)
         self.assertEqual(masked_user.created_at, self.user.created_at.isoformat())
 
@@ -230,13 +231,14 @@ class UserMapperTest(unittest.TestCase):
             },
         )
 
-        masked_user = domain_to_api(user_with_nones)
+        masked_user = domain_to_api(user_with_nones, is_sponsored = True)
 
         # Check that None values remain None
         self.assertIsNone(masked_user.about_me)
         self.assertIsNone(masked_user.open_ai_key)
         self.assertIsNone(masked_user.tool_choice_chat)
         self.assertIsNone(masked_user.tool_choice_reasoning)
+        self.assertTrue(masked_user.is_sponsored)
 
         # Check that non-None values are still processed
         self.assertIsNotNone(masked_user.anthropic_key)

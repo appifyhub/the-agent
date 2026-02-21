@@ -1,6 +1,7 @@
 from dataclasses import asdict, replace
 from datetime import datetime, timedelta
 from typing import Annotated, Any, List, Literal, TypeAlias, get_args
+from uuid import UUID
 
 from api import auth
 from api.mapper.chat_mapper import domain_to_api as chat_to_api
@@ -12,7 +13,6 @@ from api.model.settings_link_response import SettingsLinkResponse
 from api.model.user_settings_payload import UserSettingsPayload
 from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig, ChatConfigSave
-from db.schema.sponsorship import Sponsorship
 from db.schema.user import User
 from di.di import DI
 from features.external_tools.external_tool_library import ALL_EXTERNAL_TOOLS
@@ -68,10 +68,9 @@ class SettingsController:
             resource_id = self.__di.invoker.id.hex
             lang_iso_code = config.main_language_iso_code
 
-        sponsored_by = self.__resolve_sponsor_name(chat_type)
-        jwt_token = self.__create_jwt_token(chat_type, sponsored_by)
-
-        page = "sponsorships" if (settings_type == "user" and sponsored_by) else "settings"
+        jwt_token = self.__create_jwt_token(chat_type)
+        is_sponsored = self.__is_sponsored(self.__di.invoker.id)
+        page = "sponsorships" if (settings_type == "user" and is_sponsored) else "settings"
         settings_url_base = f"{config.backoffice_url_base}/{lang_iso_code}/{settings_type}/{resource_id}/{page}"
         long_url = f"{settings_url_base}?{SETTINGS_TOKEN_VAR}={jwt_token}"
 
@@ -141,7 +140,7 @@ class SettingsController:
 
     def fetch_user_settings(self, user_id_hex: str) -> dict[str, Any]:
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
-        return domain_to_api(user).model_dump()
+        return domain_to_api(user, self.__is_sponsored(user.id)).model_dump()
 
     def save_chat_settings(self, chat_id: str, payload: ChatSettingsPayload):
         log.d(f"Saving chat settings for chat '{chat_id}'")
@@ -218,20 +217,10 @@ class SettingsController:
             result.append(record)
         return result
 
-    def __resolve_sponsor_name(self, chat_type: ChatConfigDB.ChatType) -> str | None:
-        sponsored_by: str | None = None
-        sponsorships_db = self.__di.sponsorship_crud.get_all_by_receiver(self.__di.invoker.id)
-        if sponsorships_db:
-            sponsorship = Sponsorship.model_validate(sponsorships_db[0])
-            sponsor_db = self.__di.user_crud.get(sponsorship.sponsor_id)
-            if sponsor_db:
-                sponsor = User.model_validate(sponsor_db)
-                sponsor_handle = resolve_external_handle(sponsor, chat_type)  # nullable
-                sponsored_by = sponsor.full_name or sponsor_handle
-        return sponsored_by
+    def __is_sponsored(self, user_id: UUID) -> bool:
+        return bool(self.__di.sponsorship_crud.get_all_by_receiver(user_id))
 
-    def __create_jwt_token(self, chat_type: ChatConfigDB.ChatType, sponsored_by: str | None = None) -> str:
-        sponsored_by = sponsored_by or self.__resolve_sponsor_name(chat_type)
+    def __create_jwt_token(self, chat_type: ChatConfigDB.ChatType) -> str:
         external_id = resolve_external_id(self.__di.invoker, chat_type)
         external_handle = resolve_external_handle(self.__di.invoker, chat_type)
 
@@ -245,6 +234,5 @@ class SettingsController:
             "platform": chat_type.value,  # origin of the token
             **({"platform_id": external_id} if external_id else {}),
             **({"platform_handle": external_handle} if external_handle else {}),
-            **({"sponsored_by": sponsored_by} if sponsored_by else {}),
         }
         return auth.create_jwt_token(token_payload, config.jwt_expires_in_minutes)
