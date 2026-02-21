@@ -891,7 +891,7 @@ class DI:
     def sys_announcements_service(
         self,
         raw_information: str,
-        target_chat: ChatConfig,
+        target_chat: ChatConfig | None,
         configured_tool: ConfiguredTool,
     ) -> "SysAnnouncementsService":
         from features.announcements.sys_announcements_service import SysAnnouncementsService

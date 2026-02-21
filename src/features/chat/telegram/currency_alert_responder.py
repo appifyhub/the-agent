@@ -53,7 +53,7 @@ def respond_with_currency_alerts(di: DI) -> dict:
                     SysAnnouncementsService.TOOL_TYPE,
                     SysAnnouncementsService.DEFAULT_TOOL,
                 )
-                answer = scoped_di.sys_announcements_service(raw_information, chat_config, configured_tool).execute()
+                _, answer = scoped_di.sys_announcements_service(raw_information, chat_config, configured_tool).execute()
                 if not answer.content:
                     raise ValueError("LLM Answer not received")
                 announcement_text = translations.save(str(answer.content), language_name, language_iso_code)
