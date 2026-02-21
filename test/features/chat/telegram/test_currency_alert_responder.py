@@ -134,8 +134,9 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         self.mock_scoped_di.tool_choice_resolver.require_tool.return_value = mock_configured_tool
 
         # Mock the announcements service to return content
+        mock_chat = Mock()
         mock_answer = Mock(content = "Test announcement")
-        self.mock_announcement_service.execute.return_value = mock_answer
+        self.mock_announcement_service.execute.return_value = (mock_chat, mock_answer)
 
         result = respond_with_currency_alerts(self.mock_di)
 
@@ -191,8 +192,9 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
         self.mock_scoped_di.tool_choice_resolver.require_tool.return_value = mock_configured_tool
 
         # Mock the announcements service to return no content (failure)
+        mock_chat = Mock()
         mock_answer = Mock(content = None)
-        self.mock_announcement_service.execute.return_value = mock_answer
+        self.mock_announcement_service.execute.return_value = (mock_chat, mock_answer)
 
         result = respond_with_currency_alerts(self.mock_di)
 

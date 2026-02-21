@@ -1,4 +1,5 @@
 import io
+import re
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -141,6 +142,10 @@ def resize_file(input_path: str, max_size_bytes: int) -> str:
     except Exception as e:
         log.e("Failed to resize image", e)
         raise
+
+
+def normalize_image_size_category(size: str) -> str:
+    return re.sub(r"\s+", "", size.lower()).replace("mb", "k").replace("mp", "k").replace("m", "k")
 
 
 def calculate_image_size_category(file_path: str) -> str:

@@ -4,6 +4,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langchain_perplexity import ChatPerplexity
 
+from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ExternalToolProvider, ToolType
 from features.external_tools.external_tool_provider_library import (
     ANTHROPIC,
@@ -11,27 +12,20 @@ from features.external_tools.external_tool_provider_library import (
     OPEN_AI,
     PERPLEXITY,
 )
-from features.external_tools.tool_choice_resolver import ConfiguredTool
 from util.config import config
 
 
 def create(configured_tool: ConfiguredTool) -> BaseChatModel:
-    definition, token, purpose = configured_tool
-
-    model_name = definition.id
-    temperature_percent = __get_temperature_percent(purpose)
-    temperature = __normalize_temperature(temperature_percent, definition.provider)
-    max_tokens = __get_max_tokens(purpose)
-    timeout = __get_timeout(purpose, definition)
-    max_retries = config.web_retries
+    definition = configured_tool.definition
+    purpose = configured_tool.purpose
 
     model_args = {
-        "model": model_name,
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-        "timeout": timeout,
-        "max_retries": max_retries,
-        "api_key": token,
+        "model": definition.id,
+        "temperature": __normalize_temperature(purpose.temperature_percent, definition.provider),
+        "max_tokens": purpose.max_output_tokens,
+        "timeout": __get_timeout(purpose, definition),
+        "max_retries": config.web_retries,
+        "api_key": configured_tool.token,
     }
 
     match definition.provider.id:
@@ -46,21 +40,6 @@ def create(configured_tool: ConfiguredTool) -> BaseChatModel:
     raise ValueError(f"{definition.provider.name}/{definition.name} does not support LLMs")
 
 
-def __get_temperature_percent(tool_type: ToolType) -> float:
-    match tool_type:
-        case ToolType.chat:
-            return 0.25
-        case ToolType.reasoning:
-            return 0.25
-        case ToolType.copywriting:
-            return 0.4
-        case ToolType.vision:
-            return 0.25
-        case ToolType.search:
-            return 0.35
-    raise ValueError(f"{tool_type} does not support temperature")
-
-
 def __normalize_temperature(temperature_percent: float, provider: ExternalToolProvider) -> float:
     match provider.id:
         case OPEN_AI.id:
@@ -72,21 +51,6 @@ def __normalize_temperature(temperature_percent: float, provider: ExternalToolPr
         case GOOGLE_AI.id:
             return temperature_percent * 2
     raise ValueError(f"{provider.name}/{provider.id} does not support temperature")
-
-
-def __get_max_tokens(tool_type: ToolType) -> int:
-    match tool_type:
-        case ToolType.chat:
-            return 2000
-        case ToolType.reasoning:
-            return 4000
-        case ToolType.copywriting:
-            return 4000
-        case ToolType.vision:
-            return 3000
-        case ToolType.search:
-            return 4000
-    raise ValueError(f"{tool_type} does not support token limits")
 
 
 def __get_timeout(tool_type: ToolType, tool: ExternalTool) -> float:
