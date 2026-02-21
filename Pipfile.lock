@@ -711,12 +711,12 @@
         },
         "google-genai": {
             "hashes": [
-                "sha256:6206c13fc20f332703ca7375bea7c191c82f95d6781c29936c6982d86599b359",
-                "sha256:dc76cab810932df33cbec6c7ef3ce1538db5bef27aaf78df62ac38666c476294"
+                "sha256:78a4d2deeb33b15ad78eaa419f6f431755e7f0e03771254f8000d70f717e940b",
+                "sha256:8db94ab031f745d08c45c69674d1892f7447c74ed21542abe599f7888e28b924"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.10'",
-            "version": "==1.63.0"
+            "version": "==1.64.0"
         },
         "gunicorn": {
             "hashes": [
