@@ -1831,16 +1831,6 @@ components:
       required:
         - status
 
-    UnsponsorSelfResponse:
-      type: object
-      properties:
-        settings_link:
-          type: string
-          nullable: false
-          description: Link to settings page
-      required:
-        - settings_link
-
     ConnectKeyResponse:
       type: object
       properties:
