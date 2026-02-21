@@ -61,7 +61,7 @@ def api_to_domain(payload: UserSettingsPayload, existing_user: User) -> UserSave
     return user_save
 
 
-def domain_to_api(user: User) -> UserSettingsResponse:
+def domain_to_api(user: User, is_sponsored: bool) -> UserSettingsResponse:
     return UserSettingsResponse(
         id = user.id.hex,
         full_name = user.full_name,
@@ -93,6 +93,8 @@ def domain_to_api(user: User) -> UserSettingsResponse:
         tool_choice_api_fiat_exchange = user.tool_choice_api_fiat_exchange,
         tool_choice_api_crypto_exchange = user.tool_choice_api_crypto_exchange,
         tool_choice_api_twitter = user.tool_choice_api_twitter,
+        credit_balance = user.credit_balance,
+        is_sponsored = is_sponsored,
         group = user.group.value,
         created_at = user.created_at.isoformat(),
     )

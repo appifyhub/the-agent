@@ -329,6 +329,7 @@ class TelegramDataResolverTest(unittest.TestCase):
             rapid_api_key = SecretStr("sk-key"),
             coinmarketcap_key = SecretStr("sk-key"),
             about_me = SecretStr("Personal info about me"),
+            credit_balance = 123.45,
             group = UserDB.Group.developer,
             # Add all tool choice fields to test preservation
             tool_choice_chat = "openai",
@@ -373,6 +374,7 @@ class TelegramDataResolverTest(unittest.TestCase):
         self.assertEqual(result.rapid_api_key, existing_user.rapid_api_key)
         self.assertEqual(result.coinmarketcap_key, existing_user.coinmarketcap_key)
         self.assertEqual(result.about_me, existing_user.about_me)
+        self.assertEqual(result.credit_balance, existing_user.credit_balance)
         self.assertEqual(result.group, existing_user.group)
         self.assertEqual(result.created_at, existing_user.created_at)
 

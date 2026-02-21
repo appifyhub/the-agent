@@ -1,8 +1,8 @@
 from datetime import datetime
 
 from di.di import DI
-from features.accounting.stats.usage_aggregates import UsageAggregates
-from features.accounting.stats.usage_record import UsageRecord
+from features.accounting.usage.usage_aggregates import UsageAggregates
+from features.accounting.usage.usage_record import UsageRecord
 from util import log
 
 
