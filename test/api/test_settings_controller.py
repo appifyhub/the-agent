@@ -24,7 +24,7 @@ from features.chat.telegram.model.chat_member import ChatMemberAdministrator
 from features.chat.telegram.model.user import User as TelegramUser
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.external_tools.access_token_resolver import AccessTokenResolver
-from features.external_tools.external_tool import ExternalTool, ExternalToolProvider, ToolType
+from features.external_tools.external_tool import CostEstimate, ExternalTool, ExternalToolProvider, ToolType
 from util.config import ConfiguredProduct
 from util.functions import mask_secret
 
@@ -231,6 +231,16 @@ class SettingsControllerTest(unittest.TestCase):
         self.assertEqual(result["telegram_user_id"], self.invoker_user.telegram_user_id)
         self.assertEqual(result["group"], self.invoker_user.group.value)
         self.assertFalse(result["is_sponsored"])
+
+    def test_fetch_user_settings_is_sponsored_true(self):
+        mock_sponsorship = MagicMock()
+        mock_sponsorship.receiver_id = self.invoker_user.id
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = [mock_sponsorship]
+
+        controller = SettingsController(self.mock_di)
+        result = controller.fetch_user_settings(self.invoker_user.id.hex)
+
+        self.assertTrue(result["is_sponsored"])
 
     def test_fetch_user_settings_masks_all_token_fields(self):
         self.mock_user_dao.get.return_value = self.invoker_user
@@ -629,7 +639,6 @@ class SettingsControllerTest(unittest.TestCase):
 
     def test_fetch_external_tools_success_mixed_configuration(self):
         # Create mock tools and providers
-        from features.external_tools.external_tool import CostEstimate
         mock_tool_1 = ExternalTool(
             id = "configured-tool",
             name = "Configured Tool",
@@ -711,8 +720,6 @@ class SettingsControllerTest(unittest.TestCase):
 
     def test_fetch_external_tools_includes_cost_estimate(self):
         """Verify that cost_estimate is properly serialized in API response"""
-        from features.external_tools.external_tool import CostEstimate
-
         # Create tool with actual cost estimate values
         mock_provider = ExternalToolProvider(
             id = "test-provider",
@@ -836,8 +843,6 @@ class SettingsControllerTest(unittest.TestCase):
 
     def test_fetch_external_tools_sorts_by_provider_order_then_name(self):
         """Verify that tools are sorted by provider order first, then by tool name"""
-        from features.external_tools.external_tool import CostEstimate
-
         # Create providers in specific order
         provider_a = ExternalToolProvider(
             id = "provider-a",
@@ -913,8 +918,6 @@ class SettingsControllerTest(unittest.TestCase):
 
     def test_fetch_external_tools_uses_provider_configuration_cache(self):
         """Verify that tool configuration is determined from provider configuration (not checked per tool)"""
-        from features.external_tools.external_tool import CostEstimate
-
         provider = ExternalToolProvider(
             id = "test-provider",
             name = "Test Provider",
