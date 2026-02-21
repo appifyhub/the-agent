@@ -789,10 +789,6 @@ components:
           type: string
           nullable: true
           description: Platform-specific user handle (username)
-        sponsored_by:
-          type: string
-          nullable: true
-          description: Name of the user who sponsors this user (if any)
         exp:
           type: integer
           nullable: false
@@ -1005,6 +1001,10 @@ components:
           format: float
           nullable: false
           description: Current credit balance available for tool usage
+        is_sponsored:
+          type: boolean
+          nullable: false
+          description: Whether this user's API usage is sponsored by another user
         group:
           type: string
           nullable: false
@@ -1017,6 +1017,7 @@ components:
       required:
         - id
         - credit_balance
+        - is_sponsored
         - group
         - created_at
 
