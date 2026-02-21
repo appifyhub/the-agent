@@ -181,6 +181,7 @@ class SponsorshipServiceTest(unittest.TestCase):
             open_ai_key = developer_user.open_ai_key,
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
+            credit_balance = 0.0,
         )
 
         self.mock_user_dao.save.return_value = new_user
@@ -223,7 +224,7 @@ class SponsorshipServiceTest(unittest.TestCase):
         result, msg = self.service.sponsor_user(sponsor_user_id_hex, receiver_telegram_username, ChatConfigDB.ChatType.telegram)
 
         self.assertEqual(result, SponsorshipService.Result.failure)
-        self.assertIn("has no API keys configured", msg)
+        self.assertIn("has no API keys or credits configured", msg)
 
     def test_sponsor_user_failure_transitive_sponsorship(self):
         sponsor_user_id_hex = self.user.id.hex

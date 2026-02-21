@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from uuid import UUID
 
 from pydantic import SecretStr
@@ -12,8 +12,8 @@ from db.model.user import UserDB
 from db.schema.sponsorship import Sponsorship
 from db.schema.user import User
 from di.di import DI
-from features.external_tools.access_token_resolver import AccessTokenResolver, TokenResolutionError
-from features.external_tools.external_tool import ExternalTool, ExternalToolProvider, ToolType
+from features.external_tools.access_token_resolver import AccessTokenResolver, ResolvedToken, TokenResolutionError
+from features.external_tools.external_tool import CostEstimate, ExternalTool, ExternalToolProvider, ToolType
 from features.external_tools.external_tool_provider_library import (
     ANTHROPIC,
     COINMARKETCAP,
@@ -89,7 +89,6 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         self.openai_provider = OPEN_AI
         self.anthropic_provider = ANTHROPIC
-        from features.external_tools.external_tool import CostEstimate
         self.openai_tool = ExternalTool(
             id = "test-gpt-4",
             name = "Test GPT-4",
@@ -115,8 +114,9 @@ class AccessTokenResolverTest(unittest.TestCase):
         token = resolver.get_access_token(self.openai_provider)
 
         assert token is not None
-        self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.invoker_user.open_ai_key.get_secret_value())
+        self.assertIsInstance(token, ResolvedToken)
+        self.assertEqual(token.token.get_secret_value(), self.invoker_user.open_ai_key.get_secret_value())
+        self.assertFalse(token.uses_credits)
         # noinspection PyUnresolvedReferences
         self.mock_sponsorship_dao.get_all_by_receiver.assert_not_called()
 
@@ -135,8 +135,9 @@ class AccessTokenResolverTest(unittest.TestCase):
         token = resolver.get_access_token(self.openai_provider)
 
         assert token is not None
-        self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.sponsor_user.open_ai_key.get_secret_value())
+        self.assertIsInstance(token, ResolvedToken)
+        self.assertEqual(token.token.get_secret_value(), self.sponsor_user.open_ai_key.get_secret_value())
+        self.assertFalse(token.uses_credits)
         # noinspection PyUnresolvedReferences
         self.mock_sponsorship_dao.get_all_by_receiver.assert_called_once_with(user_without_token.id, limit = 1)
         # noinspection PyUnresolvedReferences
@@ -220,8 +221,8 @@ class AccessTokenResolverTest(unittest.TestCase):
         token = resolver.get_access_token_for_tool(self.openai_tool)
 
         assert token is not None
-        self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.invoker_user.open_ai_key.get_secret_value())
+        self.assertIsInstance(token, ResolvedToken)
+        self.assertEqual(token.token.get_secret_value(), self.invoker_user.open_ai_key.get_secret_value())
 
     def test_require_access_token_success(self):
         # Mock to avoid sponsorship lookup since user has direct token
@@ -232,8 +233,8 @@ class AccessTokenResolverTest(unittest.TestCase):
         token = resolver.require_access_token(self.openai_provider)
 
         assert token is not None
-        self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.invoker_user.open_ai_key.get_secret_value())
+        self.assertIsInstance(token, ResolvedToken)
+        self.assertEqual(token.token.get_secret_value(), self.invoker_user.open_ai_key.get_secret_value())
 
     def test_require_access_token_failure_raises_exception(self):
         user_without_token = self.invoker_user.model_copy(update = {"open_ai_key": None})
@@ -257,8 +258,8 @@ class AccessTokenResolverTest(unittest.TestCase):
         token = resolver.require_access_token_for_tool(self.openai_tool)
 
         assert token is not None
-        self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.invoker_user.open_ai_key.get_secret_value())
+        self.assertIsInstance(token, ResolvedToken)
+        self.assertEqual(token.token.get_secret_value(), self.invoker_user.open_ai_key.get_secret_value())
 
     def test_require_access_token_for_tool_failure_raises_exception(self):
         user_without_token = self.invoker_user.model_copy(update = {"open_ai_key": None})
@@ -279,8 +280,8 @@ class AccessTokenResolverTest(unittest.TestCase):
         token = resolver.get_access_token(ANTHROPIC)
 
         assert token is not None
-        self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.invoker_user.anthropic_key.get_secret_value())
+        self.assertIsInstance(token, ResolvedToken)
+        self.assertEqual(token.token.get_secret_value(), self.invoker_user.anthropic_key.get_secret_value())
 
     def test_get_access_token_perplexity_success_user_has_direct_token(self):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
@@ -290,8 +291,8 @@ class AccessTokenResolverTest(unittest.TestCase):
         token = resolver.get_access_token(PERPLEXITY)
 
         assert token is not None
-        self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.invoker_user.perplexity_key.get_secret_value())
+        self.assertIsInstance(token, ResolvedToken)
+        self.assertEqual(token.token.get_secret_value(), self.invoker_user.perplexity_key.get_secret_value())
 
     def test_get_access_token_replicate_success_user_has_direct_token(self):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
@@ -301,8 +302,8 @@ class AccessTokenResolverTest(unittest.TestCase):
         token = resolver.get_access_token(REPLICATE)
 
         assert token is not None
-        self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.invoker_user.replicate_key.get_secret_value())
+        self.assertIsInstance(token, ResolvedToken)
+        self.assertEqual(token.token.get_secret_value(), self.invoker_user.replicate_key.get_secret_value())
 
     def test_get_access_token_rapid_api_success_user_has_direct_token(self):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
@@ -312,8 +313,8 @@ class AccessTokenResolverTest(unittest.TestCase):
         token = resolver.get_access_token(RAPID_API)
 
         assert token is not None
-        self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.invoker_user.rapid_api_key.get_secret_value())
+        self.assertIsInstance(token, ResolvedToken)
+        self.assertEqual(token.token.get_secret_value(), self.invoker_user.rapid_api_key.get_secret_value())
 
     def test_get_access_token_coinmarketcap_success_user_has_direct_token(self):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
@@ -323,8 +324,8 @@ class AccessTokenResolverTest(unittest.TestCase):
         token = resolver.get_access_token(COINMARKETCAP)
 
         assert token is not None
-        self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.invoker_user.coinmarketcap_key.get_secret_value())
+        self.assertIsInstance(token, ResolvedToken)
+        self.assertEqual(token.token.get_secret_value(), self.invoker_user.coinmarketcap_key.get_secret_value())
 
     def test_get_access_token_google_ai_success_user_has_direct_token(self):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
@@ -334,5 +335,250 @@ class AccessTokenResolverTest(unittest.TestCase):
         token = resolver.get_access_token(GOOGLE_AI)
 
         assert token is not None
-        self.assertIsInstance(token, SecretStr)
-        self.assertEqual(token.get_secret_value(), self.invoker_user.google_ai_key.get_secret_value())
+        self.assertIsInstance(token, ResolvedToken)
+        self.assertEqual(token.token.get_secret_value(), self.invoker_user.google_ai_key.get_secret_value())
+
+    def test_get_access_token_uses_platform_key_when_user_has_credits(self):
+        user_with_credits = self.invoker_user.model_copy(update = {
+            "open_ai_key": None,
+            "credit_balance": 100.0,
+        })
+        self.mock_di.invoker = user_with_credits
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+
+        resolver = AccessTokenResolver(self.mock_di)
+
+        with patch("features.external_tools.access_token_resolver.config") as mock_config:
+            mock_config.platform_open_ai_key.get_secret_value.return_value = "platform-openai-key"
+            mock_config.platform_open_ai_key = SecretStr("platform-openai-key")
+            token = resolver.get_access_token(self.openai_provider)
+
+        assert token is not None
+        self.assertIsInstance(token, ResolvedToken)
+        self.assertEqual(token.token.get_secret_value(), "platform-openai-key")
+        self.assertTrue(token.uses_credits)
+
+    def test_get_access_token_returns_none_when_platform_key_is_invalid(self):
+        user_with_credits = self.invoker_user.model_copy(update = {
+            "open_ai_key": None,
+            "credit_balance": 100.0,
+        })
+        self.mock_di.invoker = user_with_credits
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+
+        resolver = AccessTokenResolver(self.mock_di)
+
+        with patch("features.external_tools.access_token_resolver.config") as mock_config:
+            mock_config.platform_open_ai_key = SecretStr("invalid")
+            token = resolver.get_access_token(self.openai_provider)
+
+        self.assertIsNone(token)
+
+    def test_get_access_token_uses_platform_key_when_sponsored_user_has_credits(self):
+        user_no_key = self.invoker_user.model_copy(update = {"open_ai_key": None})
+        sponsor_with_credits = self.sponsor_user.model_copy(update = {
+            "open_ai_key": None,
+            "credit_balance": 50.0,
+        })
+        sponsorship_db = SponsorshipDB(**self.sponsorship.model_dump())
+        sponsor_user_db = UserDB(**sponsor_with_credits.model_dump())
+        self.mock_di.invoker = user_no_key
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = [sponsorship_db]
+        self.mock_user_dao.get.return_value = sponsor_user_db
+
+        resolver = AccessTokenResolver(self.mock_di)
+
+        with patch("features.external_tools.access_token_resolver.config") as mock_config:
+            mock_config.platform_open_ai_key = SecretStr("platform-openai-key")
+            token = resolver.get_access_token(self.openai_provider)
+
+        assert token is not None
+        self.assertIsInstance(token, ResolvedToken)
+        self.assertEqual(token.token.get_secret_value(), "platform-openai-key")
+        self.assertTrue(token.uses_credits)
+
+    def test_get_access_token_returns_none_when_credit_balance_is_zero(self):
+        user_zero_credits = self.invoker_user.model_copy(update = {
+            "open_ai_key": None,
+            "credit_balance": 0.0,
+        })
+        self.mock_di.invoker = user_zero_credits
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+
+        resolver = AccessTokenResolver(self.mock_di)
+
+        with patch("features.external_tools.access_token_resolver.config") as mock_config:
+            mock_config.platform_open_ai_key = SecretStr("platform-openai-key")
+            token = resolver.get_access_token(self.openai_provider)
+
+        self.assertIsNone(token)
+
+    def test_get_access_token_returns_none_when_credit_balance_is_negative(self):
+        user_negative_credits = self.invoker_user.model_copy(update = {
+            "open_ai_key": None,
+            "credit_balance": -10.0,
+        })
+        self.mock_di.invoker = user_negative_credits
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+
+        resolver = AccessTokenResolver(self.mock_di)
+
+        with patch("features.external_tools.access_token_resolver.config") as mock_config:
+            mock_config.platform_open_ai_key = SecretStr("platform-openai-key")
+            token = resolver.get_access_token(self.openai_provider)
+
+        self.assertIsNone(token)
+
+    def test_get_access_token_payer_id_is_invoker_when_using_platform_key(self):
+        user_with_credits = self.invoker_user.model_copy(update = {
+            "open_ai_key": None,
+            "credit_balance": 100.0,
+        })
+        self.mock_di.invoker = user_with_credits
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+
+        resolver = AccessTokenResolver(self.mock_di)
+
+        with patch("features.external_tools.access_token_resolver.config") as mock_config:
+            mock_config.platform_open_ai_key = SecretStr("platform-openai-key")
+            token = resolver.get_access_token(self.openai_provider)
+
+        assert token is not None
+        self.assertEqual(token.payer_id, user_with_credits.id)
+        self.assertTrue(token.uses_credits)
+
+    def test_get_access_token_payer_id_is_sponsor_when_sponsor_uses_platform_key(self):
+        user_no_key = self.invoker_user.model_copy(update = {"open_ai_key": None})
+        sponsor_with_credits = self.sponsor_user.model_copy(update = {
+            "open_ai_key": None,
+            "credit_balance": 50.0,
+        })
+        sponsorship_db = SponsorshipDB(**self.sponsorship.model_dump())
+        sponsor_user_db = UserDB(**sponsor_with_credits.model_dump())
+        self.mock_di.invoker = user_no_key
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = [sponsorship_db]
+        self.mock_user_dao.get.return_value = sponsor_user_db
+
+        resolver = AccessTokenResolver(self.mock_di)
+
+        with patch("features.external_tools.access_token_resolver.config") as mock_config:
+            mock_config.platform_open_ai_key = SecretStr("platform-openai-key")
+            token = resolver.get_access_token(self.openai_provider)
+
+        assert token is not None
+        self.assertEqual(token.payer_id, sponsor_with_credits.id)
+        self.assertTrue(token.uses_credits)
+
+    def test_platform_key_anthropic_with_credits(self):
+        user_with_credits = self.invoker_user.model_copy(update = {
+            "anthropic_key": None,
+            "credit_balance": 50.0,
+        })
+        self.mock_di.invoker = user_with_credits
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+
+        resolver = AccessTokenResolver(self.mock_di)
+
+        with patch("features.external_tools.access_token_resolver.config") as mock_config:
+            mock_config.platform_anthropic_key = SecretStr("platform-anthropic-key")
+            token = resolver.get_access_token(ANTHROPIC)
+
+        assert token is not None
+        self.assertEqual(token.token.get_secret_value(), "platform-anthropic-key")
+        self.assertTrue(token.uses_credits)
+        self.assertEqual(token.payer_id, user_with_credits.id)
+
+    def test_platform_key_google_ai_with_credits(self):
+        user_with_credits = self.invoker_user.model_copy(update = {
+            "google_ai_key": None,
+            "credit_balance": 50.0,
+        })
+        self.mock_di.invoker = user_with_credits
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+
+        resolver = AccessTokenResolver(self.mock_di)
+
+        with patch("features.external_tools.access_token_resolver.config") as mock_config:
+            mock_config.platform_google_ai_key = SecretStr("platform-google-key")
+            token = resolver.get_access_token(GOOGLE_AI)
+
+        assert token is not None
+        self.assertEqual(token.token.get_secret_value(), "platform-google-key")
+        self.assertTrue(token.uses_credits)
+        self.assertEqual(token.payer_id, user_with_credits.id)
+
+    def test_platform_key_perplexity_with_credits(self):
+        user_with_credits = self.invoker_user.model_copy(update = {
+            "perplexity_key": None,
+            "credit_balance": 50.0,
+        })
+        self.mock_di.invoker = user_with_credits
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+
+        resolver = AccessTokenResolver(self.mock_di)
+
+        with patch("features.external_tools.access_token_resolver.config") as mock_config:
+            mock_config.platform_perplexity_key = SecretStr("platform-perplexity-key")
+            token = resolver.get_access_token(PERPLEXITY)
+
+        assert token is not None
+        self.assertEqual(token.token.get_secret_value(), "platform-perplexity-key")
+        self.assertTrue(token.uses_credits)
+        self.assertEqual(token.payer_id, user_with_credits.id)
+
+    def test_platform_key_replicate_with_credits(self):
+        user_with_credits = self.invoker_user.model_copy(update = {
+            "replicate_key": None,
+            "credit_balance": 50.0,
+        })
+        self.mock_di.invoker = user_with_credits
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+
+        resolver = AccessTokenResolver(self.mock_di)
+
+        with patch("features.external_tools.access_token_resolver.config") as mock_config:
+            mock_config.platform_replicate_key = SecretStr("platform-replicate-key")
+            token = resolver.get_access_token(REPLICATE)
+
+        assert token is not None
+        self.assertEqual(token.token.get_secret_value(), "platform-replicate-key")
+        self.assertTrue(token.uses_credits)
+        self.assertEqual(token.payer_id, user_with_credits.id)
+
+    def test_platform_key_rapid_api_with_credits(self):
+        user_with_credits = self.invoker_user.model_copy(update = {
+            "rapid_api_key": None,
+            "credit_balance": 50.0,
+        })
+        self.mock_di.invoker = user_with_credits
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+
+        resolver = AccessTokenResolver(self.mock_di)
+
+        with patch("features.external_tools.access_token_resolver.config") as mock_config:
+            mock_config.platform_rapid_api_key = SecretStr("platform-rapid-api-key")
+            token = resolver.get_access_token(RAPID_API)
+
+        assert token is not None
+        self.assertEqual(token.token.get_secret_value(), "platform-rapid-api-key")
+        self.assertTrue(token.uses_credits)
+        self.assertEqual(token.payer_id, user_with_credits.id)
+
+    def test_platform_key_coinmarketcap_with_credits(self):
+        user_with_credits = self.invoker_user.model_copy(update = {
+            "coinmarketcap_key": None,
+            "credit_balance": 50.0,
+        })
+        self.mock_di.invoker = user_with_credits
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+
+        resolver = AccessTokenResolver(self.mock_di)
+
+        with patch("features.external_tools.access_token_resolver.config") as mock_config:
+            mock_config.platform_coinmarketcap_key = SecretStr("platform-coinmarketcap-key")
+            token = resolver.get_access_token(COINMARKETCAP)
+
+        assert token is not None
+        self.assertEqual(token.token.get_secret_value(), "platform-coinmarketcap-key")
+        self.assertTrue(token.uses_credits)
+        self.assertEqual(token.payer_id, user_with_credits.id)

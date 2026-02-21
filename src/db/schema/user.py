@@ -46,6 +46,8 @@ class UserBase(BaseModel):
     tool_choice_api_crypto_exchange: str | None = None
     tool_choice_api_twitter: str | None = None
 
+    credit_balance: float = 0.0
+
     group: UserDB.Group = UserDB.Group.standard
 
     @classmethod
