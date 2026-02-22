@@ -188,6 +188,7 @@ class ProfileConnectService:
             merged.tool_choice_api_crypto_exchange = casualty.tool_choice_api_crypto_exchange
         if not merged.tool_choice_api_twitter and casualty.tool_choice_api_twitter:
             merged.tool_choice_api_twitter = casualty.tool_choice_api_twitter
+        merged.credit_balance = survivor.credit_balance + casualty.credit_balance
 
         # Keep survivor's group (developer group takes precedence to not lose admin rights)
         if casualty.group == UserDB.Group.developer or survivor.group == UserDB.Group.developer:

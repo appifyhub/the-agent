@@ -66,6 +66,7 @@ class WhatsAppUpdateResponderTest(unittest.TestCase):
             connect_key = "WA-USER-KEY1",
             group = UserDB.Group.standard,
             created_at = date.today(),
+            credit_balance = 0.0,
         )
 
         self.di.whatsapp_data_resolver.resolve_all.return_value = [
