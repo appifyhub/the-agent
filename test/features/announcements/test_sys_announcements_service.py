@@ -1,5 +1,5 @@
 import unittest
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, datetime, timedelta
 from unittest.mock import Mock
 from uuid import UUID
 
@@ -85,7 +85,7 @@ class SysAnnouncementsServicePlatformSelectionTest(unittest.TestCase):
         recent_message = self._create_message(
             whatsapp_chat.chat_id,
             self.mock_user.id,
-            datetime.now(UTC) - timedelta(hours = 12),
+            datetime.now() - timedelta(hours = 12),
         )
 
         self.mock_di.chat_config_crud.get_by_external_identifiers = Mock(side_effect = lambda external_id, chat_type: (
@@ -105,7 +105,7 @@ class SysAnnouncementsServicePlatformSelectionTest(unittest.TestCase):
         old_message = self._create_message(
             whatsapp_chat.chat_id,
             self.mock_user.id,
-            datetime.now(UTC) - timedelta(hours = WHATSAPP_MESSAGING_WINDOW_HOURS + 1),
+            datetime.now() - timedelta(hours = WHATSAPP_MESSAGING_WINDOW_HOURS + 1),
         )
 
         self.mock_di.chat_config_crud.get_by_external_identifiers = Mock(side_effect = lambda external_id, chat_type: (
@@ -124,7 +124,7 @@ class SysAnnouncementsServicePlatformSelectionTest(unittest.TestCase):
         telegram_message = self._create_message(
             telegram_chat.chat_id,
             self.mock_user.id,
-            datetime.now(UTC) - timedelta(hours = 1),
+            datetime.now() - timedelta(hours = 1),
         )
 
         self.mock_di.chat_config_crud.get_by_external_identifiers = Mock(side_effect = lambda external_id, chat_type: (
@@ -144,7 +144,7 @@ class SysAnnouncementsServicePlatformSelectionTest(unittest.TestCase):
         recent_message = self._create_message(
             whatsapp_chat.chat_id,
             self.mock_user.id,
-            datetime.now(UTC) - timedelta(hours = 6),
+            datetime.now() - timedelta(hours = 6),
         )
 
         self.mock_di.chat_config_crud.get_by_external_identifiers = Mock(side_effect = lambda external_id, chat_type: (
@@ -165,12 +165,12 @@ class SysAnnouncementsServicePlatformSelectionTest(unittest.TestCase):
         telegram_message = self._create_message(
             telegram_chat.chat_id,
             self.mock_user.id,
-            datetime.now(UTC) - timedelta(hours = 10),
+            datetime.now() - timedelta(hours = 10),
         )
         whatsapp_message = self._create_message(
             whatsapp_chat.chat_id,
             self.mock_user.id,
-            datetime.now(UTC) - timedelta(hours = 2),
+            datetime.now() - timedelta(hours = 2),
         )
 
         def get_chat(external_id, chat_type):
@@ -204,12 +204,12 @@ class SysAnnouncementsServicePlatformSelectionTest(unittest.TestCase):
         telegram_message = self._create_message(
             telegram_chat.chat_id,
             self.mock_user.id,
-            datetime.now(UTC) - timedelta(hours = 2),
+            datetime.now() - timedelta(hours = 2),
         )
         whatsapp_message = self._create_message(
             whatsapp_chat.chat_id,
             self.mock_user.id,
-            datetime.now(UTC) - timedelta(hours = 10),
+            datetime.now() - timedelta(hours = 10),
         )
 
         def get_chat(external_id, chat_type):
@@ -243,12 +243,12 @@ class SysAnnouncementsServicePlatformSelectionTest(unittest.TestCase):
         telegram_message = self._create_message(
             telegram_chat.chat_id,
             self.mock_user.id,
-            datetime.now(UTC) - timedelta(hours = 48),
+            datetime.now() - timedelta(hours = 48),
         )
         whatsapp_message = self._create_message(
             whatsapp_chat.chat_id,
             self.mock_user.id,
-            datetime.now(UTC) - timedelta(hours = WHATSAPP_MESSAGING_WINDOW_HOURS + 2),
+            datetime.now() - timedelta(hours = WHATSAPP_MESSAGING_WINDOW_HOURS + 2),
         )
 
         def get_chat(external_id, chat_type):

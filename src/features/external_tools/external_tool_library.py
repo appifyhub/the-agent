@@ -246,17 +246,6 @@ CLAUDE_3_5_HAIKU = ExternalTool(
     ),
 )
 
-CLAUDE_3_7_SONNET = ExternalTool(
-    id = "claude-3-7-sonnet-latest",
-    name = "Claude 3.7 Sonnet",
-    provider = ANTHROPIC,
-    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
-    cost_estimate = CostEstimate(
-        input_1m_tokens = 300,
-        output_1m_tokens = 1500,
-        search_1m_tokens = 150,  # used with vision queries
-    ),
-)
 
 CLAUDE_4_SONNET = ExternalTool(
     id = "claude-sonnet-4-0",
@@ -291,6 +280,30 @@ CLAUDE_4_5_SONNET = ExternalTool(
         input_1m_tokens = 300,
         output_1m_tokens = 1500,
         search_1m_tokens = 150,  # used with vision queries
+    ),
+)
+
+CLAUDE_4_6_SONNET = ExternalTool(
+    id = "claude-sonnet-4-6",
+    name = "Claude 4.6 Sonnet",
+    provider = ANTHROPIC,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+    cost_estimate = CostEstimate(
+        input_1m_tokens = 300,
+        output_1m_tokens = 1500,
+        search_1m_tokens = 150,  # used with vision queries
+    ),
+)
+
+CLAUDE_4_6_OPUS = ExternalTool(
+    id = "claude-opus-4-6",
+    name = "Claude 4.6 Opus",
+    provider = ANTHROPIC,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+    cost_estimate = CostEstimate(
+        input_1m_tokens = 1500,
+        output_1m_tokens = 7500,
+        search_1m_tokens = 750,  # used with vision queries
     ),
 )
 
@@ -619,10 +632,11 @@ ALL_EXTERNAL_TOOLS = [
     TEXT_EMBEDDING_5_LARGE,
     # Anthropic
     CLAUDE_3_5_HAIKU,
-    CLAUDE_3_7_SONNET,
     CLAUDE_4_SONNET,
     CLAUDE_4_5_HAIKU,
     CLAUDE_4_5_SONNET,
+    CLAUDE_4_6_SONNET,
+    CLAUDE_4_6_OPUS,
     # Google AI
     GEMINI_2_5_FLASH_LITE,
     GEMINI_2_5_FLASH,

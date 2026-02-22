@@ -11,7 +11,7 @@ from di.di import DI
 from features.external_tools.access_token_resolver import AccessTokenResolver, ResolvedToken
 from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ToolType
-from features.external_tools.external_tool_library import CLAUDE_3_7_SONNET, GPT_4O_MINI
+from features.external_tools.external_tool_library import CLAUDE_4_6_SONNET, GPT_4O_MINI
 from features.external_tools.tool_choice_resolver import ToolChoiceResolver, ToolResolutionError
 
 
@@ -30,7 +30,7 @@ class ToolChoiceResolverTest(unittest.TestCase):
             telegram_user_id = 1,
             open_ai_key = SecretStr("test_openai_key"),
             anthropic_key = SecretStr("test_anthropic_key"),
-            tool_choice_chat = "claude-3-7-sonnet-latest",
+            tool_choice_chat = CLAUDE_4_6_SONNET.id,
             tool_choice_vision = "gpt-4o-mini",
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
@@ -47,8 +47,8 @@ class ToolChoiceResolverTest(unittest.TestCase):
         self.assertEqual(tool, GPT_4O_MINI)
 
     def test_find_tool_by_id_success_anthropic_tool(self):
-        tool = ToolChoiceResolver.find_tool_by_id(CLAUDE_3_7_SONNET.id)
-        self.assertEqual(tool, CLAUDE_3_7_SONNET)
+        tool = ToolChoiceResolver.find_tool_by_id(CLAUDE_4_6_SONNET.id)
+        self.assertEqual(tool, CLAUDE_4_6_SONNET)
 
     def test_find_tool_by_id_failure_nonexistent_tool(self):
         tool = ToolChoiceResolver.find_tool_by_id("nonexistent-tool-id")
@@ -72,12 +72,12 @@ class ToolChoiceResolverTest(unittest.TestCase):
     def test_get_prioritized_tools_only_user_choice(self):
         tools = ToolChoiceResolver.get_prioritized_tools(
             ToolType.chat,
-            user_choice_tool = CLAUDE_3_7_SONNET,
+            user_choice_tool = CLAUDE_4_6_SONNET,
             default_tool = None,
         )
 
         self.assertGreater(len(tools), 1)
-        self.assertEqual(tools[0], CLAUDE_3_7_SONNET)
+        self.assertEqual(tools[0], CLAUDE_4_6_SONNET)
         for tool in tools:
             self.assertIn(ToolType.chat, tool.types)
 
@@ -85,23 +85,23 @@ class ToolChoiceResolverTest(unittest.TestCase):
         tools = ToolChoiceResolver.get_prioritized_tools(
             ToolType.chat,
             user_choice_tool = None,
-            default_tool = CLAUDE_3_7_SONNET,
+            default_tool = CLAUDE_4_6_SONNET,
         )
 
         self.assertGreater(len(tools), 1)
-        self.assertEqual(tools[0], CLAUDE_3_7_SONNET)
+        self.assertEqual(tools[0], CLAUDE_4_6_SONNET)
         for tool in tools:
             self.assertIn(ToolType.chat, tool.types)
 
     def test_get_prioritized_tools_both_user_choice_and_default(self):
         tools = ToolChoiceResolver.get_prioritized_tools(
             ToolType.chat,
-            user_choice_tool = CLAUDE_3_7_SONNET.id,
+            user_choice_tool = CLAUDE_4_6_SONNET.id,
             default_tool = GPT_4O_MINI.id,
         )
 
         self.assertGreater(len(tools), 2)
-        self.assertEqual(tools[0], CLAUDE_3_7_SONNET)
+        self.assertEqual(tools[0], CLAUDE_4_6_SONNET)
         self.assertEqual(tools[1], GPT_4O_MINI)
         for tool in tools:
             self.assertIn(ToolType.chat, tool.types)
@@ -151,7 +151,7 @@ class ToolChoiceResolverTest(unittest.TestCase):
         self.assertIsNotNone(result)
         assert result is not None
         self.assertIsInstance(result, ConfiguredTool)
-        self.assertEqual(result.definition, CLAUDE_3_7_SONNET)
+        self.assertEqual(result.definition, CLAUDE_4_6_SONNET)
         self.assertEqual(result.token.get_secret_value(), "test_token")
         self.assertEqual(result.purpose, ToolType.chat)
         self.assertFalse(result.uses_credits)
@@ -160,7 +160,7 @@ class ToolChoiceResolverTest(unittest.TestCase):
         resolved = ResolvedToken(token = SecretStr("test_token"), payer_id = UUID(int = 1), uses_credits = False)
 
         def mock_get_access_token_for_tool(test_tool):
-            if test_tool == CLAUDE_3_7_SONNET:
+            if test_tool == CLAUDE_4_6_SONNET:
                 return None
             return resolved
 
@@ -172,7 +172,7 @@ class ToolChoiceResolverTest(unittest.TestCase):
         self.assertIsNotNone(result)
         assert result is not None
         self.assertIsInstance(result, ConfiguredTool)
-        self.assertNotEqual(result.definition, CLAUDE_3_7_SONNET)
+        self.assertNotEqual(result.definition, CLAUDE_4_6_SONNET)
         self.assertIn(ToolType.chat, result.definition.types)
         self.assertEqual(result.token.get_secret_value(), "test_token")
         self.assertEqual(result.purpose, ToolType.chat)
@@ -181,7 +181,7 @@ class ToolChoiceResolverTest(unittest.TestCase):
         resolved = ResolvedToken(token = SecretStr("test_token"), payer_id = UUID(int = 1), uses_credits = False)
 
         def mock_get_access_token_for_tool(test_tool):
-            if test_tool == CLAUDE_3_7_SONNET:
+            if test_tool == CLAUDE_4_6_SONNET:
                 return None
             if test_tool == GPT_4O_MINI:
                 return resolved
@@ -217,7 +217,7 @@ class ToolChoiceResolverTest(unittest.TestCase):
         self.assertIsNotNone(result)
         assert result is not None
         self.assertIsInstance(result, ConfiguredTool)
-        self.assertEqual(result.definition, CLAUDE_3_7_SONNET)
+        self.assertEqual(result.definition, CLAUDE_4_6_SONNET)
         self.assertEqual(result.token.get_secret_value(), "test_token")
         self.assertEqual(result.purpose, ToolType.chat)
 
@@ -243,7 +243,7 @@ class ToolChoiceResolverTest(unittest.TestCase):
         self.assertIsNotNone(chat_result)
         assert chat_result is not None
         self.assertIsInstance(chat_result, ConfiguredTool)
-        self.assertEqual(chat_result.definition, CLAUDE_3_7_SONNET)
+        self.assertEqual(chat_result.definition, CLAUDE_4_6_SONNET)
         self.assertEqual(chat_result.token.get_secret_value(), "test_token_1")
         self.assertEqual(chat_result.purpose, ToolType.chat)
 
