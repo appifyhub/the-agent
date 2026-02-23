@@ -112,6 +112,17 @@ GPT_5_NANO = ExternalTool(
     ),
 )
 
+GPT_5_PRO = ExternalTool(
+    id = "gpt-5-pro",
+    name = "GPT 5 Pro",
+    provider = OPEN_AI,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+    cost_estimate = CostEstimate(
+        input_1m_tokens = 1500,
+        output_1m_tokens = 12000,
+    ),
+)
+
 GPT_5_1 = ExternalTool(
     id = "gpt-5.1",
     name = "GPT 5.1",
@@ -131,6 +142,17 @@ GPT_5_2 = ExternalTool(
     cost_estimate = CostEstimate(
         input_1m_tokens = 175,
         output_1m_tokens = 1400,
+    ),
+)
+
+GPT_5_2_PRO = ExternalTool(
+    id = "gpt-5.2-pro",
+    name = "GPT 5.2 Pro",
+    provider = OPEN_AI,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+    cost_estimate = CostEstimate(
+        input_1m_tokens = 2100,
+        output_1m_tokens = 16800,
     ),
 )
 
@@ -246,17 +268,6 @@ CLAUDE_3_5_HAIKU = ExternalTool(
     ),
 )
 
-CLAUDE_3_7_SONNET = ExternalTool(
-    id = "claude-3-7-sonnet-latest",
-    name = "Claude 3.7 Sonnet",
-    provider = ANTHROPIC,
-    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
-    cost_estimate = CostEstimate(
-        input_1m_tokens = 300,
-        output_1m_tokens = 1500,
-        search_1m_tokens = 150,  # used with vision queries
-    ),
-)
 
 CLAUDE_4_SONNET = ExternalTool(
     id = "claude-sonnet-4-0",
@@ -291,6 +302,42 @@ CLAUDE_4_5_SONNET = ExternalTool(
         input_1m_tokens = 300,
         output_1m_tokens = 1500,
         search_1m_tokens = 150,  # used with vision queries
+    ),
+)
+
+CLAUDE_4_5_OPUS = ExternalTool(
+    id = "claude-opus-4-5",
+    name = "Claude 4.5 Opus",
+    provider = ANTHROPIC,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+    cost_estimate = CostEstimate(
+        input_1m_tokens = 500,
+        output_1m_tokens = 2500,
+        search_1m_tokens = 200,  # used with vision queries
+    ),
+)
+
+CLAUDE_4_6_SONNET = ExternalTool(
+    id = "claude-sonnet-4-6",
+    name = "Claude 4.6 Sonnet",
+    provider = ANTHROPIC,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+    cost_estimate = CostEstimate(
+        input_1m_tokens = 300,
+        output_1m_tokens = 1500,
+        search_1m_tokens = 150,  # used with vision queries
+    ),
+)
+
+CLAUDE_4_6_OPUS = ExternalTool(
+    id = "claude-opus-4-6",
+    name = "Claude 4.6 Opus",
+    provider = ANTHROPIC,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+    cost_estimate = CostEstimate(
+        input_1m_tokens = 500,
+        output_1m_tokens = 2500,
+        search_1m_tokens = 200,  # used with vision queries
     ),
 )
 
@@ -347,6 +394,18 @@ GEMINI_3_FLASH = ExternalTool(
 GEMINI_3_PRO = ExternalTool(
     id = "gemini-3-pro-preview",
     name = "Gemini 3 Pro (Preview)",
+    provider = GOOGLE_AI,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+    cost_estimate = CostEstimate(
+        input_1m_tokens = 300,
+        output_1m_tokens = 1500,
+        search_1m_tokens = 150,  # used with vision queries
+    ),
+)
+
+GEMINI_3_1_PRO = ExternalTool(
+    id = "gemini-3.1-pro-preview",
+    name = "Gemini 3.1 Pro (Preview)",
     provider = GOOGLE_AI,
     types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
     cost_estimate = CostEstimate(
@@ -604,10 +663,12 @@ ALL_EXTERNAL_TOOLS = [
     GPT_4_1_MINI,
     GPT_4_1_NANO,
     GPT_5,
+    GPT_5_PRO,
     GPT_5_MINI,
     GPT_5_NANO,
     GPT_5_1,
     GPT_5_2,
+    GPT_5_2_PRO,
     GPT_4O,
     GPT_4O_MINI,
     GPT_O3_MINI,
@@ -619,16 +680,19 @@ ALL_EXTERNAL_TOOLS = [
     TEXT_EMBEDDING_5_LARGE,
     # Anthropic
     CLAUDE_3_5_HAIKU,
-    CLAUDE_3_7_SONNET,
     CLAUDE_4_SONNET,
     CLAUDE_4_5_HAIKU,
     CLAUDE_4_5_SONNET,
+    CLAUDE_4_5_OPUS,
+    CLAUDE_4_6_SONNET,
+    CLAUDE_4_6_OPUS,
     # Google AI
     GEMINI_2_5_FLASH_LITE,
     GEMINI_2_5_FLASH,
     GEMINI_2_5_PRO,
     GEMINI_3_FLASH,
     GEMINI_3_PRO,
+    GEMINI_3_1_PRO,
     GEMINI_3_PRO_IMAGE,
     # Perplexity
     SONAR,

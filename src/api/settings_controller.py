@@ -1,17 +1,18 @@
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import datetime, timedelta
 from typing import Annotated, Any, List, Literal, TypeAlias, get_args
+from uuid import UUID
 
 from api import auth
 from api.mapper.chat_mapper import domain_to_api as chat_to_api
 from api.mapper.user_mapper import api_to_domain, domain_to_api
 from api.model.chat_settings_payload import ChatSettingsPayload
 from api.model.external_tools_response import ExternalToolProviderResponse, ExternalToolResponse, ExternalToolsResponse
+from api.model.products_response import ProductsResponse
 from api.model.settings_link_response import SettingsLinkResponse
 from api.model.user_settings_payload import UserSettingsPayload
 from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig, ChatConfigSave
-from db.schema.sponsorship import Sponsorship
 from db.schema.user import User
 from di.di import DI
 from features.external_tools.external_tool_library import ALL_EXTERNAL_TOOLS
@@ -19,6 +20,18 @@ from features.external_tools.external_tool_provider_library import ALL_PROVIDERS
 from features.integrations.integrations import is_own_chat, resolve_agent_user, resolve_external_handle, resolve_external_id
 from util import log
 from util.config import config
+from util.error_codes import (
+    INVALID_LANGUAGE_SETTINGS,
+    INVALID_MEDIA_MODE,
+    INVALID_RELEASE_NOTIFICATIONS,
+    INVALID_REPLY_CHANCE,
+    INVALID_SETTINGS_TYPE,
+    INVALID_TOOL_CHOICE,
+    INVALID_USE_ABOUT_ME,
+    MISSING_CHAT_CONTEXT,
+    NO_PRIVATE_CHAT,
+)
+from util.errors import AuthorizationError, ConfigurationError, ValidationError
 
 SettingsType: TypeAlias = Annotated[str, Literal["user", "chat"]]
 InvokerType: TypeAlias = Annotated[str, Literal["creator", "administrator"]]
@@ -37,7 +50,7 @@ class SettingsController:
         log.d("Validating settings type")
         literal_type = get_args(SettingsType)[1]
         if settings_type not in get_args(literal_type):
-            raise ValueError(log.e(f"Invalid settings type '{settings_type}'"))
+            raise ValidationError(f"Invalid settings type '{settings_type}'", INVALID_SETTINGS_TYPE)
         return settings_type
 
     def create_settings_link(
@@ -47,10 +60,10 @@ class SettingsController:
     ) -> SettingsLinkResponse:
         chat_type = chat_type or self.__di.invoker_chat_type
         if not chat_type:
-            raise ValueError(log.e("Chat type not provided and invoker_chat is not available"))
+            raise ConfigurationError("Chat type not provided and invoker_chat is not available", MISSING_CHAT_CONTEXT)
         external_id = resolve_external_id(self.__di.invoker, chat_type)
         if not external_id:
-            raise ValueError(log.e("User never sent a private message, cannot create a settings link"))
+            raise AuthorizationError("User never sent a private message, cannot create a settings link", NO_PRIVATE_CHAT)
 
         settings_type: SettingsType
         lang_iso_code: str
@@ -67,10 +80,9 @@ class SettingsController:
             resource_id = self.__di.invoker.id.hex
             lang_iso_code = config.main_language_iso_code
 
-        sponsored_by = self.__resolve_sponsor_name(chat_type)
-        jwt_token = self.__create_jwt_token(chat_type, sponsored_by)
-
-        page = "sponsorships" if (settings_type == "user" and sponsored_by) else "settings"
+        jwt_token = self.__create_jwt_token(chat_type)
+        is_sponsored = self.__is_sponsored(self.__di.invoker.id)
+        page = "sponsorships" if (settings_type == "user" and is_sponsored) else "settings"
         settings_url_base = f"{config.backoffice_url_base}/{lang_iso_code}/{settings_type}/{resource_id}/{page}"
         long_url = f"{settings_url_base}?{SETTINGS_TOKEN_VAR}={jwt_token}"
 
@@ -81,10 +93,10 @@ class SettingsController:
     def create_help_link(self, chat_type: ChatConfigDB.ChatType | None = None) -> str:
         chat_type = chat_type or self.__di.invoker_chat_type
         if not chat_type:
-            raise ValueError(log.e("Chat type not provided and invoker_chat is not available"))
+            raise ConfigurationError("Chat type not provided and invoker_chat is not available", MISSING_CHAT_CONTEXT)
         external_id = resolve_external_id(self.__di.invoker, chat_type)
         if not external_id:
-            raise ValueError(log.e("User never sent a private message, cannot create settings link"))
+            raise AuthorizationError("User never sent a private message, cannot create settings link", NO_PRIVATE_CHAT)
 
         lang_iso_code: str
         if self.__di.invoker_chat:
@@ -126,13 +138,21 @@ class SettingsController:
 
         return asdict(ExternalToolsResponse(tools_response, providers_response))
 
+    def fetch_products(self, user_id_hex: str) -> dict[str, Any]:
+        user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
+        products = [
+            replace(product, url = f"{product.url}?user_id={user.id.hex}")
+            for product in config.products.values()
+        ]
+        return asdict(ProductsResponse(products))
+
     def fetch_chat_settings(self, chat_id: str) -> dict[str, Any]:
         chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, chat_id)
         return chat_to_api(chat = chat_config, is_own = is_own_chat(chat_config, self.__di.invoker)).model_dump()
 
     def fetch_user_settings(self, user_id_hex: str) -> dict[str, Any]:
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
-        return domain_to_api(user).model_dump()
+        return domain_to_api(user, self.__is_sponsored(user.id)).model_dump()
 
     def save_chat_settings(self, chat_id: str, payload: ChatSettingsPayload):
         log.d(f"Saving chat settings for chat '{chat_id}'")
@@ -141,34 +161,34 @@ class SettingsController:
 
         # validate language changes
         if not payload.language_name or not payload.language_iso_code:
-            raise ValueError(log.e("Both language_name and language_iso_code must be non-empty"))
+            raise ValidationError("Both language_name and language_iso_code must be non-empty", INVALID_LANGUAGE_SETTINGS)
         log.t(f"  Updating language to '{payload.language_name}' ({payload.language_iso_code})")
         chat_config_save.language_name = payload.language_name
         chat_config_save.language_iso_code = payload.language_iso_code
 
         # validate reply chance changes
         if chat_config_save.is_private and payload.reply_chance_percent != 100:
-            raise ValueError(log.e("Chat is private, reply chance cannot be changed"))
+            raise ValidationError("Chat is private, reply chance cannot be changed", INVALID_REPLY_CHANCE)
         log.t(f"  Updating reply chance to {payload.reply_chance_percent}%")
         chat_config_save.reply_chance_percent = payload.reply_chance_percent
 
         # validate release notifications changes
         release_notifications = ChatConfigDB.ReleaseNotifications.lookup(payload.release_notifications)
         if not release_notifications:
-            raise ValueError(log.e(f"Invalid release notifications setting value '{payload.release_notifications}'"))
+            raise ValidationError(f"Invalid release notifications setting value '{payload.release_notifications}'", INVALID_RELEASE_NOTIFICATIONS)  # noqa: E501
         log.t(f"  Updating release notifications to '{release_notifications.value}'")
         chat_config_save.release_notifications = release_notifications
 
         # validate media mode changes
         media_mode = ChatConfigDB.MediaMode.lookup(payload.media_mode)
         if not media_mode:
-            raise ValueError(log.e(f"Invalid media mode setting value '{payload.media_mode}'"))
+            raise ValidationError(f"Invalid media mode setting value '{payload.media_mode}'", INVALID_MEDIA_MODE)
         log.t(f"  Updating media mode to '{media_mode.value}'")
         chat_config_save.media_mode = media_mode
 
         # validate use_about_me changes (it should always be valid, but let's keep)
         if not isinstance(payload.use_about_me, bool):
-            raise ValueError(log.e(f"Invalid use_about_me value '{payload.use_about_me}'"))
+            raise ValidationError(f"Invalid use_about_me value '{payload.use_about_me}'", INVALID_USE_ABOUT_ME)
         log.t(f"  Updating use_about_me to '{payload.use_about_me}'")
         chat_config_save.use_about_me = payload.use_about_me
 
@@ -185,7 +205,7 @@ class SettingsController:
         configured_tool_ids = {tool["definition"]["id"] for tool in configured_tools["tools"] if tool["is_configured"]}
         for key, value in payload.model_dump().items():
             if key.startswith("tool_choice_") and value and (value not in configured_tool_ids):
-                raise ValueError(log.e(f"Invalid tool choice '{value}' for '{key}'. Tool is not configured."))
+                raise ValidationError(f"Invalid tool choice '{value}' for '{key}'. Tool is not configured.", INVALID_TOOL_CHOICE)
 
         user_save = api_to_domain(payload, user)
         User.model_validate(self.__di.user_crud.save(user_save))
@@ -209,20 +229,10 @@ class SettingsController:
             result.append(record)
         return result
 
-    def __resolve_sponsor_name(self, chat_type: ChatConfigDB.ChatType) -> str | None:
-        sponsored_by: str | None = None
-        sponsorships_db = self.__di.sponsorship_crud.get_all_by_receiver(self.__di.invoker.id)
-        if sponsorships_db:
-            sponsorship = Sponsorship.model_validate(sponsorships_db[0])
-            sponsor_db = self.__di.user_crud.get(sponsorship.sponsor_id)
-            if sponsor_db:
-                sponsor = User.model_validate(sponsor_db)
-                sponsor_handle = resolve_external_handle(sponsor, chat_type)  # nullable
-                sponsored_by = sponsor.full_name or sponsor_handle
-        return sponsored_by
+    def __is_sponsored(self, user_id: UUID) -> bool:
+        return bool(self.__di.sponsorship_crud.get_all_by_receiver(user_id))
 
-    def __create_jwt_token(self, chat_type: ChatConfigDB.ChatType, sponsored_by: str | None = None) -> str:
-        sponsored_by = sponsored_by or self.__resolve_sponsor_name(chat_type)
+    def __create_jwt_token(self, chat_type: ChatConfigDB.ChatType) -> str:
         external_id = resolve_external_id(self.__di.invoker, chat_type)
         external_handle = resolve_external_handle(self.__di.invoker, chat_type)
 
@@ -236,6 +246,5 @@ class SettingsController:
             "platform": chat_type.value,  # origin of the token
             **({"platform_id": external_id} if external_id else {}),
             **({"platform_handle": external_handle} if external_handle else {}),
-            **({"sponsored_by": sponsored_by} if sponsored_by else {}),
         }
         return auth.create_jwt_token(token_payload, config.jwt_expires_in_minutes)

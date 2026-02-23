@@ -18,6 +18,7 @@ from features.chat.whatsapp.whatsapp_data_resolver import WhatsAppDataResolver
 from features.chat.whatsapp.whatsapp_domain_mapper import WhatsAppDomainMapper
 from features.integrations.integrations import resolve_agent_user
 from util.config import config
+from util.errors import RateLimitError
 
 
 class WhatsAppDataResolverTest(unittest.TestCase):
@@ -298,10 +299,10 @@ class WhatsAppDataResolverTest(unittest.TestCase):
             full_name = "New User",
         )
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(RateLimitError) as context:
             self.resolver.resolve_author(mapped_data)
 
-        self.assertEqual(str(context.exception), "User limit reached: 100/100. Try again later")
+        self.assertIn("User limit reached: 100/100. Try again later", str(context.exception))
         mock_count.assert_called_once()
 
     def test_resolve_author_existing(self):
@@ -315,6 +316,7 @@ class WhatsAppDataResolverTest(unittest.TestCase):
             rapid_api_key = SecretStr("sk-key"),
             coinmarketcap_key = SecretStr("sk-key"),
             about_me = SecretStr("Personal info about me"),
+            credit_balance = 123.45,
             group = UserDB.Group.developer,
             # Add all tool choice fields to test preservation
             tool_choice_chat = "openai",
@@ -357,6 +359,7 @@ class WhatsAppDataResolverTest(unittest.TestCase):
         self.assertEqual(result.rapid_api_key, existing_user.rapid_api_key)
         self.assertEqual(result.coinmarketcap_key, existing_user.coinmarketcap_key)
         self.assertEqual(result.about_me, existing_user.about_me)
+        self.assertEqual(result.credit_balance, existing_user.credit_balance)
         self.assertEqual(result.group, existing_user.group)
         self.assertEqual(result.created_at, existing_user.created_at)
 

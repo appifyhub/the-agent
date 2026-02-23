@@ -3,6 +3,8 @@ from enum import Enum
 from di.di import DI
 from features.integrations.integrations import resolve_agent_user, resolve_external_handle, resolve_private_chat_id
 from util import log
+from util.error_codes import UNKNOWN_COMMAND
+from util.errors import NotFoundError
 
 COMMAND_START = "start"
 COMMAND_SETTINGS = "settings"
@@ -103,7 +105,7 @@ class CommandProcessor:
                     log.t("Shared the settings link with the user (invalid connect key)")
                     return CommandProcessor.Result.success
 
-            raise ValueError(f"Unknown command '{command_name}'")
+            raise NotFoundError(f"Unknown command '{command_name}'", UNKNOWN_COMMAND)
         except Exception as e:
             log.e("Failed to process the command", e)
             return CommandProcessor.Result.failed

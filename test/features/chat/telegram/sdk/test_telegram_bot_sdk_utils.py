@@ -6,6 +6,7 @@ from uuid import UUID
 from db.schema.chat_message_attachment import ChatMessageAttachment, ChatMessageAttachmentSave
 from di.di import DI
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from util.errors import InternalError
 
 
 class TelegramBotSDKUtilsTest(unittest.TestCase):
@@ -161,14 +162,14 @@ class TelegramBotSDKUtilsTest(unittest.TestCase):
         self.mock_di.chat_message_attachment_crud.get_by_external_id.return_value = None
 
         sdk = TelegramBotSDK(self.mock_di)
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(InternalError) as context:
             sdk.refresh_attachment(attachment_save = attachment_save)
 
         self.assertIn("No external ID provided", str(context.exception))
 
     def test_refresh_attachment_no_instance_error(self):
         sdk = TelegramBotSDK(self.mock_di)
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(InternalError) as context:
             sdk.refresh_attachment()
 
         self.assertIn("No attachment instance provided", str(context.exception))

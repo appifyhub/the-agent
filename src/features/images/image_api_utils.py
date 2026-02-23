@@ -145,7 +145,7 @@ def resolve_aspect_ratio(
     try:
         parts = cleaned.split(":")
         if len(parts) != 2:
-            raise ValueError("Invalid format")
+            raise ValueError("Invalid format")  # caught locally as control flow
         input_ratio = float(parts[0]) / float(parts[1])
     except (ValueError, ZeroDivisionError):
         log.w(f"Invalid aspect ratio '{aspect_ratio}', using default")

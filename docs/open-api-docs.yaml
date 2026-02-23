@@ -1,0 +1,1970 @@
+openapi: 3.0.3
+info:
+  title: The Agent's user-facing API
+  description: The user-facing parts of The Agent's API service (excluding system-level endpoints, chat completion, maintenance endpoints, etc.)
+  version: 5.0.15
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://your.agent.com
+    description: Your Agent API
+
+security:
+  - bearerAuth: []
+
+paths:
+  /settings/{settings_type}/{resource_id}:
+    get:
+      summary: Get user or chat settings
+      description: Retrieve settings for a specific user or chat configuration
+      operationId: getSettings
+      tags: [Settings]
+      parameters:
+        - name: settings_type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [user, chat]
+          description: Type of settings to retrieve
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID (hex) or Chat ID (hex, UUID without hyphens) depending on settings_type
+      responses:
+        "200":
+          description: Settings retrieved successfully
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/UserSettingsResponse"
+                  - $ref: "#/components/schemas/ChatSettingsResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /settings/user/{resource_id}/tools:
+    get:
+      summary: Get user's external tools configuration
+      description: Retrieve external tools and providers configuration status
+      operationId: getTools
+      tags: [Settings]
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+      responses:
+        "200":
+          description: Tools configuration retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExternalToolsResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /settings/user/{resource_id}/products:
+    get:
+      summary: Get available products
+      description: Retrieve the list of purchasable products
+      operationId: getProducts
+      tags: [Settings]
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+      responses:
+        "200":
+          description: Products retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductsResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /settings/user/{user_id_hex}:
+    patch:
+      summary: Update user settings
+      description: Save user settings including API keys and tool choices
+      operationId: saveUserSettings
+      tags: [Settings]
+      parameters:
+        - name: user_id_hex
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserSettingsPayload"
+      responses:
+        "200":
+          description: User settings saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /settings/chat/{chat_id}:
+    patch:
+      summary: Update chat settings
+      description: Save chat configuration including language and reply settings
+      operationId: saveChatSettings
+      tags: [Settings]
+      parameters:
+        - name: chat_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Chat ID in hexadecimal format (UUID without hyphens)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatSettingsPayload"
+      responses:
+        "200":
+          description: Chat settings saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /user/{resource_id}/chats:
+    get:
+      summary: Get user-administered chats
+      description: Retrieve all private and group chats where the user is an administrator
+      operationId: getChats
+      tags: [Chats]
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+      responses:
+        "200":
+          description: Chats retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatInfo"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /user/{resource_id}/sponsorships:
+    get:
+      summary: Get user's sponsorships
+      description: Retrieve all sponsorships created by the user
+      operationId: getSponsorships
+      tags: [Sponsorships]
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+      responses:
+        "200":
+          description: Sponsorships retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SponsorshipsResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+    post:
+      summary: Create a new sponsorship
+      description: Sponsor another user by their platform-specific handle
+      operationId: sponsorUser
+      tags: [Sponsorships]
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SponsorshipPayload"
+      responses:
+        "200":
+          description: User sponsored successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /user/{resource_id}/sponsorships/{platform}/{platform_handle}:
+    delete:
+      summary: Remove a sponsorship
+      description: Remove sponsorship for a specific user
+      operationId: unsponsorUser
+      tags: [Sponsorships]
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+        - name: platform
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [telegram, whatsapp]
+          description: Platform type for the handle resolution
+        - name: platform_handle
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Platform-specific handle of the sponsored user (e.g., Telegram username, WhatsApp phone number)
+      responses:
+        "200":
+          description: Sponsorship removed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /user/{resource_id}/sponsored:
+    delete:
+      summary: Remove self-sponsorship
+      description: User removes their own sponsorship status
+      operationId: unsponsorSelf
+      tags: [Sponsorships]
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+      responses:
+        "200":
+          description: Self-sponsorship removed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /user/{user_id}/usage:
+    get:
+      summary: Get user's usage records
+      description: Retrieve paginated usage records for a user with optional date range filtering and sponsorship inclusion
+      operationId: getUsageRecords
+      tags: [UsageTracking]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+        - name: skip
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+          description: Number of records to skip for pagination
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+          description: Maximum number of records to return (max 100)
+        - name: start_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Start date for filtering (inclusive). Accepts ISO 8601 format, e.g. "2024-01-15", "2024-01-15T10:30:00", or "2024-01-15T10:30:00+00:00"
+        - name: end_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: End date for filtering (inclusive). Accepts ISO 8601 format, e.g. "2024-12-31", "2024-12-31T23:59:59", or "2024-12-31T23:59:59+00:00"
+        - name: exclude_self
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: When include_sponsored=true, exclude current user's own records
+        - name: include_sponsored
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Include usage records from all users sponsored by current user
+        - name: tool_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter records to a specific tool by its ID (e.g., "gpt-4o", "claude-3-5-haiku-latest")
+        - name: purpose
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter records to a specific purpose (e.g., "chat", "images_gen", "vision")
+        - name: provider_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter records to a specific provider by its ID (e.g., "open-ai", "anthropic", "google-ai")
+      responses:
+        "200":
+          description: Usage records retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UsageRecord"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /user/{user_id}/usage/stats:
+    get:
+      summary: Get user's aggregated usage statistics
+      description: Retrieve aggregated usage statistics including total costs, records by tool, and filter options
+      operationId: getUsageStats
+      tags: [UsageTracking]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+        - name: start_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Start date for filtering (inclusive). Accepts ISO 8601 format, e.g. "2024-01-15", "2024-01-15T10:30:00", or "2024-01-15T10:30:00+00:00"
+        - name: end_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: End date for filtering (inclusive). Accepts ISO 8601 format, e.g. "2024-12-31", "2024-12-31T23:59:59", or "2024-12-31T23:59:59+00:00"
+        - name: exclude_self
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: When include_sponsored=true, exclude current user's own records
+        - name: include_sponsored
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Include stats from all users sponsored by current user
+        - name: tool_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter aggregates to a specific tool by its ID (e.g., "gpt-4o", "claude-3-5-haiku-latest")
+        - name: purpose
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter aggregates to a specific purpose (e.g., "chat", "images_gen", "vision")
+        - name: provider_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter aggregates to a specific provider by its ID (e.g., "open-ai", "anthropic", "google-ai")
+      responses:
+        "200":
+          description: Usage statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsageAggregatesResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /user/{resource_id}/purchases:
+    get:
+      summary: Get user's purchase records
+      description: Retrieve paginated purchase records for a user with optional date range and product filtering
+      operationId: getPurchaseRecords
+      tags: [Purchases]
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+        - name: skip
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+          description: Number of records to skip for pagination
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+          description: Maximum number of records to return (max 100)
+        - name: start_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Start date for filtering (inclusive). Accepts ISO 8601 format, e.g. "2024-01-15", "2024-01-15T10:30:00", or "2024-01-15T10:30:00+00:00"
+        - name: end_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: End date for filtering (inclusive). Accepts ISO 8601 format, e.g. "2024-12-31", "2024-12-31T23:59:59", or "2024-12-31T23:59:59+00:00"
+        - name: product_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter records to a specific product by its ID
+      responses:
+        "200":
+          description: Purchase records retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PurchaseRecord"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+    post:
+      summary: Bind license key to user account
+      description: Associate a Gumroad license key with the user's account for purchases made without a user_id
+      operationId: bindLicenseKey
+      tags: [Purchases]
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BindLicenseKeyPayload"
+      responses:
+        "200":
+          description: License key bound successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchaseRecord"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /user/{resource_id}/purchases/stats:
+    get:
+      summary: Get user's purchase aggregates
+      description: Retrieve aggregated purchase statistics including total revenue, net revenue, and breakdown by product
+      operationId: getPurchaseStats
+      tags: [Purchases]
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+        - name: start_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Start date for filtering (inclusive). Accepts ISO 8601 format, e.g. "2024-01-15", "2024-01-15T10:30:00", or "2024-01-15T10:30:00+00:00"
+        - name: end_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: End date for filtering (inclusive). Accepts ISO 8601 format, e.g. "2024-12-31", "2024-12-31T23:59:59", or "2024-12-31T23:59:59+00:00"
+        - name: product_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter aggregates to a specific product by its ID
+      responses:
+        "200":
+          description: Purchase statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchaseAggregates"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /user/{user_id_hex}/connect-key:
+    get:
+      summary: Get user's connect key
+      description: Retrieve the connect key for the specified user, used to merge profiles from different platforms
+      operationId: getConnectKey
+      tags: [Profile Connection]
+      parameters:
+        - name: user_id_hex
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+      responses:
+        "200":
+          description: Connect key retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConnectKeyResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /user/{user_id_hex}/regenerate-connect-key:
+    post:
+      summary: Regenerate user's connect key
+      description: Generate a new connect key for the specified user, invalidating the old key
+      operationId: regenerateConnectKey
+      tags: [Profile Connection]
+      parameters:
+        - name: user_id_hex
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+      responses:
+        "200":
+          description: Connect key regenerated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConnectKeyResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /user/{user_id_hex}/connect-key/{connect_key}/merge:
+    post:
+      summary: Connect profiles from different platforms
+      description: Merge two user profiles from different platforms (e.g., Telegram and WhatsApp) into a single unified profile
+      operationId: connectProfiles
+      tags: [Profile Connection]
+      parameters:
+        - name: user_id_hex
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens) - the requester
+        - name: connect_key
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Connect key of the target profile to merge with
+      responses:
+        "200":
+          description: Profiles connected successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettingsLinkResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from one of the auth flows (usually via the chat)
+
+  schemas:
+    JWTPayload:
+      type: object
+      description: JWT token payload structure for platform-agnostic authentication
+      properties:
+        iss:
+          type: string
+          nullable: false
+          description: Issuer - The app name that issued the token
+        sub:
+          type: string
+          nullable: false
+          description: Subject - The user's unique identifier
+        platform:
+          type: string
+          nullable: false
+          enum: [telegram, whatsapp]
+          description: Platform where the token was issued
+        platform_id:
+          type: string
+          nullable: true
+          description: Platform-specific user ID
+        platform_handle:
+          type: string
+          nullable: true
+          description: Platform-specific user handle (username)
+        exp:
+          type: integer
+          nullable: false
+          description: Token expiration timestamp (Unix epoch)
+        iat:
+          type: integer
+          nullable: false
+          description: Token issued at timestamp (Unix epoch)
+        version:
+          type: string
+          nullable: false
+          description: Version of the app that issued the token
+      required:
+        - iss
+        - sub
+        - platform
+        - exp
+        - iat
+        - version
+
+    UserSettingsPayload:
+      type: object
+      properties:
+        full_name:
+          type: string
+          nullable: true
+          description: User's full name
+        about_me:
+          type: string
+          nullable: true
+          description: Personal information about the user for personalized interactions
+        open_ai_key:
+          type: string
+          nullable: true
+          description: OpenAI API key
+        anthropic_key:
+          type: string
+          nullable: true
+          description: Anthropic API key
+        google_ai_key:
+          type: string
+          nullable: true
+          description: Google AI API key
+        perplexity_key:
+          type: string
+          nullable: true
+          description: Perplexity API key
+        replicate_key:
+          type: string
+          nullable: true
+          description: Replicate API key
+        rapid_api_key:
+          type: string
+          nullable: true
+          description: RapidAPI key
+        coinmarketcap_key:
+          type: string
+          nullable: true
+          description: CoinMarketCap API key
+        tool_choice_chat:
+          type: string
+          nullable: true
+          description: Tool choice for chat functionality
+        tool_choice_reasoning:
+          type: string
+          nullable: true
+          description: Tool choice for reasoning tasks
+        tool_choice_copywriting:
+          type: string
+          nullable: true
+          description: Tool choice for copywriting tasks
+        tool_choice_vision:
+          type: string
+          nullable: true
+          description: Tool choice for vision tasks
+        tool_choice_hearing:
+          type: string
+          nullable: true
+          description: Tool choice for audio processing
+        tool_choice_images_gen:
+          type: string
+          nullable: true
+          description: Tool choice for image generation
+        tool_choice_images_edit:
+          type: string
+          nullable: true
+          description: Tool choice for image editing
+        tool_choice_search:
+          type: string
+          nullable: true
+          description: Tool choice for search functionality
+        tool_choice_embedding:
+          type: string
+          nullable: true
+          description: Tool choice for embedding generation
+        tool_choice_api_fiat_exchange:
+          type: string
+          nullable: true
+          description: Tool choice for fiat currency exchange
+        tool_choice_api_crypto_exchange:
+          type: string
+          nullable: true
+          description: Tool choice for cryptocurrency exchange
+        tool_choice_api_twitter:
+          type: string
+          nullable: true
+          description: Tool choice for Twitter API integration
+
+    UserSettingsResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: false
+          description: User ID in hexadecimal format (UUID without hyphens)
+        full_name:
+          type: string
+          nullable: true
+          description: User's full name
+        about_me:
+          type: string
+          nullable: true
+          description: Personal information about the user
+        telegram_username:
+          type: string
+          nullable: true
+          description: Telegram username
+        telegram_chat_id:
+          type: string
+          nullable: true
+          description: Telegram chat ID
+        telegram_user_id:
+          type: integer
+          nullable: true
+          description: Telegram user ID
+        whatsapp_user_id:
+          type: string
+          nullable: true
+          description: WhatsApp user ID
+        whatsapp_phone_number:
+          type: string
+          nullable: true
+          description: WhatsApp phone number
+        open_ai_key:
+          type: string
+          nullable: true
+          description: OpenAI API key (masked)
+        anthropic_key:
+          type: string
+          nullable: true
+          description: Anthropic API key (masked)
+        google_ai_key:
+          type: string
+          nullable: true
+          description: Google AI API key (masked)
+        perplexity_key:
+          type: string
+          nullable: true
+          description: Perplexity API key (masked)
+        replicate_key:
+          type: string
+          nullable: true
+          description: Replicate API key (masked)
+        rapid_api_key:
+          type: string
+          nullable: true
+          description: RapidAPI key (masked)
+        coinmarketcap_key:
+          type: string
+          nullable: true
+          description: CoinMarketCap API key (masked)
+        tool_choice_chat:
+          type: string
+          nullable: true
+        tool_choice_reasoning:
+          type: string
+          nullable: true
+        tool_choice_copywriting:
+          type: string
+          nullable: true
+        tool_choice_vision:
+          type: string
+          nullable: true
+        tool_choice_hearing:
+          type: string
+          nullable: true
+        tool_choice_images_gen:
+          type: string
+          nullable: true
+        tool_choice_images_edit:
+          type: string
+          nullable: true
+        tool_choice_search:
+          type: string
+          nullable: true
+        tool_choice_embedding:
+          type: string
+          nullable: true
+        tool_choice_api_fiat_exchange:
+          type: string
+          nullable: true
+        tool_choice_api_crypto_exchange:
+          type: string
+          nullable: true
+        tool_choice_api_twitter:
+          type: string
+          nullable: true
+        credit_balance:
+          type: number
+          format: float
+          nullable: false
+          description: Current credit balance available for tool usage
+        is_sponsored:
+          type: boolean
+          nullable: false
+          description: Whether this user's API usage is sponsored by another user
+        group:
+          type: string
+          nullable: false
+          description: User group/role
+        created_at:
+          type: string
+          nullable: false
+          format: date-time
+          description: User creation timestamp
+      required:
+        - id
+        - credit_balance
+        - is_sponsored
+        - group
+        - created_at
+
+    ChatSettingsPayload:
+      type: object
+      properties:
+        language_name:
+          type: string
+          nullable: false
+          description: Display name of the language
+        language_iso_code:
+          type: string
+          nullable: false
+          description: ISO code of the language
+        reply_chance_percent:
+          type: integer
+          nullable: false
+          minimum: 0
+          maximum: 100
+          description: Percentage chance of replying to messages
+        release_notifications:
+          type: string
+          nullable: false
+          enum: [none, major, minor, all]
+          description: Release notification settings
+        media_mode:
+          type: string
+          nullable: false
+          enum: [photo, file, all]
+          description: Media sending mode - photo (send as photo), file (send as file), all (send both photo and file)
+        use_about_me:
+          type: boolean
+          nullable: false
+          description: Whether to include the participants' "about me" information in agent interactions for this chat
+      required:
+        - language_name
+        - language_iso_code
+        - reply_chance_percent
+        - release_notifications
+        - media_mode
+        - use_about_me
+
+    ChatSettingsResponse:
+      type: object
+      properties:
+        chat_id:
+          type: string
+          nullable: false
+          description: Chat ID in hexadecimal format (UUID without hyphens)
+        title:
+          type: string
+          nullable: true
+          description: Chat title
+        platform:
+          type: string
+          nullable: false
+          enum: [telegram, whatsapp]
+          description: Platform type of this chat
+        language_name:
+          type: string
+          nullable: true
+          description: Display name of the language
+        language_iso_code:
+          type: string
+          nullable: true
+          description: ISO code of the language
+        reply_chance_percent:
+          type: integer
+          nullable: false
+          minimum: 0
+          maximum: 100
+          description: Percentage chance of replying to messages
+        release_notifications:
+          type: string
+          nullable: false
+          enum: [none, major, minor, all]
+          description: Release notification settings
+        media_mode:
+          type: string
+          nullable: false
+          enum: [photo, file, all]
+          description: Media sending mode - photo (send as photo), file (send as file), all (send both photo and file)
+        use_about_me:
+          type: boolean
+          nullable: false
+          description: Whether to include the participants' "about me" information in agent interactions for this chat
+        is_private:
+          type: boolean
+          nullable: false
+          description: Whether the chat is private
+        is_own:
+          type: boolean
+          nullable: false
+          description: Whether the chat belongs to the requesting user
+      required:
+        - chat_id
+        - platform
+        - reply_chance_percent
+        - release_notifications
+        - media_mode
+        - use_about_me
+        - is_private
+        - is_own
+
+    SponsorshipPayload:
+      type: object
+      properties:
+        platform_handle:
+          type: string
+          nullable: false
+          description: Platform-specific handle of the user to sponsor (e.g., Telegram username, WhatsApp phone number)
+        platform:
+          type: string
+          nullable: false
+          enum: [telegram, whatsapp]
+          description: Platform type for the handle resolution
+      required:
+        - platform_handle
+        - platform
+
+    ChatInfo:
+      type: object
+      properties:
+        chat_id:
+          type: string
+          nullable: false
+          description: Chat ID in hexadecimal format (UUID without hyphens)
+        title:
+          type: string
+          nullable: true
+          description: Chat title
+        platform:
+          type: string
+          nullable: false
+          enum: [telegram, whatsapp]
+          description: Platform type of this chat
+        is_own:
+          type: boolean
+          nullable: false
+          description: Whether the chat belongs to the requesting user (e.g., private chat)
+      required:
+        - chat_id
+        - platform
+        - is_own
+
+    ExternalToolsResponse:
+      type: object
+      properties:
+        tools:
+          type: array
+          nullable: false
+          items:
+            $ref: "#/components/schemas/ExternalToolResponse"
+          description: List of external tools
+        providers:
+          type: array
+          nullable: false
+          items:
+            $ref: "#/components/schemas/ExternalToolProviderResponse"
+          description: List of external tool providers
+      required:
+        - tools
+        - providers
+
+    ProductsResponse:
+      type: object
+      properties:
+        products:
+          type: array
+          nullable: false
+          items:
+            $ref: "#/components/schemas/ConfiguredProduct"
+          description: List of purchasable products
+      required:
+        - products
+
+    ConfiguredProduct:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: false
+          description: Product ID
+        credits:
+          type: integer
+          nullable: false
+          description: Number of credits granted upon purchase
+        name:
+          type: string
+          nullable: false
+          description: Display name of the product
+        url:
+          type: string
+          nullable: false
+          description: Purchase URL
+      required:
+        - id
+        - credits
+        - name
+        - url
+
+    ExternalToolResponse:
+      type: object
+      properties:
+        definition:
+          $ref: "#/components/schemas/ExternalTool"
+        is_configured:
+          type: boolean
+          nullable: false
+          description: Whether the tool is configured
+      required:
+        - definition
+        - is_configured
+
+    ExternalToolProviderResponse:
+      type: object
+      properties:
+        definition:
+          $ref: "#/components/schemas/ExternalToolProvider"
+        is_configured:
+          type: boolean
+          nullable: false
+          description: Whether the provider is configured
+      required:
+        - definition
+        - is_configured
+
+    ExternalTool:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: false
+          description: Tool ID
+        name:
+          type: string
+          nullable: false
+          description: Tool name
+        provider:
+          $ref: "#/components/schemas/ExternalToolProvider"
+        types:
+          type: array
+          nullable: false
+          items:
+            type: string
+          description: Tool types/capabilities
+        cost_estimate:
+          $ref: "#/components/schemas/CostEstimate"
+      required:
+        - id
+        - name
+        - provider
+        - types
+        - cost_estimate
+
+    ExternalToolProvider:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: false
+          description: Provider ID
+        name:
+          type: string
+          nullable: false
+          description: Provider name
+        token_management_url:
+          type: string
+          nullable: false
+          description: URL for managing tokens
+        token_format:
+          type: string
+          nullable: false
+          description: Expected token format
+        tools:
+          type: array
+          nullable: false
+          items:
+            type: string
+          description: List of tool names
+      required:
+        - id
+        - name
+        - token_management_url
+        - token_format
+        - tools
+
+    CostEstimate:
+      type: object
+      description: Cost estimation for using an external tool (all costs in credits)
+      properties:
+        input_1m_tokens:
+          type: integer
+          nullable: true
+          description: Cost per 1 million input tokens in credits
+        output_1m_tokens:
+          type: integer
+          nullable: true
+          description: Cost per 1 million output tokens in credits
+        search_1m_tokens:
+          type: integer
+          nullable: true
+          description: Cost per 1 million search tokens in credits
+        input_image_1k:
+          type: integer
+          nullable: true
+          description: Cost per 1k resolution input image in credits
+        input_image_2k:
+          type: integer
+          nullable: true
+          description: Cost per 2k resolution input image in credits
+        input_image_4k:
+          type: integer
+          nullable: true
+          description: Cost per 4k resolution input image in credits
+        input_image_8k:
+          type: integer
+          nullable: true
+          description: Cost per 8k resolution input image in credits
+        input_image_12k:
+          type: integer
+          nullable: true
+          description: Cost per 12k resolution input image in credits
+        output_image_1k:
+          type: integer
+          nullable: true
+          description: Cost per 1k resolution output image in credits
+        output_image_2k:
+          type: integer
+          nullable: true
+          description: Cost per 2k resolution output image in credits
+        output_image_4k:
+          type: integer
+          nullable: true
+          description: Cost per 4k resolution output image in credits
+        api_call:
+          type: integer
+          nullable: true
+          description: Fixed cost per API call in credits
+        second_of_runtime:
+          type: number
+          format: float
+          nullable: true
+          description: Cost per second of runtime in credits
+
+    UsageRecord:
+      type: object
+      properties:
+        user_id:
+          type: string
+          nullable: false
+          description: User ID in hexadecimal format (UUID without hyphens)
+        payer_id:
+          type: string
+          nullable: false
+          description: Payer ID in hexadecimal format (UUID without hyphens), identifying who was billed for this usage
+        uses_credits:
+          type: boolean
+          nullable: false
+          description: Whether credits were used for this usage record
+        is_failed:
+          type: boolean
+          nullable: false
+          description: Whether the tool call failed (balance is not deducted for failed calls)
+        chat_id:
+          type: string
+          nullable: true
+          description: Chat ID in hexadecimal format (UUID without hyphens, if usage was in a chat context)
+        tool:
+          $ref: "#/components/schemas/ExternalTool"
+          nullable: false
+          description: The external tool used
+        tool_purpose:
+          type: string
+          nullable: false
+          enum: [chat, reasoning, copywriting, vision, hearing, images_gen, images_edit, search, embedding, api_fiat_exchange, api_crypto_exchange, api_twitter, deprecated]
+          description: The purpose/type of tool usage
+        timestamp:
+          type: string
+          nullable: false
+          format: date-time
+          description: When the usage occurred (ISO 8601 format with timezone, e.g. "2024-01-15T10:30:00+00:00")
+        runtime_seconds:
+          type: number
+          format: float
+          nullable: false
+          description: Total runtime in seconds
+        remote_runtime_seconds:
+          type: number
+          format: float
+          nullable: true
+          description: Remote runtime in seconds (if applicable)
+        model_cost_credits:
+          type: number
+          format: float
+          nullable: false
+          description: Cost for model usage in credits
+        remote_runtime_cost_credits:
+          type: number
+          format: float
+          nullable: false
+          description: Cost for remote runtime in credits
+        api_call_cost_credits:
+          type: number
+          format: float
+          nullable: false
+          description: Cost for API call in credits
+        maintenance_fee_credits:
+          type: number
+          format: float
+          nullable: false
+          description: Maintenance fee in credits
+        total_cost_credits:
+          type: number
+          format: float
+          nullable: false
+          description: Total cost in credits
+        input_tokens:
+          type: integer
+          nullable: true
+          description: Input tokens used (for LLM models)
+        output_tokens:
+          type: integer
+          nullable: true
+          description: Output tokens generated (for LLM models)
+        search_tokens:
+          type: integer
+          nullable: true
+          description: Search tokens used
+        total_tokens:
+          type: integer
+          nullable: true
+          description: Total tokens used
+        output_image_sizes:
+          type: array
+          nullable: true
+          items:
+            type: string
+          description: Sizes of output images generated (e.g., ["1k", "2k"])
+        input_image_sizes:
+          type: array
+          nullable: true
+          items:
+            type: string
+          description: Sizes of input images processed
+      required:
+        - user_id
+        - payer_id
+        - uses_credits
+        - is_failed
+        - tool
+        - tool_purpose
+        - timestamp
+        - runtime_seconds
+        - model_cost_credits
+        - remote_runtime_cost_credits
+        - api_call_cost_credits
+        - maintenance_fee_credits
+        - total_cost_credits
+
+    UsageAggregatesResponse:
+      type: object
+      properties:
+        total_records:
+          type: integer
+          nullable: false
+          description: Total number of usage records in the timeframe
+        total_cost_credits:
+          type: number
+          format: float
+          nullable: false
+          description: Total cost in credits for all usage records
+        total_runtime_seconds:
+          type: number
+          format: float
+          nullable: false
+          description: Total runtime in seconds for all usage records
+        by_tool:
+          type: object
+          nullable: false
+          description: Aggregated stats grouped by tool ID (keyed by tool_id for filtering)
+          additionalProperties:
+            $ref: "#/components/schemas/AggregateStats"
+        by_purpose:
+          type: object
+          nullable: false
+          description: Aggregated stats grouped by purpose
+          additionalProperties:
+            $ref: "#/components/schemas/AggregateStats"
+        by_provider:
+          type: object
+          nullable: false
+          description: Aggregated stats grouped by provider ID (keyed by provider_id for filtering)
+          additionalProperties:
+            $ref: "#/components/schemas/AggregateStats"
+        all_tools_used:
+          type: array
+          nullable: false
+          items:
+            $ref: "#/components/schemas/ToolInfo"
+          description: List of distinct tools used in the timeframe (for dropdown filters)
+        all_purposes_used:
+          type: array
+          nullable: false
+          items:
+            type: string
+          description: List of distinct purposes used in the timeframe (for dropdown filters)
+        all_providers_used:
+          type: array
+          nullable: false
+          items:
+            $ref: "#/components/schemas/ProviderInfo"
+          description: List of distinct providers used in the timeframe (for dropdown filters)
+      required:
+        - total_records
+        - total_cost_credits
+        - total_runtime_seconds
+        - by_tool
+        - by_purpose
+        - by_provider
+        - all_tools_used
+        - all_purposes_used
+        - all_providers_used
+
+    AggregateStats:
+      type: object
+      properties:
+        record_count:
+          type: integer
+          nullable: false
+          description: Number of records
+        total_cost:
+          type: number
+          format: float
+          nullable: false
+          description: Total cost in credits
+      required:
+        - record_count
+        - total_cost
+
+    ToolInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: false
+          description: Tool ID for filtering (e.g., "gpt-4o", "claude-3-5-haiku-latest")
+        name:
+          type: string
+          nullable: false
+          description: Tool display name (e.g., "GPT 4o", "Claude 3.5 Haiku")
+      required:
+        - id
+        - name
+
+    ProviderInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: false
+          description: Provider ID for filtering (e.g., "open-ai", "anthropic")
+        name:
+          type: string
+          nullable: false
+          description: Provider display name (e.g., "OpenAI", "Anthropic")
+      required:
+        - id
+        - name
+
+    PurchaseRecord:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: false
+          description: Purchase record ID in hexadecimal format (UUID without hyphens)
+        user_id:
+          type: string
+          nullable: true
+          description: User ID in hexadecimal format (UUID without hyphens), null if not yet bound
+        seller_id:
+          type: string
+          nullable: false
+          description: Gumroad seller ID
+        sale_id:
+          type: string
+          nullable: false
+          description: Gumroad sale ID (unique)
+        sale_timestamp:
+          type: string
+          nullable: false
+          format: date-time
+          description: When the purchase occurred (ISO 8601 format with timezone, e.g. "2024-01-15T10:30:00+00:00")
+        price:
+          type: integer
+          nullable: false
+          description: Purchase price in cents
+        product_id:
+          type: string
+          nullable: false
+          description: Gumroad product ID
+        product_name:
+          type: string
+          nullable: false
+          description: Product name
+        product_permalink:
+          type: string
+          nullable: false
+          description: Product permalink URL
+        short_product_id:
+          type: string
+          nullable: false
+          description: Short product ID
+        license_key:
+          type: string
+          nullable: true
+          description: License key (if applicable)
+        quantity:
+          type: integer
+          nullable: false
+          description: Quantity purchased
+        gumroad_fee:
+          type: integer
+          nullable: false
+          description: Gumroad fee in cents
+        affiliate_credit_amount_cents:
+          type: integer
+          nullable: false
+          description: Affiliate credit amount in cents
+        discover_fee_charge:
+          type: boolean
+          nullable: false
+          description: Whether discover fee was charged
+        url_params:
+          type: object
+          nullable: true
+          description: URL parameters from the purchase
+        custom_fields:
+          type: object
+          nullable: true
+          description: Custom fields from Gumroad
+        test:
+          type: boolean
+          nullable: false
+          description: Whether this was a test purchase
+        is_preorder_authorization:
+          type: boolean
+          nullable: false
+          description: Whether this is a preorder authorization
+        refunded:
+          type: boolean
+          nullable: false
+          description: Whether this purchase was refunded
+      required:
+        - id
+        - seller_id
+        - sale_id
+        - sale_timestamp
+        - price
+        - product_id
+        - product_name
+        - product_permalink
+        - short_product_id
+        - quantity
+        - gumroad_fee
+        - affiliate_credit_amount_cents
+        - discover_fee_charge
+        - test
+        - is_preorder_authorization
+        - refunded
+
+    PurchaseAggregates:
+      type: object
+      properties:
+        total_purchase_count:
+          type: integer
+          nullable: false
+          description: Total number of purchases in the timeframe
+        total_cost_cents:
+          type: integer
+          nullable: false
+          description: Total revenue in cents for all purchases
+        total_net_cost_cents:
+          type: integer
+          nullable: false
+          description: Total net revenue in cents (after Gumroad fees and affiliate credits)
+        by_product:
+          type: object
+          nullable: false
+          description: Aggregated stats grouped by product ID
+          additionalProperties:
+            $ref: "#/components/schemas/ProductAggregateStats"
+        all_products_used:
+          type: array
+          nullable: false
+          items:
+            $ref: "#/components/schemas/ProductInfo"
+          description: List of distinct products purchased in the timeframe (for dropdown filters)
+      required:
+        - total_purchase_count
+        - total_cost_cents
+        - total_net_cost_cents
+        - by_product
+        - all_products_used
+
+    ProductAggregateStats:
+      type: object
+      properties:
+        record_count:
+          type: integer
+          nullable: false
+          description: Number of purchase records
+        total_cost_cents:
+          type: integer
+          nullable: false
+          description: Total revenue in cents
+        total_net_cost_cents:
+          type: integer
+          nullable: false
+          description: Total net revenue in cents (after fees)
+      required:
+        - record_count
+        - total_cost_cents
+        - total_net_cost_cents
+
+    ProductInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: false
+          description: Product ID for filtering
+        name:
+          type: string
+          nullable: false
+          description: Product display name
+      required:
+        - id
+        - name
+
+    BindLicenseKeyPayload:
+      type: object
+      properties:
+        license_key:
+          type: string
+          nullable: false
+          description: License key to bind to the user's account
+      required:
+        - license_key
+
+    SponsorshipsResponse:
+      type: object
+      properties:
+        sponsorships:
+          type: array
+          nullable: false
+          items:
+            $ref: "#/components/schemas/SponsorshipInfo"
+          description: List of sponsorships
+        max_sponsorships:
+          type: integer
+          nullable: false
+          description: Maximum number of sponsorships allowed
+      required:
+        - sponsorships
+        - max_sponsorships
+
+    SponsorshipInfo:
+      type: object
+      properties:
+        user_id_hex:
+          type: string
+          nullable: false
+          description: Sponsored user's ID in hexadecimal format (UUID without hyphens)
+        full_name:
+          type: string
+          nullable: true
+          description: Full name of the sponsored user
+        platform_handle:
+          type: string
+          nullable: true
+          description: Platform-specific handle of sponsored user (e.g., Telegram username, WhatsApp phone number)
+        platform:
+          type: string
+          nullable: true
+          enum: [telegram, whatsapp]
+          description: Platform type where the first handle was found
+        sponsored_at:
+          type: string
+          nullable: false
+          format: date-time
+          description: When the sponsorship was created
+        accepted_at:
+          type: string
+          nullable: true
+          format: date-time
+          description: When the sponsorship was accepted
+      required:
+        - user_id_hex
+        - sponsored_at
+
+    StatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          nullable: false
+          enum: [OK]
+          description: Operation status
+      required:
+        - status
+
+    ConnectKeyResponse:
+      type: object
+      properties:
+        connect_key:
+          type: string
+          nullable: false
+          description: Connect key, used to merge profiles from different platforms
+      required:
+        - connect_key
+
+    SettingsLinkResponse:
+      type: object
+      properties:
+        settings_link:
+          type: string
+          nullable: false
+          description: Link to the settings page
+      required:
+        - settings_link
+
+    ServiceErrorResponse:
+      type: object
+      description: Structured error response returned by the API for all ServiceError types
+      properties:
+        error_code:
+          type: integer
+          nullable: false
+          description: Numeric error code identifying the specific error
+        message:
+          type: string
+          nullable: false
+          description: Human-readable error message (in English)
+        emoji:
+          type: string
+          nullable: false
+          description: Emoji indicator for the error category
+      required:
+        - error_code
+        - message
+        - emoji
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required or token expired
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                type: string
+                nullable: false
+                description: Error reason
+            required:
+              - detail
+
+    ForbiddenError:
+      description: Access denied — authorization failure
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ServiceErrorResponse"
+
+    NotFoundError:
+      description: Requested resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ServiceErrorResponse"
+
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ServiceErrorResponse"
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ServiceErrorResponse"

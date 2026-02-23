@@ -18,6 +18,7 @@ from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.currencies.exchange_rate_fetcher import CACHE_TTL, ExchangeRateFetcher
 from features.web_browsing.web_fetcher import WebFetcher
 from util.config import config
+from util.errors import ValidationError
 
 
 class ExchangeRateFetcherTest(unittest.TestCase):
@@ -122,10 +123,9 @@ class ExchangeRateFetcherTest(unittest.TestCase):
     # noinspection PyUnusedLocal
     @patch("features.currencies.exchange_rate_fetcher.sleep", return_value = None)
     def test_execute_unsupported_currency(self, mock_sleep):
-        self.mock_web_fetcher.fetch_json.side_effect = ValueError("API request failed")
         fetcher = ExchangeRateFetcher(self.mock_di)
-        with self.assertRaises(ValueError):
-            fetcher.execute("USD", "XYZ", 100)
+        with self.assertRaises(ValidationError):
+            fetcher.execute("USD", "UNSUPPORTED", 100)
 
     # noinspection PyUnusedLocal
     @patch("features.currencies.exchange_rate_fetcher.sleep", return_value = None)

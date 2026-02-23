@@ -6,6 +6,8 @@ from di.di import DI
 from features.integrations.integrations import is_own_chat, lookup_all_admin_chats
 from util import log
 from util.config import config
+from util.error_codes import CHAT_NOT_FOUND, MALFORMED_CHAT_ID, MALFORMED_USER_ID, NOT_CHAT_ADMIN, NOT_TARGET_USER, USER_NOT_FOUND
+from util.errors import AuthorizationError, NotFoundError, ValidationError
 
 
 class AuthorizationService:
@@ -20,19 +22,26 @@ class AuthorizationService:
             return chat
 
         log.d(f"Validating chat data for '{chat}'")
-        chat_uuid = chat if isinstance(chat, UUID) else UUID(hex = chat)
+        try:
+            chat_uuid = chat if isinstance(chat, UUID) else UUID(hex = chat)
+        except ValueError as e:
+            raise ValidationError(f"Malformed chat ID '{chat}'", MALFORMED_CHAT_ID) from e
         chat_config_db = self.__di.chat_config_crud.get(chat_uuid)
         if not chat_config_db:
-            raise ValueError(log.e(f"Chat '{chat}' not found"))
+            raise NotFoundError(f"Chat '{chat}' not found", CHAT_NOT_FOUND)
         return ChatConfig.model_validate(chat_config_db)
 
     def validate_user(self, user: str | UUID | User) -> User:
         if isinstance(user, User):
             return user
 
-        user_db = self.__di.user_crud.get(user if isinstance(user, UUID) else UUID(hex = user))
+        try:
+            user_uuid = user if isinstance(user, UUID) else UUID(hex = user)
+        except ValueError as e:
+            raise ValidationError(f"Malformed user ID '{user}'", MALFORMED_USER_ID) from e
+        user_db = self.__di.user_crud.get(user_uuid)
         if not user_db:
-            raise ValueError(log.e(f"User '{user}' not found"))
+            raise NotFoundError(f"User '{user}' not found", USER_NOT_FOUND)
         return User.model_validate(user_db)
 
     def get_authorized_chats(self, user: str | UUID | User) -> list[ChatConfig]:
@@ -100,12 +109,12 @@ class AuthorizationService:
         for admin_chat_config in admin_chat_configs:
             if admin_chat_config.chat_id == chat_config.chat_id:
                 return chat_config
-        raise ValueError(log.e(f"User '{invoker_user.id.hex}' is not admin in '{chat_config.title}'"))
+        raise AuthorizationError(f"User '{invoker_user.id.hex}' is not admin in '{chat_config.title}'", NOT_CHAT_ADMIN)
 
     def authorize_for_user(self, invoker_user: str | UUID | User, target_user: str | UUID | User) -> User:
         invoker_user = self.validate_user(invoker_user)
         target_user = self.validate_user(target_user)
         log.d(f"Authorizing user '{invoker_user.id.hex}' to access user '{target_user.id.hex}'")
         if invoker_user.id != target_user.id:
-            raise ValueError(log.e(f"Target user '{target_user.id.hex}' is not the allowed user '{invoker_user.id.hex}'"))
+            raise AuthorizationError(f"Target user '{target_user.id.hex}' is not the allowed user '{invoker_user.id.hex}'", NOT_TARGET_USER)  # noqa: E501
         return target_user
