@@ -15,6 +15,8 @@ from features.accounting.usage.usage_record import UsageRecord
 from features.accounting.usage.usage_record_repo import UsageRecordRepository
 from features.external_tools.external_tool import ToolType
 from features.external_tools.external_tool_library import GPT_4O
+from util.error_codes import NOT_TARGET_USER
+from util.errors import AuthorizationError, ValidationError
 
 
 class UsageControllerTest(unittest.TestCase):
@@ -188,7 +190,7 @@ class UsageControllerTest(unittest.TestCase):
     def test_fetch_usage_records_limit_exceeds_maximum(self):
         controller = UsageController(self.mock_di)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ValidationError) as context:
             controller.fetch_usage_records(self.invoker_user.id.hex, limit = 101)
 
         self.assertIn("limit cannot exceed 100", str(context.exception))
@@ -196,11 +198,11 @@ class UsageControllerTest(unittest.TestCase):
         self.mock_usage_record_repo.get_by_user.assert_not_called()
 
     def test_fetch_usage_records_authorization_failure(self):
-        self.mock_authorization_service.authorize_for_user.side_effect = ValueError("Unauthorized")
+        self.mock_authorization_service.authorize_for_user.side_effect = AuthorizationError("Unauthorized", NOT_TARGET_USER)
 
         controller = UsageController(self.mock_di)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(AuthorizationError) as context:
             controller.fetch_usage_records(self.target_user.id.hex)
 
         self.assertIn("Unauthorized", str(context.exception))
@@ -314,11 +316,11 @@ class UsageControllerTest(unittest.TestCase):
         )
 
     def test_fetch_usage_aggregates_authorization_failure(self):
-        self.mock_authorization_service.authorize_for_user.side_effect = ValueError("Unauthorized")
+        self.mock_authorization_service.authorize_for_user.side_effect = AuthorizationError("Unauthorized", NOT_TARGET_USER)
 
         controller = UsageController(self.mock_di)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(AuthorizationError) as context:
             controller.fetch_usage_aggregates(self.target_user.id.hex)
 
         self.assertIn("Unauthorized", str(context.exception))

@@ -11,10 +11,10 @@ from typing import Any
 from uuid import UUID
 
 import uvicorn
-from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Query, Request
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import SecretStr
-from starlette.responses import PlainTextResponse, RedirectResponse
+from starlette.responses import JSONResponse, PlainTextResponse, RedirectResponse
 
 from api.auth import (
     get_chat_type_from_jwt,
@@ -51,6 +51,8 @@ from features.chat.whatsapp.whatsapp_update_responder import respond_to_update a
 from features.integrations.integrations import resolve_agent_user
 from util import log
 from util.config import Config, config
+from util.error_codes import INVALID_CHAT_TYPE_TOKEN, UNEXPECTED_ERROR
+from util.errors import ServiceError, ValidationError
 from util.functions import parse_gumroad_form
 
 
@@ -83,6 +85,21 @@ app.add_middleware(
     allow_methods = ["*"],
     allow_headers = ["*"],
 )
+
+
+@app.exception_handler(ServiceError)
+async def service_error_handler(request: Request, exc: ServiceError) -> JSONResponse:
+    log.e(exc)
+    return JSONResponse(status_code = exc.http_status, content = exc.to_api_dict())
+
+
+@app.exception_handler(Exception)
+async def unexpected_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    log.e("Unexpected error", exc)
+    return JSONResponse(
+        status_code = 500,
+        content = {"error_code": UNEXPECTED_ERROR, "message": "An unexpected error occurred", "emoji": "⚠️"},
+    )
 
 
 @app.get("/")
@@ -137,15 +154,11 @@ async def gumroad_ping(
     db = Depends(get_session),
 ) -> dict:
     verify_gumroad_auth_key(auth_token)
-    try:
-        form_data = await request.form()
-        form_dict = parse_gumroad_form(dict(form_data))
-        payload = GumroadPingPayload.model_validate(form_dict)
-        di = DI(db)
-        di.gumroad_controller.handle_ping(payload)
-        return {"status": "OK"}
-    except Exception as e:
-        raise HTTPException(status_code = 500, detail = {"reason": log.e("Gumroad ping failed", e)})
+    form_data = await request.form()
+    form_dict = parse_gumroad_form(dict(form_data))  # type: ignore
+    payload = GumroadPingPayload.model_validate(form_dict)
+    DI(db).gumroad_controller.handle_ping(payload)
+    return {"status": "OK"}
 
 
 @app.post("/notify/price-alerts")
@@ -176,13 +189,9 @@ def clear_expired_cache(
     db = Depends(get_session),
     _ = Depends(verify_api_key),
 ) -> dict:
-    try:
-        di = DI(db)
-        cleared_count = di.tools_cache_crud.delete_expired()
-        log.i(f"Cleared expired cache entries: {cleared_count}")
-        return {"cleared_entries_count": cleared_count}
-    except Exception as e:
-        raise HTTPException(status_code = 500, detail = {"reason ": log.e("Failed to clear expired cache", e)})
+    cleared_count = DI(db).tools_cache_crud.delete_expired()
+    log.i(f"Cleared expired cache entries: {cleared_count}")
+    return {"cleared_entries_count": cleared_count}
 
 
 @app.get("/settings/{settings_type}/{resource_id}")
@@ -192,17 +201,14 @@ def get_settings(
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
-    try:
-        log.d(f"Fetching '{settings_type}' settings for resource '{resource_id}'")
-        invoker_id_hex = get_user_id_from_jwt(token)
-        log.d(f"  Invoker ID: {invoker_id_hex}")
-        di = DI(db, invoker_id_hex)
-        if settings_type == "user":
-            return di.settings_controller.fetch_user_settings(resource_id)
-        else:
-            return di.settings_controller.fetch_chat_settings(resource_id)
-    except Exception as e:
-        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get settings", e)})
+    log.d(f"Fetching '{settings_type}' settings for resource '{resource_id}'")
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    di = DI(db, invoker_id_hex)
+    if settings_type == "user":
+        return di.settings_controller.fetch_user_settings(resource_id)
+    else:
+        return di.settings_controller.fetch_chat_settings(resource_id)
 
 
 @app.patch("/settings/user/{user_id_hex}")
@@ -212,15 +218,12 @@ def save_user_settings(
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
-    try:
-        log.d(f"Saving user settings for user '{user_id_hex}'")
-        invoker_id_hex = get_user_id_from_jwt(token)
-        log.d(f"  Invoker ID: {invoker_id_hex}")
-        di = DI(db, invoker_id_hex)
-        di.settings_controller.save_user_settings(user_id_hex, payload)
-        return {"status": "OK"}
-    except Exception as e:
-        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to save user settings", e)})
+    log.d(f"Saving user settings for user '{user_id_hex}'")
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    di = DI(db, invoker_id_hex)
+    di.settings_controller.save_user_settings(user_id_hex, payload)
+    return {"status": "OK"}
 
 
 @app.patch("/settings/chat/{chat_id}")
@@ -230,15 +233,12 @@ def save_chat_settings(
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
-    try:
-        log.d(f"Saving chat settings for chat '{chat_id}'")
-        invoker_id_hex = get_user_id_from_jwt(token)
-        log.d(f"  Invoker ID: {invoker_id_hex}")
-        di = DI(db, invoker_id_hex)
-        di.settings_controller.save_chat_settings(chat_id, payload)
-        return {"status": "OK"}
-    except Exception as e:
-        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to save chat settings", e)})
+    log.d(f"Saving chat settings for chat '{chat_id}'")
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    di = DI(db, invoker_id_hex)
+    di.settings_controller.save_chat_settings(chat_id, payload)
+    return {"status": "OK"}
 
 
 @app.get("/user/{resource_id}/chats")
@@ -247,14 +247,11 @@ def get_chats(
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> list[dict]:
-    try:
-        log.d(f"Fetching all chats for {resource_id}")
-        invoker_id_hex = get_user_id_from_jwt(token)
-        log.d(f"  Invoker ID: {invoker_id_hex}")
-        di = DI(db, invoker_id_hex)
-        return di.settings_controller.fetch_admin_chats(resource_id)
-    except Exception as e:
-        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get chats", e)})
+    log.d(f"Fetching all chats for {resource_id}")
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    di = DI(db, invoker_id_hex)
+    return di.settings_controller.fetch_admin_chats(resource_id)
 
 
 @app.get("/settings/user/{resource_id}/tools")
@@ -263,14 +260,11 @@ def get_tools(
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
-    try:
-        log.d(f"Fetching tools for {resource_id}")
-        invoker_id_hex = get_user_id_from_jwt(token)
-        log.d(f"  Invoker ID: {invoker_id_hex}")
-        di = DI(db, invoker_id_hex)
-        return di.settings_controller.fetch_external_tools(resource_id)
-    except Exception as e:
-        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get external tools", e)})
+    log.d(f"Fetching tools for {resource_id}")
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    di = DI(db, invoker_id_hex)
+    return di.settings_controller.fetch_external_tools(resource_id)
 
 
 @app.get("/settings/user/{resource_id}/products")
@@ -279,14 +273,11 @@ def get_products(
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
-    try:
-        log.d(f"Fetching products for {resource_id}")
-        invoker_id_hex = get_user_id_from_jwt(token)
-        log.d(f"  Invoker ID: {invoker_id_hex}")
-        di = DI(db, invoker_id_hex)
-        return di.settings_controller.fetch_products(resource_id)
-    except Exception as e:
-        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get products", e)})
+    log.d(f"Fetching products for {resource_id}")
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    di = DI(db, invoker_id_hex)
+    return di.settings_controller.fetch_products(resource_id)
 
 
 @app.get("/user/{resource_id}/sponsorships")
@@ -295,15 +286,11 @@ def get_sponsorships(
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
-    try:
-        log.d(f"Fetching sponsorships for {resource_id}")
-        invoker_id_hex = get_user_id_from_jwt(token)
-        log.d(f"  Invoker ID: {invoker_id_hex}")
-        di = DI(db, invoker_id_hex)
-        sponsorships_controller = di.sponsorships_controller
-        return sponsorships_controller.fetch_sponsorships(resource_id)
-    except Exception as e:
-        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get sponsorships", e)})
+    log.d(f"Fetching sponsorships for {resource_id}")
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    di = DI(db, invoker_id_hex)
+    return di.sponsorships_controller.fetch_sponsorships(resource_id)
 
 
 @app.post("/user/{resource_id}/sponsorships")
@@ -313,15 +300,12 @@ def sponsor_user(
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
-    try:
-        log.d(f"Sponsoring user from {resource_id}")
-        invoker_id_hex = get_user_id_from_jwt(token)
-        log.d(f"  Invoker ID: {invoker_id_hex}")
-        di = DI(db, invoker_id_hex)
-        di.sponsorships_controller.sponsor_user(resource_id, payload)
-        return {"status": "OK"}
-    except Exception as e:
-        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to sponsor user", e)})
+    log.d(f"Sponsoring user from {resource_id}")
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    di = DI(db, invoker_id_hex)
+    di.sponsorships_controller.sponsor_user(resource_id, payload)
+    return {"status": "OK"}
 
 
 @app.delete("/user/{resource_id}/sponsorships/{platform}/{platform_handle}")
@@ -332,15 +316,12 @@ def unsponsor_user(
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
-    try:
-        log.d(f"Unsponsoring user from {resource_id}")
-        invoker_id_hex = get_user_id_from_jwt(token)
-        log.d(f"  Invoker ID: {invoker_id_hex}")
-        di = DI(db, invoker_id_hex)
-        di.sponsorships_controller.unsponsor_user(resource_id, platform, platform_handle)
-        return {"status": "OK"}
-    except Exception as e:
-        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to unsponsor user", e)})
+    log.d(f"Unsponsoring user from {resource_id}")
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    di = DI(db, invoker_id_hex)
+    di.sponsorships_controller.unsponsor_user(resource_id, platform, platform_handle)
+    return {"status": "OK"}
 
 
 @app.delete("/user/{resource_id}/sponsored")
@@ -349,15 +330,12 @@ def unsponsor_self(
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
-    try:
-        log.d(f"User {resource_id} is unsponsoring themselves")
-        invoker_id_hex = get_user_id_from_jwt(token)
-        log.d(f"  Invoker ID: {invoker_id_hex}")
-        di = DI(db, invoker_id_hex)
-        di.sponsorships_controller.unsponsor_self(resource_id)
-        return {"status": "OK"}
-    except Exception as e:
-        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to unsponsor self", e)})
+    log.d(f"User {resource_id} is unsponsoring themselves")
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    di = DI(db, invoker_id_hex)
+    di.sponsorships_controller.unsponsor_self(resource_id)
+    return {"status": "OK"}
 
 
 @app.get("/user/{resource_id}/usage")
@@ -375,26 +353,23 @@ def get_usage_records(
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> list[UsageRecord]:
-    try:
-        invoker_id_hex = get_user_id_from_jwt(token)
-        log.d(f"  Invoker ID: {invoker_id_hex}")
-        start_date_obj = datetime.fromisoformat(start_date) if start_date else None
-        end_date_obj = datetime.fromisoformat(end_date) if end_date else None
-        di = DI(db, invoker_id_hex)
-        return di.usage_controller.fetch_usage_records(
-            user_id_hex = resource_id,
-            skip = skip,
-            limit = limit,
-            start_date = start_date_obj,
-            end_date = end_date_obj,
-            exclude_self = exclude_self,
-            include_sponsored = include_sponsored,
-            tool_id = tool_id,
-            purpose = purpose,
-            provider_id = provider_id,
-        )
-    except Exception as e:
-        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get usage records", e)})
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    start_date_obj = datetime.fromisoformat(start_date) if start_date else None
+    end_date_obj = datetime.fromisoformat(end_date) if end_date else None
+    di = DI(db, invoker_id_hex)
+    return di.usage_controller.fetch_usage_records(
+        user_id_hex = resource_id,
+        skip = skip,
+        limit = limit,
+        start_date = start_date_obj,
+        end_date = end_date_obj,
+        exclude_self = exclude_self,
+        include_sponsored = include_sponsored,
+        tool_id = tool_id,
+        purpose = purpose,
+        provider_id = provider_id,
+    )
 
 
 @app.get("/user/{resource_id}/usage/stats")
@@ -410,24 +385,21 @@ def get_usage_stats(
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> UsageAggregates:
-    try:
-        invoker_id_hex = get_user_id_from_jwt(token)
-        log.d(f"  Invoker ID: {invoker_id_hex}")
-        start_date_obj = datetime.fromisoformat(start_date) if start_date else None
-        end_date_obj = datetime.fromisoformat(end_date) if end_date else None
-        di = DI(db, invoker_id_hex)
-        return di.usage_controller.fetch_usage_aggregates(
-            user_id_hex = resource_id,
-            start_date = start_date_obj,
-            end_date = end_date_obj,
-            exclude_self = exclude_self,
-            include_sponsored = include_sponsored,
-            tool_id = tool_id,
-            purpose = purpose,
-            provider_id = provider_id,
-        )
-    except Exception as e:
-        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get usage stats", e)})
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    start_date_obj = datetime.fromisoformat(start_date) if start_date else None
+    end_date_obj = datetime.fromisoformat(end_date) if end_date else None
+    di = DI(db, invoker_id_hex)
+    return di.usage_controller.fetch_usage_aggregates(
+        user_id_hex = resource_id,
+        start_date = start_date_obj,
+        end_date = end_date_obj,
+        exclude_self = exclude_self,
+        include_sponsored = include_sponsored,
+        tool_id = tool_id,
+        purpose = purpose,
+        provider_id = provider_id,
+    )
 
 
 @app.get("/user/{resource_id}/purchases")
@@ -441,22 +413,19 @@ def get_purchase_records(
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> list[PurchaseRecord]:
-    try:
-        invoker_id_hex = get_user_id_from_jwt(token)
-        log.d(f"  Invoker ID: {invoker_id_hex}")
-        start_date_obj = datetime.fromisoformat(start_date) if start_date else None
-        end_date_obj = datetime.fromisoformat(end_date) if end_date else None
-        di = DI(db, invoker_id_hex)
-        return di.purchases_controller.fetch_purchase_records(
-            user_id_hex = resource_id,
-            skip = skip,
-            limit = limit,
-            start_date = start_date_obj,
-            end_date = end_date_obj,
-            product_id = product_id,
-        )
-    except Exception as e:
-        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get purchase records", e)})
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    start_date_obj = datetime.fromisoformat(start_date) if start_date else None
+    end_date_obj = datetime.fromisoformat(end_date) if end_date else None
+    di = DI(db, invoker_id_hex)
+    return di.purchases_controller.fetch_purchase_records(
+        user_id_hex = resource_id,
+        skip = skip,
+        limit = limit,
+        start_date = start_date_obj,
+        end_date = end_date_obj,
+        product_id = product_id,
+    )
 
 
 @app.get("/user/{resource_id}/purchases/stats")
@@ -468,20 +437,17 @@ def get_purchase_stats(
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> PurchaseAggregates:
-    try:
-        invoker_id_hex = get_user_id_from_jwt(token)
-        log.d(f"  Invoker ID: {invoker_id_hex}")
-        start_date_obj = datetime.fromisoformat(start_date) if start_date else None
-        end_date_obj = datetime.fromisoformat(end_date) if end_date else None
-        di = DI(db, invoker_id_hex)
-        return di.purchases_controller.fetch_purchase_aggregates(
-            user_id_hex = resource_id,
-            start_date = start_date_obj,
-            end_date = end_date_obj,
-            product_id = product_id,
-        )
-    except Exception as e:
-        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get purchase stats", e)})
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    start_date_obj = datetime.fromisoformat(start_date) if start_date else None
+    end_date_obj = datetime.fromisoformat(end_date) if end_date else None
+    di = DI(db, invoker_id_hex)
+    return di.purchases_controller.fetch_purchase_aggregates(
+        user_id_hex = resource_id,
+        start_date = start_date_obj,
+        end_date = end_date_obj,
+        product_id = product_id,
+    )
 
 
 @app.post("/user/{resource_id}/purchases")
@@ -491,16 +457,13 @@ def bind_purchase_license_key(
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> PurchaseRecord:
-    try:
-        invoker_id_hex = get_user_id_from_jwt(token)
-        log.d(f"  Invoker ID: {invoker_id_hex}")
-        di = DI(db, invoker_id_hex)
-        return di.purchases_controller.bind_license_key(
-            user_id_hex = resource_id,
-            license_key = payload.license_key,
-        )
-    except Exception as e:
-        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to bind license key", e)})
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    di = DI(db, invoker_id_hex)
+    return di.purchases_controller.bind_license_key(
+        user_id_hex = resource_id,
+        license_key = payload.license_key,
+    )
 
 
 @app.get("/user/{user_id_hex}/connect-key")
@@ -509,14 +472,11 @@ def get_connect_key(
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> ConnectKeyResponse:
-    try:
-        log.d(f"Fetching connect key for user '{user_id_hex}'")
-        invoker_id_hex = get_user_id_from_jwt(token)
-        log.d(f"  Invoker ID: {invoker_id_hex}")
-        di = DI(db, invoker_id_hex)
-        return di.profile_connect_controller.get_connect_key(user_id_hex)
-    except Exception as e:
-        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to get connect key", e)})
+    log.d(f"Fetching connect key for user '{user_id_hex}'")
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    di = DI(db, invoker_id_hex)
+    return di.profile_connect_controller.get_connect_key(user_id_hex)
 
 
 @app.post("/user/{user_id_hex}/regenerate-connect-key")
@@ -525,14 +485,11 @@ def regenerate_connect_key(
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> ConnectKeyResponse:
-    try:
-        log.d(f"Regenerating connect key for user '{user_id_hex}'")
-        invoker_id_hex = get_user_id_from_jwt(token)
-        log.d(f"  Invoker ID: {invoker_id_hex}")
-        di = DI(db, invoker_id_hex)
-        return di.profile_connect_controller.regenerate_connect_key(user_id_hex)
-    except Exception as e:
-        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to regenerate connect key", e)})
+    log.d(f"Regenerating connect key for user '{user_id_hex}'")
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    di = DI(db, invoker_id_hex)
+    return di.profile_connect_controller.regenerate_connect_key(user_id_hex)
 
 
 @app.post("/user/{user_id_hex}/connect-key/{connect_key}/merge")
@@ -542,19 +499,15 @@ def connect_profiles(
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> SettingsLinkResponse:
-    try:
-        log.d(f"Executing profile connect for user '{user_id_hex}' with key '{connect_key}'")
-        invoker_id_hex = get_user_id_from_jwt(token)
-        log.d(f"  Invoker ID: {invoker_id_hex}")
-        di = DI(db, invoker_id_hex)
-        # Extract chat_type from JWT token
-        chat_type_str = get_chat_type_from_jwt(token)
-        chat_type = ChatConfigDB.ChatType.lookup(chat_type_str)
-        if not chat_type:
-            raise ValueError(f"Invalid chat type in the access token: {chat_type_str}")
-        return di.profile_connect_controller.connect_profiles(user_id_hex, connect_key, chat_type)
-    except Exception as e:
-        raise HTTPException(status_code = 500, detail = {"reason": log.e("Failed to execute profile connect", e)})
+    log.d(f"Executing profile connect for user '{user_id_hex}' with key '{connect_key}'")
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    di = DI(db, invoker_id_hex)
+    chat_type_str = get_chat_type_from_jwt(token)
+    chat_type = ChatConfigDB.ChatType.lookup(chat_type_str)
+    if not chat_type:
+        raise ValidationError(f"Invalid chat type in the access token: {chat_type_str}", INVALID_CHAT_TYPE_TOKEN)
+    return di.profile_connect_controller.connect_profiles(user_id_hex, connect_key, chat_type)
 
 
 # The main runner

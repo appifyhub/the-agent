@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 
 from db.model.user import UserDB
 from db.schema.user import UserSave
+from util.error_codes import USER_NOT_FOUND
+from util.errors import NotFoundError
 
 
 class UserCRUD:
@@ -82,7 +84,7 @@ class UserCRUD:
             UserDB.id == user_id,
         ).with_for_update().first()
         if user is None:
-            raise ValueError(f"User {user_id} not found")
+            raise NotFoundError(f"User {user_id} not found", USER_NOT_FOUND)
         update_fn(user)
         self._db.commit()
         self._db.refresh(user)

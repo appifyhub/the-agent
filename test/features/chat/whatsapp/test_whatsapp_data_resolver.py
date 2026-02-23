@@ -18,6 +18,7 @@ from features.chat.whatsapp.whatsapp_data_resolver import WhatsAppDataResolver
 from features.chat.whatsapp.whatsapp_domain_mapper import WhatsAppDomainMapper
 from features.integrations.integrations import resolve_agent_user
 from util.config import config
+from util.errors import RateLimitError
 
 
 class WhatsAppDataResolverTest(unittest.TestCase):
@@ -298,10 +299,10 @@ class WhatsAppDataResolverTest(unittest.TestCase):
             full_name = "New User",
         )
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(RateLimitError) as context:
             self.resolver.resolve_author(mapped_data)
 
-        self.assertEqual(str(context.exception), "User limit reached: 100/100. Try again later")
+        self.assertIn("User limit reached: 100/100. Try again later", str(context.exception))
         mock_count.assert_called_once()
 
     def test_resolve_author_existing(self):

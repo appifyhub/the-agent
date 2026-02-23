@@ -10,6 +10,8 @@ from features.integrations.integrations import resolve_any_external_handle
 from features.sponsorships.sponsorship_service import SponsorshipService
 from util import log
 from util.config import config
+from util.error_codes import INVALID_PLATFORM, NO_AUTHORIZED_CHATS, SPONSORSHIP_OPERATION_FAILED, UNSPONSOR_SELF_FAILED
+from util.errors import InternalError, NotFoundError, ValidationError
 
 
 class SponsorshipsController:
@@ -64,14 +66,14 @@ class SponsorshipsController:
         log.d(f"Sponsoring user {payload.platform}/'@{payload.platform_handle}' by '{self.__di.invoker.id.hex}'")
         chat_type = ChatConfigDB.ChatType.lookup(payload.platform)
         if not chat_type:
-            raise ValueError(f"Unsupported platform: {payload.platform}")
+            raise ValidationError(f"Unsupported platform: {payload.platform}", INVALID_PLATFORM)
         result, message = self.__di.sponsorship_service.sponsor_user(
             sponsor_user_id_hex = user.id.hex,
             receiver_handle = payload.platform_handle,
             chat_type = chat_type,
         )
         if result == SponsorshipService.Result.failure:
-            raise ValueError(message)
+            raise InternalError(message, SPONSORSHIP_OPERATION_FAILED)
         log.i(f"  Successfully sponsored '@{payload.platform_handle}'")
 
     def unsponsor_user(self, sponsor_user_id_hex: str, platform: str, platform_handle: str):
@@ -79,14 +81,14 @@ class SponsorshipsController:
         log.d(f"Unsponsoring user {platform}/'@{platform_handle}' by '{self.__di.invoker.id.hex}'")
         chat_type = ChatConfigDB.ChatType.lookup(platform)
         if not chat_type:
-            raise ValueError(f"Unsupported platform: {platform}")
+            raise ValidationError(f"Unsupported platform: {platform}", INVALID_PLATFORM)
         result, message = self.__di.sponsorship_service.unsponsor_user(
             sponsor_user_id_hex = user.id.hex,
             receiver_handle = platform_handle,
             chat_type = chat_type,
         )
         if result == SponsorshipService.Result.failure:
-            raise ValueError(message)
+            raise InternalError(message, SPONSORSHIP_OPERATION_FAILED)
         log.i(f"  Successfully unsponsored '@{platform_handle}'")
 
     def unsponsor_self(self, user_id_hex: str):
@@ -94,7 +96,7 @@ class SponsorshipsController:
         log.d(f"User '{user.id.hex}' is unsponsoring themselves")
         all_chats = self.__di.authorization_service.get_authorized_chats(user)
         if not all_chats:
-            raise ValueError("No authorized chats found")
+            raise NotFoundError("No authorized chats found", NO_AUTHORIZED_CHATS)
         failure_messages: list[str] = []
         successes = 0
         for chat in all_chats:
@@ -106,5 +108,5 @@ class SponsorshipsController:
         if failure_messages:
             log.w(f"Failed to unsponsor self in {len(failure_messages)} chats:\n{'\n  '.join(failure_messages)}")
             if not successes:
-                raise ValueError("Failed to unsponsor self in all chats")
+                raise InternalError("Failed to unsponsor self in all chats", UNSPONSOR_SELF_FAILED)
         log.i(f"  Successfully unsponsored self in {successes} chats, failed in {len(failure_messages)} chats")

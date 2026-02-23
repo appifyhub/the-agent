@@ -6,6 +6,7 @@ from pydantic import SecretStr
 
 from db.model.user import UserDB
 from db.schema.user import UserSave
+from util.errors import NotFoundError
 
 
 class UserCRUDTest(unittest.TestCase):
@@ -637,5 +638,5 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(refreshed.credit_balance, 100.0)
 
     def test_update_locked_user_not_found(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(NotFoundError):
             self.sql.user_crud().update_locked(uuid.uuid4(), lambda u: None)

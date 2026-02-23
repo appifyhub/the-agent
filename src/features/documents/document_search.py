@@ -11,6 +11,8 @@ from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_4_6_SONNET, TEXT_EMBEDDING_3_SMALL
 from features.integrations import prompt_resolvers
 from util import log
+from util.error_codes import LLM_UNEXPECTED_RESPONSE
+from util.errors import ExternalServiceError
 
 DEFAULT_QUESTION = "What is this document about?"
 SEARCH_RESULT_PAGES = 2
@@ -76,10 +78,11 @@ class DocumentSearch:
             copywriter_messages = [SystemMessage(system_prompt), HumanMessage(search_results)]
             answer = self.__copywriter.invoke(copywriter_messages)
             if not isinstance(answer, AIMessage):
-                raise AssertionError(f"Received a non-AI message from the model: {answer}")
+                raise ExternalServiceError(f"Received a non-AI message from the model: {answer}", LLM_UNEXPECTED_RESPONSE)
             if not answer.content or not isinstance(answer.content, str):
-                raise AssertionError(f"Received an unexpected content from the model: {answer}")
+                raise ExternalServiceError(f"Received an unexpected content from the model: {answer}", LLM_UNEXPECTED_RESPONSE)
             return f"Document Search Results:\n\n```\n{str(answer.content)}\n```"
         except Exception as e:
-            self.error = log.e("Document search failed", e)
+            self.error = f"Document search failed: {str(e)}"
+            log.e("Document search failed", e)
             return None

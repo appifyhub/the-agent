@@ -4,6 +4,8 @@ from db.schema.chat_message_attachment import ChatMessageAttachment
 from di.di import DI
 from features.images.image_editor import ImageEditor
 from util import log
+from util.error_codes import MISSING_IMAGE_ATTACHMENT
+from util.errors import ValidationError
 
 URLList = list[str | None]
 ErrorList = list[str | None]
@@ -31,7 +33,7 @@ class ChatImageEditService:
         di: DI,
     ):
         if not attachment_ids:
-            raise ValueError("No attachment IDs provided")
+            raise ValidationError("No attachment IDs provided", MISSING_IMAGE_ATTACHMENT)
         self.__di = di
         self.__attachments = self.__di.platform_bot_sdk().refresh_attachments_by_ids(attachment_ids)
         self.__operation_guidance = operation_guidance
@@ -46,8 +48,10 @@ class ChatImageEditService:
         for attachment in self.__attachments:
             try:
                 if not attachment.last_url:
+                    message = f"Attachment '{attachment.id}' has no URL, skipping"
+                    log.w(message)
                     urls.append(None)
-                    errors.append(log.w(f"Attachment '{attachment.id}' has no URL, skipping"))
+                    errors.append(message)
                     result = ChatImageEditService.Result.partial
                     continue
                 configured_tool = self.__di.tool_choice_resolver.require_tool(ImageEditor.TOOL_TYPE, ImageEditor.DEFAULT_TOOL)
@@ -61,21 +65,25 @@ class ChatImageEditService:
                 )
                 editing_result = editor.execute()
                 if editor.error:
+                    log.w(f"Error editing image from attachment '{attachment.id}'", editor.error)
                     urls.append(None)
-                    errors.append(log.w(f"Error editing image from attachment '{attachment.id}': {editor.error}"))
+                    errors.append(f"Error editing image from attachment '{attachment.id}': {editor.error}")
                     result = ChatImageEditService.Result.partial
                     continue
                 if not editing_result:
+                    message = f"Failed to edit image from attachment '{attachment.id}'"
+                    log.w(message)
                     urls.append(None)
-                    errors.append(log.w(f"Failed to edit image from attachment '{attachment.id}'"))
+                    errors.append(message)
                     result = ChatImageEditService.Result.partial
                     continue
                 log.t(f"Image from attachment '{attachment.id}' was edited!")
                 urls.append(editing_result)
                 errors.append(None)
             except Exception as e:
+                log.w(f"Failed to edit image from attachment '{attachment.id}'", e)
                 urls.append(None)
-                errors.append(log.w(f"Failed to edit image from attachment '{attachment.id}'", e))
+                errors.append(f"Failed to edit image from attachment '{attachment.id}': {str(e)}")
                 result = ChatImageEditService.Result.partial
         if not urls or all(url is None for url in urls):
             log.w("Failed to edit all images")

@@ -10,6 +10,8 @@ from features.external_tools.external_tool_library import CLAUDE_3_5_HAIKU
 from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
 from features.integrations import prompt_resolvers
 from util import log
+from util.error_codes import EXTERNAL_EMPTY_RESPONSE, LLM_UNEXPECTED_RESPONSE
+from util.errors import ExternalServiceError
 from util.functions import parse_ai_message_content
 
 
@@ -60,11 +62,14 @@ class SmartStableDiffusionGenerator:
             log.t("Starting prompt upscaling")
             response = self.__copywriter.invoke(self.__llm_input)
             if not isinstance(response, AIMessage):
-                raise AssertionError(f"Received a complex message from LLM: {response}")
+                raise ExternalServiceError(f"Received a complex message from LLM: {response}", LLM_UNEXPECTED_RESPONSE)
+            if not response.content:
+                raise ExternalServiceError("Copywriter returned empty content", EXTERNAL_EMPTY_RESPONSE)
             prompt = parse_ai_message_content(response.content)
             log.t(f"Finished prompt correction, new size is {len(prompt)} characters")
         except Exception as e:
-            self.error = log.e("Error correcting raw prompt", e)
+            self.error = f"Error correcting raw prompt: {str(e)}"
+            log.e("Error correcting raw prompt", e)
             return SmartStableDiffusionGenerator.Result.failed
 
         # let's generate the image now using the corrected prompt
@@ -76,13 +81,16 @@ class SmartStableDiffusionGenerator:
             )
             image_url = generator.execute()
             if generator.error:
-                self.error = log.e("Image generator failure", generator.error)
+                self.error = f"Image generator failure: {generator.error}"
+                log.e("Image generator failure", generator.error)
                 return SmartStableDiffusionGenerator.Result.failed
             if not image_url:
-                self.error = log.e("Image generator failure (no image URL found)")
+                self.error = "Image generator failure (no image URL found)"
+                log.e(self.error)
                 return SmartStableDiffusionGenerator.Result.failed
         except Exception as e:
-            self.error = log.e("Error generating image", e)
+            self.error = f"Error generating image: {str(e)}"
+            log.e("Error generating image", e)
             return SmartStableDiffusionGenerator.Result.failed
 
         # let's send the image to the chat
@@ -96,7 +104,8 @@ class SmartStableDiffusionGenerator:
                 thumbnail = image_url,
             )
         except Exception as e:
-            self.error = log.e("Error sending image", e)
+            self.error = f"Error sending image: {str(e)}"
+            log.e("Error sending image", e)
             return SmartStableDiffusionGenerator.Result.failed
 
         log.i("Image generated and sent successfully")

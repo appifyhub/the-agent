@@ -12,13 +12,15 @@ from features.chat.supported_files import KNOWN_AUDIO_FORMATS, KNOWN_DOCS_FORMAT
 from features.documents.document_search import DocumentSearch
 from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
 from util import log
+from util.error_codes import ATTACHMENT_NOT_FOUND, MALFORMED_ATTACHMENT_ID, MISSING_ATTACHMENT_IDS
+from util.errors import NotFoundError, ValidationError
 from util.functions import digest_md5
 
 CACHE_PREFIX = "attachments-analyzer"
 CACHE_TTL = timedelta(weeks = 13)
 
 
-class ChatAttachmentsAnalyzer:
+class ChatAttachmentProcessor:
 
     class Result(Enum):
         failed = "Failed"
@@ -49,36 +51,34 @@ class ChatAttachmentsAnalyzer:
     def __validate(self, attachment_ids: list[str]) -> None:
         log.d(f"Validating {len(attachment_ids)} attachments in chat '{self.__di.invoker_chat_id}'")
         if not attachment_ids:
-            raise ValueError(log.d("Malformed LLM Input Error: No attachment IDs provided. You may retry only once!"))
+            raise ValidationError("Malformed LLM Input Error: No attachment IDs provided. You may retry only once!", MISSING_ATTACHMENT_IDS)  # noqa: E501
         attachments: list[ChatMessageAttachment] = []
         for attachment_id in attachment_ids:
             if not attachment_id:
-                raise ValueError(log.d("Malformed LLM Input Error: Attachment ID cannot be empty. You may retry only once!"))
+                raise ValidationError("Malformed LLM Input Error: Attachment ID cannot be empty. You may retry only once!", MALFORMED_ATTACHMENT_ID)  # noqa: E501
             attachment_db = self.__di.chat_message_attachment_crud.get(attachment_id)
             if not attachment_db:
-                raise ValueError(
-                    log.d(f"Malformed LLM Input Error: Attachment '{attachment_id}' not found in DB. You may retry only once!"),
-                )
+                raise NotFoundError(f"Malformed LLM Input Error: Attachment '{attachment_id}' not found in DB. You may retry only once!", ATTACHMENT_NOT_FOUND)  # noqa: E501
             attachments.append(ChatMessageAttachment.model_validate(attachment_db))
         self.__attachments = self.__di.platform_bot_sdk().refresh_attachment_instances(attachments)
 
     @property
     def __resolution_status(self) -> Result:
         if not self.__attachments:
-            return ChatAttachmentsAnalyzer.Result.failed
+            return ChatAttachmentProcessor.Result.failed
         contents_match_attachments = len(self.__attachments) == len(self.__contents)
         # failure -> attachments don't match contents (system error)
         if not contents_match_attachments:
-            return ChatAttachmentsAnalyzer.Result.failed
+            return ChatAttachmentProcessor.Result.failed
         successful_contents = sum(1 for content in self.__contents if content is not None)
         # failure -> 0% success (no content resolved)
         if successful_contents == 0:
-            return ChatAttachmentsAnalyzer.Result.failed
+            return ChatAttachmentProcessor.Result.failed
         # success -> 100% success (all content resolved)
         if successful_contents == len(self.__attachments):
-            return ChatAttachmentsAnalyzer.Result.success
+            return ChatAttachmentProcessor.Result.success
         # partial -> some content resolved, some failed
-        return ChatAttachmentsAnalyzer.Result.partial
+        return ChatAttachmentProcessor.Result.partial
 
     @property
     def result(self) -> list[dict[str, str]]:
@@ -126,8 +126,9 @@ class ChatAttachmentsAnalyzer:
                 self.__contents.append(content)
                 self.__errors.append(None)
             except Exception as e:
+                log.w(f"Error resolving contents for '{attachment.id}'", e)
                 self.__contents.append(None)
-                self.__errors.append(log.w(f"Error resolving contents for '{attachment.id}'", e))
+                self.__errors.append(f"Error resolving contents for '{attachment.id}': {str(e)}")
 
         result = self.__resolution_status
         log.i(f"Resolution result: {result}")
@@ -170,8 +171,6 @@ class ChatAttachmentsAnalyzer:
                 copywriter_tool = copywriter_tool,
                 def_extension = attachment.extension,
                 audio_content = contents,
-                language_name = self.__di.require_invoker_chat().language_name,
-                language_iso_code = self.__di.require_invoker_chat().language_iso_code,
             ).execute()
 
         # handle documents

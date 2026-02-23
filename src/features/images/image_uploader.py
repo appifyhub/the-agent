@@ -6,6 +6,8 @@ from requests import Response
 
 from util import log
 from util.config import config
+from util.error_codes import EXTERNAL_EMPTY_RESPONSE, FILE_UPLOAD_FAILED, MISSING_IMAGE_INPUTS
+from util.errors import ExternalServiceError, ValidationError
 
 UPLOAD_URL = "https://api.imgbb.com/1/upload"
 DEFAULT_EXPIRATION_M = 1  # minutes
@@ -26,7 +28,7 @@ class ImageUploader:
         name: str | None = None,
     ):
         if binary_image is None and base64_image is None:
-            raise ValueError("Either binary_image or base64_image must be provided")
+            raise ValidationError("Either binary_image or base64_image must be provided", MISSING_IMAGE_INPUTS)
         if binary_image:
             self.__base64_image = base64.b64encode(binary_image).decode("utf-8")
         if base64_image:
@@ -57,7 +59,7 @@ class ImageUploader:
             # Check if the response indicates success
             if not response_data.get("success", False):
                 error_msg = response_data.get("error", {}).get("message", "Unknown error")
-                raise ValueError(f"Image upload failed: {error_msg}")
+                raise ExternalServiceError(f"Image upload failed: {error_msg}", FILE_UPLOAD_FAILED)
 
             # Try to get the image URL from the response
             # The API documentation doesn't specify the exact structure, so we'll try common patterns
@@ -68,9 +70,12 @@ class ImageUploader:
             )
 
             if not image_url:
-                raise ValueError("Image upload failed: No image URL returned in response")
+                raise ExternalServiceError("Image upload failed: No image URL returned in response", EXTERNAL_EMPTY_RESPONSE)
             log.t("Image uploaded successfully!")
             return image_url
+        except ExternalServiceError:
+            raise  # don't re-wrap intentional errors in the generic handler below
         except Exception as e:
-            message = log.w("Image upload failed!", {response.text if response is not None else "No response"}, e)
-            raise ValueError(message)
+            response_text = {response.text if response is not None else "No response"}
+            log.w("Image upload failed!", response_text, e)
+            raise ExternalServiceError("Image upload failed", FILE_UPLOAD_FAILED) from e

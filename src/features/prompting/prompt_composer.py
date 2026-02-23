@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
+from util.error_codes import INVALID_PROMPT_TEMPLATE
+from util.errors import ValidationError
+
 SECTION_BODY_DIVIDER = "\n"
 SECTIONS_DIVIDER = "\n\n"
 
@@ -74,7 +77,7 @@ class PromptComposer:
                 return text.format_map(sanitized_vars).strip()
             except KeyError as e:
                 missing = str(e).strip("'")
-                raise ValueError(f"Missing variable: {missing}")
+                raise ValidationError(f"Missing prompt variable: {missing}", INVALID_PROMPT_TEMPLATE) from e
 
         # group fragments by section
         section_to_bodies: dict[PromptSection, list[str]] = {}

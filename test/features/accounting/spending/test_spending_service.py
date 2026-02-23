@@ -11,6 +11,7 @@ from di.di import DI
 from features.accounting.spending.spending_service import SpendingService
 from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import CostEstimate, ExternalTool, ExternalToolProvider, ToolType
+from util.errors import NotFoundError, RateLimitError
 
 
 def _make_user(user_id: int = 1, credit_balance: float = 100.0) -> User:
@@ -84,7 +85,7 @@ class SpendingServiceValidatePreFlightTest(unittest.TestCase):
 
         with patch("features.accounting.spending.spending_service.config") as mock_config:
             mock_config.usage_maintenance_fee_credits = 1.0
-            with self.assertRaises(AssertionError):
+            with self.assertRaises(NotFoundError):
                 self.service.validate_pre_flight(tool)
 
     def test_raises_when_balance_is_negative(self):
@@ -95,7 +96,7 @@ class SpendingServiceValidatePreFlightTest(unittest.TestCase):
 
         with patch("features.accounting.spending.spending_service.config") as mock_config:
             mock_config.usage_maintenance_fee_credits = 1.0
-            with self.assertRaises(ValueError) as ctx:
+            with self.assertRaises(RateLimitError) as ctx:
                 self.service.validate_pre_flight(tool)
 
         self.assertIn("Insufficient credits", str(ctx.exception))
@@ -108,7 +109,7 @@ class SpendingServiceValidatePreFlightTest(unittest.TestCase):
 
         with patch("features.accounting.spending.spending_service.config") as mock_config:
             mock_config.usage_maintenance_fee_credits = 5.0
-            with self.assertRaises(ValueError) as ctx:
+            with self.assertRaises(RateLimitError) as ctx:
                 self.service.validate_pre_flight(tool)
 
         self.assertIn("Insufficient credits", str(ctx.exception))

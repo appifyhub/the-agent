@@ -7,6 +7,8 @@ from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import SONAR
 from features.integrations import prompt_resolvers
 from util import log
+from util.error_codes import EXTERNAL_EMPTY_RESPONSE, LLM_UNEXPECTED_RESPONSE
+from util.errors import ExternalServiceError
 
 
 # Not tested as it's just a proxy
@@ -29,7 +31,9 @@ class AIWebSearch:
         try:
             response = self.__llm.invoke(self.__llm_input)
             if not isinstance(response, AIMessage):
-                raise AssertionError(f"Received a non-AI message from LLM: {response}")
+                raise ExternalServiceError(f"Received a non-AI message from LLM: {response}", LLM_UNEXPECTED_RESPONSE)
+            if not response.content:
+                raise ExternalServiceError("AI web search returned empty content", EXTERNAL_EMPTY_RESPONSE)
             log.d(f"Finished AI web search, result size is {len(response.content)} characters")
             return response
         except Exception as e:

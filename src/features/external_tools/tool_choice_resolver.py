@@ -3,16 +3,18 @@ from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ExternalToolProvider, ToolType
 from features.external_tools.external_tool_library import ALL_EXTERNAL_TOOLS
 from util import log
+from util.error_codes import TOOL_NOT_FOUND
+from util.errors import NotFoundError
 
 ToolsByProvider = dict[ExternalToolProvider, list[ExternalTool]]
 
 
-class ToolResolutionError(Exception):
+class ToolResolutionError(NotFoundError):
 
     def __init__(self, purpose: ToolType, user_id: str):
         message = f"Unable to resolve a tool for '{purpose.value}' for user '{user_id}'. "
         message += "Open your profile settings page to configure your tool choices and tokens."
-        super().__init__(message)
+        super().__init__(message, TOOL_NOT_FOUND)
 
 
 class ToolChoiceResolver:

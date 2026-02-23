@@ -36,43 +36,38 @@ class SponsorshipService:
         # check if sponsor exists
         sponsor_user_db = self.__di.user_crud.get(UUID(hex = sponsor_user_id_hex))
         if not sponsor_user_db:
-            return (
-                SponsorshipService.Result.failure,
-                log.d(f"Sponsor '{sponsor_user_id_hex}' not found"),
-            )
+            message = f"Sponsor '{sponsor_user_id_hex}' not found"
+            log.d(message)
+            return (SponsorshipService.Result.failure, message)
         sponsor_user = User.model_validate(sponsor_user_db)
 
         # check if sponsor is sponsoring themselves
         sponsor_handle = resolve_external_handle(sponsor_user, chat_type)
         if sponsor_handle == receiver_handle:
-            return (
-                SponsorshipService.Result.failure,
-                log.d(f"Sponsor {chat_type.value}/'@{receiver_handle}' cannot sponsor themselves"),
-            )
+            message = f"Sponsor {chat_type.value}/'@{receiver_handle}' cannot sponsor themselves"
+            log.d(message)
+            return (SponsorshipService.Result.failure, message)
 
         # check if sponsor has exceeded the maximum number of sponsorships
         all_sponsor_sponsorships = self.__di.sponsorship_crud.get_all_by_sponsor(sponsor_user.id)
         is_sponsor_developer = sponsor_user.group == UserDB.Group.developer
         if len(all_sponsor_sponsorships) >= config.max_sponsorships_per_user and not is_sponsor_developer:
-            return (
-                SponsorshipService.Result.failure,
-                log.d(f"Sponsor '{sponsor_user.id}' has exceeded the maximum number of sponsorships"),
-            )
+            message = f"Sponsor '{sponsor_user.id}' has exceeded the maximum number of sponsorships"
+            log.d(message)
+            return (SponsorshipService.Result.failure, message)
 
         # check if sponsor has any API key or credits
         if not sponsor_user.has_any_api_key() and sponsor_user.credit_balance <= 0:
-            return (
-                SponsorshipService.Result.failure,
-                log.d(f"Sponsor '{sponsor_user.id}' has no API keys or credits configured"),
-            )
+            message = f"Sponsor '{sponsor_user.id}' has no API keys or credits configured"
+            log.d(message)
+            return (SponsorshipService.Result.failure, message)
 
         # check if sponsor is transitively sponsoring (sponsoring after being sponsored by someone else)
         all_sponsorships_received_by_sponsor = self.__di.sponsorship_crud.get_all_by_receiver(sponsor_user.id)
         if all_sponsorships_received_by_sponsor:
-            return (
-                SponsorshipService.Result.failure,
-                log.d(f"Sponsor '{sponsor_user.id}' can't sponsor others before having a personal API key"),
-            )
+            message = f"Sponsor '{sponsor_user.id}' can't sponsor others while being sponsored themselves"
+            log.d(message)
+            return (SponsorshipService.Result.failure, message)
 
         # check if receiver already has a sponsorship
         receiver_user_db = lookup_user_by_handle(receiver_handle, chat_type, self.__di.user_crud)
@@ -82,16 +77,14 @@ class SponsorshipService:
             # check if receiver already has a sponsorship
             all_receiver_sponsorships = self.__di.sponsorship_crud.get_all_by_receiver(receiver_user.id)
             if all_receiver_sponsorships:
-                return (
-                    SponsorshipService.Result.failure,
-                    log.d(f"Receiver '@{receiver_handle}' already has a sponsorship"),
-                )
+                message = f"Receiver '@{receiver_handle}' already has a sponsorship"
+                log.d(message)
+                return (SponsorshipService.Result.failure, message)
             # check if receiver already has API keys - we don't want to override them
             if receiver_user.has_any_api_key():
-                return (
-                    SponsorshipService.Result.failure,
-                    log.d(f"Receiver '@{receiver_handle}' already has API keys configured"),
-                )
+                message = f"Receiver '@{receiver_handle}' already has API keys configured"
+                log.d(message)
+                return (SponsorshipService.Result.failure, message)
             # receiver is eligible to be sponsored
             external_id = resolve_external_id(receiver_user, chat_type)
             if external_id:
@@ -107,10 +100,9 @@ class SponsorshipService:
             log.t(f"Creating new user for receiver {chat_type.value}/'@{receiver_handle}'")
             receiver_user_to_save = resolve_user_to_save(receiver_handle, chat_type)
             if not receiver_user_to_save:
-                return (
-                    SponsorshipService.Result.failure,
-                    log.d(f"User creation not supported for platform {chat_type.value}"),
-                )
+                message = f"User creation not supported for platform {chat_type.value}"
+                log.d(message)
+                return (SponsorshipService.Result.failure, message)
             receiver_user_db = self.__di.user_crud.save(receiver_user_to_save)
             receiver_user = User.model_validate(receiver_user_db)
             accepted_at = None
@@ -136,28 +128,25 @@ class SponsorshipService:
         # check if sponsor exists
         sponsor_user_db = self.__di.user_crud.get(UUID(hex = sponsor_user_id_hex))
         if not sponsor_user_db:
-            return (
-                SponsorshipService.Result.failure,
-                log.d(f"Sponsor '{sponsor_user_id_hex}' not found"),
-            )
+            message = f"Sponsor '{sponsor_user_id_hex}' not found"
+            log.d(message)
+            return (SponsorshipService.Result.failure, message)
         sponsor_user = User.model_validate(sponsor_user_db)
 
         # check if receiver exists
         receiver_user_db = lookup_user_by_handle(receiver_handle, chat_type, self.__di.user_crud)
         if not receiver_user_db:
-            return (
-                SponsorshipService.Result.failure,
-                log.d(f"Receiver '@{receiver_handle}' not found"),
-            )
+            message = f"Receiver '@{receiver_handle}' not found"
+            log.d(message)
+            return (SponsorshipService.Result.failure, message)
         receiver_user = User.model_validate(receiver_user_db)
 
         # check if sponsor has a sponsorship to receiver
         sponsorship_db = self.__di.sponsorship_crud.get(sponsor_user.id, receiver_user.id)
         if not sponsorship_db:
-            return (
-                SponsorshipService.Result.failure,
-                log.d(f"Sponsor '{sponsor_user.id}' has no sponsorship to receiver '{receiver_user.id}'"),
-            )
+            message = f"Sponsor '{sponsor_user.id}' has no sponsorship to receiver '{receiver_user.id}'"
+            log.d(message)
+            return (SponsorshipService.Result.failure, message)
         sponsorship = Sponsorship.model_validate(sponsorship_db)
 
         # delete the sponsorship
@@ -175,29 +164,26 @@ class SponsorshipService:
         # check if user exists
         user_db = self.__di.user_crud.get(UUID(hex = user_id_hex))
         if not user_db:
-            return (
-                SponsorshipService.Result.failure,
-                log.d(f"User '{user_id_hex}' not found"),
-            )
+            message = f"User '{user_id_hex}' not found"
+            log.d(message)
+            return (SponsorshipService.Result.failure, message)
         user = User.model_validate(user_db)
 
         # check if user has any sponsorships as receiver
         sponsorships_db = self.__di.sponsorship_crud.get_all_by_receiver(user.id)
         if not sponsorships_db:
-            return (
-                SponsorshipService.Result.failure,
-                log.d(f"User '{user.id}' has no sponsorships to remove"),
-            )
+            message = f"User '{user.id}' has no sponsorships to remove"
+            log.d(message)
+            return (SponsorshipService.Result.failure, message)
         # assuming only one sponsorship per user
         sponsorship = Sponsorship.model_validate(sponsorships_db[0])
 
         # find the sponsor and call unsponsor_user
         platform_handle = resolve_external_handle(user, chat_type)
         if not platform_handle:
-            return (
-                SponsorshipService.Result.failure,
-                log.d(f"User '{user.id}' has no platform handle for {chat_type.value}"),
-            )
+            message = f"User '{user.id}' has no platform handle for {chat_type.value}"
+            log.d(message)
+            return (SponsorshipService.Result.failure, message)
         return self.unsponsor_user(sponsorship.sponsor_id.hex, platform_handle, chat_type)
 
     def accept_sponsorship(self, receiver: User) -> bool:

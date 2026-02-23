@@ -12,6 +12,8 @@ from features.external_tools.external_tool_library import CLAUDE_4_6_SONNET
 from features.integrations import prompt_resolvers
 from features.integrations.integrations import lookup_user_by_handle, resolve_agent_user, resolve_external_id
 from util import log
+from util.error_codes import LLM_UNEXPECTED_RESPONSE, NO_PRIVATE_CHAT, NOT_DEVELOPER, TARGET_CHAT_NOT_FOUND, TARGET_USER_NOT_FOUND
+from util.errors import AuthorizationError, ExternalServiceError, NotFoundError
 
 
 class DevAnnouncementsService:
@@ -40,29 +42,27 @@ class DevAnnouncementsService:
     def __validate(self, target_handle: str | None):
         log.t("Validating invoker permissions")
         if self.__di.invoker.group < UserDB.Group.developer:
-            raise ValueError(log.d(f"Invoker '{self.__di.invoker.id.hex}' is not a developer"))
+            raise AuthorizationError(f"Invoker '{self.__di.invoker.id.hex}' is not a developer", NOT_DEVELOPER)
 
         chat_type: ChatConfigDB.ChatType | None = self.__di.invoker_chat_type
         log.t(f"Validating target user data of {chat_type.value if chat_type else '<no_platform>'}/'@{target_handle}'")
         if target_handle and chat_type:
             target_user_db = lookup_user_by_handle(target_handle, chat_type, self.__di.user_crud)
             if not target_user_db:
-                raise ValueError(log.d(f"Target user '{target_handle}' not found"))
+                raise NotFoundError(f"Target user '{target_handle}' not found", TARGET_USER_NOT_FOUND)
             target_user = User.model_validate(target_user_db)
 
             # check if user has external ID for the current platform
             external_id = resolve_external_id(target_user, chat_type) or ""
             if not external_id:
-                raise ValueError(
-                    log.d(f"Target user '{target_handle}' has no external ID for {chat_type.value}"),
-                )
+                raise AuthorizationError(f"Target user '{target_handle}' has no external ID for {chat_type.value}", NO_PRIVATE_CHAT)  # noqa: E501
 
             target_chat_db = self.__di.chat_config_crud.get_by_external_identifiers(
                 external_id = external_id,
                 chat_type = chat_type,
             )
             if not target_chat_db:
-                raise ValueError(log.d(f"Target chat '{external_id}' not found"))
+                raise NotFoundError(f"Target chat '{external_id}' not found", TARGET_CHAT_NOT_FOUND)
             self.__target_chat = ChatConfig.model_validate(target_chat_db)
 
     def execute(self) -> dict:
@@ -99,7 +99,7 @@ class DevAnnouncementsService:
                     messages = [SystemMessage(system_prompt), HumanMessage(self.__raw_message)]
                     answer = self.__copywriter.invoke(messages)
                     if not isinstance(answer, AIMessage):
-                        raise AssertionError(f"Received a non-AI message from LLM: {answer}")
+                        raise ExternalServiceError(f"Received a non-AI message from LLM: {answer}", LLM_UNEXPECTED_RESPONSE)
                     summary = translations.save(str(answer.content), chat.language_name, chat.language_iso_code)
                     summaries_created += 1
                 scoped_di.platform_bot_sdk().send_text_message(int(chat.external_id or "-1"), summary)

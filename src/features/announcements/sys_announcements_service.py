@@ -14,6 +14,8 @@ from features.external_tools.external_tool_library import CLAUDE_4_6_SONNET
 from features.integrations import prompt_resolvers
 from features.integrations.integrations import resolve_external_id
 from util import log
+from util.error_codes import CHAT_CONFIG_NOT_FOUND, LLM_UNEXPECTED_RESPONSE
+from util.errors import ExternalServiceError, NotFoundError
 
 WHATSAPP_MESSAGING_WINDOW_HOURS = 24
 
@@ -39,7 +41,7 @@ class SysAnnouncementsService:
         self.__di = di
         resolved_chat = target_chat if target_chat else self.__resolve_target_chat()
         if not resolved_chat:
-            raise ValueError("Cannot resolve target chat for announcement")
+            raise NotFoundError("Cannot resolve target chat for announcement", CHAT_CONFIG_NOT_FOUND)
 
         validated_chat = di.authorization_service.validate_chat(resolved_chat)
         self.__resolved_chat = validated_chat
@@ -54,7 +56,7 @@ class SysAnnouncementsService:
         try:
             response = self.__copywriter.invoke(self.__llm_input)
             if not isinstance(response, AIMessage):
-                raise AssertionError(f"Received a non-AI message from LLM: {response}")
+                raise ExternalServiceError(f"Received a non-AI message from LLM: {response}", LLM_UNEXPECTED_RESPONSE)
             log.d(f"Finished announcement creation, summary size is {len(response.content)} characters")
             return self.__resolved_chat, response
         except Exception as e:
@@ -78,9 +80,9 @@ class SysAnnouncementsService:
 
         # both are eligible: pick most recent
         if is_whatsapp_eligible and is_telegram_eligible:
-            assert whatsapp_last_message_at is not None
-            assert telegram_last_message_at is not None
-            return whatsapp_chat if whatsapp_last_message_at > telegram_last_message_at else telegram_chat
+            whatsapp_time = whatsapp_last_message_at or datetime.min
+            telegram_time = telegram_last_message_at or datetime.min
+            return whatsapp_chat if whatsapp_time > telegram_time else telegram_chat
         # only WhatsApp is eligible
         if is_whatsapp_eligible:
             return whatsapp_chat

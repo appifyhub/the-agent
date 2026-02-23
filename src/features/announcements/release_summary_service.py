@@ -9,6 +9,8 @@ from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_4_SONNET
 from features.integrations import prompt_resolvers
 from util import log
+from util.error_codes import LLM_UNEXPECTED_RESPONSE
+from util.errors import ExternalServiceError
 
 
 # Not tested as it's just a proxy
@@ -39,7 +41,7 @@ class ReleaseSummaryService:
         try:
             response = self.__copywriter.invoke(self.__llm_input)
             if not isinstance(response, AIMessage):
-                raise AssertionError(f"Received a non-AI message from LLM: {response}")
+                raise ExternalServiceError(f"Received a non-AI message from LLM: {response}", LLM_UNEXPECTED_RESPONSE)
             log.d(f"Finished summarizing, summary size is {len(response.content)} characters")
             return response
         except Exception as e:

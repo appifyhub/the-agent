@@ -19,6 +19,7 @@ from api.auth import (
     verify_whatsapp_webhook_challenge,
 )
 from util.config import config
+from util.errors import AuthenticationError
 
 
 class AuthTest(unittest.TestCase):
@@ -113,18 +114,18 @@ class AuthTest(unittest.TestCase):
         self.assertEqual(user_id, "user-123")
 
     def test_get_user_id_from_jwt_empty_claims(self):
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(AuthenticationError) as context:
             get_user_id_from_jwt({"other": "claim"})
         self.assertIn("No user ID in token", str(context.exception))
 
     def test_get_user_id_from_jwt_none_claims(self):
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(AuthenticationError) as context:
             get_user_id_from_jwt(None)
         self.assertIn("Empty token", str(context.exception))
 
     def test_get_user_id_from_jwt_missing_sub(self):
         claims = {"not_sub": "no-user-id"}
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(AuthenticationError) as context:
             get_user_id_from_jwt(claims)
         self.assertIn("No user ID in token", str(context.exception))
 

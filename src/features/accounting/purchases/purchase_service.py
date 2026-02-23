@@ -9,6 +9,8 @@ from features.announcements.sys_announcements_service import SysAnnouncementsSer
 from features.integrations.integration_config import THE_AGENT
 from util import log
 from util.config import config
+from util.error_codes import ANNOUNCEMENT_NOT_RECEIVED
+from util.errors import ExternalServiceError
 
 
 class PurchaseService:
@@ -180,7 +182,7 @@ class PurchaseService:
                 configured_tool = configured_tool,
             ).execute()
             if not announcement.content:
-                raise ValueError("LLM announcement not received")
+                raise ExternalServiceError("LLM announcement not received", ANNOUNCEMENT_NOT_RECEIVED)
 
             # send the message to the user, into the target chat
             messaging_di = user_scoped_di.clone(invoker_chat_id = target_chat.chat_id.hex)

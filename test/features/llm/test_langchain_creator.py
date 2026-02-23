@@ -12,6 +12,7 @@ from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import CostEstimate, ExternalTool, ExternalToolProvider, ToolType
 from features.external_tools.external_tool_provider_library import ANTHROPIC, GOOGLE_AI, OPEN_AI, PERPLEXITY
 from features.llm.langchain_creator import create
+from util.errors import ConfigurationError
 
 
 class LangchainCreatorTest(unittest.TestCase):
@@ -156,7 +157,7 @@ class LangchainCreatorTest(unittest.TestCase):
         api_key = SecretStr("test-key")
         configured_tool = self._make_configured_tool(unsupported_tool, api_key, ToolType.chat)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ConfigurationError) as context:
             create(configured_tool)
 
         self.assertIn("does not support temperature", str(context.exception))
@@ -165,7 +166,7 @@ class LangchainCreatorTest(unittest.TestCase):
         api_key = SecretStr("test-key")
         configured_tool = self._make_configured_tool(self.mock_openai_tool, api_key, ToolType.hearing)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ConfigurationError) as context:
             create(configured_tool)
 
         self.assertIn("does not support text timeouts", str(context.exception))
@@ -174,7 +175,7 @@ class LangchainCreatorTest(unittest.TestCase):
         api_key = SecretStr("test-key")
         configured_tool = self._make_configured_tool(self.mock_openai_tool, api_key, ToolType.images_gen)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ConfigurationError) as context:
             create(configured_tool)
 
         self.assertIn("does not support text timeouts", str(context.exception))
@@ -183,7 +184,7 @@ class LangchainCreatorTest(unittest.TestCase):
         api_key = SecretStr("test-key")
         configured_tool = self._make_configured_tool(self.mock_openai_tool, api_key, ToolType.embedding)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ConfigurationError) as context:
             create(configured_tool)
 
         self.assertIn("does not support text timeouts", str(context.exception))
@@ -208,7 +209,7 @@ class LangchainCreatorTest(unittest.TestCase):
         api_key = SecretStr("test-key")
         configured_tool = self._make_configured_tool(unsupported_tool, api_key, ToolType.chat)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ConfigurationError) as context:
             create(configured_tool)
 
         self.assertIn("does not support temperature", str(context.exception))

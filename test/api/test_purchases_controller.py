@@ -17,6 +17,8 @@ from features.accounting.purchases.purchase_aggregates import (
 )
 from features.accounting.purchases.purchase_record import PurchaseRecord
 from features.accounting.purchases.purchase_service import PurchaseService
+from util.error_codes import NOT_TARGET_USER
+from util.errors import AuthorizationError, ValidationError
 
 
 class PurchasesControllerTest(unittest.TestCase):
@@ -177,7 +179,7 @@ class PurchasesControllerTest(unittest.TestCase):
     def test_fetch_purchase_records_limit_exceeds_maximum(self):
         controller = PurchasesController(self.mock_di)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ValidationError) as context:
             controller.fetch_purchase_records(self.invoker_user.id.hex, limit = 101)
 
         self.assertIn("limit cannot exceed 100", str(context.exception))
@@ -185,11 +187,11 @@ class PurchasesControllerTest(unittest.TestCase):
         self.mock_purchase_service.get_by_user.assert_not_called()
 
     def test_fetch_purchase_records_authorization_failure(self):
-        self.mock_authorization_service.authorize_for_user.side_effect = ValueError("Unauthorized")
+        self.mock_authorization_service.authorize_for_user.side_effect = AuthorizationError("Unauthorized", NOT_TARGET_USER)
 
         controller = PurchasesController(self.mock_di)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(AuthorizationError) as context:
             controller.fetch_purchase_records(self.target_user.id.hex)
 
         self.assertIn("Unauthorized", str(context.exception))
@@ -247,11 +249,11 @@ class PurchasesControllerTest(unittest.TestCase):
         )
 
     def test_fetch_purchase_aggregates_authorization_failure(self):
-        self.mock_authorization_service.authorize_for_user.side_effect = ValueError("Unauthorized")
+        self.mock_authorization_service.authorize_for_user.side_effect = AuthorizationError("Unauthorized", NOT_TARGET_USER)
 
         controller = PurchasesController(self.mock_di)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(AuthorizationError) as context:
             controller.fetch_purchase_aggregates(self.target_user.id.hex)
 
         self.assertIn("Unauthorized", str(context.exception))
@@ -293,11 +295,11 @@ class PurchasesControllerTest(unittest.TestCase):
         )
 
     def test_bind_license_key_authorization_failure(self):
-        self.mock_authorization_service.authorize_for_user.side_effect = ValueError("Unauthorized")
+        self.mock_authorization_service.authorize_for_user.side_effect = AuthorizationError("Unauthorized", NOT_TARGET_USER)
 
         controller = PurchasesController(self.mock_di)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(AuthorizationError) as context:
             controller.bind_license_key(self.target_user.id.hex, "LICENSE-123")
 
         self.assertIn("Unauthorized", str(context.exception))

@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
+from util.error_codes import DI_DEPENDENCY_NOT_MET
+from util.errors import InternalError
 
 if TYPE_CHECKING:
 
@@ -46,7 +48,7 @@ if TYPE_CHECKING:
     from features.announcements.sys_announcements_service import SysAnnouncementsService
     from features.audio.audio_transcriber import AudioTranscriber
     from features.chat.chat_agent import ChatAgent
-    from features.chat.chat_attachments_analyzer import ChatAttachmentsAnalyzer
+    from features.chat.chat_attachment_processor import ChatAttachmentProcessor
     from features.chat.chat_image_edit_service import ChatImageEditService
     from features.chat.chat_progress_notifier import ChatProgressNotifier
     from features.chat.command_processor import CommandProcessor
@@ -83,10 +85,6 @@ if TYPE_CHECKING:
     from features.web_browsing.url_shortener import UrlShortener
     from features.web_browsing.web_fetcher import WebFetcher
     from util.translations_cache import TranslationsCache
-
-
-class ConstructorDependencyNotMetError(Exception):
-    pass
 
 
 class DI:
@@ -212,19 +210,19 @@ class DI:
     @property
     def db(self) -> Session:
         if self._db is None:
-            raise ConstructorDependencyNotMetError("Database session not provided")
+            raise InternalError("Database session not provided", DI_DEPENDENCY_NOT_MET)
         return self._db
 
     @property
     def invoker_id(self) -> str:
         if self._invoker_id is None:
-            raise ConstructorDependencyNotMetError("Invoker ID not provided")
+            raise InternalError("Invoker ID not provided", DI_DEPENDENCY_NOT_MET)
         return self._invoker_id
 
     @property
     def invoker_chat_id(self) -> str:
         if self._invoker_chat_id is None:
-            raise ConstructorDependencyNotMetError("Invoker chat ID not provided")
+            raise InternalError("Invoker chat ID not provided", DI_DEPENDENCY_NOT_MET)
         return self._invoker_chat_id
 
     @property
@@ -233,7 +231,7 @@ class DI:
             try:
                 self._invoker = self.authorization_service.validate_user(self.invoker_id)
             except Exception as e:
-                raise ConstructorDependencyNotMetError(f"Invoker validation failed: {e}")
+                raise InternalError(f"Invoker validation failed: {e}", DI_DEPENDENCY_NOT_MET) from e
         return self._invoker
 
     @property
@@ -242,7 +240,7 @@ class DI:
             try:
                 self._invoker_chat = self.authorization_service.validate_chat(self.invoker_chat_id)
             except Exception as e:
-                raise ConstructorDependencyNotMetError(f"Invoker chat validation failed: {e}")
+                raise InternalError(f"Invoker chat validation failed: {e}", DI_DEPENDENCY_NOT_MET) from e
         return self._invoker_chat
 
     @property
@@ -253,12 +251,12 @@ class DI:
 
     def require_invoker_chat(self) -> ChatConfig:
         if self.invoker_chat is None:
-            raise ConstructorDependencyNotMetError("Chat context is required for this operation")
+            raise InternalError("Chat context is required for this operation", DI_DEPENDENCY_NOT_MET)
         return self.invoker_chat
 
     def require_invoker_chat_type(self) -> ChatConfigDB.ChatType:
         if self.invoker_chat_type is None:
-            raise ConstructorDependencyNotMetError("Chat type is required for this operation")
+            raise InternalError("Chat type is required for this operation", DI_DEPENDENCY_NOT_MET)
         return self.invoker_chat_type
 
     # === Dynamic injections ===
@@ -860,24 +858,21 @@ class DI:
         copywriter_tool: ConfiguredTool,
         def_extension: str | None = None,
         audio_content: bytes | None = None,
-        language_name: str | None = None,
-        language_iso_code: str | None = None,
     ) -> "AudioTranscriber":
         from features.audio.audio_transcriber import AudioTranscriber
         return AudioTranscriber(
             job_id, audio_url,
             transcriber_tool, copywriter_tool, self,
             def_extension, audio_content,
-            language_name, language_iso_code,
         )
 
-    def chat_attachments_analyzer(
+    def chat_attachment_processor(
         self,
         additional_context: str | None,
         attachment_ids: list[str],
-    ) -> "ChatAttachmentsAnalyzer":
-        from features.chat.chat_attachments_analyzer import ChatAttachmentsAnalyzer
-        return ChatAttachmentsAnalyzer(additional_context, attachment_ids, self)
+    ) -> "ChatAttachmentProcessor":
+        from features.chat.chat_attachment_processor import ChatAttachmentProcessor
+        return ChatAttachmentProcessor(additional_context, attachment_ids, self)
 
     def dev_announcements_service(
         self,

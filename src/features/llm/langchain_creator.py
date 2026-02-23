@@ -13,6 +13,8 @@ from features.external_tools.external_tool_provider_library import (
     PERPLEXITY,
 )
 from util.config import config
+from util.error_codes import UNSUPPORTED_PROVIDER
+from util.errors import ConfigurationError
 
 
 def create(configured_tool: ConfiguredTool) -> BaseChatModel:
@@ -37,7 +39,7 @@ def create(configured_tool: ConfiguredTool) -> BaseChatModel:
             return ChatPerplexity(**model_args)
         case GOOGLE_AI.id:
             return ChatGoogleGenerativeAI(**model_args)
-    raise ValueError(f"{definition.provider.name}/{definition.name} does not support LLMs")
+    raise ConfigurationError(f"{definition.provider.name}/{definition.name} does not support LLMs", UNSUPPORTED_PROVIDER)
 
 
 def __normalize_temperature(temperature_percent: float, provider: ExternalToolProvider) -> float:
@@ -50,7 +52,7 @@ def __normalize_temperature(temperature_percent: float, provider: ExternalToolPr
             return temperature_percent * 2
         case GOOGLE_AI.id:
             return temperature_percent * 2
-    raise ValueError(f"{provider.name}/{provider.id} does not support temperature")
+    raise ConfigurationError(f"{provider.name}/{provider.id} does not support temperature", UNSUPPORTED_PROVIDER)
 
 
 def __get_timeout(tool_type: ToolType, tool: ExternalTool) -> float:
@@ -67,4 +69,4 @@ def __get_timeout(tool_type: ToolType, tool: ExternalTool) -> float:
             return float(config.web_timeout_s) * 2
         case ToolType.search:
             return float(config.web_timeout_s) * 3
-    raise ValueError(f"{tool_type} does not support text timeouts")
+    raise ConfigurationError(f"{tool_type} does not support text timeouts", UNSUPPORTED_PROVIDER)

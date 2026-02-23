@@ -10,6 +10,8 @@ from features.external_tools.external_tool_provider_library import GOOGLE_AI, RE
 from features.images.image_api_utils import map_to_model_parameters
 from util import log
 from util.config import config
+from util.error_codes import EXTERNAL_EMPTY_RESPONSE, UNSUPPORTED_PROVIDER
+from util.errors import ConfigurationError, ExternalServiceError
 from util.functions import extract_url_from_replicate_result
 
 
@@ -49,9 +51,10 @@ class SimpleStableDiffusionGenerator:
             elif self.__configured_tool.definition.provider == GOOGLE_AI:
                 return self.__generate_with_google_ai()
             else:
-                raise ValueError(f"Unsupported provider: '{self.__configured_tool.definition.provider}'")
+                raise ConfigurationError(f"Unsupported provider: '{self.__configured_tool.definition.provider}'", UNSUPPORTED_PROVIDER)  # noqa: E501
         except Exception as e:
-            self.error = log.e("Failed to generate image", e)
+            self.error = f"Failed to generate image: {str(e)}"
+            log.e("Failed to generate image", e)
             return None
 
     def __generate_with_replicate(self) -> str | None:
@@ -81,7 +84,7 @@ class SimpleStableDiffusionGenerator:
         result = prediction.output
         log.d("Result", result)
         if not result:
-            raise ValueError("No result returned from image generation")
+            raise ExternalServiceError("No result returned from image generation", EXTERNAL_EMPTY_RESPONSE)
         return extract_url_from_replicate_result(result)
 
     def __generate_with_google_ai(self) -> str | None:
@@ -112,10 +115,10 @@ class SimpleStableDiffusionGenerator:
 
         # analyze the response
         if not response or not response.candidates:
-            raise ValueError("No candidates in the response from Google AI")
+            raise ExternalServiceError("No candidates in the response from Google AI", EXTERNAL_EMPTY_RESPONSE)
         candidate = response.candidates[0]
         if not candidate.content or not candidate.content.parts:
-            raise ValueError("No contents in the top candidate from Google AI")
+            raise ExternalServiceError("No contents in the top candidate from Google AI", EXTERNAL_EMPTY_RESPONSE)
 
         # locate the image data in the response
         image_data: bytes | None = None
@@ -124,7 +127,7 @@ class SimpleStableDiffusionGenerator:
                 image_data = part.inline_data.data
                 break
         if image_data is None:
-            raise ValueError("No image data found in Google AI response")
+            raise ExternalServiceError("No image data found in Google AI response", EXTERNAL_EMPTY_RESPONSE)
 
         # upload the image to an external service to get a direct URL
         uploader = self.__di.image_uploader(binary_image = image_data)

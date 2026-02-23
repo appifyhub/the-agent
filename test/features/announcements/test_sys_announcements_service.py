@@ -14,6 +14,7 @@ from db.schema.user import User
 from di.di import DI
 from features.announcements.sys_announcements_service import WHATSAPP_MESSAGING_WINDOW_HOURS, SysAnnouncementsService
 from features.external_tools.configured_tool import ConfiguredTool
+from util.errors import NotFoundError
 
 
 class SysAnnouncementsServicePlatformSelectionTest(unittest.TestCase):
@@ -113,7 +114,7 @@ class SysAnnouncementsServicePlatformSelectionTest(unittest.TestCase):
         ))
         self.mock_di.chat_message_crud.get_latest_chat_messages = Mock(return_value = [old_message])
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(NotFoundError) as context:
             SysAnnouncementsService("Test", None, self.mock_configured_tool, self.mock_di)
 
         self.assertIn("Cannot resolve target chat", str(context.exception))
@@ -278,7 +279,7 @@ class SysAnnouncementsServicePlatformSelectionTest(unittest.TestCase):
         """No platforms configured should raise error."""
         self.mock_di.chat_config_crud.get_by_external_identifiers = Mock(return_value = None)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(NotFoundError) as context:
             SysAnnouncementsService("Test", None, self.mock_configured_tool, self.mock_di)
 
         self.assertIn("Cannot resolve target chat", str(context.exception))

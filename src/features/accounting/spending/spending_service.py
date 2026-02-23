@@ -3,6 +3,8 @@ from di.di import DI
 from features.external_tools.configured_tool import ConfiguredTool
 from util import log
 from util.config import config
+from util.error_codes import INSUFFICIENT_CREDITS, USER_NOT_FOUND
+from util.errors import NotFoundError, RateLimitError
 
 
 class SpendingService:
@@ -32,10 +34,11 @@ class SpendingService:
             output_image_sizes = output_image_sizes,
         ) + config.usage_maintenance_fee_credits
         user_db = self.__di.user_crud.get(configured_tool.payer_id)
-        assert user_db is not None, f"Payer user not found for id {configured_tool.payer_id}"
+        if user_db is None:
+            raise NotFoundError(f"Payer user not found for id {configured_tool.payer_id}", USER_NOT_FOUND)
         user = User.model_validate(user_db)
         if user.credit_balance < estimated_cost:
-            raise ValueError(f"Insufficient credits: minimum required {estimated_cost}, available {user.credit_balance}")
+            raise RateLimitError(f"Insufficient credits: minimum required {estimated_cost}, available {user.credit_balance}", INSUFFICIENT_CREDITS)  # noqa: E501
 
     def deduct(self, configured_tool: ConfiguredTool, amount: float) -> None:
         if not configured_tool.uses_credits:

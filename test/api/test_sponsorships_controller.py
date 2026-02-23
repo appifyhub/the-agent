@@ -19,6 +19,7 @@ from di.di import DI
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.sponsorships.sponsorship_service import SponsorshipService
 from util.config import config
+from util.errors import AuthorizationError, InternalError
 
 
 class SponsorshipsControllerTest(unittest.TestCase):
@@ -277,11 +278,11 @@ class SponsorshipsControllerTest(unittest.TestCase):
         self.mock_di.sponsorship_crud.get_all_by_sponsor.assert_called_once_with(self.sponsor_user.id)
 
     def test_fetch_sponsorships_failure_unauthorized(self):
-        self.mock_di.authorization_service.authorize_for_user.side_effect = ValueError("Unauthorized")
+        self.mock_di.authorization_service.authorize_for_user.side_effect = AuthorizationError("Unauthorized", 0)
 
         controller = SponsorshipsController(self.mock_di)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(AuthorizationError) as context:
             controller.fetch_sponsorships(self.sponsor_user.id.hex)
 
         self.assertIn("Unauthorized", str(context.exception))
@@ -315,7 +316,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
 
         controller = SponsorshipsController(self.mock_di)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(InternalError) as context:
             payload = SponsorshipPayload(platform_handle = self.receiver_user.telegram_username, platform = "telegram")
             controller.sponsor_user(self.sponsor_user.id.hex, payload)
 
@@ -324,11 +325,11 @@ class SponsorshipsControllerTest(unittest.TestCase):
         self.mock_di.authorization_service.authorize_for_user.assert_called_once_with(self.invoker_user, self.sponsor_user.id.hex)
 
     def test_sponsor_user_failure_unauthorized(self):
-        self.mock_di.authorization_service.authorize_for_user.side_effect = ValueError("Unauthorized")
+        self.mock_di.authorization_service.authorize_for_user.side_effect = AuthorizationError("Unauthorized", 0)
 
         controller = SponsorshipsController(self.mock_di)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(AuthorizationError) as context:
             payload = SponsorshipPayload(platform_handle = self.receiver_user.telegram_username, platform = "telegram")
             controller.sponsor_user(self.sponsor_user.id.hex, payload)
 
@@ -362,7 +363,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
 
         controller = SponsorshipsController(self.mock_di)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(InternalError) as context:
             controller.unsponsor_user(self.sponsor_user.id.hex, "telegram", self.receiver_user.telegram_username)
 
         self.assertIn("Sponsorship not found", str(context.exception))
@@ -370,11 +371,11 @@ class SponsorshipsControllerTest(unittest.TestCase):
         self.mock_di.authorization_service.authorize_for_user.assert_called_once_with(self.invoker_user, self.sponsor_user.id.hex)
 
     def test_unsponsor_user_failure_unauthorized(self):
-        self.mock_di.authorization_service.authorize_for_user.side_effect = ValueError("Unauthorized")
+        self.mock_di.authorization_service.authorize_for_user.side_effect = AuthorizationError("Unauthorized", 0)
 
         controller = SponsorshipsController(self.mock_di)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(AuthorizationError) as context:
             controller.unsponsor_user(self.sponsor_user.id.hex, "telegram", self.receiver_user.telegram_username)
 
         self.assertIn("Unauthorized", str(context.exception))
@@ -413,7 +414,7 @@ class SponsorshipsControllerTest(unittest.TestCase):
 
         controller = SponsorshipsController(self.mock_di)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(InternalError) as context:
             controller.unsponsor_self(self.invoker_user.id.hex)
 
         self.assertIn("Failed to unsponsor self in all chats", str(context.exception))
@@ -421,11 +422,11 @@ class SponsorshipsControllerTest(unittest.TestCase):
         self.mock_di.authorization_service.authorize_for_user.assert_called_once_with(self.invoker_user, self.invoker_user.id.hex)
 
     def test_unsponsor_self_failure_unauthorized(self):
-        self.mock_di.authorization_service.authorize_for_user.side_effect = ValueError("Unauthorized")
+        self.mock_di.authorization_service.authorize_for_user.side_effect = AuthorizationError("Unauthorized", 0)
 
         controller = SponsorshipsController(self.mock_di)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(AuthorizationError) as context:
             controller.unsponsor_self(self.invoker_user.id.hex)
 
         self.assertIn("Unauthorized", str(context.exception))

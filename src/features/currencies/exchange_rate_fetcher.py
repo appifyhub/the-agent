@@ -10,6 +10,8 @@ from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ToolType
 from features.external_tools.external_tool_library import CRYPTO_CURRENCY_EXCHANGE, FIAT_CURRENCY_EXCHANGE
 from util import log
+from util.error_codes import EXCHANGE_RATE_NOT_FOUND, INVALID_CURRENCY, UNSUPPORTED_CURRENCY_PAIR
+from util.errors import NotFoundError, ValidationError
 
 DEFAULT_FIAT = "USD"
 CACHE_PREFIX = "exchange-rate-fetcher"
@@ -72,7 +74,7 @@ class ExchangeRateFetcher:
             default_fiat_rate_against_fiat = self.get_fiat_conversion_rate(DEFAULT_FIAT, desired_currency_code)
             return as_result(base_crypto_rate_against_default_fiat * default_fiat_rate_against_fiat)
         else:
-            raise ValueError(log.w(f"Unsupported currency conversion: {base_currency_code}/{desired_currency_code}"))
+            raise ValidationError(f"Unsupported currency conversion: {base_currency_code}/{desired_currency_code}", UNSUPPORTED_CURRENCY_PAIR)  # noqa: E501
 
     def __cache_key_of(self, a: str, b: str) -> str:
         return self.__di.tools_cache_crud.create_key(CACHE_PREFIX, f"{a}-{b}")
@@ -114,9 +116,9 @@ class ExchangeRateFetcher:
     def get_crypto_conversion_rate(self, base_currency_code: str, desired_currency_code: str) -> float:
         log.t(f"Fetching crypto conversion rate {base_currency_code}/{desired_currency_code}")
         if base_currency_code not in SUPPORTED_CRYPTO and base_currency_code != DEFAULT_FIAT:
-            raise ValueError(log.w(f"Unsupported currency: {base_currency_code}"))
+            raise ValidationError(f"Unsupported currency: {base_currency_code}", INVALID_CURRENCY)
         if desired_currency_code not in SUPPORTED_CRYPTO and desired_currency_code != DEFAULT_FIAT:
-            raise ValueError(log.w(f"Unsupported currency: {desired_currency_code}"))
+            raise ValidationError(f"Unsupported currency: {desired_currency_code}", INVALID_CURRENCY)
 
         if base_currency_code == desired_currency_code:
             return 1.0
@@ -168,14 +170,14 @@ class ExchangeRateFetcher:
         if rate:
             self.__save_rate_to_cache(base_currency_code, desired_currency_code, rate)
             return rate
-        raise ValueError(log.w(f"No rate found for {base_currency_code}/{desired_currency_code}"))
+        raise NotFoundError(f"No rate found for {base_currency_code}/{desired_currency_code}", EXCHANGE_RATE_NOT_FOUND)
 
     def get_fiat_conversion_rate(self, base_currency_code: str, desired_currency_code: str) -> float:
         log.t(f"Fetching fiat conversion rate {base_currency_code}/{desired_currency_code}")
         if base_currency_code not in SUPPORTED_FIAT:
-            raise ValueError(log.w(f"Unsupported currency: {base_currency_code}"))
+            raise ValidationError(f"Unsupported currency: {base_currency_code}", INVALID_CURRENCY)
         if desired_currency_code not in SUPPORTED_FIAT:
-            raise ValueError(log.w(f"Unsupported currency: {desired_currency_code}"))
+            raise ValidationError(f"Unsupported currency: {desired_currency_code}", INVALID_CURRENCY)
 
         if base_currency_code == desired_currency_code:
             return 1.0
@@ -203,4 +205,4 @@ class ExchangeRateFetcher:
         if rate:
             self.__save_rate_to_cache(base_currency_code, desired_currency_code, rate)
             return rate
-        raise ValueError(log.w(f"Invalid rate: {rate}; API: {FIAT_CURRENCY_EXCHANGE.id}; response data: {json.dumps(response)}"))
+        raise NotFoundError(f"Invalid rate: {rate}; API: {FIAT_CURRENCY_EXCHANGE.id}; response data: {json.dumps(response)}", EXCHANGE_RATE_NOT_FOUND)  # noqa: E501

@@ -12,13 +12,14 @@ from db.schema.chat_config import ChatConfig
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.tools_cache import ToolsCache
 from db.schema.user import User
-from features.chat.chat_attachments_analyzer import CACHE_TTL, ChatAttachmentsAnalyzer
+from features.chat.chat_attachment_processor import CACHE_TTL, ChatAttachmentProcessor
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.integrations.platform_bot_sdk import PlatformBotSDK
 from util.config import config
+from util.errors import NotFoundError, ValidationError
 
 
-class ChatAttachmentsAnalyzerTest(unittest.TestCase):
+class ChatAttachmentProcessorTest(unittest.TestCase):
 
     def setUp(self):
         config.web_retries = 1
@@ -106,14 +107,14 @@ class ChatAttachmentsAnalyzerTest(unittest.TestCase):
         mock_cv_instance.execute.return_value = self.cached_content
         self.mock_di.computer_vision_analyzer.return_value = mock_cv_instance
 
-        resolver = ChatAttachmentsAnalyzer(
+        resolver = ChatAttachmentProcessor(
             additional_context = "context",
             attachment_ids = ["1"],
             di = self.mock_di,
         )
         result = resolver.execute()
 
-        self.assertEqual(result, ChatAttachmentsAnalyzer.Result.success)
+        self.assertEqual(result, ChatAttachmentProcessor.Result.success)
         # Use the public get_result property if available, otherwise check the result length
         self.assertEqual(len(resolver.result), 1)
         self.assertEqual(resolver.result[0]["text_content"], self.cached_content)
@@ -131,22 +132,22 @@ class ChatAttachmentsAnalyzerTest(unittest.TestCase):
         self.mock_di.tool_choice_resolver.require_tool.return_value = MagicMock()
         self.mock_access_token_resolver.require_access_token_for_tool.return_value = "**********"
 
-        resolver = ChatAttachmentsAnalyzer(
+        resolver = ChatAttachmentProcessor(
             additional_context = "context",
             attachment_ids = ["1"],
             di = self.mock_di,
         )
         result = resolver.execute()
 
-        self.assertEqual(result, ChatAttachmentsAnalyzer.Result.success)
+        self.assertEqual(result, ChatAttachmentProcessor.Result.success)
         self.assertEqual(len(resolver.result), 1)
         self.assertEqual(resolver.result[0]["text_content"], self.cached_content)
         mock_cv_instance.execute.assert_called_once()
         self.mock_cache_crud.save.assert_called_once()
 
     def test_empty_attachment_ids_list(self):
-        with self.assertRaises(ValueError) as context:
-            ChatAttachmentsAnalyzer(
+        with self.assertRaises(ValidationError) as context:
+            ChatAttachmentProcessor(
                 additional_context = "context",
                 attachment_ids = [],
                 di = self.mock_di,
@@ -154,8 +155,8 @@ class ChatAttachmentsAnalyzerTest(unittest.TestCase):
         self.assertIn("No attachment IDs provided", str(context.exception))
 
     def test_empty_attachment_id_string(self):
-        with self.assertRaises(ValueError) as context:
-            ChatAttachmentsAnalyzer(
+        with self.assertRaises(ValidationError) as context:
+            ChatAttachmentProcessor(
                 additional_context = "context",
                 attachment_ids = [""],
                 di = self.mock_di,
@@ -165,8 +166,8 @@ class ChatAttachmentsAnalyzerTest(unittest.TestCase):
     def test_attachment_not_found_in_db(self):
         self.mock_chat_message_attachment_crud.get.return_value = None
 
-        with self.assertRaises(ValueError) as context:
-            ChatAttachmentsAnalyzer(
+        with self.assertRaises(NotFoundError) as context:
+            ChatAttachmentProcessor(
                 additional_context = "context",
                 attachment_ids = ["nonexistent"],
                 di = self.mock_di,
@@ -190,7 +191,7 @@ class ChatAttachmentsAnalyzerTest(unittest.TestCase):
         mock_audio_instance.execute.return_value = "Audio transcription"
         self.mock_di.audio_transcriber.return_value = mock_audio_instance
 
-        resolver = ChatAttachmentsAnalyzer(
+        resolver = ChatAttachmentProcessor(
             additional_context = "context",
             attachment_ids = ["2"],
             di = self.mock_di,
@@ -217,7 +218,7 @@ class ChatAttachmentsAnalyzerTest(unittest.TestCase):
         mock_document_instance.execute.return_value = "Document search results"
         self.mock_di.document_search.return_value = mock_document_instance
 
-        resolver = ChatAttachmentsAnalyzer(
+        resolver = ChatAttachmentProcessor(
             additional_context = "context",
             attachment_ids = ["4"],
             di = self.mock_di,
@@ -240,7 +241,7 @@ class ChatAttachmentsAnalyzerTest(unittest.TestCase):
         )
         m.get(str(unsupported_attachment.last_url), content = b"pdf data", status_code = 200)
 
-        resolver = ChatAttachmentsAnalyzer(
+        resolver = ChatAttachmentProcessor(
             additional_context = "context",
             attachment_ids = ["3"],
             di = self.mock_di,

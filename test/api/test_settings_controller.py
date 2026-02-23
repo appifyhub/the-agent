@@ -26,6 +26,8 @@ from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.external_tools.access_token_resolver import AccessTokenResolver
 from features.external_tools.external_tool import CostEstimate, ExternalTool, ExternalToolProvider, ToolType
 from util.config import ConfiguredProduct
+from util.error_codes import MALFORMED_CHAT_ID
+from util.errors import AuthorizationError, ValidationError
 from util.functions import mask_secret
 
 
@@ -180,7 +182,7 @@ class SettingsControllerTest(unittest.TestCase):
     def test_create_settings_link_failure_invalid_settings_type(self):
         controller = SettingsController(self.mock_di)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ValidationError) as context:
             controller.create_settings_link("invalid_type")
 
         self.assertIn("Invalid settings type", str(context.exception))
@@ -193,12 +195,13 @@ class SettingsControllerTest(unittest.TestCase):
         # noinspection PyPropertyAccess
         self.mock_di.invoker_chat = None
         # Force auth failure to reflect missing chat context
-        self.mock_authorization_service.authorize_for_chat.side_effect = ValueError(
-            "badly formed hexadecimal UUID string",
+        self.mock_authorization_service.authorize_for_chat.side_effect = ValidationError(
+            "Malformed chat ID 'None'",
+            MALFORMED_CHAT_ID,
         )
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ValidationError) as context:
             controller.create_settings_link("chat")
-        self.assertIn("badly formed hexadecimal UUID string", str(context.exception))
+        self.assertIn("Malformed chat ID 'None'", str(context.exception))
 
     def test_fetch_chat_settings_success(self):
         self.mock_user_dao.get.return_value = self.invoker_user
@@ -358,7 +361,7 @@ class SettingsControllerTest(unittest.TestCase):
             tool_choice_chat = "unconfigured-tool",
         )
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ValidationError) as context:
             controller.save_user_settings(self.invoker_user.id.hex, payload)
 
         self.assertIn("Invalid tool choice", str(context.exception))
@@ -378,7 +381,7 @@ class SettingsControllerTest(unittest.TestCase):
             use_about_me = True,
         )
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ValidationError) as context:
             controller.save_chat_settings("test_chat_123", payload)
 
         self.assertIn("Both language_name and language_iso_code must be non-empty", str(context.exception))
@@ -410,7 +413,7 @@ class SettingsControllerTest(unittest.TestCase):
             use_about_me = True,
         )
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ValidationError) as context:
             controller.save_chat_settings("private_chat_123", payload)
 
         self.assertIn("Chat is private, reply chance cannot be changed", str(context.exception))
@@ -429,7 +432,7 @@ class SettingsControllerTest(unittest.TestCase):
             use_about_me = True,
         )
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ValidationError) as context:
             controller.save_chat_settings("test_chat_123", payload)
 
         self.assertIn("Invalid release notifications setting value", str(context.exception))
@@ -632,7 +635,7 @@ class SettingsControllerTest(unittest.TestCase):
         type(self.mock_di).invoker = PropertyMock(return_value = user_without_chat)
         controller = SettingsController(self.mock_di)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(AuthorizationError) as context:
             controller.create_settings_link()
 
         self.assertIn("User never sent a private message, cannot create a settings link", str(context.exception))
@@ -836,7 +839,7 @@ class SettingsControllerTest(unittest.TestCase):
         type(self.mock_di).invoker = PropertyMock(return_value = user_without_chat)
         controller = SettingsController(self.mock_di)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(AuthorizationError) as context:
             controller.create_help_link()
 
         self.assertIn("User never sent a private message, cannot create settings link", str(context.exception))

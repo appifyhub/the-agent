@@ -237,7 +237,7 @@ class SponsorshipServiceTest(unittest.TestCase):
         result, msg = self.service.sponsor_user(sponsor_user_id_hex, receiver_telegram_username, ChatConfigDB.ChatType.telegram)
 
         self.assertEqual(result, SponsorshipService.Result.failure)
-        self.assertIn("can't sponsor others before having a personal API key", msg)
+        self.assertIn("can't sponsor others while being sponsored themselves", msg)
 
     def test_sponsor_user_failure_receiver_has_sponsorship(self):
         sponsor_user_id_hex = self.user.id.hex

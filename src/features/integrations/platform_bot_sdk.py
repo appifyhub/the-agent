@@ -11,6 +11,8 @@ from di.di import DI
 from features.images.image_size_utils import resize_file
 from features.integrations.integration_config import TELEGRAM_MAX_PHOTO_SIZE_BYTES, WHATSAPP_MAX_PHOTO_SIZE_BYTES
 from util import log
+from util.error_codes import UNSUPPORTED_CHAT_TYPE
+from util.errors import ConfigurationError
 from util.functions import delete_file_safe
 
 
@@ -32,7 +34,7 @@ class PlatformBotSDK:
             case ChatConfigDB.ChatType.whatsapp:
                 return self.__di.whatsapp_bot_sdk.send_text_message(chat_id, text)
             case _:
-                raise ValueError(f"Unsupported chat type: {self.__di.require_invoker_chat_type()}")
+                raise ConfigurationError(f"Unsupported chat type: {self.__di.require_invoker_chat_type()}", UNSUPPORTED_CHAT_TYPE)
 
     def send_photo(
         self,
@@ -49,7 +51,7 @@ class PlatformBotSDK:
             case ChatConfigDB.ChatType.whatsapp:
                 return self.__di.whatsapp_bot_sdk.send_photo(chat_id, resized_url, caption)
             case _:
-                raise ValueError(f"Unsupported chat type: {self.__di.require_invoker_chat_type()}")
+                raise ConfigurationError(f"Unsupported chat type: {self.__di.require_invoker_chat_type()}", UNSUPPORTED_CHAT_TYPE)
 
     def smart_send_photo(
         self,
@@ -93,7 +95,7 @@ class PlatformBotSDK:
             case ChatConfigDB.ChatType.whatsapp:
                 return self.__di.whatsapp_bot_sdk.send_document(chat_id, document_url, caption)
             case _:
-                raise ValueError(f"Unsupported chat type: {self.__di.require_invoker_chat_type()}")
+                raise ConfigurationError(f"Unsupported chat type: {self.__di.require_invoker_chat_type()}", UNSUPPORTED_CHAT_TYPE)
 
     def send_button_link(
         self,
@@ -107,7 +109,7 @@ class PlatformBotSDK:
             case ChatConfigDB.ChatType.whatsapp:
                 return self.__di.whatsapp_bot_sdk.send_button_link(chat_id, link_url, button_text)
             case _:
-                raise ValueError(f"Unsupported chat type: {self.__di.require_invoker_chat_type()}")
+                raise ConfigurationError(f"Unsupported chat type: {self.__di.require_invoker_chat_type()}", UNSUPPORTED_CHAT_TYPE)
 
     def set_reaction(
         self,
@@ -121,7 +123,7 @@ class PlatformBotSDK:
             case ChatConfigDB.ChatType.whatsapp:
                 self.__di.whatsapp_bot_sdk.set_reaction(chat_id, message_id, reaction)
             case _:
-                raise ValueError(f"Unsupported chat type: {self.__di.require_invoker_chat_type()}")
+                raise ConfigurationError(f"Unsupported chat type: {self.__di.require_invoker_chat_type()}", UNSUPPORTED_CHAT_TYPE)
 
     def set_chat_action(
         self,
@@ -134,7 +136,7 @@ class PlatformBotSDK:
             case ChatConfigDB.ChatType.whatsapp:
                 pass  # WhatsApp doesn't support chat actions (typing indicators)
             case _:
-                raise ValueError(f"Unsupported chat type: {self.__di.require_invoker_chat_type()}")
+                raise ConfigurationError(f"Unsupported chat type: {self.__di.require_invoker_chat_type()}", UNSUPPORTED_CHAT_TYPE)
 
     def refresh_attachments_by_ids(
         self,
@@ -146,7 +148,7 @@ class PlatformBotSDK:
             case ChatConfigDB.ChatType.whatsapp:
                 return self.__di.whatsapp_bot_sdk.refresh_attachments_by_ids(attachment_ids)
             case _:
-                raise ValueError(f"Unsupported chat type: {self.__di.require_invoker_chat_type()}")
+                raise ConfigurationError(f"Unsupported chat type: {self.__di.require_invoker_chat_type()}", UNSUPPORTED_CHAT_TYPE)
 
     def refresh_attachment_instances(
         self,
@@ -158,7 +160,7 @@ class PlatformBotSDK:
             case ChatConfigDB.ChatType.whatsapp:
                 return self.__di.whatsapp_bot_sdk.refresh_attachment_instances(attachments)
             case _:
-                raise ValueError(f"Unsupported chat type: {self.__di.require_invoker_chat_type()}")
+                raise ConfigurationError(f"Unsupported chat type: {self.__di.require_invoker_chat_type()}", UNSUPPORTED_CHAT_TYPE)
 
     def __resize_and_reupload(self, photo_url: str) -> str:
         chat_type = self.__di.require_invoker_chat_type()

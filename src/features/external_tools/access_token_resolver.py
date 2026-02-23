@@ -18,6 +18,8 @@ from features.external_tools.external_tool_provider_library import (
 )
 from util import log
 from util.config import config
+from util.error_codes import TOKEN_NOT_FOUND
+from util.errors import NotFoundError
 
 
 @dataclass(frozen = True)
@@ -27,14 +29,14 @@ class ResolvedToken:
     uses_credits: bool
 
 
-class TokenResolutionError(Exception):
+class TokenResolutionError(NotFoundError):
 
     def __init__(self, tool_provider: ExternalToolProvider, tool: ExternalTool | None = None):
         message = f"Unable to resolve an access token for '{tool_provider.name}'"
         if tool:
             message += f" - '{tool.name}'"
         message += ". Check your profile settings page."
-        super().__init__(message)
+        super().__init__(message, TOKEN_NOT_FOUND)
 
 
 class AccessTokenResolver:

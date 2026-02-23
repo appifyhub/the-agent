@@ -12,6 +12,8 @@ from features.external_tools.external_tool_library import TWITTER_API
 from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
 from util import log
 from util.config import config
+from util.error_codes import EXTERNAL_EMPTY_RESPONSE
+from util.errors import ExternalServiceError
 
 CACHE_PREFIX = "twitter-status-fetcher"
 CACHE_TTL = timedelta(weeks = 52)
@@ -120,7 +122,7 @@ class TwitterStatusFetcher:
             photo_contents = self.__resolve_photo_contents(tweet, text_contents)
             return "\n".join([text_contents, photo_contents or ""]).strip()
         except Exception as e:
-            raise ValueError(log.w("Error formatting tweet content", e))
+            raise ExternalServiceError("Error formatting tweet content", EXTERNAL_EMPTY_RESPONSE) from e
 
     def __resolve_photo_contents(self, tweet: Dict[str, Any], additional_context: str | None) -> str | None:
         log.t(f"Resolving photo contents for tweet {self.__tweet_id}")

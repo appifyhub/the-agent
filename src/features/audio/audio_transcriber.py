@@ -19,6 +19,8 @@ from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_3_5_HAIKU, WHISPER_1
 from features.integrations import prompt_resolvers
 from util import log
+from util.error_codes import LLM_UNEXPECTED_RESPONSE
+from util.errors import ExternalServiceError
 
 
 # Not tested as it's just a proxy
@@ -34,8 +36,6 @@ class AudioTranscriber:
     __audio_content: bytes
     __extension: str
     __transcriber_tool: ConfiguredTool
-    __language_name: str | None
-    __language_iso_code: str | None
     __transcriber: OpenAI
     __copywriter: BaseChatModel
     __di: DI
@@ -49,15 +49,11 @@ class AudioTranscriber:
         di: DI,
         def_extension: str | None = None,
         audio_content: bytes | None = None,
-        language_name: str | None = None,
-        language_iso_code: str | None = None,
     ):
         self.__job_id = job_id
         self.__resolve_extension(audio_url, def_extension)
         self.__validate_content(audio_url, audio_content)
         self.__transcriber_tool = transcriber_tool
-        self.__language_name = language_name
-        self.__language_iso_code = language_iso_code
         self.__transcriber = di.open_ai_client(transcriber_tool)
         self.__copywriter = di.chat_langchain_model(copywriter_tool)
         self.__di = di
@@ -116,13 +112,14 @@ class AudioTranscriber:
             copywriter_messages = [SystemMessage(system_prompt), HumanMessage(raw_transcription)]
             answer = self.__copywriter.invoke(copywriter_messages)
             if not isinstance(answer, AIMessage):
-                raise AssertionError(f"Received a non-AI message from the model: {answer}")
+                raise ExternalServiceError(f"Received a non-AI message from the model: {answer}", LLM_UNEXPECTED_RESPONSE)
             if not answer.content or not isinstance(answer.content, str):
-                raise AssertionError(f"Received an unexpected content from the model: {answer}")
+                raise ExternalServiceError(f"Received an unexpected content from the model: {answer}", LLM_UNEXPECTED_RESPONSE)
 
             transcription = str(answer.content)
             log.t(f"Raw transcription: `{transcription}`")
             return transcription
         except Exception as e:
-            self.error = log.e("Audio analysis failed", e)
+            self.error = f"Audio analysis failed: {str(e)}"
+            log.e("Audio analysis failed", e)
             return None
