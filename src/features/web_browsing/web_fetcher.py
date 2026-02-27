@@ -7,9 +7,11 @@ from typing import Any
 import requests
 from requests.exceptions import RequestException, Timeout
 
+from db.model.chat_config import ChatConfigDB
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from di.di import DI
-from features.external_tools.tool_choice_resolver import ConfiguredTool
+from features.external_tools.configured_tool import ConfiguredTool
+from features.integrations.integrations import resolve_agent_user
 from features.web_browsing.twitter_status_fetcher import TwitterStatusFetcher
 from features.web_browsing.twitter_utils import resolve_tweet_id
 from features.web_browsing.uri_cleanup import simplify_url
@@ -70,10 +72,13 @@ class WebFetcher:
                 TwitterStatusFetcher.DEFAULT_VISION_TOOL,
             )
             # load the system tool for now (will be migrated away)
+            chat_type = di.invoker_chat.chat_type if di.invoker_chat else ChatConfigDB.ChatType.background
             twitter_enterprise_tool: ConfiguredTool = ConfiguredTool(
                 definition = TwitterStatusFetcher.DEFAULT_TWITTER_TOOL,
                 token = config.rapid_api_twitter_token,
                 purpose = TwitterStatusFetcher.TWITTER_TOOL_TYPE,
+                payer_id = resolve_agent_user(chat_type).id,
+                uses_credits = False,
             )
             self.__tweet_fetcher = di.twitter_status_fetcher(
                 self.__tweet_id, twitter_api_tool, vision_tool, twitter_enterprise_tool,

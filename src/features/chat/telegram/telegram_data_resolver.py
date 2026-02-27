@@ -12,6 +12,8 @@ from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
 from features.integrations.integrations import is_the_agent
 from util import log
 from util.config import config
+from util.error_codes import UNEXPECTED_ERROR, USER_LIMIT_REACHED
+from util.errors import InternalError, RateLimitError
 
 
 class TelegramDataResolver:
@@ -120,12 +122,13 @@ class TelegramDataResolver:
             mapped_data.tool_choice_api_fiat_exchange = old_user.tool_choice_api_fiat_exchange
             mapped_data.tool_choice_api_crypto_exchange = old_user.tool_choice_api_crypto_exchange
             mapped_data.tool_choice_api_twitter = old_user.tool_choice_api_twitter
+            mapped_data.credit_balance = old_user.credit_balance
             mapped_data.group = old_user.group
         else:
             # new users can only be added until the user limit is reached
             user_count = self.__di.user_crud.count()
             if user_count >= config.max_users:
-                raise ValueError(log.e(f"User limit reached: {user_count}/{config.max_users}. Try again later"))
+                raise RateLimitError(f"User limit reached: {user_count}/{config.max_users}. Try again later", USER_LIMIT_REACHED)
 
         # reset token values to None if they are non-null but contain only whitespace
         def is_empty_secret(secret):
@@ -181,7 +184,8 @@ class TelegramDataResolver:
 
     def resolve_chat_message(self, mapped_data: ChatMessageSave) -> ChatMessage:
         log.t(f"  Resolving chat message: {mapped_data}")
-        assert mapped_data.chat_id is not None
+        if mapped_data.chat_id is None:
+            raise InternalError("chat_id is None in resolved chat message", UNEXPECTED_ERROR)
         old_chat_message_db = self.__di.chat_message_crud.get(mapped_data.chat_id, mapped_data.message_id)
         if old_chat_message_db:
             old_chat_message = ChatMessage.model_validate(old_chat_message_db)

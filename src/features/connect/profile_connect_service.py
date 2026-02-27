@@ -8,6 +8,8 @@ from db.model.user import UserDB
 from db.schema.user import User, UserSave, generate_connect_key
 from di.di import DI
 from util import log
+from util.error_codes import CONNECT_KEY_UPDATE_FAILED, USER_DELETE_FAILED, USER_UPDATE_FAILED
+from util.errors import InternalError
 
 
 class ProfileConnectService:
@@ -58,10 +60,10 @@ class ProfileConnectService:
             # Delete the casualty profile (frees up unique constraints for the survivor's update)
             deleted_user = self.__di.user_crud.delete(casualty_user.id, commit = False)
             if not deleted_user:
-                raise ValueError(f"Failed to find user to delete '{casualty_user.id}'")
+                raise InternalError(f"Failed to find user to delete '{casualty_user.id}'", USER_DELETE_FAILED)
             merged_user_db = self.__di.user_crud.update(merged_user_save, commit = False)
             if not merged_user_db:
-                raise ValueError(f"Failed to update survivor user '{survivor_user.id}'")
+                raise InternalError(f"Failed to update survivor user '{survivor_user.id}'", USER_UPDATE_FAILED)
             merged_user = User.model_validate(merged_user_db)
 
             # Regenerate connect key for survivor
@@ -81,8 +83,8 @@ class ProfileConnectService:
             )
         except Exception as e:
             self.__di.db.rollback()
-            error_msg = log.e(f"Failed to connect profiles: {e}", e)
-            return ProfileConnectService.Result.failure, f"Connection failed: {error_msg}"
+            log.e("Failed to connect profiles", e)
+            return ProfileConnectService.Result.failure, f"Failed to connect profiles: {e}"
 
     def regenerate_connect_key(self, user: User, commit: bool = True) -> str:
         log.d(f"Regenerating connect key for user '{user.id}'")
@@ -90,7 +92,7 @@ class ProfileConnectService:
         user_save.connect_key = generate_connect_key()
         updated_user_db = self.__di.user_crud.update(user_save, commit = commit)
         if not updated_user_db:
-            raise ValueError(f"Failed to update connect key for user '{user.id}'")
+            raise InternalError(f"Failed to update connect key for user '{user.id}'", CONNECT_KEY_UPDATE_FAILED)
         updated_user = User.model_validate(updated_user_db)
         log.i(f"Generated new connect key for user '{user.id}'")
         return updated_user.connect_key
@@ -188,6 +190,7 @@ class ProfileConnectService:
             merged.tool_choice_api_crypto_exchange = casualty.tool_choice_api_crypto_exchange
         if not merged.tool_choice_api_twitter and casualty.tool_choice_api_twitter:
             merged.tool_choice_api_twitter = casualty.tool_choice_api_twitter
+        merged.credit_balance = survivor.credit_balance + casualty.credit_balance
 
         # Keep survivor's group (developer group takes precedence to not lose admin rights)
         if casualty.group == UserDB.Group.developer or survivor.group == UserDB.Group.developer:

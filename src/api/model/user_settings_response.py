@@ -29,5 +29,7 @@ class UserSettingsResponse(BaseModel):
     tool_choice_api_fiat_exchange: str | None = None
     tool_choice_api_crypto_exchange: str | None = None
     tool_choice_api_twitter: str | None = None
+    credit_balance: float
+    is_sponsored: bool
     group: str
     created_at: str

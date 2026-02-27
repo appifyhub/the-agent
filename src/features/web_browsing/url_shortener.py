@@ -5,6 +5,8 @@ from requests import Response
 
 from util import log
 from util.config import config
+from util.error_codes import EXTERNAL_EMPTY_RESPONSE, MISSING_URL, URL_SHORTENER_FAILED
+from util.errors import ExternalServiceError, ValidationError
 
 
 class UrlShortener:
@@ -22,7 +24,7 @@ class UrlShortener:
         max_visits: int | None = None,
     ):
         if not long_url or not long_url.strip():
-            raise ValueError("long_url is required and cannot be empty")
+            raise ValidationError("long_url is required and cannot be empty", MISSING_URL)
         self.__long_url = long_url.strip()
         self.__custom_slug = custom_slug.strip() if custom_slug and custom_slug.strip() else None
         if valid_until:
@@ -62,10 +64,13 @@ class UrlShortener:
 
             short_url = response_data.get("shortUrl")
             if not short_url:
-                raise ValueError(f"API response missing 'shortUrl' field: {response_data}")
+                raise ExternalServiceError(f"API response missing 'shortUrl' field: {response_data}", EXTERNAL_EMPTY_RESPONSE)
 
             log.t("Short URL created successfully!")
             return str(short_url)
+        except ExternalServiceError:
+            raise  # don't re-wrap intentional errors in the generic handler below
         except Exception as e:
-            message = log.w("URL shortening failed!", {response.text if response is not None else "No response"}, e)
-            raise ValueError(message)
+            response_text = {response.text if response is not None else "No response"}
+            log.w("URL shortening failed!", response_text, e)
+            raise ExternalServiceError("URL shortening failed", URL_SHORTENER_FAILED) from e

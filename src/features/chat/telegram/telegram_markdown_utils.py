@@ -57,12 +57,16 @@ def escape_markdown(text: str) -> str:
     # Then protect `inline code` (single backticks, must not span lines)
     text = re.sub(r"`([^`\n]+?)`", protect_inline_code, text)
 
-    # Protect *bold* (single asterisk - Telegram's format, not standard markdown!)
-    # Only match if it contains at least one letter AND is surrounded by word boundaries/spaces
-    text = re.sub(r"(^|\s)\*([^\s*]*[a-zA-Z][^\s*]*)\*(\s|$)", rf"\1{BOLD_START}\2{BOLD_END}\3", text)
+    # Protect **bold** (double asterisk - standard markdown, also works in Telegram)
+    # Must match double asterisks first before single asterisks
+    text = re.sub(r"\*\*([^*]+?)\*\*", rf"{BOLD_START}{BOLD_START}\1{BOLD_END}{BOLD_END}", text)
 
-    # Protect _italic_ (underscore italic - must be at word boundaries and contain at least one non-underscore char)
-    text = re.sub(r"\b_([^\s_]+?)_\b", rf"{ITALIC_START}\1{ITALIC_END}", text)
+    # Protect *bold* (single asterisk - Telegram's format, not standard markdown!)
+    # Matches text with spaces inside: *bold text* is valid Telegram markdown
+    text = re.sub(r"(^|\s)\*([^*]+?)\*(\s|$)", rf"\1{BOLD_START}\2{BOLD_END}\3", text)
+
+    # Protect _italic_ (underscore italic - allow spaces inside)
+    text = re.sub(r"\b_([^_]+?)_\b", rf"{ITALIC_START}\1{ITALIC_END}", text)
 
     # Now escape all remaining special characters
     text = text.replace("*", "\\*")

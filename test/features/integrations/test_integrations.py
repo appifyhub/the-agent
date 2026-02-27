@@ -179,6 +179,7 @@ class IntegrationsTest(TestCase):
             connect_key = "INT-TG-KEY1",
             group = UserDB.Group.standard,
             created_at = date.today(),
+            credit_balance = 0.0,
         )
         mock_user_crud.get_by_telegram_username.return_value = mock_user_db
 
@@ -207,6 +208,7 @@ class IntegrationsTest(TestCase):
             connect_key = "INT-TG-KEY2",
             group = UserDB.Group.standard,
             created_at = date.today(),
+            credit_balance = 0.0,
         )
         mock_user_crud.get_by_telegram_username.return_value = mock_user_db
 
@@ -233,6 +235,7 @@ class IntegrationsTest(TestCase):
             connect_key = "INT-WA-KEY1",
             group = UserDB.Group.standard,
             created_at = date.today(),
+            credit_balance = 0.0,
         )
         mock_user_crud.get_by_whatsapp_user_id.return_value = mock_user_db
 

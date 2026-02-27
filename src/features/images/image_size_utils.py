@@ -1,4 +1,5 @@
 import io
+import re
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -6,6 +7,8 @@ from typing import Any
 from PIL import Image
 
 from util import log
+from util.error_codes import INVALID_IMAGE_SIZE
+from util.errors import ValidationError
 
 MAX_ITERATIONS = 30
 
@@ -52,7 +55,7 @@ def resize_file(input_path: str, max_size_bytes: int) -> str:
                         return __write_temp_file(best_under, suffix)
                     if best_any is not None:
                         return __write_temp_file(best_any, suffix)
-                    raise ValueError(f"Could not resize image to acceptable size in {MAX_ITERATIONS} iterations")
+                    raise ValidationError(f"Could not resize image to acceptable size in {MAX_ITERATIONS} iterations", INVALID_IMAGE_SIZE)  # noqa: E501
                 log.d(f"Resizing in iteration {iteration}, scale_factor: {scale_factor}, quality: {quality}")
 
                 output = io.BytesIO()
@@ -69,7 +72,7 @@ def resize_file(input_path: str, max_size_bytes: int) -> str:
                         return __write_temp_file(best_under, suffix)
                     if best_any is not None:
                         return __write_temp_file(best_any, suffix)
-                    raise ValueError("Could not resize image to acceptable size")
+                    raise ValidationError("Could not resize image to acceptable size", INVALID_IMAGE_SIZE)
 
                 current_image = current_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
@@ -143,6 +146,10 @@ def resize_file(input_path: str, max_size_bytes: int) -> str:
         raise
 
 
+def normalize_image_size_category(size: str) -> str:
+    return re.sub(r"\s+", "", size.lower()).replace("mb", "k").replace("mp", "k").replace("m", "k")
+
+
 def calculate_image_size_category(file_path: str) -> str:
     """
     Calculate the image size category based on megapixels.
@@ -175,7 +182,7 @@ def calculate_image_size_category(file_path: str) -> str:
                 log.w(f"Large input image ({megapixels:.2f} MP) is tolerated, counting as 12k")
             return "12k"
         else:
-            raise ValueError(f"Input image too large, maximum 14 megapixels ({megapixels:.2f} MP)")
+            raise ValidationError(f"Input image too large, maximum 14 megapixels ({megapixels:.2f} MP)", INVALID_IMAGE_SIZE)
     except Exception as e:
         log.e("Failed to calculate image size category", e)
         raise

@@ -3,9 +3,11 @@ from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from db.sql_util import SQLUtil
+
 from db.schema.user import UserSave
 from features.accounting.purchases.purchase_record import PurchaseRecord
 from features.accounting.purchases.purchase_record_repo import PurchaseRecordRepository
+from util.errors import NotFoundError, ValidationError
 
 
 class PurchaseRecordRepositoryTest(unittest.TestCase):
@@ -272,7 +274,7 @@ class PurchaseRecordRepositoryTest(unittest.TestCase):
         self.assertEqual(bound.user_id, self.user.id)
 
     def test_bind_license_key_to_user_not_found(self):
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(NotFoundError) as context:
             self.repo.bind_license_key_to_user("NONEXISTENT", self.user.id)
 
         self.assertIn("not found", str(context.exception))
@@ -281,7 +283,7 @@ class PurchaseRecordRepositoryTest(unittest.TestCase):
         record = self._create_record(user_id = None, license_key = "LICENSE-REF", refunded = True)
         self.repo.save(record)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ValidationError) as context:
             self.repo.bind_license_key_to_user("LICENSE-REF", self.user.id)
 
         self.assertIn("refunded", str(context.exception))
@@ -291,7 +293,7 @@ class PurchaseRecordRepositoryTest(unittest.TestCase):
         record = self._create_record(user_id = other_user.id, license_key = "LICENSE-BOUND")
         self.repo.save(record)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ValidationError) as context:
             self.repo.bind_license_key_to_user("LICENSE-BOUND", self.user.id)
 
         self.assertIn("already bound", str(context.exception))
@@ -301,7 +303,7 @@ class PurchaseRecordRepositoryTest(unittest.TestCase):
         record.test = True
         self.repo.save(record)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ValidationError) as context:
             self.repo.bind_license_key_to_user("LICENSE-TEST", self.user.id)
 
         self.assertIn("test order", str(context.exception))
@@ -311,7 +313,7 @@ class PurchaseRecordRepositoryTest(unittest.TestCase):
         record.is_preorder_authorization = True
         self.repo.save(record)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ValidationError) as context:
             self.repo.bind_license_key_to_user("LICENSE-PREORDER", self.user.id)
 
         self.assertIn("preorder", str(context.exception))

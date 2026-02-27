@@ -6,12 +6,14 @@ import requests
 
 from di.di import DI
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
+from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO
-from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.images.image_api_utils import map_to_model_parameters
 from features.images.image_size_utils import calculate_image_size_category
 from util import log
+from util.error_codes import IMAGE_EDIT_FAILED
+from util.errors import ExternalServiceError
 from util.functions import extract_url_from_replicate_result, first_key_with_value
 
 BOOT_AND_RUN_TIMEOUT_S = 120
@@ -89,11 +91,12 @@ class ImageEditor:
 
                     result = prediction.output
             if not result:
-                raise ValueError("Failed to edit the image (no result returned)")
+                raise ExternalServiceError("Failed to edit the image (no result returned)", IMAGE_EDIT_FAILED)
             log.d("Image edit successful")
             return extract_url_from_replicate_result(result)
         except Exception as e:
-            self.error = log.e("Error editing image", e)
+            self.error = f"Error editing image: {str(e)}"
+            log.e("Error editing image", e)
             return None
 
     def __get_suffix(self) -> str:

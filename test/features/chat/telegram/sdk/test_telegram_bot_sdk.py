@@ -8,6 +8,7 @@ from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
 from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
+from util.errors import InternalError
 
 
 class TelegramBotSDKTest(unittest.TestCase):
@@ -199,7 +200,7 @@ class TelegramBotSDKTest(unittest.TestCase):
     def test_store_api_response_mapping_failure(self):
         self.mock_di.telegram_domain_mapper.map_update.return_value = None
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(InternalError) as context:
             # noinspection PyUnresolvedReferences
             self.sdk._TelegramBotSDK__store_api_response_as_message(self.api_response)
         self.assertTrue("domain mapping failed" in str(context.exception))
@@ -213,7 +214,7 @@ class TelegramBotSDKTest(unittest.TestCase):
             attachments = None,
         )
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(InternalError) as context:
             # noinspection PyUnresolvedReferences
             self.sdk._TelegramBotSDK__store_api_response_as_message(self.api_response)
         self.assertTrue("data resolution failed" in str(context.exception))

@@ -4,6 +4,8 @@ from pyuploadcare import Uploadcare
 
 from util import log
 from util.config import config
+from util.error_codes import FILE_UPLOAD_FAILED, MISSING_CONTENT, MISSING_FILENAME
+from util.errors import ExternalServiceError, ValidationError
 
 
 class FileUploader:
@@ -17,9 +19,9 @@ class FileUploader:
         filename: str,
     ):
         if not content:
-            raise ValueError("Content must be provided")
+            raise ValidationError("Content must be provided", MISSING_CONTENT)
         if not filename:
-            raise ValueError("Filename must be provided")
+            raise ValidationError("Filename must be provided", MISSING_FILENAME)
         self.__content = content
         self.__filename = filename
         log.t(f"Ready to upload file! Size: {len(self.__content) / 1024:.2f} KB")
@@ -42,5 +44,5 @@ class FileUploader:
             file_url = f"{ucare_file.cdn_url}{ucare_file.filename}"
             return file_url
         except Exception as e:
-            message = log.w("File upload failed!", e)
-            raise ValueError(message)
+            log.w("File upload failed", e)
+            raise ExternalServiceError("File upload failed", FILE_UPLOAD_FAILED) from e

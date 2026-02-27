@@ -16,6 +16,7 @@ from di.di import DI
 from features.chat.telegram.model.chat_member import ChatMemberAdministrator
 from features.chat.telegram.model.user import User as TelegramUser
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from util.errors import AuthorizationError, NotFoundError, ValidationError
 
 
 class AuthorizationServiceTest(unittest.TestCase):
@@ -107,12 +108,11 @@ class AuthorizationServiceTest(unittest.TestCase):
         # Should return the same instance that was passed in
         self.assertIs(result, self.chat_config)
 
-    def test_validate_chat_failure_chat_not_found(self):
-        self.mock_chat_config_dao.get.return_value = None
+    def test_validate_chat_failure_malformed_id(self):
         service = AuthorizationService(self.mock_di)
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ValidationError) as context:
             service.validate_chat("wrong_chat_id")
-        self.assertIn("badly formed hexadecimal UUID string", str(context.exception))
+        self.assertIn("Malformed chat ID 'wrong_chat_id'", str(context.exception))
 
     def test_validate_user_success_with_hex_string(self):
         service = AuthorizationService(self.mock_di)
@@ -131,11 +131,17 @@ class AuthorizationServiceTest(unittest.TestCase):
         # Should return the same instance that was passed in
         self.assertIs(result, self.invoker_user)
 
+    def test_validate_user_failure_malformed_id(self):
+        service = AuthorizationService(self.mock_di)
+        with self.assertRaises(ValidationError) as context:
+            service.validate_user("wrong_user_id")
+        self.assertIn("Malformed user ID 'wrong_user_id'", str(context.exception))
+
     def test_validate_user_failure_user_not_found(self):
         # Reset mock to return None for this test
         self.mock_di.user_crud.get.return_value = None
         service = AuthorizationService(self.mock_di)
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(NotFoundError) as context:
             service.validate_user("00000000000000000000000000000000")
         self.assertIn("User '00000000000000000000000000000000' not found", str(context.exception))
 
@@ -157,7 +163,7 @@ class AuthorizationServiceTest(unittest.TestCase):
         self.mock_telegram_sdk.get_chat_administrators.return_value = [other_admin]
 
         service = AuthorizationService(self.mock_di)
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(AuthorizationError) as context:
             service.authorize_for_chat(self.invoker_user, self.chat_config.chat_id)
         self.assertIn("is not admin in", str(context.exception))
 
@@ -180,7 +186,7 @@ class AuthorizationServiceTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = other_user
 
         service = AuthorizationService(self.mock_di)
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(AuthorizationError) as context:
             service.authorize_for_user(self.invoker_user, other_user.id.hex)
         self.assertIn("is not the allowed user", str(context.exception))
 

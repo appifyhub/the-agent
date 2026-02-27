@@ -12,6 +12,14 @@ from features.accounting.purchases.purchase_aggregates import (
 )
 from features.accounting.purchases.purchase_record import PurchaseRecord
 from features.accounting.purchases.purchase_record_mapper import db, domain
+from util.error_codes import (
+    LICENSE_ALREADY_BOUND,
+    LICENSE_FROM_PREORDER,
+    LICENSE_FROM_TEST_ORDER,
+    LICENSE_KEY_NOT_FOUND,
+    LICENSE_REFUNDED,
+)
+from util.errors import NotFoundError, ValidationError
 
 
 class PurchaseRecordRepository:
@@ -165,19 +173,19 @@ class PurchaseRecordRepository:
     def bind_license_key_to_user(self, license_key: str, user_id: UUID) -> PurchaseRecord:
         db_model = self._db.query(PurchaseRecordDB).filter(
             PurchaseRecordDB.license_key == license_key,
-        ).first()
+        ).with_for_update().first()
 
         if db_model is None:
-            raise ValueError(f"License key {license_key} not found")
+            raise NotFoundError(f"License key {license_key} not found", LICENSE_KEY_NOT_FOUND)
 
         if db_model.refunded:
-            raise ValueError(f"License key {license_key} is refunded and cannot be bound")
+            raise ValidationError(f"License key {license_key} is refunded and cannot be bound", LICENSE_REFUNDED)
 
         if db_model.test:
-            raise ValueError(f"License key {license_key} is from a test order and cannot be bound")
+            raise ValidationError(f"License key {license_key} is from a test order and cannot be bound", LICENSE_FROM_TEST_ORDER)
 
         if db_model.is_preorder_authorization:
-            raise ValueError(f"License key {license_key} is from a preorder and cannot be bound")
+            raise ValidationError(f"License key {license_key} is from a preorder and cannot be bound", LICENSE_FROM_PREORDER)
 
         if db_model.user_id is None:
             db_model.user_id = user_id
@@ -185,4 +193,4 @@ class PurchaseRecordRepository:
             self._db.refresh(db_model)
             return domain(db_model)
         else:
-            raise ValueError(f"License key {license_key} is already bound to user {db_model.user_id}")
+            raise ValidationError(f"License key {license_key} is already bound to user {db_model.user_id}", LICENSE_ALREADY_BOUND)

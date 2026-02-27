@@ -4,6 +4,8 @@ from db.model.chat_config import ChatConfigDB
 from di.di import DI
 from features.connect.profile_connect_service import ProfileConnectService
 from util import log
+from util.error_codes import SPONSORSHIP_OPERATION_FAILED
+from util.errors import InternalError
 
 
 class ProfileConnectController:
@@ -38,7 +40,7 @@ class ProfileConnectController:
         result, message = self.__di.profile_connect_service.connect_profiles(user, normalized_connect_key)
 
         if result == ProfileConnectService.Result.failure:
-            raise ValueError(message)
+            raise InternalError(message, SPONSORSHIP_OPERATION_FAILED)
 
         settings_link_response = self.__di.settings_controller.create_settings_link(chat_type = chat_type)
         log.i(f"Successfully connected profiles for user '{user_id_hex}'")
