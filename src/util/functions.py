@@ -6,6 +6,8 @@ from uuid import uuid4
 from pydantic import SecretStr
 
 from util import log
+from util.error_codes import EXTERNAL_EMPTY_RESPONSE, LLM_UNEXPECTED_RESPONSE
+from util.errors import ExternalServiceError
 
 K = TypeVar("K")
 V = TypeVar("V")
@@ -76,18 +78,18 @@ def normalize_username(username: str | None) -> str | None:
 def extract_url_from_replicate_result(result: Any) -> str:
     if isinstance(result, list):
         if not result:
-            raise ValueError("Empty result list from Replicate")
+            raise ExternalServiceError("Empty result list from Replicate", EXTERNAL_EMPTY_RESPONSE)
         first_item = result[0]
         if hasattr(first_item, "url"):
             return first_item.url
         elif isinstance(first_item, str):
             return first_item
-        raise ValueError(f"Unexpected result type in list: {type(first_item)}")
+        raise ExternalServiceError(f"Unexpected result type in list: {type(first_item)}", EXTERNAL_EMPTY_RESPONSE)
     elif hasattr(result, "url"):
         return result.url  # type: ignore
     elif isinstance(result, str):
         return result
-    raise ValueError(f"Unexpected result type from Replicate: {type(result)}")
+    raise ExternalServiceError(f"Unexpected result type from Replicate: {type(result)}", EXTERNAL_EMPTY_RESPONSE)
 
 
 def delete_file_safe(path: str | None) -> None:
@@ -110,10 +112,10 @@ def parse_ai_message_content(content: str | list[str | dict]) -> str:
             elif isinstance(block, str):
                 full_text.append(block)
         if not full_text:
-            raise AssertionError(f"Received an unexpected content list from the model: {content}")
+            raise ExternalServiceError(f"Received an unexpected content list from the model: {content}", LLM_UNEXPECTED_RESPONSE)
         return "\n".join(full_text)
     else:
-        raise AssertionError(f"Received an unexpected content from the model: {content}")
+        raise ExternalServiceError(f"Received an unexpected content from the model: {content}", LLM_UNEXPECTED_RESPONSE)
 
 
 def parse_gumroad_form(form_dict: dict[str, str]) -> dict[str, Any]:
@@ -135,8 +137,8 @@ def parse_gumroad_form(form_dict: dict[str, str]) -> dict[str, Any]:
         del form_dict[key]
 
     if url_params:
-        form_dict["url_params"] = url_params
+        form_dict["url_params"] = url_params  # type: ignore
     if custom_fields:
-        form_dict["custom_fields"] = custom_fields
+        form_dict["custom_fields"] = custom_fields  # type: ignore
 
     return form_dict

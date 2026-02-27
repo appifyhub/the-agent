@@ -5,6 +5,7 @@ from typing import Any
 from uvicorn.server import logger
 
 from util.config import config
+from util.errors import ServiceError
 
 
 def _should_log(level: str) -> bool:
@@ -22,7 +23,10 @@ def _format_args(*args: Any) -> tuple[str, list[Exception]]:
 
     # prepare the print components
     for arg in args:
-        if isinstance(arg, Exception):
+        if isinstance(arg, ServiceError):
+            exceptions.append(arg)
+            formatted_parts.append(arg.to_log_string())
+        elif isinstance(arg, Exception):
             exceptions.append(arg)
             formatted_parts.append(f"! {str(type(arg).__name__)} (see below)")
         elif hasattr(arg, "__dict__"):
@@ -48,14 +52,9 @@ def _format_args(*args: Any) -> tuple[str, list[Exception]]:
     return "\n ├─ ".join(formatted_parts), exceptions
 
 
-def _log_message(level: str, message: str, exceptions: list[Exception]) -> str:
-    # build enriched return value with exception messages (always, regardless of logging)
-    return_parts = [message]
-    for exception in exceptions:
-        return_parts.append(f"{type(exception).__name__}: {str(exception)}")
-
+def _log_message(level: str, message: str, exceptions: list[Exception]):
     if not _should_log(level) and not exceptions:
-        return "\n ├─ ".join(return_parts)
+        return
 
     # for uvicorn, use the uvicorn logger
     if config.log_level != "local":
@@ -88,7 +87,7 @@ def _log_message(level: str, message: str, exceptions: list[Exception]) -> str:
                     trace_lines = traceback.format_tb(trace)
                     indented_trace = "".join(trace_lines).strip()
                     print(indented_trace, file = sys.stderr)
-        return "\n ├─ ".join(return_parts)
+        return
 
     # for local execution, print to stdout/stderr
     print(f"[{level[0]}] {message}")
@@ -98,29 +97,28 @@ def _log_message(level: str, message: str, exceptions: list[Exception]) -> str:
             trace_lines = traceback.format_tb(trace)
             indented_trace = "".join(("    " + line.strip()) for line in trace_lines)
             print(indented_trace, file = sys.stderr)
-    return "\n ├─ ".join(return_parts)
 
 
-def t(*args: Any) -> str:
+def t(*args: Any):
     message, exceptions = _format_args(*args)
-    return _log_message("TRACE", message, exceptions)
+    _log_message("TRACE", message, exceptions)
 
 
-def d(*args: Any) -> str:
+def d(*args: Any):
     message, exceptions = _format_args(*args)
-    return _log_message("DEBUG", message, exceptions)
+    _log_message("DEBUG", message, exceptions)
 
 
-def i(*args: Any) -> str:
+def i(*args: Any):
     message, exceptions = _format_args(*args)
-    return _log_message("INFO", message, exceptions)
+    _log_message("INFO", message, exceptions)
 
 
-def w(*args: Any) -> str:
+def w(*args: Any):
     message, exceptions = _format_args(*args)
-    return _log_message("WARN", message, exceptions)
+    _log_message("WARN", message, exceptions)
 
 
-def e(*args: Any) -> str:
+def e(*args: Any):
     message, exceptions = _format_args(*args)
-    return _log_message("ERROR", message, exceptions)
+    _log_message("ERROR", message, exceptions)

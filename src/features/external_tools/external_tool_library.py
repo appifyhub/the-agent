@@ -112,6 +112,17 @@ GPT_5_NANO = ExternalTool(
     ),
 )
 
+GPT_5_PRO = ExternalTool(
+    id = "gpt-5-pro",
+    name = "GPT 5 Pro",
+    provider = OPEN_AI,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+    cost_estimate = CostEstimate(
+        input_1m_tokens = 1500,
+        output_1m_tokens = 12000,
+    ),
+)
+
 GPT_5_1 = ExternalTool(
     id = "gpt-5.1",
     name = "GPT 5.1",
@@ -131,6 +142,17 @@ GPT_5_2 = ExternalTool(
     cost_estimate = CostEstimate(
         input_1m_tokens = 175,
         output_1m_tokens = 1400,
+    ),
+)
+
+GPT_5_2_PRO = ExternalTool(
+    id = "gpt-5.2-pro",
+    name = "GPT 5.2 Pro",
+    provider = OPEN_AI,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+    cost_estimate = CostEstimate(
+        input_1m_tokens = 2100,
+        output_1m_tokens = 16800,
     ),
 )
 
@@ -246,17 +268,6 @@ CLAUDE_3_5_HAIKU = ExternalTool(
     ),
 )
 
-CLAUDE_3_7_SONNET = ExternalTool(
-    id = "claude-3-7-sonnet-latest",
-    name = "Claude 3.7 Sonnet",
-    provider = ANTHROPIC,
-    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
-    cost_estimate = CostEstimate(
-        input_1m_tokens = 300,
-        output_1m_tokens = 1500,
-        search_1m_tokens = 150,  # used with vision queries
-    ),
-)
 
 CLAUDE_4_SONNET = ExternalTool(
     id = "claude-sonnet-4-0",
@@ -294,11 +305,47 @@ CLAUDE_4_5_SONNET = ExternalTool(
     ),
 )
 
+CLAUDE_4_5_OPUS = ExternalTool(
+    id = "claude-opus-4-5",
+    name = "Claude 4.5 Opus",
+    provider = ANTHROPIC,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+    cost_estimate = CostEstimate(
+        input_1m_tokens = 500,
+        output_1m_tokens = 2500,
+        search_1m_tokens = 200,  # used with vision queries
+    ),
+)
+
+CLAUDE_4_6_SONNET = ExternalTool(
+    id = "claude-sonnet-4-6",
+    name = "Claude 4.6 Sonnet",
+    provider = ANTHROPIC,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+    cost_estimate = CostEstimate(
+        input_1m_tokens = 300,
+        output_1m_tokens = 1500,
+        search_1m_tokens = 150,  # used with vision queries
+    ),
+)
+
+CLAUDE_4_6_OPUS = ExternalTool(
+    id = "claude-opus-4-6",
+    name = "Claude 4.6 Opus",
+    provider = ANTHROPIC,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+    cost_estimate = CostEstimate(
+        input_1m_tokens = 500,
+        output_1m_tokens = 2500,
+        search_1m_tokens = 200,  # used with vision queries
+    ),
+)
+
 ###  Google AI  ###
 
-GEMINI_2_5_FLASH_LITE = ExternalTool(
-    id = "gemini-2.5-flash-lite",
-    name = "Gemini 2.5 Flash-Lite",
+GEMINI_FLASH_LITE_LATEST = ExternalTool(
+    id = "gemini-flash-lite-latest",
+    name = "Gemini Flash Lite (Latest)",
     provider = GOOGLE_AI,
     types = [ToolType.chat, ToolType.copywriting, ToolType.vision],
     cost_estimate = CostEstimate(
@@ -332,9 +379,9 @@ GEMINI_2_5_PRO = ExternalTool(
     ),
 )
 
-GEMINI_3_FLASH = ExternalTool(
-    id = "gemini-3-flash-preview",
-    name = "Gemini 3 Flash (Preview)",
+GEMINI_FLASH_LATEST = ExternalTool(
+    id = "gemini-flash-latest",
+    name = "Gemini Flash (Latest)",
     provider = GOOGLE_AI,
     types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
     cost_estimate = CostEstimate(
@@ -344,9 +391,9 @@ GEMINI_3_FLASH = ExternalTool(
     ),
 )
 
-GEMINI_3_PRO = ExternalTool(
-    id = "gemini-3-pro-preview",
-    name = "Gemini 3 Pro (Preview)",
+GEMINI_PRO_LATEST = ExternalTool(
+    id = "gemini-pro-latest",
+    name = "Gemini Pro (Latest)",
     provider = GOOGLE_AI,
     types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
     cost_estimate = CostEstimate(
@@ -559,6 +606,18 @@ IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO = ExternalTool(
     ),
 )
 
+IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_2 = ExternalTool(
+    id = "google/nano-banana-2",
+    name = "Google: Nano Banana 2",
+    provider = REPLICATE,
+    types = [ToolType.images_gen, ToolType.images_edit],
+    cost_estimate = CostEstimate(
+        output_image_1k = 7,
+        output_image_2k = 11,
+        output_image_4k = 16,
+    ),
+)
+
 ###  Rapid API  ###
 
 FIAT_CURRENCY_EXCHANGE = ExternalTool(
@@ -604,10 +663,12 @@ ALL_EXTERNAL_TOOLS = [
     GPT_4_1_MINI,
     GPT_4_1_NANO,
     GPT_5,
+    GPT_5_PRO,
     GPT_5_MINI,
     GPT_5_NANO,
     GPT_5_1,
     GPT_5_2,
+    GPT_5_2_PRO,
     GPT_4O,
     GPT_4O_MINI,
     GPT_O3_MINI,
@@ -619,16 +680,18 @@ ALL_EXTERNAL_TOOLS = [
     TEXT_EMBEDDING_5_LARGE,
     # Anthropic
     CLAUDE_3_5_HAIKU,
-    CLAUDE_3_7_SONNET,
     CLAUDE_4_SONNET,
     CLAUDE_4_5_HAIKU,
     CLAUDE_4_5_SONNET,
+    CLAUDE_4_5_OPUS,
+    CLAUDE_4_6_SONNET,
+    CLAUDE_4_6_OPUS,
     # Google AI
-    GEMINI_2_5_FLASH_LITE,
+    GEMINI_FLASH_LITE_LATEST,
     GEMINI_2_5_FLASH,
     GEMINI_2_5_PRO,
-    GEMINI_3_FLASH,
-    GEMINI_3_PRO,
+    GEMINI_FLASH_LATEST,
+    GEMINI_PRO_LATEST,
     GEMINI_3_PRO_IMAGE,
     # Perplexity
     SONAR,
@@ -646,6 +709,7 @@ ALL_EXTERNAL_TOOLS = [
     IMAGE_GEN_GEMINI_2_5_FLASH_IMAGE,
     IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA,
     IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO,
+    IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_2,
     # Rapid API
     FIAT_CURRENCY_EXCHANGE,
     TWITTER_API,

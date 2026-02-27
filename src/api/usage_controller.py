@@ -1,9 +1,11 @@
 from datetime import datetime
 
 from di.di import DI
-from features.accounting.stats.usage_aggregates import UsageAggregates
-from features.accounting.stats.usage_record import UsageRecord
+from features.accounting.usage.usage_aggregates import UsageAggregates
+from features.accounting.usage.usage_record import UsageRecord
 from util import log
+from util.error_codes import INVALID_LIMIT
+from util.errors import ValidationError
 
 
 class UsageController:
@@ -27,7 +29,7 @@ class UsageController:
         provider_id: str | None = None,
     ) -> list[UsageRecord]:
         if limit > 100:
-            raise ValueError("limit cannot exceed 100")
+            raise ValidationError("limit cannot exceed 100", INVALID_LIMIT)
         log.d(f"Fetching usage records for user '{user_id_hex}'")
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
         return self.__di.usage_record_repo.get_by_user(

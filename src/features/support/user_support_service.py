@@ -6,13 +6,15 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from di.di import DI
+from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_4_SONNET
-from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.integrations import prompt_resolvers
 from features.integrations.integrations import resolve_external_handle, resolve_platform_name, resolve_user_link
 from util import log
 from util.config import config
+from util.error_codes import LLM_UNEXPECTED_RESPONSE
+from util.errors import ExternalServiceError
 
 GITHUB_BASE_URL = "https://api.github.com"
 
@@ -100,7 +102,7 @@ class UserSupportService:
         # generate the issue description
         response = self.__copywriter.invoke([SystemMessage(system_prompt), HumanMessage(message)])
         if not isinstance(response, AIMessage):
-            raise AssertionError(f"Received a non-AI message from LLM: {response}")
+            raise ExternalServiceError(f"Received a non-AI message from LLM: {response}", LLM_UNEXPECTED_RESPONSE)
         return str(response.content)
 
     def __generate_issue_title(self, description: str) -> str:
@@ -109,7 +111,7 @@ class UserSupportService:
         message = f"Issue description:\n```\n{description}\n```\n\nIssue type: '{self.__request_type.name}'"
         response = self.__copywriter.invoke([SystemMessage(system_prompt), HumanMessage(message)])
         if not isinstance(response, AIMessage):
-            raise AssertionError(f"Received a non-AI message from LLM: {response}")
+            raise ExternalServiceError(f"Received a non-AI message from LLM: {response}", LLM_UNEXPECTED_RESPONSE)
         return str(response.content)
 
     def execute(self) -> str:

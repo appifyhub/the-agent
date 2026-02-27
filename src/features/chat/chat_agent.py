@@ -8,14 +8,16 @@ from langchain_core.runnables import Runnable
 
 from di.di import DI
 from features.chat.command_processor import CommandProcessor
+from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import GPT_4_1_MINI
-from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.integrations import prompt_resolvers
 from features.integrations.integrations import resolve_agent_user, resolve_external_handle
 from features.prompting import prompt_library
 from util import log
 from util.config import config
+from util.error_codes import LLM_UNEXPECTED_RESPONSE, TOOL_NOT_FOUND, UNEXPECTED_ERROR
+from util.errors import ExternalServiceError, InternalError, NotFoundError
 
 TMessage = TypeVar("TMessage", bound = BaseMessage)  # Generic message type
 TooledChatModel = Runnable[LanguageModelInput, BaseMessage]
@@ -99,7 +101,7 @@ class ChatAgent:
             while True:
                 # don't blow up the costs
                 if iteration > config.max_chatbot_iterations:
-                    raise OverflowError(log.e(f"Reached max iterations ({config.max_chatbot_iterations}), finishing"))
+                    raise InternalError(f"Reached max iterations ({config.max_chatbot_iterations}), finishing", UNEXPECTED_ERROR)
 
                 # run the actual LLM completion
                 llm_answer = (tools_model or base_model).invoke(self.__messages)
@@ -109,7 +111,7 @@ class ChatAgent:
                 if not answer.tool_calls:  # type: ignore
                     log.d(f"Iteration #{iteration} has no tool calls.")
                     if not isinstance(answer, AIMessage):
-                        raise AssertionError(f"Received a non-AI message from LLM: {answer}")
+                        raise ExternalServiceError(f"Received a non-AI message from LLM: {answer}", LLM_UNEXPECTED_RESPONSE)
                     system_correction_added = False
                     for attachment_id in self.__attachment_ids:
                         clean_attachment_id = re.sub(r"[ _-]", "", attachment_id)
@@ -147,7 +149,7 @@ class ChatAgent:
                     self.__add_message(ToolMessage(tool_result, tool_call_id = tool_id))
 
                 if not isinstance(self.__last_message, ToolMessage):
-                    raise LookupError("Couldn't find tools to invoke!")
+                    raise NotFoundError("Couldn't find tools to invoke!", TOOL_NOT_FOUND)
         except Exception as e:
             log.e("Chat completion failed", e)
             message = prompt_resolvers.simple_chat_error(str(e))

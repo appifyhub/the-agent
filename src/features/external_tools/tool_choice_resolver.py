@@ -1,28 +1,20 @@
-from typing import NamedTuple
-
-from pydantic import SecretStr
-
 from di.di import DI
+from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ExternalToolProvider, ToolType
 from features.external_tools.external_tool_library import ALL_EXTERNAL_TOOLS
 from util import log
+from util.error_codes import TOOL_NOT_FOUND
+from util.errors import NotFoundError
 
 ToolsByProvider = dict[ExternalToolProvider, list[ExternalTool]]
 
 
-class ConfiguredTool(NamedTuple):
-
-    definition: ExternalTool
-    token: SecretStr
-    purpose: ToolType
-
-
-class ToolResolutionError(Exception):
+class ToolResolutionError(NotFoundError):
 
     def __init__(self, purpose: ToolType, user_id: str):
         message = f"Unable to resolve a tool for '{purpose.value}' for user '{user_id}'. "
         message += "Open your profile settings page to configure your tool choices and tokens."
-        super().__init__(message)
+        super().__init__(message, TOOL_NOT_FOUND)
 
 
 class ToolChoiceResolver:
@@ -48,8 +40,8 @@ class ToolChoiceResolver:
 
         # 3. try tools in order of priority until one with access is found
         for tool in prioritized_tools:
-            access_token = self.__di.access_token_resolver.get_access_token_for_tool(tool)
-            if access_token:
+            resolved_token = self.__di.access_token_resolver.get_access_token_for_tool(tool)
+            if resolved_token:
                 default_tool_id = (
                     default_tool.id
                     if isinstance(default_tool, ExternalTool)
@@ -58,7 +50,13 @@ class ToolChoiceResolver:
                 log.t(f"Found available tool '{tool.id}' from provider '{tool.provider.name}'")
                 log.t(f"  · Matches user choice '{user_choice_tool_id}'? {'Yes' if tool.id == user_choice_tool else 'No'}")
                 log.t(f"  · Matches default tool '{default_tool_id}'? {'Yes' if tool.id == default_tool_id else 'No'}")
-                return ConfiguredTool(definition = tool, token = access_token, purpose = purpose)
+                return ConfiguredTool(
+                    definition = tool,
+                    token = resolved_token.token,
+                    purpose = purpose,
+                    payer_id = resolved_token.payer_id,
+                    uses_credits = resolved_token.uses_credits,
+                )
             log.t(f"No access to tool '{tool.id}' from provider '{tool.provider.name}'")
 
         log.t(f"No available tools found for type '{purpose.value}'")

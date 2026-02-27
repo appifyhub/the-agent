@@ -5,6 +5,8 @@ from di.di import DI
 from features.announcements.sys_announcements_service import SysAnnouncementsService
 from util import log
 from util.config import config
+from util.error_codes import ANNOUNCEMENT_NOT_RECEIVED, CHAT_CONFIG_NOT_FOUND
+from util.errors import ExternalServiceError, NotFoundError
 from util.translations_cache import TranslationsCache
 
 
@@ -20,7 +22,7 @@ def respond_with_currency_alerts(di: DI) -> dict:
         try:
             chat_config_db = di.chat_config_crud.get(triggered_alert.chat_id)
             if not chat_config_db:
-                raise ValueError(f"Chat config not found for chat {triggered_alert.chat_id}")
+                raise NotFoundError(f"Chat config not found for chat {triggered_alert.chat_id}", CHAT_CONFIG_NOT_FOUND)
             chat_config = ChatConfig.model_validate(chat_config_db)
             scoped_di = di.clone(invoker_id = triggered_alert.owner_id.hex, invoker_chat_id = chat_config.chat_id.hex)
 
@@ -53,9 +55,9 @@ def respond_with_currency_alerts(di: DI) -> dict:
                     SysAnnouncementsService.TOOL_TYPE,
                     SysAnnouncementsService.DEFAULT_TOOL,
                 )
-                answer = scoped_di.sys_announcements_service(raw_information, chat_config, configured_tool).execute()
+                _, answer = scoped_di.sys_announcements_service(raw_information, chat_config, configured_tool).execute()
                 if not answer.content:
-                    raise ValueError("LLM Answer not received")
+                    raise ExternalServiceError("LLM Answer not received", ANNOUNCEMENT_NOT_RECEIVED)
                 announcement_text = translations.save(str(answer.content), language_name, language_iso_code)
                 announcements_created += 1
         except Exception as e:

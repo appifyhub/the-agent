@@ -9,6 +9,7 @@ from features.external_tools.external_tool_library import (
     IMAGE_GEN_EDIT_FLUX_2_PRO,
     IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO,
     IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA,
+    IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_2,
     IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO,
     IMAGE_GEN_EDIT_GPT_IMAGE_1_5,
     IMAGE_GEN_EDIT_SEEDREAM_4,
@@ -58,6 +59,9 @@ class UnifiedImageParameters:
     moderation: str = "low"
     safety_tolerance: int = 2
     safety_filter_level: str = "block_only_high"
+    # search
+    google_search: bool = False
+    image_search: bool = False
     # input
     input_fidelity: str = "high"
     guidance_scale: float = 5.5
@@ -100,6 +104,8 @@ def map_to_model_parameters(
     elif tool == IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA:
         return unified_params
     elif tool == IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO:
+        return replace(unified_params, resolution = convert_size_to_k(unified_params.size))
+    elif tool == IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_2:
         return replace(unified_params, resolution = convert_size_to_k(unified_params.size))
     elif tool == IMAGE_GEN_EDIT_SEEDREAM_4:
         return replace(unified_params, size = convert_size_to_k(unified_params.size))
@@ -145,7 +151,7 @@ def resolve_aspect_ratio(
     try:
         parts = cleaned.split(":")
         if len(parts) != 2:
-            raise ValueError("Invalid format")
+            raise ValueError("Invalid format")  # caught locally as control flow
         input_ratio = float(parts[0]) / float(parts[1])
     except (ValueError, ZeroDivisionError):
         log.w(f"Invalid aspect ratio '{aspect_ratio}', using default")
