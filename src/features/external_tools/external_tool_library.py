@@ -343,9 +343,9 @@ CLAUDE_4_6_OPUS = ExternalTool(
 
 ###  Google AI  ###
 
-GEMINI_2_5_FLASH_LITE = ExternalTool(
-    id = "gemini-2.5-flash-lite",
-    name = "Gemini 2.5 Flash-Lite",
+GEMINI_FLASH_LITE_LATEST = ExternalTool(
+    id = "gemini-flash-lite-latest",
+    name = "Gemini Flash Lite (Latest)",
     provider = GOOGLE_AI,
     types = [ToolType.chat, ToolType.copywriting, ToolType.vision],
     cost_estimate = CostEstimate(
@@ -379,9 +379,9 @@ GEMINI_2_5_PRO = ExternalTool(
     ),
 )
 
-GEMINI_3_FLASH = ExternalTool(
-    id = "gemini-3-flash-preview",
-    name = "Gemini 3 Flash (Preview)",
+GEMINI_FLASH_LATEST = ExternalTool(
+    id = "gemini-flash-latest",
+    name = "Gemini Flash (Latest)",
     provider = GOOGLE_AI,
     types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
     cost_estimate = CostEstimate(
@@ -391,21 +391,9 @@ GEMINI_3_FLASH = ExternalTool(
     ),
 )
 
-GEMINI_3_PRO = ExternalTool(
-    id = "gemini-3-pro-preview",
-    name = "Gemini 3 Pro (Preview)",
-    provider = GOOGLE_AI,
-    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
-    cost_estimate = CostEstimate(
-        input_1m_tokens = 300,
-        output_1m_tokens = 1500,
-        search_1m_tokens = 150,  # used with vision queries
-    ),
-)
-
-GEMINI_3_1_PRO = ExternalTool(
-    id = "gemini-3.1-pro-preview",
-    name = "Gemini 3.1 Pro (Preview)",
+GEMINI_PRO_LATEST = ExternalTool(
+    id = "gemini-pro-latest",
+    name = "Gemini Pro (Latest)",
     provider = GOOGLE_AI,
     types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
     cost_estimate = CostEstimate(
@@ -618,6 +606,30 @@ IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO = ExternalTool(
     ),
 )
 
+IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_2 = ExternalTool(
+    id = "google/nano-banana-2",
+    name = "Google: Nano Banana 2",
+    provider = REPLICATE,
+    types = [ToolType.images_gen, ToolType.images_edit],
+    cost_estimate = CostEstimate(
+        output_image_1k = 7,
+        output_image_2k = 11,
+        output_image_4k = 16,
+    ),
+)
+
+IMAGE_GEN_EDIT_GROK_IMAGINE = ExternalTool(
+    id = "xai/grok-imagine-image",
+    name = "xAI: Grok Imagine Image",
+    provider = REPLICATE,
+    types = [ToolType.images_gen, ToolType.images_edit],
+    cost_estimate = CostEstimate(
+        output_image_1k = 2,
+        output_image_2k = 2,
+        output_image_4k = 2,
+    ),
+)
+
 ###  Rapid API  ###
 
 FIAT_CURRENCY_EXCHANGE = ExternalTool(
@@ -687,12 +699,11 @@ ALL_EXTERNAL_TOOLS = [
     CLAUDE_4_6_SONNET,
     CLAUDE_4_6_OPUS,
     # Google AI
-    GEMINI_2_5_FLASH_LITE,
+    GEMINI_FLASH_LITE_LATEST,
     GEMINI_2_5_FLASH,
     GEMINI_2_5_PRO,
-    GEMINI_3_FLASH,
-    GEMINI_3_PRO,
-    GEMINI_3_1_PRO,
+    GEMINI_FLASH_LATEST,
+    GEMINI_PRO_LATEST,
     GEMINI_3_PRO_IMAGE,
     # Perplexity
     SONAR,
@@ -710,6 +721,8 @@ ALL_EXTERNAL_TOOLS = [
     IMAGE_GEN_GEMINI_2_5_FLASH_IMAGE,
     IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA,
     IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO,
+    IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_2,
+    IMAGE_GEN_EDIT_GROK_IMAGINE,
     # Rapid API
     FIAT_CURRENCY_EXCHANGE,
     TWITTER_API,
