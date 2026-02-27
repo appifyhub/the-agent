@@ -12,7 +12,6 @@ from features.external_tools.external_tool_library import (
     IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_2,
     IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO,
     IMAGE_GEN_EDIT_GPT_IMAGE_1_5,
-    IMAGE_GEN_EDIT_GROK_IMAGINE,
     IMAGE_GEN_EDIT_SEEDREAM_4,
     IMAGE_GEN_EDIT_SEEDREAM_4_5,
     IMAGE_GEN_FLUX_1_1,
@@ -116,11 +115,6 @@ def map_to_model_parameters(
         return replace(unified_params, image_size = convert_size_to_k(unified_params.size))
     elif tool == IMAGE_GEN_GEMINI_2_5_FLASH_IMAGE:
         return replace(unified_params, image_size = convert_size_to_k(unified_params.size))
-    elif tool == IMAGE_GEN_EDIT_GROK_IMAGINE:
-        aspect_ratio = unified_params.aspect_ratio
-        if aspect_ratio == "match_input_image":
-            aspect_ratio = "auto"
-        return replace(unified_params, aspect_ratio = aspect_ratio)
     else:
         log.w(f"Unknown model '{tool.id}', using default mapping")
         return unified_params

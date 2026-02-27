@@ -618,18 +618,6 @@ IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_2 = ExternalTool(
     ),
 )
 
-IMAGE_GEN_EDIT_GROK_IMAGINE = ExternalTool(
-    id = "xai/grok-imagine-image",
-    name = "xAI: Grok Imagine Image",
-    provider = REPLICATE,
-    types = [ToolType.images_gen, ToolType.images_edit],
-    cost_estimate = CostEstimate(
-        output_image_1k = 2,
-        output_image_2k = 2,
-        output_image_4k = 2,
-    ),
-)
-
 ###  Rapid API  ###
 
 FIAT_CURRENCY_EXCHANGE = ExternalTool(
@@ -722,7 +710,6 @@ ALL_EXTERNAL_TOOLS = [
     IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA,
     IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO,
     IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_2,
-    IMAGE_GEN_EDIT_GROK_IMAGINE,
     # Rapid API
     FIAT_CURRENCY_EXCHANGE,
     TWITTER_API,
