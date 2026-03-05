@@ -34,14 +34,14 @@ In JavaScript and TypeScript, use types as much as possible: strict mode will be
 
 #### Development Workflow
 
-- Use `./tools/run_dev.sh` for development server (includes hot reload, verbose logging, dev API key)
-- Use `./tools/run_lint.sh --fix` for code quality checks with `ruff` (this flag will auto-fix issues it can)
-- Use `./tools/run_prod.sh` for production runs
+- Use `pipenv install --dev` and `pipenv run python src/main.py --dev` for development server (includes hot reload, verbose logging, dev API key)
+- Use `pipenv run pre-commit run --all-files --show-diff-on-failure` for code quality checks
+- Use `pipenv install` and `pipenv run python src/main.py` for production runs
 - For all other operations like testing, always run inside of `pipenv`
 
 #### Code Quality
 
-- Always run linting before commits: `./tools/run_lint.sh --fix`
+- Always run linting before commits: `pipenv run pre-commit run`
 - All scripts handle environment setup automatically (PYTHONPATH, .env files)
 
 #### Project Structure
