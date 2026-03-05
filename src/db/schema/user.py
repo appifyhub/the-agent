@@ -48,6 +48,10 @@ class UserBase(BaseModel):
 
     credit_balance: float = 0.0
 
+    is_on_waitlist: bool = False
+    is_invited_to_start: bool = False
+    are_policies_accepted: bool = False
+
     group: UserDB.Group = UserDB.Group.standard
 
     @classmethod

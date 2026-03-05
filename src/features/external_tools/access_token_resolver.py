@@ -115,6 +115,10 @@ class AccessTokenResolver:
         # get sponsor user
         log.t("Checking sponsorships for user now")
         sponsorship = Sponsorship.model_validate(sponsorships_db[0])
+        if sponsorship.accepted_at is None:
+            log.t(f"User '{user_id_hex}' has no accepted sponsorships")
+            self.__sponsor_cache[user_id_hex] = None
+            return None
         sponsor_user_db = self.__di.user_crud.get(sponsorship.sponsor_id)
 
         if not sponsor_user_db:

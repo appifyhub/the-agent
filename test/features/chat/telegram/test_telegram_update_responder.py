@@ -66,6 +66,9 @@ class TelegramUpdateResponderTest(unittest.TestCase):
             created_at = date.today(),
             telegram_chat_id = "123",
             credit_balance = 0.0,
+            is_on_waitlist = False,
+            is_invited_to_start = False,
+            are_policies_accepted = False,
         )
 
         self.di.telegram_data_resolver.resolve.return_value = Mock(

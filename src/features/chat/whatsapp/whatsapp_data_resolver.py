@@ -11,8 +11,8 @@ from di.di import DI
 from features.chat.whatsapp.whatsapp_domain_mapper import WhatsAppDomainMapper
 from util import log
 from util.config import config
-from util.error_codes import UNEXPECTED_ERROR, USER_LIMIT_REACHED
-from util.errors import InternalError, RateLimitError
+from util.error_codes import UNEXPECTED_ERROR
+from util.errors import InternalError
 
 
 class WhatsAppDataResolver:
@@ -140,12 +140,16 @@ class WhatsAppDataResolver:
             mapped_data.tool_choice_api_crypto_exchange = old_user.tool_choice_api_crypto_exchange
             mapped_data.tool_choice_api_twitter = old_user.tool_choice_api_twitter
             mapped_data.credit_balance = old_user.credit_balance
+            mapped_data.is_on_waitlist = old_user.is_on_waitlist
+            mapped_data.is_invited_to_start = old_user.is_invited_to_start
+            mapped_data.are_policies_accepted = old_user.are_policies_accepted
             mapped_data.group = old_user.group
         else:
-            # new users can only be added until the user limit is reached
             user_count = self.__di.user_crud.count()
-            if user_count >= config.max_users:
-                raise RateLimitError(f"User limit reached: {user_count}/{config.max_users}. Try again later", USER_LIMIT_REACHED)
+            at_capacity = user_count >= config.max_users
+            mapped_data.is_on_waitlist = at_capacity
+            mapped_data.is_invited_to_start = False
+            mapped_data.are_policies_accepted = False
 
         # reset token values to None if they are non-null but contain only whitespace
         def is_empty_secret(secret):

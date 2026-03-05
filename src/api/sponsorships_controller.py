@@ -6,7 +6,7 @@ from db.model.user import UserDB
 from db.schema.sponsorship import Sponsorship
 from db.schema.user import User
 from di.di import DI
-from features.integrations.integrations import resolve_any_external_handle
+from features.integrations.integrations import lookup_user_by_handle, resolve_any_external_handle
 from features.sponsorships.sponsorship_service import SponsorshipService
 from util import log
 from util.config import config
@@ -54,6 +54,9 @@ class SponsorshipsController:
                     "platform": platform_type.value if platform_type else None,
                     "sponsored_at": sponsorship.sponsored_at.isoformat(),
                     "accepted_at": sponsorship.accepted_at.isoformat() if sponsorship.accepted_at else None,
+                    "is_on_waitlist": receiver_user.is_on_waitlist,
+                    "is_invited_to_start": receiver_user.is_invited_to_start,
+                    "are_policies_accepted": receiver_user.are_policies_accepted,
                 },
             )
         return {
@@ -61,7 +64,7 @@ class SponsorshipsController:
             "max_sponsorships": max_sponsorships,
         }
 
-    def sponsor_user(self, sponsor_user_id_hex: str, payload: SponsorshipPayload):
+    def sponsor_user(self, sponsor_user_id_hex: str, payload: SponsorshipPayload) -> dict[str, Any]:
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, sponsor_user_id_hex)
         log.d(f"Sponsoring user {payload.platform}/'@{payload.platform_handle}' by '{self.__di.invoker.id.hex}'")
         chat_type = ChatConfigDB.ChatType.lookup(payload.platform)
@@ -74,7 +77,33 @@ class SponsorshipsController:
         )
         if result == SponsorshipService.Result.failure:
             raise InternalError(message, SPONSORSHIP_OPERATION_FAILED)
+
+        # user status changed possibly with regards to waitlist or start invitation – let's fetch
+        receiver_user_db = lookup_user_by_handle(payload.platform_handle, chat_type, self.__di.user_crud)
+        if not receiver_user_db:
+            raise InternalError("Sponsored receiver user not found after sponsorship creation", SPONSORSHIP_OPERATION_FAILED)
+        receiver_user = User.model_validate(receiver_user_db)
+        sponsorship_db = self.__di.sponsorship_crud.get(user.id, receiver_user.id)
+        if not sponsorship_db:
+            raise InternalError("Sponsorship row not found after sponsorship creation", SPONSORSHIP_OPERATION_FAILED)
+        sponsorship = Sponsorship.model_validate(sponsorship_db)
+        platform_handle, platform_type = resolve_any_external_handle(receiver_user)
         log.i(f"  Successfully sponsored '@{payload.platform_handle}'")
+        return {
+            "status": "OK",
+            "message": message,
+            "sponsorship": {
+                "user_id_hex": receiver_user.id.hex,
+                "full_name": receiver_user.full_name,
+                "platform_handle": platform_handle,
+                "platform": platform_type.value if platform_type else None,
+                "sponsored_at": sponsorship.sponsored_at.isoformat(),
+                "accepted_at": sponsorship.accepted_at.isoformat() if sponsorship.accepted_at else None,
+                "is_on_waitlist": receiver_user.is_on_waitlist,
+                "is_invited_to_start": receiver_user.is_invited_to_start,
+                "are_policies_accepted": receiver_user.are_policies_accepted,
+            },
+        }
 
     def unsponsor_user(self, sponsor_user_id_hex: str, platform: str, platform_handle: str):
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, sponsor_user_id_hex)

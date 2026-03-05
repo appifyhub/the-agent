@@ -301,6 +301,9 @@ class ProfileConnectServiceTest(unittest.TestCase):
             full_name = "Survivor",
             telegram_user_id = 123,
             whatsapp_user_id = None,
+            is_on_waitlist = False,
+            is_invited_to_start = False,
+            are_policies_accepted = True,
             connect_key = "KEY1-KEY1-KEY1",
             open_ai_key = SecretStr("survivor-key"),
             anthropic_key = None,
@@ -313,6 +316,9 @@ class ProfileConnectServiceTest(unittest.TestCase):
             full_name = None,
             telegram_user_id = None,
             whatsapp_user_id = "456",
+            is_on_waitlist = False,
+            is_invited_to_start = False,
+            are_policies_accepted = False,
             connect_key = "KEY2-KEY2-KEY2",
             open_ai_key = None,
             anthropic_key = SecretStr("deleted-key"),
@@ -330,6 +336,40 @@ class ProfileConnectServiceTest(unittest.TestCase):
         self.assertEqual(merged.anthropic_key, deleted.anthropic_key)  # Deleted has value, survivor doesn't
         self.assertEqual(merged.credit_balance, 150.0)  # Credit balances are summed
         self.assertEqual(merged.group, UserDB.Group.developer)  # Developer group takes precedence
+        self.assertTrue(merged.are_policies_accepted)
+        self.assertFalse(merged.is_on_waitlist)
+        self.assertFalse(merged.is_invited_to_start)
+
+    def test_merge_user_data_resets_invite_when_merged_user_is_active(self):
+        survivor = User(
+            id = UUID(int = 1),
+            full_name = "Survivor",
+            telegram_user_id = 123,
+            is_on_waitlist = False,
+            is_invited_to_start = False,
+            are_policies_accepted = True,
+            connect_key = "KEY1-KEY1-KEY1",
+            open_ai_key = SecretStr("survivor-key"),
+            group = UserDB.Group.standard,
+            created_at = datetime.now().date(),
+        )
+        casualty = User(
+            id = UUID(int = 2),
+            full_name = "Casualty",
+            whatsapp_user_id = "456",
+            is_on_waitlist = True,
+            is_invited_to_start = True,
+            are_policies_accepted = False,
+            connect_key = "KEY2-KEY2-KEY2",
+            open_ai_key = None,
+            group = UserDB.Group.standard,
+            created_at = datetime.now().date(),
+        )
+
+        merged = self._merge_user_data(survivor, casualty)
+        self.assertFalse(merged.is_on_waitlist)
+        self.assertFalse(merged.is_invited_to_start)
+        self.assertTrue(merged.are_policies_accepted)
 
     def test_migrate_dependent_entities_moves_related_records(self):
         survivor_id = UUID(int = 1)
@@ -377,6 +417,9 @@ class ProfileConnectServiceTest(unittest.TestCase):
             group = UserDB.Group.developer,
             created_at = date(2024, 1, 1),
             credit_balance = 0.0,
+            is_on_waitlist = False,
+            is_invited_to_start = False,
+            are_policies_accepted = True,
         )
 
         merged_user_db = UserDB(
@@ -388,6 +431,9 @@ class ProfileConnectServiceTest(unittest.TestCase):
             group = UserDB.Group.developer,
             created_at = survivor_user.created_at,
             credit_balance = 0.0,
+            is_on_waitlist = False,
+            is_invited_to_start = False,
+            are_policies_accepted = True,
         )
         final_user_db = UserDB(
             id = survivor_user.id,
@@ -398,6 +444,9 @@ class ProfileConnectServiceTest(unittest.TestCase):
             group = UserDB.Group.developer,
             created_at = survivor_user.created_at,
             credit_balance = 0.0,
+            is_on_waitlist = False,
+            is_invited_to_start = False,
+            are_policies_accepted = True,
         )
 
         self.mock_user_crud.get_by_connect_key.return_value = casualty_db
@@ -448,6 +497,9 @@ class ProfileConnectServiceTest(unittest.TestCase):
             group = UserDB.Group.standard,
             created_at = user.created_at,
             credit_balance = 0.0,
+            is_on_waitlist = False,
+            is_invited_to_start = False,
+            are_policies_accepted = True,
         )
         self.mock_user_crud.update.return_value = updated_user_db
 

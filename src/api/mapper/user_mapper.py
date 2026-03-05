@@ -56,6 +56,9 @@ def api_to_domain(payload: UserSettingsPayload, existing_user: User) -> UserSave
         user_save.tool_choice_api_crypto_exchange = payload.tool_choice_api_crypto_exchange if payload.tool_choice_api_crypto_exchange else None  # noqa: E501
     if payload.tool_choice_api_twitter is not None:
         user_save.tool_choice_api_twitter = payload.tool_choice_api_twitter if payload.tool_choice_api_twitter else None
+
+    if payload.are_policies_accepted is not None:
+        user_save.are_policies_accepted = payload.are_policies_accepted
     # @formatter:on
 
     return user_save
@@ -66,14 +69,18 @@ def domain_to_api(user: User, is_sponsored: bool) -> UserSettingsResponse:
         id = user.id.hex,
         full_name = user.full_name,
         about_me = user.about_me.get_secret_value() if user.about_me else None,
+        group = user.group.value,
+
         telegram_username = user.telegram_username,
         telegram_chat_id = user.telegram_chat_id,
         telegram_user_id = user.telegram_user_id,
+
         whatsapp_user_id = user.whatsapp_user_id,
         whatsapp_phone_number = (
             user.whatsapp_phone_number.get_secret_value()
             if user.whatsapp_phone_number else None
         ),
+
         open_ai_key = mask_secret(user.open_ai_key.get_secret_value() if user.open_ai_key else None),
         anthropic_key = mask_secret(user.anthropic_key.get_secret_value() if user.anthropic_key else None),
         google_ai_key = mask_secret(user.google_ai_key.get_secret_value() if user.google_ai_key else None),
@@ -81,6 +88,7 @@ def domain_to_api(user: User, is_sponsored: bool) -> UserSettingsResponse:
         replicate_key = mask_secret(user.replicate_key.get_secret_value() if user.replicate_key else None),
         rapid_api_key = mask_secret(user.rapid_api_key.get_secret_value() if user.rapid_api_key else None),
         coinmarketcap_key = mask_secret(user.coinmarketcap_key.get_secret_value() if user.coinmarketcap_key else None),
+
         tool_choice_chat = user.tool_choice_chat,
         tool_choice_reasoning = user.tool_choice_reasoning,
         tool_choice_copywriting = user.tool_choice_copywriting,
@@ -93,8 +101,13 @@ def domain_to_api(user: User, is_sponsored: bool) -> UserSettingsResponse:
         tool_choice_api_fiat_exchange = user.tool_choice_api_fiat_exchange,
         tool_choice_api_crypto_exchange = user.tool_choice_api_crypto_exchange,
         tool_choice_api_twitter = user.tool_choice_api_twitter,
+
         credit_balance = user.credit_balance,
+
+        is_on_waitlist = user.is_on_waitlist,
+        is_invited_to_start = user.is_invited_to_start,
+        are_policies_accepted = user.are_policies_accepted,
         is_sponsored = is_sponsored,
-        group = user.group.value,
+
         created_at = user.created_at.isoformat(),
     )

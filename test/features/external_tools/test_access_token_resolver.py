@@ -143,6 +143,21 @@ class AccessTokenResolverTest(unittest.TestCase):
         # noinspection PyUnresolvedReferences
         self.mock_user_dao.get.assert_called_once_with(self.sponsorship.sponsor_id)
 
+    def test_get_access_token_failure_pending_sponsorship_not_accepted(self):
+        user_without_token = self.invoker_user.model_copy(update = {"open_ai_key": None})
+        pending_sponsorship = self.sponsorship.model_copy(update = {"accepted_at": None})
+        sponsorship_db = SponsorshipDB(**pending_sponsorship.model_dump())
+        self.mock_di.invoker = user_without_token
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = [sponsorship_db]
+
+        resolver = AccessTokenResolver(self.mock_di)
+
+        token = resolver.get_access_token(self.openai_provider)
+
+        self.assertIsNone(token)
+        self.mock_sponsorship_dao.get_all_by_receiver.assert_called_once_with(user_without_token.id, limit = 1)
+        self.mock_user_dao.get.assert_not_called()
+
     def test_get_access_token_failure_user_no_token_no_sponsorship(self):
         user_without_token = self.invoker_user.model_copy(update = {"open_ai_key": None})
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []

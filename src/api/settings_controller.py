@@ -30,6 +30,7 @@ from util.error_codes import (
     INVALID_USE_ABOUT_ME,
     MISSING_CHAT_CONTEXT,
     NO_PRIVATE_CHAT,
+    POLICY_ACCEPTANCE_REVOCATION_FORBIDDEN,
 )
 from util.errors import AuthorizationError, ConfigurationError, ValidationError
 
@@ -207,7 +208,22 @@ class SettingsController:
             if key.startswith("tool_choice_") and value and (value not in configured_tool_ids):
                 raise ValidationError(f"Invalid tool choice '{value}' for '{key}'. Tool is not configured.", INVALID_TOOL_CHOICE)
 
+        if payload.are_policies_accepted is False:
+            raise ValidationError(
+                "Policy acceptance cannot be revoked once accepted",
+                POLICY_ACCEPTANCE_REVOCATION_FORBIDDEN,
+            )
+        should_activate_waitlisted_user = (
+            payload.are_policies_accepted is True and
+            user.is_on_waitlist
+        )
+        if should_activate_waitlisted_user:
+            self.__di.authorization_service.require_waitlisted_user_can_activate(user)
+
         user_save = api_to_domain(payload, user)
+        if should_activate_waitlisted_user:
+            user_save.is_on_waitlist = False
+            user_save.is_invited_to_start = False
         User.model_validate(self.__di.user_crud.save(user_save))
         log.i("User settings saved")
 

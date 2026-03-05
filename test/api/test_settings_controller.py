@@ -26,7 +26,11 @@ from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.external_tools.access_token_resolver import AccessTokenResolver
 from features.external_tools.external_tool import CostEstimate, ExternalTool, ExternalToolProvider, ToolType
 from util.config import ConfiguredProduct
-from util.error_codes import MALFORMED_CHAT_ID
+from util.error_codes import (
+    MALFORMED_CHAT_ID,
+    POLICY_ACCEPTANCE_REVOCATION_FORBIDDEN,
+    WAITLIST_ACCOUNT_NOT_ACTIVE,
+)
 from util.errors import AuthorizationError, ValidationError
 from util.functions import mask_secret
 
@@ -119,6 +123,7 @@ class SettingsControllerTest(unittest.TestCase):
         self.mock_authorization_service.authorize_for_chat.return_value = self.chat_config
         self.mock_authorization_service.authorize_for_user.return_value = self.invoker_user
         self.mock_authorization_service.get_authorized_chats.return_value = []
+        self.mock_authorization_service.require_waitlisted_user_can_activate.return_value = self.invoker_user
         # noinspection PyPropertyAccess
         self.mock_di.authorization_service = self.mock_authorization_service
 
@@ -319,6 +324,9 @@ class SettingsControllerTest(unittest.TestCase):
             group = self.invoker_user.group,
             created_at = self.invoker_user.created_at,
             credit_balance = 0.0,
+            is_on_waitlist = False,
+            is_invited_to_start = False,
+            are_policies_accepted = True,
         )
         self.mock_user_dao.save.return_value = saved_user_db
 
@@ -366,6 +374,79 @@ class SettingsControllerTest(unittest.TestCase):
 
         self.assertIn("Invalid tool choice", str(context.exception))
         self.assertIn("not configured", str(context.exception))
+
+    @patch("api.settings_controller.SettingsController.fetch_external_tools")
+    def test_save_user_settings_reject_policy_false(self, mock_fetch_external_tools):
+        mock_fetch_external_tools.return_value = {"tools": [], "providers": []}
+        controller = SettingsController(self.mock_di)
+        payload = UserSettingsPayload(are_policies_accepted = False)
+
+        with self.assertRaises(ValidationError) as context:
+            controller.save_user_settings(self.invoker_user.id.hex, payload)
+
+        self.assertEqual(context.exception.error_code, POLICY_ACCEPTANCE_REVOCATION_FORBIDDEN)
+
+    @patch("api.settings_controller.SettingsController.fetch_external_tools")
+    def test_save_user_settings_waitlisted_activation_when_capacity_available(self, mock_fetch_external_tools):
+        mock_fetch_external_tools.return_value = {"tools": [], "providers": []}
+        waitlisted_user = self.invoker_user.model_copy(
+            update = {
+                "is_on_waitlist": True,
+                "is_invited_to_start": False,
+                "are_policies_accepted": False,
+            },
+        )
+        self.mock_authorization_service.authorize_for_user.return_value = waitlisted_user
+        self.mock_authorization_service.require_waitlisted_user_can_activate.return_value = waitlisted_user
+        saved_user_db = UserDB(
+            id = waitlisted_user.id,
+            full_name = waitlisted_user.full_name,
+            telegram_username = waitlisted_user.telegram_username,
+            telegram_chat_id = waitlisted_user.telegram_chat_id,
+            telegram_user_id = waitlisted_user.telegram_user_id,
+            connect_key = "SAVE-USER-KEY2",
+            group = waitlisted_user.group,
+            created_at = waitlisted_user.created_at,
+            credit_balance = waitlisted_user.credit_balance,
+            is_on_waitlist = False,
+            is_invited_to_start = False,
+            are_policies_accepted = True,
+        )
+        self.mock_user_dao.save.return_value = saved_user_db
+
+        controller = SettingsController(self.mock_di)
+        payload = UserSettingsPayload(are_policies_accepted = True)
+        controller.save_user_settings(waitlisted_user.id.hex, payload)
+
+        self.mock_authorization_service.require_waitlisted_user_can_activate.assert_called_once_with(waitlisted_user)
+        saved_payload = self.mock_user_dao.save.call_args.args[0]
+        self.assertFalse(saved_payload.is_on_waitlist)
+        self.assertFalse(saved_payload.is_invited_to_start)
+        self.assertTrue(saved_payload.are_policies_accepted)
+
+    @patch("api.settings_controller.SettingsController.fetch_external_tools")
+    def test_save_user_settings_waitlisted_activation_denied_without_invite_or_capacity(self, mock_fetch_external_tools):
+        mock_fetch_external_tools.return_value = {"tools": [], "providers": []}
+        waitlisted_user = self.invoker_user.model_copy(
+            update = {
+                "is_on_waitlist": True,
+                "is_invited_to_start": False,
+                "are_policies_accepted": False,
+            },
+        )
+        self.mock_authorization_service.authorize_for_user.return_value = waitlisted_user
+        self.mock_authorization_service.require_waitlisted_user_can_activate.side_effect = AuthorizationError(
+            "Activation is not available right now because maximum user capacity has been reached. "
+            "Your account remains on the waitlist.",
+            WAITLIST_ACCOUNT_NOT_ACTIVE,
+        )
+        controller = SettingsController(self.mock_di)
+        payload = UserSettingsPayload(are_policies_accepted = True)
+
+        with self.assertRaises(AuthorizationError) as context:
+            controller.save_user_settings(waitlisted_user.id.hex, payload)
+
+        self.assertEqual(context.exception.error_code, WAITLIST_ACCOUNT_NOT_ACTIVE)
 
     def test_save_chat_settings_failure_language_mismatch(self):
         self.mock_user_dao.get.return_value = self.invoker_user

@@ -6,7 +6,16 @@ from di.di import DI
 from features.integrations.integrations import is_own_chat, lookup_all_admin_chats
 from util import log
 from util.config import config
-from util.error_codes import CHAT_NOT_FOUND, MALFORMED_CHAT_ID, MALFORMED_USER_ID, NOT_CHAT_ADMIN, NOT_TARGET_USER, USER_NOT_FOUND
+from util.error_codes import (
+    CHAT_NOT_FOUND,
+    MALFORMED_CHAT_ID,
+    MALFORMED_USER_ID,
+    NOT_CHAT_ADMIN,
+    NOT_TARGET_USER,
+    USER_NOT_FOUND,
+    WAITLIST_ACCOUNT_NOT_ACTIVE,
+    WAITLIST_INVITED_POLICIES_REQUIRED,
+)
 from util.errors import AuthorizationError, NotFoundError, ValidationError
 
 
@@ -118,3 +127,40 @@ class AuthorizationService:
         if invoker_user.id != target_user.id:
             raise AuthorizationError(f"Target user '{target_user.id.hex}' is not the allowed user '{invoker_user.id.hex}'", NOT_TARGET_USER)  # noqa: E501
         return target_user
+
+    def require_user_is_chat_ready(self, user: str | UUID | User) -> User:
+        user = self.validate_user(user)
+        if user.is_on_waitlist:
+            if user.is_invited_to_start and not user.are_policies_accepted:
+                raise AuthorizationError(
+                    "You're invited to start. Accept policies in /settings first.",
+                    WAITLIST_INVITED_POLICIES_REQUIRED,
+                )
+            if user.is_invited_to_start and user.are_policies_accepted:
+                log.w(
+                    f"Contradictory onboarding state for user #{user.id.hex}: "
+                    "waitlisted and invited, but policies accepted.",
+                )
+            raise AuthorizationError(
+                "Access is currently limited. The waitlist is not open yet, so your account is still pending.",
+                WAITLIST_ACCOUNT_NOT_ACTIVE,
+            )
+
+        if not user.are_policies_accepted:
+            raise AuthorizationError("Accept policies in /settings first.", WAITLIST_INVITED_POLICIES_REQUIRED)
+        return user
+
+    def require_waitlisted_user_can_activate(self, user: str | UUID | User) -> User:
+        user = self.validate_user(user)
+        if not user.is_on_waitlist:
+            return user
+
+        user_count = self.__di.user_crud.count()
+        has_available_capacity = user_count < config.max_users
+        if (not user.is_invited_to_start) and (not has_available_capacity):
+            raise AuthorizationError(
+                "Activation is not available right now because maximum user capacity has been reached. "
+                "Your account remains on the waitlist.",
+                WAITLIST_ACCOUNT_NOT_ACTIVE,
+            )
+        return user

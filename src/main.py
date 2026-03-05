@@ -304,8 +304,7 @@ def sponsor_user(
     invoker_id_hex = get_user_id_from_jwt(token)
     log.d(f"  Invoker ID: {invoker_id_hex}")
     di = DI(db, invoker_id_hex)
-    di.sponsorships_controller.sponsor_user(resource_id, payload)
-    return {"status": "OK"}
+    return di.sponsorships_controller.sponsor_user(resource_id, payload)
 
 
 @app.delete("/user/{resource_id}/sponsorships/{platform}/{platform_handle}")

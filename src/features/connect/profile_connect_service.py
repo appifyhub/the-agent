@@ -192,6 +192,15 @@ class ProfileConnectService:
             merged.tool_choice_api_twitter = casualty.tool_choice_api_twitter
         merged.credit_balance = survivor.credit_balance + casualty.credit_balance
 
+        # optimize for keeping the account active
+        merged.are_policies_accepted = survivor.are_policies_accepted or casualty.are_policies_accepted
+        merged.is_on_waitlist = survivor.is_on_waitlist and casualty.is_on_waitlist
+        if merged.is_on_waitlist:
+            # will remain on the waitlist – preserve the invite
+            merged.is_invited_to_start = survivor.is_invited_to_start or casualty.is_invited_to_start
+        else:
+            merged.is_invited_to_start = False  # no waiting, reset the invite flag
+
         # Keep survivor's group (developer group takes precedence to not lose admin rights)
         if casualty.group == UserDB.Group.developer or survivor.group == UserDB.Group.developer:
             merged.group = UserDB.Group.developer

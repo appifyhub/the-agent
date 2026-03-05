@@ -44,6 +44,9 @@ class UserMapperTest(unittest.TestCase):
             tool_choice_api_fiat_exchange = "rapid-api-fiat",
             tool_choice_api_crypto_exchange = "coinmarketcap-crypto",
             tool_choice_api_twitter = "rapid-api-twitter",
+            is_on_waitlist = False,
+            is_invited_to_start = False,
+            are_policies_accepted = True,
             group = UserDB.Group.standard,
             created_at = date(2024, 1, 1),
         )
@@ -69,6 +72,7 @@ class UserMapperTest(unittest.TestCase):
             tool_choice_api_fiat_exchange = "new-fiat-api",
             tool_choice_api_crypto_exchange = "new-crypto-api",
             tool_choice_api_twitter = "new-twitter-api",
+            are_policies_accepted = True,
         )
 
         user_save = api_to_domain(payload, self.user)
@@ -93,11 +97,14 @@ class UserMapperTest(unittest.TestCase):
         self.assertEqual(user_save.tool_choice_api_fiat_exchange, "new-fiat-api")
         self.assertEqual(user_save.tool_choice_api_crypto_exchange, "new-crypto-api")
         self.assertEqual(user_save.tool_choice_api_twitter, "new-twitter-api")
+        self.assertTrue(user_save.are_policies_accepted)
 
         # Check that non-updated fields remain the same
         self.assertEqual(user_save.id, self.user.id)
         self.assertEqual(user_save.full_name, self.user.full_name)
         self.assertEqual(user_save.telegram_username, self.user.telegram_username)
+        self.assertEqual(user_save.is_on_waitlist, self.user.is_on_waitlist)
+        self.assertEqual(user_save.is_invited_to_start, self.user.is_invited_to_start)
 
     def test_api_to_domain_with_partial_fields(self):
         payload = UserSettingsPayload(
@@ -194,6 +201,9 @@ class UserMapperTest(unittest.TestCase):
         assert self.user.whatsapp_phone_number is not None
         self.assertEqual(masked_user.whatsapp_phone_number, self.user.whatsapp_phone_number.get_secret_value())
         self.assertEqual(masked_user.credit_balance, self.user.credit_balance)
+        self.assertEqual(masked_user.is_on_waitlist, self.user.is_on_waitlist)
+        self.assertEqual(masked_user.is_invited_to_start, self.user.is_invited_to_start)
+        self.assertEqual(masked_user.are_policies_accepted, self.user.are_policies_accepted)
         self.assertFalse(masked_user.is_sponsored)
         self.assertEqual(masked_user.group, self.user.group.value)
         self.assertEqual(masked_user.created_at, self.user.created_at.isoformat())

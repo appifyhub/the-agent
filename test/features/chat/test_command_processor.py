@@ -16,6 +16,7 @@ from features.connect.profile_connect_service import ProfileConnectService
 from features.integrations.integrations import resolve_agent_user
 from features.integrations.platform_bot_sdk import PlatformBotSDK
 from features.sponsorships.sponsorship_service import SponsorshipService
+from util.error_codes import UNEXPECTED_ERROR
 
 
 class CommandProcessorTest(unittest.TestCase):
@@ -83,15 +84,15 @@ class CommandProcessorTest(unittest.TestCase):
 
     def test_empty_input(self):
         result = self.processor.execute("")
-        self.assertEqual(result, CommandProcessor.Result.unknown)
+        self.assertEqual(result.status, "ignored")
 
     def test_non_command_input(self):
         result = self.processor.execute("This is not a command")
-        self.assertEqual(result, CommandProcessor.Result.unknown)
+        self.assertEqual(result.status, "ignored")
 
     def test_start_command_no_sponsorship(self):
         result = self.processor.execute(f"/{COMMAND_START}")
-        self.assertEqual(result, CommandProcessor.Result.success)
+        self.assertEqual(result.status, "success")
         # noinspection PyUnresolvedReferences
         self.mock_di.sponsorship_service.accept_sponsorship.assert_called_once_with(self.user)
         # noinspection PyUnresolvedReferences
@@ -106,7 +107,7 @@ class CommandProcessorTest(unittest.TestCase):
         self.mock_di.sponsorship_service.accept_sponsorship.return_value = True
 
         result = self.processor.execute(f"/{COMMAND_START}")
-        self.assertEqual(result, CommandProcessor.Result.success)
+        self.assertEqual(result.status, "success")
         # noinspection PyUnresolvedReferences
         self.mock_di.sponsorship_service.accept_sponsorship.assert_called_once_with(self.user)
         # noinspection PyUnresolvedReferences
@@ -116,7 +117,7 @@ class CommandProcessorTest(unittest.TestCase):
 
     def test_settings_command(self):
         result = self.processor.execute(f"/{COMMAND_SETTINGS}")
-        self.assertEqual(result, CommandProcessor.Result.success)
+        self.assertEqual(result.status, "success")
         # noinspection PyUnresolvedReferences
         self.mock_di.sponsorship_service.accept_sponsorship.assert_not_called()
         # noinspection PyUnresolvedReferences
@@ -130,7 +131,7 @@ class CommandProcessorTest(unittest.TestCase):
     def test_start_command_with_bot_tag(self):
         bot_tag = self.agent_user.telegram_username
         result = self.processor.execute(f"/{COMMAND_START}@{bot_tag}")
-        self.assertEqual(result, CommandProcessor.Result.success)
+        self.assertEqual(result.status, "success")
         # noinspection PyUnresolvedReferences
         self.mock_di.settings_controller.create_settings_link.assert_called_once()
         # noinspection PyUnresolvedReferences
@@ -139,7 +140,7 @@ class CommandProcessorTest(unittest.TestCase):
     def test_settings_command_with_bot_tag(self):
         bot_tag = self.agent_user.telegram_username
         result = self.processor.execute(f"/{COMMAND_SETTINGS}@{bot_tag}")
-        self.assertEqual(result, CommandProcessor.Result.success)
+        self.assertEqual(result.status, "success")
         # noinspection PyUnresolvedReferences
         self.mock_di.settings_controller.create_settings_link.assert_called_once()
         # noinspection PyUnresolvedReferences
@@ -147,7 +148,7 @@ class CommandProcessorTest(unittest.TestCase):
 
     def test_wrong_bot_tagged(self):
         result = self.processor.execute(f"/{COMMAND_START}@wrong_bot")
-        self.assertEqual(result, CommandProcessor.Result.unknown)
+        self.assertEqual(result.status, "ignored")
         # noinspection PyUnresolvedReferences
         self.mock_di.settings_controller.create_settings_link.assert_not_called()
         # noinspection PyUnresolvedReferences
@@ -155,7 +156,7 @@ class CommandProcessorTest(unittest.TestCase):
 
     def test_unknown_command(self):
         result = self.processor.execute("/unknown_command")
-        self.assertEqual(result, CommandProcessor.Result.unknown)
+        self.assertEqual(result.status, "ignored")
         # noinspection PyUnresolvedReferences
         self.mock_di.settings_controller.create_settings_link.assert_not_called()
         # noinspection PyUnresolvedReferences
@@ -163,7 +164,7 @@ class CommandProcessorTest(unittest.TestCase):
 
     def test_start_command_with_arguments_ignored(self):
         result = self.processor.execute(f"/{COMMAND_START} some extra arguments")
-        self.assertEqual(result, CommandProcessor.Result.success)
+        self.assertEqual(result.status, "success")
         # noinspection PyUnresolvedReferences
         self.mock_di.settings_controller.create_settings_link.assert_called_once()
         # noinspection PyUnresolvedReferences
@@ -171,7 +172,7 @@ class CommandProcessorTest(unittest.TestCase):
 
     def test_settings_command_with_arguments_ignored(self):
         result = self.processor.execute(f"/{COMMAND_SETTINGS} some extra arguments")
-        self.assertEqual(result, CommandProcessor.Result.success)
+        self.assertEqual(result.status, "success")
         # noinspection PyUnresolvedReferences
         self.mock_di.settings_controller.create_settings_link.assert_called_once()
         # noinspection PyUnresolvedReferences
@@ -181,23 +182,29 @@ class CommandProcessorTest(unittest.TestCase):
         self.mock_di.settings_controller.create_settings_link.side_effect = Exception("Settings error")
 
         result = self.processor.execute(f"/{COMMAND_START}")
-        self.assertEqual(result, CommandProcessor.Result.failed)
+        self.assertEqual(result.status, "failed")
+        self.assertEqual(result.error_message, "Failed to process command.")
+        self.assertEqual(result.error_code, UNEXPECTED_ERROR)
 
     def test_exception_in_telegram_sdk(self):
         self.mock_platform_sdk.send_button_link.side_effect = Exception("Telegram error")
 
         result = self.processor.execute(f"/{COMMAND_START}")
-        self.assertEqual(result, CommandProcessor.Result.failed)
+        self.assertEqual(result.status, "failed")
+        self.assertEqual(result.error_message, "Failed to process command.")
+        self.assertEqual(result.error_code, UNEXPECTED_ERROR)
 
     def test_exception_in_sponsorship_service(self):
         self.mock_di.sponsorship_service.accept_sponsorship.side_effect = Exception("Sponsorship error")
 
         result = self.processor.execute(f"/{COMMAND_START}")
-        self.assertEqual(result, CommandProcessor.Result.failed)
+        self.assertEqual(result.status, "failed")
+        self.assertEqual(result.error_message, "Failed to process command.")
+        self.assertEqual(result.error_code, UNEXPECTED_ERROR)
 
     def test_help_command(self):
         result = self.processor.execute(f"/{COMMAND_HELP}")
-        self.assertEqual(result, CommandProcessor.Result.success)
+        self.assertEqual(result.status, "success")
         # noinspection PyUnresolvedReferences
         self.mock_di.settings_controller.create_help_link.assert_called_once()
         # noinspection PyUnresolvedReferences
@@ -209,7 +216,7 @@ class CommandProcessorTest(unittest.TestCase):
     def test_help_command_with_bot_tag(self):
         bot_tag = self.agent_user.telegram_username
         result = self.processor.execute(f"/{COMMAND_HELP}@{bot_tag}")
-        self.assertEqual(result, CommandProcessor.Result.success)
+        self.assertEqual(result.status, "success")
         # noinspection PyUnresolvedReferences
         self.mock_di.settings_controller.create_help_link.assert_called_once()
         # noinspection PyUnresolvedReferences
@@ -217,7 +224,7 @@ class CommandProcessorTest(unittest.TestCase):
 
     def test_help_command_with_arguments_ignored(self):
         result = self.processor.execute(f"/{COMMAND_HELP} some extra arguments")
-        self.assertEqual(result, CommandProcessor.Result.success)
+        self.assertEqual(result.status, "success")
         # noinspection PyUnresolvedReferences
         self.mock_di.settings_controller.create_help_link.assert_called_once()
         # noinspection PyUnresolvedReferences
@@ -227,11 +234,13 @@ class CommandProcessorTest(unittest.TestCase):
         self.mock_di.settings_controller.create_help_link.side_effect = Exception("Help link error")
 
         result = self.processor.execute(f"/{COMMAND_HELP}")
-        self.assertEqual(result, CommandProcessor.Result.failed)
+        self.assertEqual(result.status, "failed")
+        self.assertEqual(result.error_message, "Failed to process command.")
+        self.assertEqual(result.error_code, UNEXPECTED_ERROR)
 
     def test_connect_command_no_key_provided(self):
         result = self.processor.execute(f"/{COMMAND_CONNECT}")
-        self.assertEqual(result, CommandProcessor.Result.success)
+        self.assertEqual(result.status, "success")
         # noinspection PyUnresolvedReferences
         self.mock_di.settings_controller.create_settings_link.assert_called_once()
         # noinspection PyUnresolvedReferences
@@ -249,7 +258,7 @@ class CommandProcessorTest(unittest.TestCase):
         )
 
         result = self.processor.execute(f"/{COMMAND_CONNECT} ABCD-EFGH-JKLM")
-        self.assertEqual(result, CommandProcessor.Result.success)
+        self.assertEqual(result.status, "success")
         # noinspection PyUnresolvedReferences
         self.mock_di.profile_connect_service.connect_profiles.assert_called_once_with(
             self.user,
@@ -268,7 +277,7 @@ class CommandProcessorTest(unittest.TestCase):
         )
 
         result = self.processor.execute(f"/{COMMAND_CONNECT} INVALID-KEY")
-        self.assertEqual(result, CommandProcessor.Result.success)
+        self.assertEqual(result.status, "success")
         # noinspection PyUnresolvedReferences
         self.mock_di.profile_connect_service.connect_profiles.assert_called_once()
         # Should send settings link instead

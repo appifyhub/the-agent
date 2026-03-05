@@ -103,6 +103,11 @@ class SponsorshipService:
                 message = f"User creation not supported for platform {chat_type.value}"
                 log.d(message)
                 return (SponsorshipService.Result.failure, message)
+            user_count = self.__di.user_crud.count()
+            at_capacity = user_count >= config.max_users
+            receiver_user_to_save.is_on_waitlist = at_capacity
+            receiver_user_to_save.is_invited_to_start = False
+            receiver_user_to_save.are_policies_accepted = False
             receiver_user_db = self.__di.user_crud.save(receiver_user_to_save)
             receiver_user = User.model_validate(receiver_user_db)
             accepted_at = None
