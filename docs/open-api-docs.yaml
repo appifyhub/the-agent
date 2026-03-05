@@ -285,7 +285,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/StatusResponse"
+                $ref: "#/components/schemas/SponsorshipCreateResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "403":
@@ -950,6 +950,10 @@ components:
           type: string
           nullable: true
           description: Tool choice for Twitter API integration
+        are_policies_accepted:
+          type: boolean
+          nullable: true
+          description: Policy acceptance flag. `true` confirms acceptance; `false` is not allowed.
 
     UserSettingsResponse:
       type: object
@@ -1050,6 +1054,18 @@ components:
         tool_choice_api_twitter:
           type: string
           nullable: true
+        is_on_waitlist:
+          type: boolean
+          nullable: false
+          description: Whether the account is currently waitlisted
+        is_invited_to_start:
+          type: boolean
+          nullable: false
+          description: Whether the waitlisted account has been invited to start
+        are_policies_accepted:
+          type: boolean
+          nullable: false
+          description: Whether onboarding policies are accepted
         credit_balance:
           type: number
           format: float
@@ -1071,6 +1087,9 @@ components:
       required:
         - id
         - credit_balance
+        - is_on_waitlist
+        - is_invited_to_start
+        - are_policies_accepted
         - is_sponsored
         - group
         - created_at
@@ -1870,9 +1889,43 @@ components:
           nullable: true
           format: date-time
           description: When the sponsorship was accepted
+        is_on_waitlist:
+          type: boolean
+          nullable: false
+          description: Whether the sponsored user is currently waitlisted
+        is_invited_to_start:
+          type: boolean
+          nullable: false
+          description: Whether the sponsored user has been invited to start
+        are_policies_accepted:
+          type: boolean
+          nullable: false
+          description: Whether the sponsored user accepted onboarding policies
       required:
         - user_id_hex
         - sponsored_at
+        - is_on_waitlist
+        - is_invited_to_start
+        - are_policies_accepted
+
+    SponsorshipCreateResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          nullable: false
+          enum: [OK]
+          description: Operation status
+        message:
+          type: string
+          nullable: false
+          description: Sponsorship operation message
+        sponsorship:
+          $ref: "#/components/schemas/SponsorshipInfo"
+      required:
+        - status
+        - message
+        - sponsorship
 
     StatusResponse:
       type: object
