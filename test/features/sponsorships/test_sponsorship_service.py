@@ -108,6 +108,7 @@ class SponsorshipServiceTest(unittest.TestCase):
         self.mock_sponsorship_dao.get_all_by_sponsor.return_value = []
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []  # Ensure sponsor has no received sponsorships
         self.mock_user_dao.get_by_telegram_username.return_value = None
+        self.mock_user_dao.count.return_value = 0
         self.mock_user_dao.save.return_value = receiver_user_db
         self.mock_sponsorship_dao.save.return_value = {
             "sponsor_id": self.user.id,
@@ -169,6 +170,7 @@ class SponsorshipServiceTest(unittest.TestCase):
         self.mock_sponsorship_dao.get_all_by_sponsor.return_value = [Mock()] * (config.max_sponsorships_per_user + 1)
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
         self.mock_user_dao.get_by_telegram_username.return_value = None
+        self.mock_user_dao.count.return_value = 0
 
         # Create a real user for the new user
         new_user = UserDB(
@@ -181,6 +183,10 @@ class SponsorshipServiceTest(unittest.TestCase):
             open_ai_key = developer_user.open_ai_key,
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
+            credit_balance = 0.0,
+            is_on_waitlist = False,
+            is_invited_to_start = False,
+            are_policies_accepted = False,
         )
 
         self.mock_user_dao.save.return_value = new_user
@@ -198,6 +204,48 @@ class SponsorshipServiceTest(unittest.TestCase):
 
         self.assertEqual(result, SponsorshipService.Result.success)
         self.assertIn("Sponsorship sent", msg)
+
+    def test_sponsor_user_at_capacity_creates_waitlisted_user(self):
+        sponsor_user_id_hex = self.user.id.hex
+        receiver_telegram_username = "receiver_username"
+        receiver_user_db = UserDB(
+            id = UUID(int = 2),
+            full_name = "Receiver User",
+            telegram_username = receiver_telegram_username,
+            telegram_chat_id = "receiver_chat_id",
+            telegram_user_id = 2,
+            connect_key = "NEW-USER-KEY2",
+            group = UserDB.Group.standard,
+            created_at = datetime.now().date(),
+            credit_balance = 0.0,
+            is_on_waitlist = True,
+            is_invited_to_start = False,
+            are_policies_accepted = False,
+        )
+        self.mock_user_dao.get.return_value = self.user
+        self.mock_sponsorship_dao.get_all_by_sponsor.return_value = []
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+        self.mock_user_dao.get_by_telegram_username.return_value = None
+        self.mock_user_dao.count.return_value = config.max_users
+        self.mock_user_dao.save.return_value = receiver_user_db
+        self.mock_sponsorship_dao.save.return_value = {
+            "sponsor_id": self.user.id,
+            "receiver_id": receiver_user_db.id,
+            "sponsored_at": datetime.now(),
+            "accepted_at": None,
+        }
+
+        result, _ = self.service.sponsor_user(
+            sponsor_user_id_hex,
+            receiver_telegram_username,
+            ChatConfigDB.ChatType.telegram,
+        )
+
+        self.assertEqual(result, SponsorshipService.Result.success)
+        saved_user_payload = self.mock_user_dao.save.call_args.args[0]
+        self.assertTrue(saved_user_payload.is_on_waitlist)
+        self.assertFalse(saved_user_payload.is_invited_to_start)
+        self.assertFalse(saved_user_payload.are_policies_accepted)
 
     def test_sponsor_user_failure_no_api_key(self):
         sponsor_user_id_hex = self.user.id.hex
@@ -223,7 +271,7 @@ class SponsorshipServiceTest(unittest.TestCase):
         result, msg = self.service.sponsor_user(sponsor_user_id_hex, receiver_telegram_username, ChatConfigDB.ChatType.telegram)
 
         self.assertEqual(result, SponsorshipService.Result.failure)
-        self.assertIn("has no API keys configured", msg)
+        self.assertIn("has no API keys or credits configured", msg)
 
     def test_sponsor_user_failure_transitive_sponsorship(self):
         sponsor_user_id_hex = self.user.id.hex
@@ -236,7 +284,7 @@ class SponsorshipServiceTest(unittest.TestCase):
         result, msg = self.service.sponsor_user(sponsor_user_id_hex, receiver_telegram_username, ChatConfigDB.ChatType.telegram)
 
         self.assertEqual(result, SponsorshipService.Result.failure)
-        self.assertIn("can't sponsor others before having a personal API key", msg)
+        self.assertIn("can't sponsor others while being sponsored themselves", msg)
 
     def test_sponsor_user_failure_receiver_has_sponsorship(self):
         sponsor_user_id_hex = self.user.id.hex

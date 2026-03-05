@@ -1,27 +1,38 @@
 import random
 import re
-from typing import Any, Tuple, TypeVar
+from dataclasses import dataclass
+from typing import Any, TypeVar
 
 from langchain_core.language_models import LanguageModelInput
 from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import Runnable
 
 from di.di import DI
-from features.chat.command_processor import CommandProcessor
+from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import GPT_4_1_MINI
-from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.integrations import prompt_resolvers
 from features.integrations.integrations import resolve_agent_user, resolve_external_handle
 from features.prompting import prompt_library
 from util import log
 from util.config import config
+from util.error_codes import (
+    LLM_UNEXPECTED_RESPONSE,
+    TOOL_NOT_FOUND,
+    UNEXPECTED_ERROR,
+)
+from util.errors import ExternalServiceError, InternalError, NotFoundError, ServiceError
 
 TMessage = TypeVar("TMessage", bound = BaseMessage)  # Generic message type
 TooledChatModel = Runnable[LanguageModelInput, BaseMessage]
 
 
 class ChatAgent:
+
+    @dataclass
+    class CommandHandlingResult:
+        is_handled: bool
+        reply: AIMessage | None = None
 
     DEFAULT_TOOL: ExternalTool = GPT_4_1_MINI
     TOOL_TYPE: ToolType = ToolType.chat
@@ -68,17 +79,19 @@ class ChatAgent:
             return None
 
         # handle commands first
-        answer, status = self.process_commands()
-        if status == CommandProcessor.Result.success:
-            # command was processed successfully, no reply is needed
-            return None
-        if status == CommandProcessor.Result.failed:
-            # command was not processed successfully, reply with the error
-            return answer
+        command_handling = self.process_commands()
+        if command_handling.is_handled:
+            return command_handling.reply
 
-        # not a known command, but also no API key found
+        # handle user profile constraints next
+        try:
+            self.__di.authorization_service.require_user_is_chat_ready(self.__di.invoker)
+        except ServiceError as e:
+            return AIMessage(prompt_resolvers.simple_chat_error(str(e)))
+
+        # handle access control before doing any LLM processing
         if not self.__configured_tool:
-            log.w(f"No API key found for #{self.__di.invoker.id.hex}, skipping LLM processing")
+            log.w(f"No configured tool found for #{self.__di.invoker.id.hex}, skipping LLM processing")
             message = prompt_resolvers.simple_chat_error("Not configured.")
             answer = AIMessage(message)
             return answer
@@ -99,7 +112,7 @@ class ChatAgent:
             while True:
                 # don't blow up the costs
                 if iteration > config.max_chatbot_iterations:
-                    raise OverflowError(log.e(f"Reached max iterations ({config.max_chatbot_iterations}), finishing"))
+                    raise InternalError(f"Reached max iterations ({config.max_chatbot_iterations}), finishing", UNEXPECTED_ERROR)
 
                 # run the actual LLM completion
                 llm_answer = (tools_model or base_model).invoke(self.__messages)
@@ -109,7 +122,7 @@ class ChatAgent:
                 if not answer.tool_calls:  # type: ignore
                     log.d(f"Iteration #{iteration} has no tool calls.")
                     if not isinstance(answer, AIMessage):
-                        raise AssertionError(f"Received a non-AI message from LLM: {answer}")
+                        raise ExternalServiceError(f"Received a non-AI message from LLM: {answer}", LLM_UNEXPECTED_RESPONSE)
                     system_correction_added = False
                     for attachment_id in self.__attachment_ids:
                         clean_attachment_id = re.sub(r"[ _-]", "", attachment_id)
@@ -147,25 +160,33 @@ class ChatAgent:
                     self.__add_message(ToolMessage(tool_result, tool_call_id = tool_id))
 
                 if not isinstance(self.__last_message, ToolMessage):
-                    raise LookupError("Couldn't find tools to invoke!")
+                    raise NotFoundError("Couldn't find tools to invoke!", TOOL_NOT_FOUND)
+        except ServiceError as e:
+            log.e("Chat completion failed (recognized error)", e)
+            message = prompt_resolvers.simple_chat_error(str(e))
+            return AIMessage(message)
         except Exception as e:
-            log.e("Chat completion failed", e)
+            log.e("Chat completion failed (unrecognized error)", e)
             message = prompt_resolvers.simple_chat_error(str(e))
             return AIMessage(message)
         finally:
             progress_notifier.stop()
 
-    def process_commands(self) -> Tuple[AIMessage, CommandProcessor.Result]:
+    def process_commands(self) -> CommandHandlingResult:
         result = self.__di.command_processor.execute(self.__raw_last_message)
-        log.d(f"Command processing result is {result.value}")
-        # noinspection PyUnreachableCode
-        if result == CommandProcessor.Result.unknown or result == CommandProcessor.Result.success:
-            message = ""
-        elif result == CommandProcessor.Result.failed:
-            message = prompt_resolvers.simple_chat_error("Unknown command.")
-        else:
-            raise NotImplementedError("Wild branch")
-        return AIMessage(message), result
+        log.d(f"Command processing result is {result.status}")
+        if result.status == "success":
+            log.t("Command processed successfully, skipping LLM processing")
+            return ChatAgent.CommandHandlingResult(is_handled = True, reply = None)
+        if result.status == "failed":
+            log.w("Command processing failed, replying with error message")
+            message = prompt_resolvers.simple_chat_error(result.error_message or "Failed to process command.")
+            return ChatAgent.CommandHandlingResult(is_handled = True, reply = AIMessage(message))
+        if result.status == "ignored":
+            log.t("No valid command found, continuing with normal processing")
+            return ChatAgent.CommandHandlingResult(is_handled = False, reply = None)
+        message = prompt_resolvers.simple_chat_error("Confused with processing command.")
+        return ChatAgent.CommandHandlingResult(is_handled = True, reply = AIMessage(message))
 
     def should_reply(self) -> bool:
         has_content = bool(self.__raw_last_message.strip())

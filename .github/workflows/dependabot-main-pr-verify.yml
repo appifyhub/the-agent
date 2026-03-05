@@ -33,14 +33,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/pip
-            ~/.local/share/virtualenvs
-          key: ${{ runner.os }}-dependency-cache
-
       - name: Remove the verified label if present
         uses: actions-ecosystem/action-remove-labels@v1
         continue-on-error: true
@@ -49,9 +41,18 @@ jobs:
           labels: Verified
 
       - name: Set up Python
+        id: setup-python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12.6"
+          python-version: "3.12.12"
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-python-${{ steps.setup-python.outputs.python-version }}-dependency-cache
 
       - name: Install dependencies
         run: |

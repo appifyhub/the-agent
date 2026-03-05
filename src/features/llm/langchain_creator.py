@@ -4,6 +4,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langchain_perplexity import ChatPerplexity
 
+from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ExternalToolProvider, ToolType
 from features.external_tools.external_tool_provider_library import (
     ANTHROPIC,
@@ -11,27 +12,22 @@ from features.external_tools.external_tool_provider_library import (
     OPEN_AI,
     PERPLEXITY,
 )
-from features.external_tools.tool_choice_resolver import ConfiguredTool
 from util.config import config
+from util.error_codes import UNSUPPORTED_PROVIDER
+from util.errors import ConfigurationError
 
 
 def create(configured_tool: ConfiguredTool) -> BaseChatModel:
-    definition, token, purpose = configured_tool
-
-    model_name = definition.id
-    temperature_percent = __get_temperature_percent(purpose)
-    temperature = __normalize_temperature(temperature_percent, definition.provider)
-    max_tokens = __get_max_tokens(purpose)
-    timeout = __get_timeout(purpose, definition)
-    max_retries = config.web_retries
+    definition = configured_tool.definition
+    purpose = configured_tool.purpose
 
     model_args = {
-        "model": model_name,
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-        "timeout": timeout,
-        "max_retries": max_retries,
-        "api_key": token,
+        "model": definition.id,
+        "temperature": __normalize_temperature(purpose.temperature_percent, definition.provider),
+        "max_tokens": purpose.max_output_tokens,
+        "timeout": __get_timeout(purpose, definition),
+        "max_retries": config.web_retries,
+        "api_key": configured_tool.token,
     }
 
     match definition.provider.id:
@@ -43,22 +39,7 @@ def create(configured_tool: ConfiguredTool) -> BaseChatModel:
             return ChatPerplexity(**model_args)
         case GOOGLE_AI.id:
             return ChatGoogleGenerativeAI(**model_args)
-    raise ValueError(f"{definition.provider.name}/{definition.name} does not support LLMs")
-
-
-def __get_temperature_percent(tool_type: ToolType) -> float:
-    match tool_type:
-        case ToolType.chat:
-            return 0.25
-        case ToolType.reasoning:
-            return 0.25
-        case ToolType.copywriting:
-            return 0.4
-        case ToolType.vision:
-            return 0.25
-        case ToolType.search:
-            return 0.35
-    raise ValueError(f"{tool_type} does not support temperature")
+    raise ConfigurationError(f"{definition.provider.name}/{definition.name} does not support LLMs", UNSUPPORTED_PROVIDER)
 
 
 def __normalize_temperature(temperature_percent: float, provider: ExternalToolProvider) -> float:
@@ -71,22 +52,7 @@ def __normalize_temperature(temperature_percent: float, provider: ExternalToolPr
             return temperature_percent * 2
         case GOOGLE_AI.id:
             return temperature_percent * 2
-    raise ValueError(f"{provider.name}/{provider.id} does not support temperature")
-
-
-def __get_max_tokens(tool_type: ToolType) -> int:
-    match tool_type:
-        case ToolType.chat:
-            return 2000
-        case ToolType.reasoning:
-            return 4000
-        case ToolType.copywriting:
-            return 4000
-        case ToolType.vision:
-            return 3000
-        case ToolType.search:
-            return 4000
-    raise ValueError(f"{tool_type} does not support token limits")
+    raise ConfigurationError(f"{provider.name}/{provider.id} does not support temperature", UNSUPPORTED_PROVIDER)
 
 
 def __get_timeout(tool_type: ToolType, tool: ExternalTool) -> float:
@@ -103,4 +69,4 @@ def __get_timeout(tool_type: ToolType, tool: ExternalTool) -> float:
             return float(config.web_timeout_s) * 2
         case ToolType.search:
             return float(config.web_timeout_s) * 3
-    raise ValueError(f"{tool_type} does not support text timeouts")
+    raise ConfigurationError(f"{tool_type} does not support text timeouts", UNSUPPORTED_PROVIDER)

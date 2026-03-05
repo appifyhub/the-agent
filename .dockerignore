@@ -9,4 +9,5 @@
 !alembic.ini
 !.env
 !pyproject.toml
+!config/
 !.github/ISSUE_TEMPLATE/

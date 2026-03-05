@@ -12,7 +12,7 @@ from langchain_core.tools import tool
 
 from di.di import DI
 from features.chat.chat_agent import ChatAgent
-from features.chat.chat_attachments_analyzer import ChatAttachmentsAnalyzer
+from features.chat.chat_attachment_processor import ChatAttachmentProcessor
 from features.chat.chat_image_edit_service import ChatImageEditService
 from features.chat.dev_announcements_service import DevAnnouncementsService
 from features.images.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
@@ -21,6 +21,14 @@ from features.support.user_support_service import UserSupportService
 from features.web_browsing.ai_web_search import AIWebSearch
 from util import log
 from util.config import config
+from util.error_codes import (
+    EXTERNAL_EMPTY_RESPONSE,
+    IMAGE_EDIT_FAILED,
+    IMAGE_GENERATION_FAILED,
+    INVALID_ATTACHMENT_OPERATION,
+    PROFILE_CONNECT_FAILED,
+)
+from util.errors import ExternalServiceError, InternalError, ServiceError, ValidationError
 
 TOOL_TRUNCATE_LENGTH = 8192  # to save some tokens
 
@@ -54,17 +62,17 @@ def process_attachments(
         attachment_ids_list = attachment_ids.split(",")
         if operation == KEYWORD_ATTACHMENT_ANALYZE:
             # Analyze the attachments and convert contents to text descriptions
-            analyzer = di.chat_attachments_analyzer(context, attachment_ids_list)
+            analyzer = di.chat_attachment_processor(context, attachment_ids_list)
             result = analyzer.execute()
-            if result == ChatAttachmentsAnalyzer.Result.failed:
-                raise ValueError("Failed to resolve attachments")
+            if result == ChatAttachmentProcessor.Result.failed:
+                raise ExternalServiceError("Failed to resolve attachments", EXTERNAL_EMPTY_RESPONSE)
             return json.dumps({"result": result.value, "attachments": analyzer.result})
         elif operation == KEYWORD_ATTACHMENT_IMAGE_EDIT:
             log.d(f"LLM requested to process {len(attachment_ids_list)} images in aspect ratio {aspect_ratio}, size {size}")
             # Generate images based on the provided context and attachments
             result, details = di.chat_image_edit_service(attachment_ids_list, context, aspect_ratio, size).execute()
             if result == ChatImageEditService.Result.failed:
-                raise ValueError("Failed to edit the images! Details: " + str(details))
+                raise ExternalServiceError("Failed to edit the images! Details: " + str(details), IMAGE_EDIT_FAILED)
             return __success(
                 {
                     "status": result.value,
@@ -74,7 +82,7 @@ def process_attachments(
                 },
             )
         else:
-            raise ValueError(f"Unknown operation '{operation}'; try one of: [{', '.join(ATTACHMENT_OPERATIONS)}]")
+            raise ValidationError(f"Unknown operation '{operation}'; try one of: [{', '.join(ATTACHMENT_OPERATIONS)}]", INVALID_ATTACHMENT_OPERATION)
     except Exception as e:
         return __error(e)
 
@@ -106,7 +114,7 @@ def generate_image(
         generator = di.smart_stable_diffusion_generator(prompt, copywriter_tool, image_gen_tool, aspect_ratio, size)
         result = generator.execute()
         if result == SmartStableDiffusionGenerator.Result.failed:
-            raise ValueError(f"Failed to generate the image! Reason: {str(generator.error)}")
+            raise ExternalServiceError(f"Failed to generate the image! Reason: {str(generator.error)}", IMAGE_GENERATION_FAILED)
         return __success({"next_step": "Confirm to partner that the image has been sent"})
     except Exception as e:
         return __error(e)
@@ -213,7 +221,7 @@ def ai_web_search(di: DI, search_query: str) -> str:
         search = di.ai_web_search(search_query, configured_tool)
         result = search.execute()
         if not result.content:
-            raise ValueError("Answer not received")
+            raise ExternalServiceError("Answer not received", EXTERNAL_EMPTY_RESPONSE)
         return __success({"content": result.content})
     except Exception as e:
         return __error(e)
@@ -388,7 +396,7 @@ def connect_profiles(di: DI, connect_key: str) -> str:
     try:
         result, message = di.profile_connect_service.connect_profiles(di.invoker, connect_key)
         if result == di.profile_connect_service.Result.failure:
-            raise ValueError(message)
+            raise InternalError(message, PROFILE_CONNECT_FAILED)
         return __success({"status": "success", "message": message})
     except Exception as e:
         return __error(e)
@@ -407,12 +415,14 @@ def __success(content: dict[str, Any] | str) -> str:
 
 
 def __error(message: str | Exception) -> str:
-    error_str: str
+    if isinstance(message, ServiceError):
+        log.e(message.to_log_string())
+        return json.dumps(message.to_llm_dict())
     if isinstance(message, str):
-        error_str = log.e(f"Tool call failed: {message}")
-    else:
-        error_str = log.e("Tool call failed", message)
-    return json.dumps({"result": "Error", "information": error_str})
+        log.e(f"Tool call failed: {message}")
+        return json.dumps({"result": "Error", "information": f"Tool call failed: {message}"})
+    log.e("Tool call failed", message)
+    return json.dumps({"result": "Error", "information": f"Tool call failed: {message}"})
 
 
 # === Tool Bindings ===

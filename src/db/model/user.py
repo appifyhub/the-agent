@@ -2,7 +2,7 @@ import uuid
 from datetime import date
 from enum import Enum
 
-from sqlalchemy import BigInteger, Column, Date, String
+from sqlalchemy import BigInteger, Boolean, Column, Date, Float, String, text
 from sqlalchemy import Enum as EnumSQL
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -70,6 +70,12 @@ class UserDB(BaseModel):
     tool_choice_api_fiat_exchange = Column(String, nullable = True)
     tool_choice_api_crypto_exchange = Column(String, nullable = True)
     tool_choice_api_twitter = Column(String, nullable = True)
+
+    credit_balance = Column(Float, nullable = False, default = 0.0, server_default = text("0"))
+
+    is_on_waitlist = Column(Boolean, nullable = False, default = False, server_default = text("false"))
+    is_invited_to_start = Column(Boolean, nullable = False, default = False, server_default = text("false"))
+    are_policies_accepted = Column(Boolean, nullable = False, default = False, server_default = text("false"))
 
     group = Column(EnumSQL(Group), nullable = False, default = Group.standard)
     created_at = Column(Date, default = date.today)

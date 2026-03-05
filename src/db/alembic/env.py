@@ -20,6 +20,9 @@ from db.model.chat_message_attachment import ChatMessageAttachmentDB  # used by 
 from db.model.price_alert import PriceAlertDB  # used by alembic  # noqa: F401
 
 # noinspection PyUnresolvedReferences
+from db.model.purchase_record import PurchaseRecordDB  # used by alembic  # noqa: F401
+
+# noinspection PyUnresolvedReferences
 from db.model.sponsorship import SponsorshipDB  # used by alembic  # noqa: F401
 
 # noinspection PyUnresolvedReferences
@@ -27,9 +30,6 @@ from db.model.tools_cache import ToolsCacheDB  # noqa: F401
 
 # noinspection PyUnresolvedReferences
 from db.model.usage_record import UsageRecordDB  # used by alembic  # noqa: F401
-
-# noinspection PyUnresolvedReferences
-from db.model.purchase_record import PurchaseRecordDB  # used by alembic  # noqa: F401
 
 # noinspection PyUnresolvedReferences
 from db.model.user import UserDB  # used by alembic  # noqa: F401

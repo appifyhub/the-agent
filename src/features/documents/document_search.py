@@ -6,11 +6,13 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.vectorstores import InMemoryVectorStore
 
 from di.di import DI
+from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ToolType
-from features.external_tools.external_tool_library import CLAUDE_3_7_SONNET, TEXT_EMBEDDING_3_SMALL
-from features.external_tools.tool_choice_resolver import ConfiguredTool
+from features.external_tools.external_tool_library import CLAUDE_4_6_SONNET, TEXT_EMBEDDING_3_SMALL
 from features.integrations import prompt_resolvers
 from util import log
+from util.error_codes import LLM_UNEXPECTED_RESPONSE
+from util.errors import ExternalServiceError
 
 DEFAULT_QUESTION = "What is this document about?"
 SEARCH_RESULT_PAGES = 2
@@ -21,7 +23,7 @@ class DocumentSearch:
 
     DEFAULT_EMBEDDING_TOOL: ExternalTool = TEXT_EMBEDDING_3_SMALL
     EMBEDDING_TOOL_TYPE: ToolType = ToolType.embedding
-    DEFAULT_COPYWRITER_TOOL: ExternalTool = CLAUDE_3_7_SONNET
+    DEFAULT_COPYWRITER_TOOL: ExternalTool = CLAUDE_4_6_SONNET
     COPYWRITER_TOOL_TYPE: ToolType = ToolType.copywriting
 
     error: str | None
@@ -76,10 +78,11 @@ class DocumentSearch:
             copywriter_messages = [SystemMessage(system_prompt), HumanMessage(search_results)]
             answer = self.__copywriter.invoke(copywriter_messages)
             if not isinstance(answer, AIMessage):
-                raise AssertionError(f"Received a non-AI message from the model: {answer}")
+                raise ExternalServiceError(f"Received a non-AI message from the model: {answer}", LLM_UNEXPECTED_RESPONSE)
             if not answer.content or not isinstance(answer.content, str):
-                raise AssertionError(f"Received an unexpected content from the model: {answer}")
+                raise ExternalServiceError(f"Received an unexpected content from the model: {answer}", LLM_UNEXPECTED_RESPONSE)
             return f"Document Search Results:\n\n```\n{str(answer.content)}\n```"
         except Exception as e:
-            self.error = log.e("Document search failed", e)
+            self.error = f"Document search failed: {str(e)}"
+            log.e("Document search failed", e)
             return None

@@ -11,6 +11,8 @@ from db.schema.price_alert import PriceAlert, PriceAlertSave
 from di.di import DI
 from features.integrations.integrations import resolve_agent_user
 from util import log
+from util.error_codes import BOT_CANNOT_SET_ALERTS, NO_PRIVATE_CHAT
+from util.errors import AuthorizationError
 
 DATETIME_PRINT_FORMAT = "%Y-%m-%d %H:%M %Z"
 
@@ -52,10 +54,10 @@ class CurrencyAlertService:
     def create_alert(self, base_currency: str, desired_currency: str, threshold_percent: int) -> ActiveAlert:
         log.d(f"Setting price alert for {base_currency}/{desired_currency} at {threshold_percent}%")
         if not self.__target_chat_config:
-            raise ValueError(log.e("Target chat is not set"))
+            raise AuthorizationError("Target chat is not set", NO_PRIVATE_CHAT)
         agent_user = resolve_agent_user(ChatConfigDB.ChatType.background)
         if self.__di.invoker.id == agent_user.id:
-            raise ValueError(log.e("Bot cannot set price alerts"))
+            raise AuthorizationError("Bot cannot set price alerts", BOT_CANNOT_SET_ALERTS)
 
         current_rate: float = self.__di.exchange_rate_fetcher.execute(base_currency, desired_currency)["rate"]
         price_alert_db = self.__di.price_alert_crud.save(
@@ -83,7 +85,7 @@ class CurrencyAlertService:
     def delete_alert(self, base_currency: str, desired_currency: str) -> ActiveAlert | None:
         log.d(f"Deleting price alert for {base_currency}/{desired_currency}")
         if not self.__target_chat_config:
-            raise ValueError(log.e("Target chat is not set"))
+            raise AuthorizationError("Target chat is not set", NO_PRIVATE_CHAT)
 
         deleted_alert_db = self.__di.price_alert_crud.delete(
             self.__target_chat_config.chat_id, base_currency, desired_currency,
