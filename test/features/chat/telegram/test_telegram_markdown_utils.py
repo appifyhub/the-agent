@@ -111,3 +111,25 @@ class TelegramMarkdownUtilsTest(unittest.TestCase):
         text = "Use `inline` or:\n```\nblock code\n```"
         expected = "Use `inline` or:\n```\nblock code\n```"
         self.assertEqual(escape_markdown(text), expected)
+
+    def test_escape_markdown_double_asterisk_bold(self):
+        # Standard markdown double asterisk (should be preserved)
+        self.assertEqual(escape_markdown("**bold text**"), "**bold text**")
+        self.assertEqual(escape_markdown("**bold**"), "**bold**")
+        self.assertEqual(escape_markdown("This is **bold text** here"), "This is **bold text** here")
+
+    def test_escape_markdown_multi_word_single_asterisk(self):
+        # Telegram format with spaces inside (should be preserved)
+        self.assertEqual(escape_markdown("*multi word bold*"), "*multi word bold*")
+        self.assertEqual(escape_markdown("*Ova verzija donosi poboljšanja*"), "*Ova verzija donosi poboljšanja*")
+
+    def test_escape_markdown_multi_word_italic(self):
+        # Italic with spaces inside (should be preserved)
+        self.assertEqual(escape_markdown("_italic text_"), "_italic text_")
+        self.assertEqual(escape_markdown("_multi word italic_"), "_multi word italic_")
+
+    def test_escape_markdown_real_release_title(self):
+        # Real-world release title from user's screenshot
+        text = "**🚀 Verzija 5.0.6: Čišći Digitalni Otisak**"
+        expected = "**🚀 Verzija 5.0.6: Čišći Digitalni Otisak**"
+        self.assertEqual(escape_markdown(text), expected)

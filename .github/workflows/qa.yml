@@ -8,6 +8,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     if: github.event.pull_request.user.login != 'dependabot[bot]'
+    permissions:
+      contents: write
+      packages: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v2
         with:
@@ -16,18 +20,19 @@ jobs:
       - name: Print build name
         run: echo "$GITHUB_ACTOR is building PR#$PR_NUMBER in '$GITHUB_REPOSITORY' (commit $GITHUB_SHA)"
 
+      - name: Set up Python
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.12"
+
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
           path: |
             ~/.cache/pip
             ~/.local/share/virtualenvs
-          key: ${{ runner.os }}-dependency-cache
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12.6"
+          key: ${{ runner.os }}-python-${{ steps.setup-python.outputs.python-version }}-dependency-cache
 
       - name: Install dependencies
         run: |
@@ -46,11 +51,8 @@ jobs:
       - name: Build Docker image
         run: docker build . --file Dockerfile --tag the-agent
 
-      - name: Auth for GitHub's Docker repository
-        env:
-          USER: ${{ secrets.PACKAGES_USER }}
-          TOKEN: ${{ secrets.PACKAGES_TOKEN }}
-        run: echo $TOKEN | docker login docker.pkg.github.com --username $USER --password-stdin
+      - name: Auth for GitHub's Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
 
       - name: Tag Docker image
         env:
@@ -58,8 +60,8 @@ jobs:
         run: |
           VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
           echo "Tagging images with version '$VERSION'..."
-          docker tag the-agent docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:"$VERSION".pr_$PR_NUMBER
-          docker tag the-agent docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:latest_pr
+          docker tag the-agent ghcr.io/$GITHUB_REPOSITORY:"$VERSION".pr_$PR_NUMBER
+          docker tag the-agent ghcr.io/$GITHUB_REPOSITORY:latest_pr
           docker tag the-agent appifyhub/the-agent:"$VERSION".pr_$PR_NUMBER
           docker tag the-agent appifyhub/the-agent:latest_pr
 
@@ -69,8 +71,8 @@ jobs:
         run: |
           VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
           echo "Publishing images with version '$VERSION'..."
-          docker push docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:"$VERSION".pr_$PR_NUMBER
-          docker push docker.pkg.github.com/$GITHUB_REPOSITORY/the-agent:latest_pr
+          docker push ghcr.io/$GITHUB_REPOSITORY:"$VERSION".pr_$PR_NUMBER
+          docker push ghcr.io/$GITHUB_REPOSITORY:latest_pr
 
       - name: Publish Docker images to DockerHub
         id: docker_publish

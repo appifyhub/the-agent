@@ -1,5 +1,6 @@
 import unittest
 
+from util.errors import ExternalServiceError
 from util.functions import (
     extract_url_from_replicate_result,
     first_key_with_value,
@@ -189,17 +190,17 @@ class FunctionsTest(unittest.TestCase):
         self.assertEqual(result, "https://example.com/image.png")
 
     def test_extract_url_from_replicate_result_empty_list(self):
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ExternalServiceError) as context:
             extract_url_from_replicate_result([])
         self.assertIn("Empty result list", str(context.exception))
 
     def test_extract_url_from_replicate_result_unexpected_type_in_list(self):
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ExternalServiceError) as context:
             extract_url_from_replicate_result([12345])
         self.assertIn("Unexpected result type in list", str(context.exception))
 
     def test_extract_url_from_replicate_result_unexpected_type(self):
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ExternalServiceError) as context:
             extract_url_from_replicate_result(12345)
         self.assertIn("Unexpected result type from Replicate", str(context.exception))
 
@@ -279,13 +280,13 @@ class FunctionsTest(unittest.TestCase):
 
     def test_parse_ai_message_content_empty_result(self):
         from util.functions import parse_ai_message_content
-        with self.assertRaises(AssertionError) as context:
+        with self.assertRaises(ExternalServiceError) as context:
             parse_ai_message_content([])
         self.assertIn("Received an unexpected content list", str(context.exception))
 
     def test_parse_ai_message_content_unexpected_type(self):
         from util.functions import parse_ai_message_content
-        with self.assertRaises(AssertionError) as context:
+        with self.assertRaises(ExternalServiceError) as context:
             parse_ai_message_content(12345)
         self.assertIn("Received an unexpected content", str(context.exception))
 

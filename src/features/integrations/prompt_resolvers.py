@@ -8,6 +8,8 @@ from features.prompting import prompt_composer, prompt_library
 from features.prompting.prompt_composer import PromptFragment, PromptVar
 from features.prompting.prompt_library import CHAT_MESSAGE_DELIMITER
 from util.config import config
+from util.error_codes import UNSUPPORTED_CHAT_TYPE
+from util.errors import ConfigurationError
 
 PLACEHOLDER_NO_DATA = "{undefined}"
 
@@ -71,7 +73,7 @@ def chat(
                     (PromptVar.author_username, invoker.whatsapp_user_id or PLACEHOLDER_NO_DATA),
                 )
             ).render()
-    raise ValueError(f"Unsupported chat type: {target_chat.chat_type}")
+    raise ConfigurationError(f"Unsupported chat type: {target_chat.chat_type}", UNSUPPORTED_CHAT_TYPE)
 
 
 def copywriting_new_release_version(
@@ -134,7 +136,7 @@ def copywriting_new_release_version(
                 )
                 .add_variables((PromptVar.agent_username, config.github_bot_username or PLACEHOLDER_NO_DATA))
             ).render()
-    raise ValueError(f"Unsupported chat type: {chat_type}")
+    raise ConfigurationError(f"Unsupported chat type: {chat_type}", UNSUPPORTED_CHAT_TYPE)
 
 
 def copywriting_new_system_event(target_chat: ChatConfig | ChatConfigSave) -> str:
@@ -171,7 +173,7 @@ def copywriting_new_system_event(target_chat: ChatConfig | ChatConfigSave) -> st
                 .add_fragments(prompt_library.formats.chat_whatsapp)
                 .add_variables((PromptVar.agent_username, agent_user.whatsapp_user_id or PLACEHOLDER_NO_DATA))
             ).render()
-    raise ValueError(f"Unsupported chat type: {target_chat.chat_type}")
+    raise ConfigurationError(f"Unsupported chat type: {target_chat.chat_type}", UNSUPPORTED_CHAT_TYPE)
 
 
 def copywriting_system_announcement(
@@ -223,7 +225,7 @@ def copywriting_system_announcement(
                 .add_fragments(prompt_library.formats.chat_whatsapp)
                 .add_variables((PromptVar.agent_username, agent_user.whatsapp_user_id or PLACEHOLDER_NO_DATA))
             ).render()
-    raise ValueError(f"Unsupported chat type: {chat_type}")
+    raise ConfigurationError(f"Unsupported chat type: {chat_type}", UNSUPPORTED_CHAT_TYPE)
 
 
 def sentient_web_search(target_chat: ChatConfig | ChatConfigSave) -> str:
@@ -260,7 +262,7 @@ def sentient_web_search(target_chat: ChatConfig | ChatConfigSave) -> str:
                 )
                 .add_variables((PromptVar.agent_username, agent_user.whatsapp_user_id or PLACEHOLDER_NO_DATA))
             ).render()
-    raise ValueError(f"Unsupported chat type: {target_chat.chat_type}")
+    raise ConfigurationError(f"Unsupported chat type: {target_chat.chat_type}", UNSUPPORTED_CHAT_TYPE)
 
 
 def copywriting_image_prompt_upscaler(chat_type: ChatConfigDB.ChatType) -> str:
@@ -322,7 +324,7 @@ def copywriting_computer_hearing(target_chat: ChatConfig | ChatConfigSave) -> st
                 composer
                 .add_variables((PromptVar.agent_username, agent_user.whatsapp_user_id or PLACEHOLDER_NO_DATA))
             ).render()
-    raise ValueError(f"Unsupported chat type: {target_chat.chat_type}")
+    raise ConfigurationError(f"Unsupported chat type: {target_chat.chat_type}", UNSUPPORTED_CHAT_TYPE)
 
 
 def document_search_and_response(
@@ -402,7 +404,7 @@ def copywriting_support_request_description(
                 .add_fragments(prompt_library.formats.origin_whatsapp)
                 .add_variables((PromptVar.agent_username, agent_user.whatsapp_user_id or PLACEHOLDER_NO_DATA))
             ).render()
-    raise ValueError(f"Unsupported chat type: {chat_type}")
+    raise ConfigurationError(f"Unsupported chat type: {chat_type}", UNSUPPORTED_CHAT_TYPE)
 
 
 def simple_chat_error(error_reason: str) -> str:

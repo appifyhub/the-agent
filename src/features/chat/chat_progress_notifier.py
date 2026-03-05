@@ -9,16 +9,16 @@ from features.integrations.integration_config import TELEGRAM_REACTIONS, WHATSAP
 from features.integrations.integrations import resolve_reaction_timing
 from util import log
 
-DEFAULT_REACTION_INTERVAL_S = 15
+DEFAULT_REACTION_INTERVAL_S = 60
 TYPING_STATUS_INTERVAL_S = 5  # set by Telegram API for auto-clearing
-MAX_CYCLES = 90
+MAX_CYCLES = 10
 
 # subset of features.integrations.integration_config reactions
 # sorted by intensity (later ones emote more about the delay)
 ESCALATING_REACTIONS = [
-    "🫡", "👨‍💻", "⚡", "🔥", "👀", "🤔", "🤨",
-    "😐", "🥱", "😴", "🥴", "😨", "😱", "🤯",
-    "😢", "😭", "🙈", "💩", "💅",
+    "👀", "🫡", "👨‍💻", "😴", "🔥", "🤔", "🤨",
+    "😐", "🥱", "🥴", "😨", "😱", "🤯", "😢",
+    "😭", "🙈", "💩", "💅", "⚡",
 ]
 
 

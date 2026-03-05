@@ -16,6 +16,8 @@ from di.di import DI
 from features.chat.telegram.model.chat_member import ChatMemberAdministrator
 from features.chat.telegram.model.user import User as TelegramUser
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from util.error_codes import WAITLIST_ACCOUNT_NOT_ACTIVE, WAITLIST_INVITED_POLICIES_REQUIRED
+from util.errors import AuthorizationError, NotFoundError, ValidationError
 
 
 class AuthorizationServiceTest(unittest.TestCase):
@@ -107,12 +109,11 @@ class AuthorizationServiceTest(unittest.TestCase):
         # Should return the same instance that was passed in
         self.assertIs(result, self.chat_config)
 
-    def test_validate_chat_failure_chat_not_found(self):
-        self.mock_chat_config_dao.get.return_value = None
+    def test_validate_chat_failure_malformed_id(self):
         service = AuthorizationService(self.mock_di)
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ValidationError) as context:
             service.validate_chat("wrong_chat_id")
-        self.assertIn("badly formed hexadecimal UUID string", str(context.exception))
+        self.assertIn("Malformed chat ID 'wrong_chat_id'", str(context.exception))
 
     def test_validate_user_success_with_hex_string(self):
         service = AuthorizationService(self.mock_di)
@@ -131,11 +132,17 @@ class AuthorizationServiceTest(unittest.TestCase):
         # Should return the same instance that was passed in
         self.assertIs(result, self.invoker_user)
 
+    def test_validate_user_failure_malformed_id(self):
+        service = AuthorizationService(self.mock_di)
+        with self.assertRaises(ValidationError) as context:
+            service.validate_user("wrong_user_id")
+        self.assertIn("Malformed user ID 'wrong_user_id'", str(context.exception))
+
     def test_validate_user_failure_user_not_found(self):
         # Reset mock to return None for this test
         self.mock_di.user_crud.get.return_value = None
         service = AuthorizationService(self.mock_di)
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(NotFoundError) as context:
             service.validate_user("00000000000000000000000000000000")
         self.assertIn("User '00000000000000000000000000000000' not found", str(context.exception))
 
@@ -157,7 +164,7 @@ class AuthorizationServiceTest(unittest.TestCase):
         self.mock_telegram_sdk.get_chat_administrators.return_value = [other_admin]
 
         service = AuthorizationService(self.mock_di)
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(AuthorizationError) as context:
             service.authorize_for_chat(self.invoker_user, self.chat_config.chat_id)
         self.assertIn("is not admin in", str(context.exception))
 
@@ -180,7 +187,7 @@ class AuthorizationServiceTest(unittest.TestCase):
         self.mock_user_dao.get.return_value = other_user
 
         service = AuthorizationService(self.mock_di)
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(AuthorizationError) as context:
             service.authorize_for_user(self.invoker_user, other_user.id.hex)
         self.assertIn("is not the allowed user", str(context.exception))
 
@@ -414,3 +421,100 @@ class AuthorizationServiceTest(unittest.TestCase):
         self.assertEqual(result.id, self.invoker_user.id)
         # Should return the same instance that was passed in
         self.assertIs(result, self.invoker_user)
+
+    def test_require_user_is_chat_ready_success(self):
+        active_user = self.invoker_user.model_copy(
+            update = {
+                "is_on_waitlist": False,
+                "are_policies_accepted": True,
+            },
+        )
+        service = AuthorizationService(self.mock_di)
+        service.require_user_is_chat_ready(active_user)
+
+    def test_require_user_is_chat_ready_waitlist_requires_activation(self):
+        waitlisted_user = self.invoker_user.model_copy(
+            update = {
+                "is_on_waitlist": True,
+                "is_invited_to_start": False,
+                "are_policies_accepted": False,
+            },
+        )
+        service = AuthorizationService(self.mock_di)
+
+        with self.assertRaises(AuthorizationError) as context:
+            service.require_user_is_chat_ready(waitlisted_user)
+
+        self.assertEqual(context.exception.error_code, WAITLIST_ACCOUNT_NOT_ACTIVE)
+
+    def test_require_user_is_chat_ready_invited_requires_policies(self):
+        invited_user = self.invoker_user.model_copy(
+            update = {
+                "is_on_waitlist": True,
+                "is_invited_to_start": True,
+                "are_policies_accepted": False,
+            },
+        )
+        service = AuthorizationService(self.mock_di)
+
+        with self.assertRaises(AuthorizationError) as context:
+            service.require_user_is_chat_ready(invited_user)
+
+        self.assertEqual(context.exception.error_code, WAITLIST_INVITED_POLICIES_REQUIRED)
+
+    def test_require_user_is_chat_ready_non_waitlisted_requires_policies(self):
+        inactive_user = self.invoker_user.model_copy(
+            update = {
+                "is_on_waitlist": False,
+                "is_invited_to_start": False,
+                "are_policies_accepted": False,
+            },
+        )
+        service = AuthorizationService(self.mock_di)
+
+        with self.assertRaises(AuthorizationError) as context:
+            service.require_user_is_chat_ready(inactive_user)
+
+        self.assertEqual(context.exception.error_code, WAITLIST_INVITED_POLICIES_REQUIRED)
+
+    def test_require_waitlisted_user_can_activate_when_invited(self):
+        invited_user = self.invoker_user.model_copy(
+            update = {
+                "is_on_waitlist": True,
+                "is_invited_to_start": True,
+                "are_policies_accepted": False,
+            },
+        )
+        self.mock_user_dao.count.return_value = 999999
+        service = AuthorizationService(self.mock_di)
+
+        service.require_waitlisted_user_can_activate(invited_user)
+
+    def test_require_waitlisted_user_can_activate_with_available_capacity(self):
+        waitlisted_user = self.invoker_user.model_copy(
+            update = {
+                "is_on_waitlist": True,
+                "is_invited_to_start": False,
+                "are_policies_accepted": False,
+            },
+        )
+        self.mock_user_dao.count.return_value = 0
+        service = AuthorizationService(self.mock_di)
+
+        service.require_waitlisted_user_can_activate(waitlisted_user)
+
+    def test_require_waitlisted_user_can_activate_denied_without_invite_or_capacity(self):
+        waitlisted_user = self.invoker_user.model_copy(
+            update = {
+                "is_on_waitlist": True,
+                "is_invited_to_start": False,
+                "are_policies_accepted": False,
+            },
+        )
+        self.mock_user_dao.count.return_value = 999999
+        service = AuthorizationService(self.mock_di)
+
+        with self.assertRaises(AuthorizationError) as context:
+            service.require_waitlisted_user_can_activate(waitlisted_user)
+
+        self.assertEqual(context.exception.error_code, WAITLIST_ACCOUNT_NOT_ACTIVE)

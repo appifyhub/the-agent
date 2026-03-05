@@ -14,6 +14,15 @@ from features.chat.whatsapp.model.response import MessageResponse
 from features.integrations.integration_config import THE_AGENT
 from util import log
 from util.config import config
+from util.error_codes import (
+    ATTACHMENT_NOT_FOUND,
+    CHAT_CONFIG_NOT_FOUND,
+    MEDIA_DOWNLOAD_FAILED,
+    MEDIA_INFO_FAILED,
+    MISSING_EXTERNAL_ATTACHMENT_ID,
+    NO_ATTACHMENT_INSTANCE,
+)
+from util.errors import ExternalServiceError, InternalError, NotFoundError
 from util.functions import first_key_with_value
 
 ATTACHMENT_URL_EXPIRATION = 30 * 24 * 60 * 60  # 30 days in seconds
@@ -130,7 +139,7 @@ class WhatsAppBotSDK:
             chat_type = ChatConfigDB.ChatType.whatsapp,
         )
         if not chat_config_db:
-            raise ValueError(f"Chat config not found for WhatsApp recipient: {recipient_id}")
+            raise NotFoundError(f"Chat config not found for WhatsApp recipient: {recipient_id}", CHAT_CONFIG_NOT_FOUND)
         chat_config = ChatConfig.model_validate(chat_config_db)
         message_save = ChatMessageSave(
             message_id = first_message.id,
@@ -195,7 +204,7 @@ class WhatsAppBotSDK:
         for attachment_id in attachment_ids:
             attachment_db = self.__di.chat_message_attachment_crud.get(attachment_id)
             if not attachment_db:
-                raise ValueError(f"Attachment with ID '{attachment_id}' not found in DB")
+                raise NotFoundError(f"Attachment with ID '{attachment_id}' not found in DB", ATTACHMENT_NOT_FOUND)
             attachments.append(ChatMessageAttachment.model_validate(attachment_db))
         return self.refresh_attachment_instances(attachments)
 
@@ -221,7 +230,7 @@ class WhatsAppBotSDK:
             instance = ChatMessageAttachment.model_validate(instance_db) if instance_db else None
             instance_save = ChatMessageAttachmentSave(**instance.model_dump()) if instance else attachment_save
         else:
-            raise ValueError("No attachment instance provided")
+            raise InternalError("No attachment instance provided", NO_ATTACHMENT_INSTANCE)
 
         # check if instance data is already fresh
         if not instance_save.has_stale_data:
@@ -232,18 +241,18 @@ class WhatsAppBotSDK:
 
         # data is stale or missing, we need to fetch the attachment data from remote
         if not instance_save.external_id:
-            raise ValueError(log.e("No external ID provided for the attachment"))
+            raise InternalError("No external ID provided for the attachment", MISSING_EXTERNAL_ATTACHMENT_ID)
         log.t(f"Refreshing attachment data for external ID '{instance_save.external_id}'")
 
         # Get media info from WhatsApp API
         media_info: MediaInfo | None = self.__di.whatsapp_bot_api.get_media_info(instance_save.external_id)
         if not media_info:
-            raise ValueError(f"Could not get media info for external ID '{instance_save.external_id}'")
+            raise ExternalServiceError(f"Could not get media info for external ID '{instance_save.external_id}'", MEDIA_INFO_FAILED)  # noqa: E501
 
         # Download media bytes
         media_bytes: bytes | None = self.__di.whatsapp_bot_api.download_media_bytes(media_info.url)
         if not media_bytes:
-            raise ValueError(f"Could not download media for external ID '{instance_save.external_id}'")
+            raise ExternalServiceError(f"Could not download media for external ID '{instance_save.external_id}'", MEDIA_DOWNLOAD_FAILED)  # noqa: E501
 
         # Determine format from mime type
         detected_format: str | None = None

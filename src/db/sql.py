@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session, sessionmaker
 from db.model.base import BaseModel
 from util import log
 from util.config import config
+from util.error_codes import DI_DEPENDENCY_NOT_MET
+from util.errors import ConfigurationError
 
 engine: Engine
 LocalSession: sessionmaker
@@ -53,7 +55,7 @@ def __create_db_engine(
             retries += 1
             log.w(f"Database connection attempt {retries} failed. Retrying in {retry_interval_s} seconds...")
             time.sleep(retry_interval_s)
-    raise Exception("Failed to connect to the database after multiple attempts")
+    raise ConfigurationError("Failed to connect to the database after multiple attempts", DI_DEPENDENCY_NOT_MET)
 
 
 # noinspection PyPep8Naming,PyShadowingNames
