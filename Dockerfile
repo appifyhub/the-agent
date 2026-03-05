@@ -20,4 +20,4 @@ RUN pipenv install --deploy --ignore-pipfile --verbose \
     && rm -rf /root/.cache/pip /root/.cache/pipenv
 
 # Set the entrypoint command
-CMD ["sh", "tools/run_prod.sh"]
+CMD ["pipenv", "run", "python", "src/main.py"]

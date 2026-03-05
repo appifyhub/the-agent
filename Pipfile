@@ -41,6 +41,7 @@ python-multipart = "*"
 pytest = "*"
 requests-mock = "*"
 ruff = "*"
+pre-commit = "*"
 the-agent = {path = ".", editable = true}
 
 [requires]

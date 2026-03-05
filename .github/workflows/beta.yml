@@ -41,7 +41,7 @@ jobs:
           pipenv install --dev
 
       - name: Lint checks
-        run: ./tools/run_lint.sh
+        run: pipenv run pre-commit run --all-files --show-diff-on-failure
 
       - name: Test the service
         env:
