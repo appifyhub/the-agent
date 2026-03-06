@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 100
+          fetch-depth: 200
 
       - name: Print build name
         run: echo "$GITHUB_ACTOR is building '$GITHUB_REPOSITORY' (commit $GITHUB_SHA)"
