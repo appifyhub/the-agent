@@ -11,6 +11,7 @@ from db.model.user import UserDB
 from db.schema.user import User
 from features.chat.dev_announcements_service import DevAnnouncementsService
 from features.external_tools.tool_choice_resolver import ConfiguredTool
+from util.errors import AuthorizationError, NotFoundError
 
 
 class DevAnnouncementsServiceTest(unittest.TestCase):
@@ -86,7 +87,7 @@ class DevAnnouncementsServiceTest(unittest.TestCase):
 
     def test_init_user_not_found(self):
         self.mock_di.invoker.group = UserDB.Group.standard
-        with self.assertRaises(ValueError):
+        with self.assertRaises(AuthorizationError):
             DevAnnouncementsService(
                 self.raw_announcement,
                 None,
@@ -97,7 +98,7 @@ class DevAnnouncementsServiceTest(unittest.TestCase):
     def test_init_user_not_developer(self):
         self.user.group = UserDB.Group.standard
         self.mock_di.invoker = self.user
-        with self.assertRaises(ValueError):
+        with self.assertRaises(AuthorizationError):
             DevAnnouncementsService(
                 self.raw_announcement,
                 None,
@@ -281,7 +282,7 @@ class DevAnnouncementsServiceTest(unittest.TestCase):
         with patch("features.integrations.integrations.lookup_user_by_handle") as mock_lookup:
             mock_lookup.return_value = None
 
-            with self.assertRaises(ValueError) as context:
+            with self.assertRaises(NotFoundError) as context:
                 DevAnnouncementsService(
                     self.raw_announcement,
                     "nonexistent_user",
@@ -310,7 +311,7 @@ class DevAnnouncementsServiceTest(unittest.TestCase):
         with patch("features.integrations.integrations.lookup_user_by_handle") as mock_lookup:
             mock_lookup.return_value = target_user
 
-            with self.assertRaises(ValueError) as context:
+            with self.assertRaises(NotFoundError) as context:
                 DevAnnouncementsService(
                     self.raw_announcement,
                     "target_user",
@@ -340,7 +341,7 @@ class DevAnnouncementsServiceTest(unittest.TestCase):
             mock_lookup.return_value = target_user
             self.mock_di.chat_config_crud.get_by_external_identifiers.return_value = None
 
-            with self.assertRaises(ValueError) as context:
+            with self.assertRaises(NotFoundError) as context:
                 DevAnnouncementsService(
                     self.raw_announcement,
                     "target_user",

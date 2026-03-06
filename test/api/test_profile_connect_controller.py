@@ -10,6 +10,7 @@ from db.model.chat_config import ChatConfigDB
 from db.schema.user import User
 from di.di import DI
 from features.connect.profile_connect_service import ProfileConnectService
+from util.errors import InternalError
 
 
 class ProfileConnectControllerTest(unittest.TestCase):
@@ -63,7 +64,7 @@ class ProfileConnectControllerTest(unittest.TestCase):
             "Failure",
         )
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InternalError):
             self.controller.connect_profiles(
                 self.user.id.hex,
                 "new-key-0001",

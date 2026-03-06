@@ -3,11 +3,13 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 
 from di.di import DI
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
+from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import GPT_4_1_MINI
-from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.integrations import prompt_resolvers
 from util import log
+from util.error_codes import AMBIGUOUS_IMAGE_INPUTS, INVALID_IMAGE_FORMAT, LLM_UNEXPECTED_RESPONSE, MISSING_IMAGE_INPUTS
+from util.errors import ExternalServiceError, ValidationError
 from util.functions import parse_ai_message_content
 
 
@@ -36,11 +38,11 @@ class ComputerVisionAnalyzer:
 
         # validate image input parameters
         if image_mime_type not in KNOWN_IMAGE_FORMATS.values():
-            raise ValueError(f"Unsupported image format: {image_mime_type}")
+            raise ValidationError(f"Unsupported image format: {image_mime_type}", INVALID_IMAGE_FORMAT)
         if image_url is not None and image_b64 is not None:
-            raise ValueError("Only one of URL or Base64 value must be provided")
+            raise ValidationError("Only one of URL or Base64 value must be provided", AMBIGUOUS_IMAGE_INPUTS)
         if image_url is None and image_b64 is None:
-            raise ValueError("Either URL or Base64 value must be provided")
+            raise ValidationError("Either URL or Base64 value must be provided", MISSING_IMAGE_INPUTS)
 
         # set up LLM image context
         image_content_json: dict[str, str | dict] = {"type": "image_url"}
@@ -65,8 +67,9 @@ class ComputerVisionAnalyzer:
         try:
             answer = self.__vision_model.invoke(self.__messages)
             if not isinstance(answer, AIMessage):
-                raise AssertionError(f"Received a non-AI message from the model: {answer}")
+                raise ExternalServiceError(f"Received a non-AI message from the model: {answer}", LLM_UNEXPECTED_RESPONSE)
             return parse_ai_message_content(answer.content)
         except Exception as e:
-            self.error = log.e("Computer vision analysis failed", e)
+            self.error = f"Computer vision analysis failed: {str(e)}"
+            log.e("Computer vision analysis failed", e)
             return None

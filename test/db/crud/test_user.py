@@ -1,10 +1,12 @@
 import unittest
+import uuid
 
 from db.sql_util import SQLUtil
 from pydantic import SecretStr
 
 from db.model.user import UserDB
 from db.schema.user import UserSave
+from util.errors import NotFoundError
 
 
 class UserCRUDTest(unittest.TestCase):
@@ -20,6 +22,7 @@ class UserCRUDTest(unittest.TestCase):
     def test_create_user(self):
         user_data = UserSave(
             full_name = "Test User",
+            about_me = SecretStr("About me text"),
             telegram_username = "test-user",
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
@@ -45,6 +48,7 @@ class UserCRUDTest(unittest.TestCase):
             tool_choice_api_fiat_exchange = "rapid-api-fiat",
             tool_choice_api_crypto_exchange = "coinmarketcap-api",
             tool_choice_api_twitter = "rapid-api-twitter",
+            credit_balance = 50.0,
             group = UserDB.Group.standard,
         )
 
@@ -52,8 +56,11 @@ class UserCRUDTest(unittest.TestCase):
 
         self.assertIsNotNone(user.id)
         self.assertEqual(user.full_name, user_data.full_name)
+        assert user_data.about_me is not None
+        self.assertEqual(user.about_me, user_data.about_me.get_secret_value())
         self.assertEqual(user.telegram_username, user_data.telegram_username)
         self.assertEqual(user.telegram_chat_id, user_data.telegram_chat_id)
+        self.assertEqual(user.telegram_user_id, user_data.telegram_user_id)
         self.assertEqual(user.whatsapp_user_id, user_data.whatsapp_user_id)
         assert user_data.whatsapp_phone_number is not None
         self.assertEqual(user.whatsapp_phone_number, user_data.whatsapp_phone_number.get_secret_value())
@@ -61,6 +68,8 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(user.open_ai_key, user_data.open_ai_key.get_secret_value())
         assert user_data.anthropic_key is not None
         self.assertEqual(user.anthropic_key, user_data.anthropic_key.get_secret_value())
+        assert user_data.google_ai_key is not None
+        self.assertEqual(user.google_ai_key, user_data.google_ai_key.get_secret_value())
         assert user_data.perplexity_key is not None
         self.assertEqual(user.perplexity_key, user_data.perplexity_key.get_secret_value())
         assert user_data.replicate_key is not None
@@ -81,8 +90,8 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(user.tool_choice_api_fiat_exchange, user_data.tool_choice_api_fiat_exchange)
         self.assertEqual(user.tool_choice_api_crypto_exchange, user_data.tool_choice_api_crypto_exchange)
         self.assertEqual(user.tool_choice_api_twitter, user_data.tool_choice_api_twitter)
+        self.assertEqual(user.credit_balance, user_data.credit_balance)
         self.assertEqual(user.group.value, user_data.group.value)
-        self.assertEqual(user.telegram_user_id, user_data.telegram_user_id)
         self.assertIsNotNone(user.created_at)
 
     def test_get_user(self):
@@ -301,6 +310,7 @@ class UserCRUDTest(unittest.TestCase):
     def test_update_user(self):
         user_data = UserSave(
             full_name = "Test User",
+            about_me = SecretStr("Original about me"),
             telegram_username = "test-user",
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
@@ -309,13 +319,24 @@ class UserCRUDTest(unittest.TestCase):
             connect_key = "UPD9-KEY9-UPD9",
             open_ai_key = SecretStr("test-key"),
             anthropic_key = SecretStr("test-anthropic-key"),
+            google_ai_key = SecretStr("test-google-ai-key"),
             perplexity_key = SecretStr("test-perplexity-key"),
             replicate_key = SecretStr("test-replicate-key"),
             rapid_api_key = SecretStr("test-rapid-api-key"),
             coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
             tool_choice_chat = "gpt-4o",
             tool_choice_reasoning = "claude-3-7-sonnet-latest",
+            tool_choice_copywriting = "gpt-4o-mini",
             tool_choice_vision = "gpt-4o",
+            tool_choice_hearing = "whisper-1",
+            tool_choice_images_gen = "dall-e-3",
+            tool_choice_images_edit = "dall-e-2",
+            tool_choice_search = "perplexity-search",
+            tool_choice_embedding = "text-embedding-3-large",
+            tool_choice_api_fiat_exchange = "rapid-api-fiat",
+            tool_choice_api_crypto_exchange = "coinmarketcap-api",
+            tool_choice_api_twitter = "rapid-api-twitter",
+            credit_balance = 100.0,
             group = UserDB.Group.standard,
         )
         created_user = self.sql.user_crud().create(user_data)
@@ -323,6 +344,7 @@ class UserCRUDTest(unittest.TestCase):
         update_data = UserSave(
             id = created_user.id,
             full_name = "Updated User",
+            about_me = SecretStr("Updated about me"),
             telegram_username = "updated-user",
             telegram_chat_id = "654321",
             telegram_user_id = 654321,
@@ -331,15 +353,24 @@ class UserCRUDTest(unittest.TestCase):
             connect_key = "UPDA-KEYA-UPDA",
             open_ai_key = SecretStr("updated-key"),
             anthropic_key = SecretStr("updated-anthropic-key"),
+            google_ai_key = SecretStr("updated-google-ai-key"),
             perplexity_key = SecretStr("updated-perplexity-key"),
             replicate_key = SecretStr("updated-replicate-key"),
             rapid_api_key = SecretStr("updated-rapid-api-key"),
             coinmarketcap_key = SecretStr("updated-coinmarketcap-key"),
             tool_choice_chat = "claude-3-7-sonnet-latest",
             tool_choice_reasoning = "gpt-4o",
+            tool_choice_copywriting = "claude-3-7-sonnet-latest",
             tool_choice_vision = "claude-3-7-sonnet-latest",
             tool_choice_hearing = "whisper-1",
             tool_choice_images_gen = "dall-e-3",
+            tool_choice_images_edit = "dall-e-3",
+            tool_choice_search = "perplexity-search",
+            tool_choice_embedding = "text-embedding-3-large",
+            tool_choice_api_fiat_exchange = "updated-rapid-api-fiat",
+            tool_choice_api_crypto_exchange = "coinmarketcap-api",
+            tool_choice_api_twitter = "rapid-api-twitter",
+            credit_balance = 200.0,
             group = UserDB.Group.developer,
         )
         updated_user = self.sql.user_crud().update(update_data)
@@ -347,8 +378,11 @@ class UserCRUDTest(unittest.TestCase):
         assert updated_user is not None
         self.assertEqual(updated_user.id, created_user.id)
         self.assertEqual(updated_user.full_name, update_data.full_name)
+        assert update_data.about_me is not None
+        self.assertEqual(updated_user.about_me, update_data.about_me.get_secret_value())
         self.assertEqual(updated_user.telegram_username, update_data.telegram_username)
         self.assertEqual(updated_user.telegram_chat_id, update_data.telegram_chat_id)
+        self.assertEqual(updated_user.telegram_user_id, update_data.telegram_user_id)
         self.assertEqual(updated_user.whatsapp_user_id, update_data.whatsapp_user_id)
         assert update_data.whatsapp_phone_number is not None
         self.assertEqual(updated_user.whatsapp_phone_number, update_data.whatsapp_phone_number.get_secret_value())
@@ -356,6 +390,8 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(updated_user.open_ai_key, update_data.open_ai_key.get_secret_value())
         assert update_data.anthropic_key is not None
         self.assertEqual(updated_user.anthropic_key, update_data.anthropic_key.get_secret_value())
+        assert update_data.google_ai_key is not None
+        self.assertEqual(updated_user.google_ai_key, update_data.google_ai_key.get_secret_value())
         assert update_data.perplexity_key is not None
         self.assertEqual(updated_user.perplexity_key, update_data.perplexity_key.get_secret_value())
         assert update_data.replicate_key is not None
@@ -366,16 +402,24 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(updated_user.coinmarketcap_key, update_data.coinmarketcap_key.get_secret_value())
         self.assertEqual(updated_user.tool_choice_chat, update_data.tool_choice_chat)
         self.assertEqual(updated_user.tool_choice_reasoning, update_data.tool_choice_reasoning)
+        self.assertEqual(updated_user.tool_choice_copywriting, update_data.tool_choice_copywriting)
         self.assertEqual(updated_user.tool_choice_vision, update_data.tool_choice_vision)
         self.assertEqual(updated_user.tool_choice_hearing, update_data.tool_choice_hearing)
         self.assertEqual(updated_user.tool_choice_images_gen, update_data.tool_choice_images_gen)
+        self.assertEqual(updated_user.tool_choice_images_edit, update_data.tool_choice_images_edit)
+        self.assertEqual(updated_user.tool_choice_search, update_data.tool_choice_search)
+        self.assertEqual(updated_user.tool_choice_embedding, update_data.tool_choice_embedding)
+        self.assertEqual(updated_user.tool_choice_api_fiat_exchange, update_data.tool_choice_api_fiat_exchange)
+        self.assertEqual(updated_user.tool_choice_api_crypto_exchange, update_data.tool_choice_api_crypto_exchange)
+        self.assertEqual(updated_user.tool_choice_api_twitter, update_data.tool_choice_api_twitter)
+        self.assertEqual(updated_user.credit_balance, update_data.credit_balance)
         self.assertEqual(updated_user.group.value, update_data.group.value)
-        self.assertEqual(updated_user.telegram_user_id, update_data.telegram_user_id)
         self.assertEqual(updated_user.created_at, created_user.created_at)
 
     def test_save_user(self):
         user_data = UserSave(
             full_name = "Test User",
+            about_me = SecretStr("About me text"),
             telegram_username = "test-user",
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
@@ -384,13 +428,24 @@ class UserCRUDTest(unittest.TestCase):
             connect_key = "SAVB-KEYB-SAVB",
             open_ai_key = SecretStr("test-key"),
             anthropic_key = SecretStr("test-anthropic-key"),
+            google_ai_key = SecretStr("test-google-ai-key"),
             perplexity_key = SecretStr("test-perplexity-key"),
             replicate_key = SecretStr("test-replicate-key"),
             rapid_api_key = SecretStr("test-rapid-api-key"),
             coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
+            tool_choice_chat = "gpt-4o",
+            tool_choice_reasoning = "claude-3-7-sonnet-latest",
             tool_choice_copywriting = "gpt-4o-mini",
+            tool_choice_vision = "gpt-4o",
+            tool_choice_hearing = "whisper-1",
+            tool_choice_images_gen = "dall-e-3",
             tool_choice_images_edit = "dall-e-2",
+            tool_choice_search = "perplexity-search",
+            tool_choice_embedding = "text-embedding-3-large",
             tool_choice_api_fiat_exchange = "rapid-api-fiat",
+            tool_choice_api_crypto_exchange = "coinmarketcap-api",
+            tool_choice_api_twitter = "rapid-api-twitter",
+            credit_balance = 75.0,
             group = UserDB.Group.standard,
         )
 
@@ -398,6 +453,8 @@ class UserCRUDTest(unittest.TestCase):
         saved_user = self.sql.user_crud().save(user_data)
         self.assertIsNotNone(saved_user)
         self.assertEqual(saved_user.full_name, user_data.full_name)
+        assert user_data.about_me is not None
+        self.assertEqual(saved_user.about_me, user_data.about_me.get_secret_value())
         self.assertEqual(saved_user.telegram_username, user_data.telegram_username)
         self.assertEqual(saved_user.telegram_chat_id, user_data.telegram_chat_id)
         self.assertEqual(saved_user.telegram_user_id, user_data.telegram_user_id)
@@ -408,6 +465,8 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(saved_user.open_ai_key, user_data.open_ai_key.get_secret_value())
         assert user_data.anthropic_key is not None
         self.assertEqual(saved_user.anthropic_key, user_data.anthropic_key.get_secret_value())
+        assert user_data.google_ai_key is not None
+        self.assertEqual(saved_user.google_ai_key, user_data.google_ai_key.get_secret_value())
         assert user_data.perplexity_key is not None
         self.assertEqual(saved_user.perplexity_key, user_data.perplexity_key.get_secret_value())
         assert user_data.replicate_key is not None
@@ -416,15 +475,26 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(saved_user.rapid_api_key, user_data.rapid_api_key.get_secret_value())
         assert user_data.coinmarketcap_key is not None
         self.assertEqual(saved_user.coinmarketcap_key, user_data.coinmarketcap_key.get_secret_value())
+        self.assertEqual(saved_user.tool_choice_chat, user_data.tool_choice_chat)
+        self.assertEqual(saved_user.tool_choice_reasoning, user_data.tool_choice_reasoning)
         self.assertEqual(saved_user.tool_choice_copywriting, user_data.tool_choice_copywriting)
+        self.assertEqual(saved_user.tool_choice_vision, user_data.tool_choice_vision)
+        self.assertEqual(saved_user.tool_choice_hearing, user_data.tool_choice_hearing)
+        self.assertEqual(saved_user.tool_choice_images_gen, user_data.tool_choice_images_gen)
         self.assertEqual(saved_user.tool_choice_images_edit, user_data.tool_choice_images_edit)
+        self.assertEqual(saved_user.tool_choice_search, user_data.tool_choice_search)
+        self.assertEqual(saved_user.tool_choice_embedding, user_data.tool_choice_embedding)
         self.assertEqual(saved_user.tool_choice_api_fiat_exchange, user_data.tool_choice_api_fiat_exchange)
+        self.assertEqual(saved_user.tool_choice_api_crypto_exchange, user_data.tool_choice_api_crypto_exchange)
+        self.assertEqual(saved_user.tool_choice_api_twitter, user_data.tool_choice_api_twitter)
+        self.assertEqual(saved_user.credit_balance, user_data.credit_balance)
         self.assertEqual(saved_user.group.value, user_data.group.value)
 
         # Now, save should update the existing record
         update_data = UserSave(
             id = saved_user.id,
             full_name = "Updated User",
+            about_me = SecretStr("Updated about me"),
             telegram_username = "updated-user",
             telegram_chat_id = "654321",
             telegram_user_id = 654321,
@@ -433,19 +503,31 @@ class UserCRUDTest(unittest.TestCase):
             connect_key = "SAVC-KEYC-SAVC",
             open_ai_key = SecretStr("updated-key"),
             anthropic_key = SecretStr("updated-anthropic-key"),
+            google_ai_key = SecretStr("updated-google-ai-key"),
             perplexity_key = SecretStr("updated-perplexity-key"),
             replicate_key = SecretStr("updated-replicate-key"),
             rapid_api_key = SecretStr("updated-rapid-api-key"),
             coinmarketcap_key = SecretStr("updated-coinmarketcap-key"),
+            tool_choice_chat = "claude-3-7-sonnet-latest",
+            tool_choice_reasoning = "gpt-4o",
             tool_choice_copywriting = "claude-3-7-sonnet-latest",
+            tool_choice_vision = "claude-3-7-sonnet-latest",
+            tool_choice_hearing = "whisper-1",
+            tool_choice_images_gen = "dall-e-3",
             tool_choice_images_edit = "dall-e-3",
+            tool_choice_search = "perplexity-search",
+            tool_choice_embedding = "text-embedding-3-large",
             tool_choice_api_fiat_exchange = "updated-rapid-api-fiat",
             tool_choice_api_crypto_exchange = "coinmarketcap-api",
+            tool_choice_api_twitter = "rapid-api-twitter",
+            credit_balance = 150.0,
             group = UserDB.Group.developer,
         )
         updated_user = self.sql.user_crud().save(update_data)
         self.assertIsNotNone(updated_user)
         self.assertEqual(updated_user.full_name, update_data.full_name)
+        assert update_data.about_me is not None
+        self.assertEqual(updated_user.about_me, update_data.about_me.get_secret_value())
         self.assertEqual(updated_user.telegram_username, update_data.telegram_username)
         self.assertEqual(updated_user.telegram_chat_id, update_data.telegram_chat_id)
         self.assertEqual(updated_user.telegram_user_id, update_data.telegram_user_id)
@@ -456,6 +538,8 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(updated_user.open_ai_key, update_data.open_ai_key.get_secret_value())
         assert update_data.anthropic_key is not None
         self.assertEqual(updated_user.anthropic_key, update_data.anthropic_key.get_secret_value())
+        assert update_data.google_ai_key is not None
+        self.assertEqual(updated_user.google_ai_key, update_data.google_ai_key.get_secret_value())
         assert update_data.perplexity_key is not None
         self.assertEqual(updated_user.perplexity_key, update_data.perplexity_key.get_secret_value())
         assert update_data.replicate_key is not None
@@ -464,10 +548,19 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(updated_user.rapid_api_key, update_data.rapid_api_key.get_secret_value())
         assert update_data.coinmarketcap_key is not None
         self.assertEqual(updated_user.coinmarketcap_key, update_data.coinmarketcap_key.get_secret_value())
+        self.assertEqual(updated_user.tool_choice_chat, update_data.tool_choice_chat)
+        self.assertEqual(updated_user.tool_choice_reasoning, update_data.tool_choice_reasoning)
         self.assertEqual(updated_user.tool_choice_copywriting, update_data.tool_choice_copywriting)
+        self.assertEqual(updated_user.tool_choice_vision, update_data.tool_choice_vision)
+        self.assertEqual(updated_user.tool_choice_hearing, update_data.tool_choice_hearing)
+        self.assertEqual(updated_user.tool_choice_images_gen, update_data.tool_choice_images_gen)
         self.assertEqual(updated_user.tool_choice_images_edit, update_data.tool_choice_images_edit)
+        self.assertEqual(updated_user.tool_choice_search, update_data.tool_choice_search)
+        self.assertEqual(updated_user.tool_choice_embedding, update_data.tool_choice_embedding)
         self.assertEqual(updated_user.tool_choice_api_fiat_exchange, update_data.tool_choice_api_fiat_exchange)
         self.assertEqual(updated_user.tool_choice_api_crypto_exchange, update_data.tool_choice_api_crypto_exchange)
+        self.assertEqual(updated_user.tool_choice_api_twitter, update_data.tool_choice_api_twitter)
+        self.assertEqual(updated_user.credit_balance, update_data.credit_balance)
         self.assertEqual(updated_user.group.value, update_data.group.value)
 
     def test_delete_user(self):
@@ -523,3 +616,27 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(fetched_user.connect_key, user_data.connect_key)
         self.assertEqual(fetched_user.telegram_username, user_data.telegram_username)
         self.assertEqual(fetched_user.telegram_user_id, user_data.telegram_user_id)
+
+    def test_update_locked(self):
+        user_data = UserSave(
+            full_name = "Credit User",
+            telegram_user_id = 77777,
+            connect_key = "CRED-IT-USER",
+            group = UserDB.Group.standard,
+            credit_balance = 0.0,
+        )
+        created_user = self.sql.user_crud().create(user_data)
+
+        updated = self.sql.user_crud().update_locked(
+            created_user.id,
+            lambda u: setattr(u, "credit_balance", (u.credit_balance or 0.0) + 100.0),
+        )
+
+        self.assertEqual(updated.credit_balance, 100.0)
+        refreshed = self.sql.user_crud().get(created_user.id)
+        assert refreshed is not None
+        self.assertEqual(refreshed.credit_balance, 100.0)
+
+    def test_update_locked_user_not_found(self):
+        with self.assertRaises(NotFoundError):
+            self.sql.user_crud().update_locked(uuid.uuid4(), lambda u: None)

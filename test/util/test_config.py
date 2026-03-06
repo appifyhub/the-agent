@@ -3,6 +3,8 @@ import unittest
 
 from util.config import Config
 
+PRODUCTS_FIXTURE_PATH = "test/fixtures/products.yaml"
+
 
 class ConfigTest(unittest.TestCase):
 
@@ -59,6 +61,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.url_shortener_base_url, "https://urls.appifyhub.com")
         self.assertEqual(config.version, "dev")
         self.assertEqual(config.usage_maintenance_fee_credits, 0.0)
+        self.assertEqual(config.products_config_path, "config/products.yaml")
 
         self.assertEqual(config.db_url.get_secret_value(), "postgresql://root:root@localhost:5432/agent")
         self.assertTrue(config.api_key.get_secret_value())  # Check if API key is generated
@@ -74,6 +77,13 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.token_encrypt_secret.get_secret_value(), "default")
         self.assertEqual(config.uploadcare_private_key.get_secret_value(), "invalid")
         self.assertEqual(config.url_shortener_api_key.get_secret_value(), "invalid")
+        self.assertEqual(config.platform_open_ai_key.get_secret_value(), "invalid")
+        self.assertEqual(config.platform_anthropic_key.get_secret_value(), "invalid")
+        self.assertEqual(config.platform_google_ai_key.get_secret_value(), "invalid")
+        self.assertEqual(config.platform_perplexity_key.get_secret_value(), "invalid")
+        self.assertEqual(config.platform_replicate_key.get_secret_value(), "invalid")
+        self.assertEqual(config.platform_rapid_api_key.get_secret_value(), "invalid")
+        self.assertEqual(config.platform_coinmarketcap_key.get_secret_value(), "invalid")
 
     def test_custom_config(self):
         os.environ["LOG_LEVEL"] = "DEBUG"
@@ -132,6 +142,13 @@ class ConfigTest(unittest.TestCase):
         os.environ["TOKEN_ENCRYPT_SECRET"] = "custom-encryption-key"
         os.environ["UPLOADCARE_PRIVATE_KEY"] = "private-key-123"
         os.environ["URL_SHORTENER_API_KEY"] = "url-shortener-key-123"
+        os.environ["PLATFORM_OPEN_AI_KEY"] = "platform-openai-key"
+        os.environ["PLATFORM_ANTHROPIC_KEY"] = "platform-anthropic-key"
+        os.environ["PLATFORM_GOOGLE_AI_KEY"] = "platform-google-key"
+        os.environ["PLATFORM_PERPLEXITY_KEY"] = "platform-perplexity-key"
+        os.environ["PLATFORM_REPLICATE_KEY"] = "platform-replicate-key"
+        os.environ["PLATFORM_RAPID_API_KEY"] = "platform-rapid-api-key"
+        os.environ["PLATFORM_COINMARKETCAP_KEY"] = "platform-coinmarketcap-key"
 
         config = Config()
 
@@ -188,3 +205,30 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.token_encrypt_secret.get_secret_value(), "custom-encryption-key")
         self.assertEqual(config.uploadcare_private_key.get_secret_value(), "private-key-123")
         self.assertEqual(config.url_shortener_api_key.get_secret_value(), "url-shortener-key-123")
+        self.assertEqual(config.platform_open_ai_key.get_secret_value(), "platform-openai-key")
+        self.assertEqual(config.platform_anthropic_key.get_secret_value(), "platform-anthropic-key")
+        self.assertEqual(config.platform_google_ai_key.get_secret_value(), "platform-google-key")
+        self.assertEqual(config.platform_perplexity_key.get_secret_value(), "platform-perplexity-key")
+        self.assertEqual(config.platform_replicate_key.get_secret_value(), "platform-replicate-key")
+        self.assertEqual(config.platform_rapid_api_key.get_secret_value(), "platform-rapid-api-key")
+        self.assertEqual(config.platform_coinmarketcap_key.get_secret_value(), "platform-coinmarketcap-key")
+
+    def test_products_loaded_from_yaml(self):
+        config = Config(def_products_config_path = PRODUCTS_FIXTURE_PATH)
+        products = config.products
+
+        self.assertEqual(len(products), 2)
+        self.assertEqual(products["PROD_100"].credits, 100)
+        self.assertEqual(products["PROD_100"].name, "Pack of 100")
+        self.assertEqual(products["PROD_100"].url, "https://store.appifyhub.com/l/abot-credits-100")
+        self.assertEqual(products["PROD_DONATION"].credits, 0)
+        self.assertEqual(products["PROD_DONATION"].name, "Green Tea")
+        self.assertEqual(products["PROD_DONATION"].url, "https://store.appifyhub.com/coffee")
+
+    def test_products_loaded_once_at_init(self):
+        config = Config(def_products_config_path = PRODUCTS_FIXTURE_PATH)
+
+        first = config.products
+        second = config.products
+
+        self.assertIs(first, second)

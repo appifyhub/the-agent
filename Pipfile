@@ -41,9 +41,10 @@ python-multipart = "*"
 pytest = "*"
 requests-mock = "*"
 ruff = "*"
+pre-commit = "*"
 the-agent = {path = ".", editable = true}
 
 [requires]
 # Python 3.12: keep in sync with pyproject.toml
 python_version = "3.12"
-python_full_version = "3.12.6"
+python_full_version = "3.12.12"

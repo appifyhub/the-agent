@@ -19,6 +19,8 @@ from features.chat.command_processor import CommandProcessor
 from features.chat.llm_tools.llm_tool_library import LLMToolLibrary
 from features.external_tools.tool_choice_resolver import ConfiguredTool
 from features.integrations.integrations import resolve_agent_user
+from util.error_codes import UNEXPECTED_ERROR, WAITLIST_ACCOUNT_NOT_ACTIVE, WAITLIST_INVITED_POLICIES_REQUIRED
+from util.errors import AuthorizationError
 
 
 class ChatAgentTest(unittest.TestCase):
@@ -37,6 +39,9 @@ class ChatAgentTest(unittest.TestCase):
             telegram_username = "test_user",
             telegram_chat_id = "test_chat_id",
             telegram_user_id = 1,
+            is_on_waitlist = False,
+            is_invited_to_start = False,
+            are_policies_accepted = True,
             open_ai_key = SecretStr("test_openai_key"),
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
@@ -66,6 +71,9 @@ class ChatAgentTest(unittest.TestCase):
         self.mock_di.require_invoker_chat_type = MagicMock(return_value = ChatConfigDB.ChatType.telegram)
         # noinspection PyPropertyAccess
         self.mock_di.command_processor = Mock(spec = CommandProcessor)
+        # noinspection PyPropertyAccess
+        self.mock_di.authorization_service = Mock()
+        self.mock_di.authorization_service.require_user_is_chat_ready.return_value = self.user
         # noinspection PyPropertyAccess
         self.mock_di.llm_tool_library = Mock(spec = LLMToolLibrary)
         # noinspection PyPropertyAccess
@@ -101,31 +109,35 @@ class ChatAgentTest(unittest.TestCase):
             di = self.mock_di,
         )
 
-        self.mock_di.command_processor.execute.return_value = CommandProcessor.Result.unknown
-
-        result, status = bot_no_key.process_commands()
-
-        self.assertIsInstance(result, AIMessage)
-        self.assertEqual(status, CommandProcessor.Result.unknown)
-        self.assertEqual(result.content, "")
+        self.mock_di.command_processor.execute.return_value = CommandProcessor.Result(
+            "ignored",
+            None,
+            None,
+        )
+        result = bot_no_key.process_commands()
+        self.assertFalse(result.is_handled)
+        self.assertIsNone(result.reply)
 
     def test_process_commands_failed(self):
-        self.mock_di.command_processor.execute.return_value = CommandProcessor.Result.failed
-
-        result, status = self.agent.process_commands()
-
-        self.assertIsInstance(result, AIMessage)
-        self.assertEqual(status, CommandProcessor.Result.failed)
-        self.assertIn("Unknown command.", result.content)
+        self.mock_di.command_processor.execute.return_value = CommandProcessor.Result(
+            "failed",
+            "Failed to process command.",
+            UNEXPECTED_ERROR,
+        )
+        result = self.agent.process_commands()
+        self.assertTrue(result.is_handled)
+        self.assertIsNotNone(result.reply)
+        self.assertIn("Failed to process command.", result.reply.content)
 
     def test_process_commands_success(self):
-        self.mock_di.command_processor.execute.return_value = CommandProcessor.Result.success
-
-        result, status = self.agent.process_commands()
-
-        self.assertIsInstance(result, AIMessage)
-        self.assertEqual(status, CommandProcessor.Result.success)
-        self.assertEqual(result.content, "")
+        self.mock_di.command_processor.execute.return_value = CommandProcessor.Result(
+            "success",
+            None,
+            None,
+        )
+        result = self.agent.process_commands()
+        self.assertTrue(result.is_handled)
+        self.assertIsNone(result.reply)
 
     def test_should_reply_private_chat(self):
         self.chat_config.is_private = True
@@ -210,7 +222,10 @@ class ChatAgentTest(unittest.TestCase):
     @patch("features.chat.chat_agent.ChatAgent.should_reply")
     def test_execute_command_processed(self, mock_should_reply, mock_process_commands):
         mock_should_reply.return_value = True
-        mock_process_commands.return_value = (AIMessage(""), CommandProcessor.Result.success)
+        mock_process_commands.return_value = ChatAgent.CommandHandlingResult(
+            is_handled = True,
+            reply = None,
+        )
         result = self.agent.execute()
         self.assertIsNone(result)
 
@@ -218,15 +233,21 @@ class ChatAgentTest(unittest.TestCase):
     @patch("features.chat.chat_agent.ChatAgent.should_reply")
     def test_execute_command_failed(self, mock_should_reply, mock_process_commands):
         mock_should_reply.return_value = True
-        mock_process_commands.return_value = (AIMessage("Unknown command."), CommandProcessor.Result.failed)
+        mock_process_commands.return_value = ChatAgent.CommandHandlingResult(
+            is_handled = True,
+            reply = AIMessage("Failed to process command."),
+        )
         result = self.agent.execute()
-        self.assertEqual(result, AIMessage("Unknown command."))
+        self.assertIn("Failed to process command.", result.content)
 
     @patch("features.chat.chat_agent.ChatAgent.process_commands")
     @patch("features.chat.chat_agent.ChatAgent.should_reply")
     def test_execute_no_api_key(self, mock_should_reply, mock_process_commands):
         mock_should_reply.return_value = True
-        mock_process_commands.return_value = (AIMessage(""), CommandProcessor.Result.unknown)
+        mock_process_commands.return_value = ChatAgent.CommandHandlingResult(
+            is_handled = False,
+            reply = None,
+        )
 
         # Create a new bot instance without configured_tool (simulating no API key)
         bot_no_key = ChatAgent(
@@ -245,7 +266,10 @@ class ChatAgentTest(unittest.TestCase):
     @patch("features.chat.chat_agent.ChatAgent.should_reply")
     def test_execute_llm_response(self, mock_should_reply, mock_process_commands):
         mock_should_reply.return_value = True
-        mock_process_commands.return_value = (AIMessage(""), CommandProcessor.Result.unknown)
+        mock_process_commands.return_value = ChatAgent.CommandHandlingResult(
+            is_handled = False,
+            reply = None,
+        )
 
         # Mock the tools_model invoke to return the final response
         mock_tools_model = Mock()
@@ -259,7 +283,10 @@ class ChatAgentTest(unittest.TestCase):
     @patch("features.chat.chat_agent.ChatAgent.should_reply")
     def test_execute_tool_call(self, mock_should_reply, mock_process_commands):
         mock_should_reply.return_value = True
-        mock_process_commands.return_value = (AIMessage(""), CommandProcessor.Result.unknown)
+        mock_process_commands.return_value = ChatAgent.CommandHandlingResult(
+            is_handled = False,
+            reply = None,
+        )
         tool_call = {"id": "1", "name": "test_tool", "args": {}}
 
         # Create AI messages with tool_calls attribute
@@ -279,7 +306,10 @@ class ChatAgentTest(unittest.TestCase):
     @patch("features.chat.chat_agent.ChatAgent.should_reply")
     def test_execute_exception(self, mock_should_reply, mock_process_commands):
         mock_should_reply.return_value = True
-        mock_process_commands.return_value = (AIMessage(""), CommandProcessor.Result.unknown)
+        mock_process_commands.return_value = ChatAgent.CommandHandlingResult(
+            is_handled = False,
+            reply = None,
+        )
 
         # Mock the tools_model to raise an exception
         mock_tools_model = Mock()
@@ -296,7 +326,10 @@ class ChatAgentTest(unittest.TestCase):
     @patch("features.chat.chat_agent.ChatAgent.should_reply")
     def test_execute_max_iterations_exceeded(self, mock_should_reply, mock_process_commands, mock_config):
         mock_should_reply.return_value = True
-        mock_process_commands.return_value = (AIMessage(""), CommandProcessor.Result.unknown)
+        mock_process_commands.return_value = ChatAgent.CommandHandlingResult(
+            is_handled = False,
+            reply = None,
+        )
         mock_config.max_chatbot_iterations = 2
 
         # Create AI messages with tool_calls to simulate continued iterations
@@ -316,3 +349,54 @@ class ChatAgentTest(unittest.TestCase):
         self.assertIn("🤯", result.content)  # Error indicator
         self.assertIn("Reached max iterations", result.content)
         self.assertIn("2", result.content)  # Should include the max iterations count
+
+    @patch("features.chat.chat_agent.ChatAgent.process_commands")
+    @patch("features.chat.chat_agent.ChatAgent.should_reply")
+    def test_execute_waitlist_guard_blocks_unknown_commands(self, mock_should_reply, mock_process_commands):
+        mock_should_reply.return_value = True
+        mock_process_commands.return_value = ChatAgent.CommandHandlingResult(
+            is_handled = False,
+            reply = None,
+        )
+        self.mock_di.authorization_service.require_user_is_chat_ready.side_effect = AuthorizationError(
+            "Waitlisted account is not active yet",
+            WAITLIST_ACCOUNT_NOT_ACTIVE,
+        )
+
+        result = self.agent.execute()
+        self.assertIsNotNone(result)
+        self.assertIn("waitlist", result.content.lower())
+
+    @patch("features.chat.chat_agent.ChatAgent.process_commands")
+    @patch("features.chat.chat_agent.ChatAgent.should_reply")
+    def test_execute_waitlist_guard_does_not_override_command_failure(self, mock_should_reply, mock_process_commands):
+        mock_should_reply.return_value = True
+        mock_process_commands.return_value = ChatAgent.CommandHandlingResult(
+            is_handled = True,
+            reply = AIMessage("Failed to process command."),
+        )
+        self.mock_di.authorization_service.require_user_is_chat_ready.side_effect = AuthorizationError(
+            "Waitlisted account is not active yet",
+            WAITLIST_ACCOUNT_NOT_ACTIVE,
+        )
+
+        result = self.agent.execute()
+        self.assertIsNotNone(result)
+        self.assertIn("Failed to process command.", result.content)
+
+    @patch("features.chat.chat_agent.ChatAgent.process_commands")
+    @patch("features.chat.chat_agent.ChatAgent.should_reply")
+    def test_execute_policy_guard_blocks_active_user_without_policy(self, mock_should_reply, mock_process_commands):
+        mock_should_reply.return_value = True
+        mock_process_commands.return_value = ChatAgent.CommandHandlingResult(
+            is_handled = False,
+            reply = None,
+        )
+        self.mock_di.authorization_service.require_user_is_chat_ready.side_effect = AuthorizationError(
+            "Accept policies in /settings first.",
+            WAITLIST_INVITED_POLICIES_REQUIRED,
+        )
+
+        result = self.agent.execute()
+        self.assertIsNotNone(result)
+        self.assertIn("policies", result.content.lower())
