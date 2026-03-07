@@ -21,7 +21,7 @@ See the rest of this document for a developer's overview and information on how 
 
 This service currently powers several production-level bots. For privacy reasons, we're not listing each bot here individually – but you can definitely run the service locally on your machine (for free) and connect it to your own bot. You're also welcome to use the service as a standalone backend for your own projects, assuming you have the necessary infrastructure to host it.
 
-## ⚠️ Before you continue…
+## Before you continue…
 
 If you plan on contributing to this project in any way, please read and acknowledge the [Contributing guide](./CONTRIBUTING.md) first.
 
@@ -35,71 +35,84 @@ Because the complete codebase is open-source, you can inspect and run the servic
 
 The project currently uses the following tech stack:
 
-- Runtime: **Python Interpreter**
+- Runtime: **Python**
 - Language: **Python**
 - Framework: **FastAPI** (with Pydantic 2)
 - Persistence: **PostgreSQL** (with SQL Alchemy)
-- Build System: **Custom** (see `tools` and `.github` directories)
+- Build System: **Pipenv** & **Custom** (see `tools` and `.github` directories)
 - Continuous Integration: **GitHub Actions**
-- Continuous Deployment: **Argo**
-- Distribution: **Docker** image (easiest managed using Kubernetes)
+- Continuous Deployment: **Argo CD**
+- Distribution: **Docker** image (managed deployment on Kubernetes)
 
 ### How to build and run?
 
 #### Dependencies
 
-> This project uses `pipenv` to manage dependencies and take care of the environment.
+> ℹ️  This project uses `pipenv` to manage dependencies and take care of the environment.
 
 Using `pipenv`, you can run `pipenv install` in the root directory to set up your dependencies correctly.
 
 To prepare the production server (less logging, more parallelism):
 
-```console
-$ pipenv install
+```bash
+pipenv install
 ```
 
 To prepare a development system, e.g. for testing and improvement purposes:
 
-```console
-$ pipenv install --dev
+```bash
+# Install the project's development dependencies
+pipenv install --dev
+
+# Install git hooks for pre-commit checks
+pipenv run pre-commit install --install-hooks
 ```
 
 After the dependencies have been installed, you can run `pipenv shell` to get a new shell forked, in which the environment will be set up to easily run everything. Your Python version will be correct in there, and the dependencies will be available.
 
-> To exit the shell, simply run `deactivate`, followed by `exit` if the shell hasn't closed automatically.
+Pre-commit installation sets up a git hook to validate code quality before every commit.
 
-Exiting the shell will remove the environment, so you will need to run `pipenv shell` again to get back to the correct environment.
+> ℹ️  To exit the shell, simply run `deactivate`, followed by `exit` (if the shell hasn't closed automatically).
+
+Exiting the shell will disconnect the dev environment from your shell session, so you will need to run `pipenv shell` again to get back into the correct environment.
 
 Once the environment has been configured, you can run the main code.
 
-#### Scripts
+#### Running tools
 
 You can use the pre-built scripts located in the `tools` directory. Those are easy-to-use, single-shot Shell executables that require no developer setup.
 
-To run the production mode:
+To install dependencies and run the service in production mode:
 
-```console
-$ ./tools/run_prod.sh
+```bash
+pipenv install
+pipenv run python src/main.py
 ```
 
-To run the development mode:
+To install dependencies and run the service in development mode:
 
-$ ./tools/run_dev.sh
+```bash
+pipenv install --dev
+pipenv run python src/main.py --dev
 ```
 
-To run lint checks (and auto-fix):
+To run lint checks and auto-fix them:
 
-```console
-$ ./tools/run_lint.sh --fix
+```bash
+# Run the lint checks on *all* files
+pipenv run pre-commit run --all-files --show-diff-on-failure
+
+# Run the lint checks only on *git-staged* files
+pipenv run pre-commit run
 ```
 
 And most importantly, to run all tests:
 
-```console
-$ pipenv run pytest -v
+```bash
+pipenv run pytest -v
 ```
 
-> Follow the command line instructions for more information during the execution of the scripts.
+> ℹ️  Follow the command line instructions for more information during the execution of the scripts.
 
 There are more tools in the same directory (especially useful around database migrations); feel free to explore those at your own pace when needed.
 

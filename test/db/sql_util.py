@@ -9,7 +9,7 @@ from db.crud.tools_cache import ToolsCacheCRUD
 from db.crud.user import UserCRUD
 from db.sql import initialize_db
 from features.accounting.purchases.purchase_record_repo import PurchaseRecordRepository
-from features.accounting.repo.usage_record_repo import UsageRecordRepository
+from features.accounting.usage.usage_record_repo import UsageRecordRepository
 
 
 class SQLUtil:

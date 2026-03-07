@@ -11,6 +11,8 @@ from di.di import DI
 from features.announcements.release_summary_service import ReleaseSummaryService
 from util import log
 from util.config import config
+from util.error_codes import ANNOUNCEMENT_NOT_RECEIVED
+from util.errors import ExternalServiceError
 
 
 class SummaryResult:
@@ -70,7 +72,8 @@ def respond_with_summary(payload: ReleaseOutputPayload, di: DI) -> dict:
         log.i(f"  · Release quality: {release_quality}")
         log.i(f"  · Change log: {json.dumps(release_notes[:15])}...")
     except Exception as e:
-        result.summary = log.e("Failed to decode release notes", e)
+        result.summary = f"Failed to decode release notes: {e}"
+        log.e("Failed to decode release notes", e)
         return result.to_dict()
 
     # check if this instance should process the release
@@ -92,13 +95,14 @@ def respond_with_summary(payload: ReleaseOutputPayload, di: DI) -> dict:
         )
         answer = di.release_summary_service(release_notes, None, tool).execute()
         if not answer.content:
-            raise ValueError("LLM Answer not received")
+            raise ExternalServiceError("LLM Answer not received", ANNOUNCEMENT_NOT_RECEIVED)
         stripped_content = _strip_title_formatting(str(answer.content))
         translations.save(stripped_content)
         result.summary = stripped_content
         result.summaries_created += 1
     except Exception as e:
-        result.summary = log.e("Release summary failed for default language", e)
+        result.summary = f"Release summary failed for default language: {e}"
+        log.e("Release summary failed for default language", e)
         return result.to_dict()
 
     # prepare and filter the eligible chats
@@ -122,7 +126,7 @@ def respond_with_summary(payload: ReleaseOutputPayload, di: DI) -> dict:
                 )
                 answer = scoped_di.release_summary_service(release_notes, chat, tool).execute()
                 if not answer.content:
-                    raise ValueError("LLM Answer not received")
+                    raise ExternalServiceError("LLM Answer not received", ANNOUNCEMENT_NOT_RECEIVED)
                 stripped_content = _strip_title_formatting(str(answer.content))
                 summary = translations.save(stripped_content, chat.language_name, chat.language_iso_code)
                 result.summaries_created += 1

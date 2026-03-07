@@ -36,5 +36,5 @@ class ChatSettingsPayload(BaseModel):
     @classmethod
     def validate_reply_chance(cls, v: int) -> int:
         if not (0 <= v <= 100):
-            raise ValueError("Reply chance percent must be between 0 and 100")
+            raise ValueError("Reply chance percent must be between 0 and 100")  # Pydantic requires ValueError
         return v

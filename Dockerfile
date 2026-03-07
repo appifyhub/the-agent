@@ -1,4 +1,4 @@
-FROM python:3.12.6-slim
+FROM python:3.12.12-slim
 
 # Install system dependencies and pipenv
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -20,4 +20,4 @@ RUN pipenv install --deploy --ignore-pipfile --verbose \
     && rm -rf /root/.cache/pip /root/.cache/pipenv
 
 # Set the entrypoint command
-CMD ["sh", "tools/run_prod.sh"]
+CMD ["pipenv", "run", "python", "src/main.py"]

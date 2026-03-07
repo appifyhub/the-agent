@@ -10,6 +10,8 @@ from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_403_FORBIDDEN
 
 from util import log
 from util.config import config
+from util.error_codes import EMPTY_TOKEN, NO_USER_ID_IN_TOKEN
+from util.errors import AuthenticationError
 
 __JWT_ALGORITHM = "HS256"
 
@@ -103,14 +105,10 @@ def verify_jwt_token(token: str) -> Dict[str, Any]:
 
 def get_user_id_from_jwt(token_claims: Dict[str, Any] | None) -> str:
     if not token_claims:
-        message = "Empty token"
-        log.e(message)
-        raise ValueError(message)
+        raise AuthenticationError("Empty token", EMPTY_TOKEN)
     user_id = token_claims.get("sub")
     if not user_id:
-        message = "No user ID in token"
-        log.e(message)
-        raise ValueError(message)
+        raise AuthenticationError("No user ID in token", NO_USER_ID_IN_TOKEN)
     return user_id
 
 

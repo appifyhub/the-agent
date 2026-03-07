@@ -6,10 +6,12 @@ from typing import Any, Dict
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from di.di import DI
 from features.currencies.supported_currencies import SUPPORTED_CRYPTO, SUPPORTED_FIAT
+from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ToolType
 from features.external_tools.external_tool_library import CRYPTO_CURRENCY_EXCHANGE, FIAT_CURRENCY_EXCHANGE
-from features.external_tools.tool_choice_resolver import ConfiguredTool
 from util import log
+from util.error_codes import EXCHANGE_RATE_NOT_FOUND, INVALID_CURRENCY, UNSUPPORTED_CURRENCY_PAIR
+from util.errors import NotFoundError, ValidationError
 
 DEFAULT_FIAT = "USD"
 CACHE_PREFIX = "exchange-rate-fetcher"
@@ -72,7 +74,7 @@ class ExchangeRateFetcher:
             default_fiat_rate_against_fiat = self.get_fiat_conversion_rate(DEFAULT_FIAT, desired_currency_code)
             return as_result(base_crypto_rate_against_default_fiat * default_fiat_rate_against_fiat)
         else:
-            raise ValueError(log.w(f"Unsupported currency conversion: {base_currency_code}/{desired_currency_code}"))
+            raise ValidationError(f"Unsupported currency conversion: {base_currency_code}/{desired_currency_code}", UNSUPPORTED_CURRENCY_PAIR)  # noqa: E501
 
     def __cache_key_of(self, a: str, b: str) -> str:
         return self.__di.tools_cache_crud.create_key(CACHE_PREFIX, f"{a}-{b}")
@@ -114,9 +116,9 @@ class ExchangeRateFetcher:
     def get_crypto_conversion_rate(self, base_currency_code: str, desired_currency_code: str) -> float:
         log.t(f"Fetching crypto conversion rate {base_currency_code}/{desired_currency_code}")
         if base_currency_code not in SUPPORTED_CRYPTO and base_currency_code != DEFAULT_FIAT:
-            raise ValueError(log.w(f"Unsupported currency: {base_currency_code}"))
+            raise ValidationError(f"Unsupported currency: {base_currency_code}", INVALID_CURRENCY)
         if desired_currency_code not in SUPPORTED_CRYPTO and desired_currency_code != DEFAULT_FIAT:
-            raise ValueError(log.w(f"Unsupported currency: {desired_currency_code}"))
+            raise ValidationError(f"Unsupported currency: {desired_currency_code}", INVALID_CURRENCY)
 
         if base_currency_code == desired_currency_code:
             return 1.0
@@ -127,12 +129,14 @@ class ExchangeRateFetcher:
 
         rate: float
         api_url = f"https://pro-api.coinmarketcap.com/{CRYPTO_CURRENCY_EXCHANGE.id.replace(".", "/")}"
-        cmc_token = self.__di.access_token_resolver.require_access_token_for_tool(CRYPTO_CURRENCY_EXCHANGE)
-        headers = {"Accept": "application/json", "X-CMC_PRO_API_KEY": cmc_token.get_secret_value()}
+        resolved = self.__di.access_token_resolver.require_access_token_for_tool(CRYPTO_CURRENCY_EXCHANGE)
+        headers = {"Accept": "application/json", "X-CMC_PRO_API_KEY": resolved.token.get_secret_value()}
         crypto_tool: ConfiguredTool = ConfiguredTool(
             definition = CRYPTO_CURRENCY_EXCHANGE,
-            token = cmc_token,
+            token = resolved.token,
             purpose = ToolType.api_crypto_exchange,
+            payer_id = resolved.payer_id,
+            uses_credits = resolved.uses_credits,
         )
 
         if base_currency_code != DEFAULT_FIAT and desired_currency_code != DEFAULT_FIAT:
@@ -166,14 +170,14 @@ class ExchangeRateFetcher:
         if rate:
             self.__save_rate_to_cache(base_currency_code, desired_currency_code, rate)
             return rate
-        raise ValueError(log.w(f"No rate found for {base_currency_code}/{desired_currency_code}"))
+        raise NotFoundError(f"No rate found for {base_currency_code}/{desired_currency_code}", EXCHANGE_RATE_NOT_FOUND)
 
     def get_fiat_conversion_rate(self, base_currency_code: str, desired_currency_code: str) -> float:
         log.t(f"Fetching fiat conversion rate {base_currency_code}/{desired_currency_code}")
         if base_currency_code not in SUPPORTED_FIAT:
-            raise ValueError(log.w(f"Unsupported currency: {base_currency_code}"))
+            raise ValidationError(f"Unsupported currency: {base_currency_code}", INVALID_CURRENCY)
         if desired_currency_code not in SUPPORTED_FIAT:
-            raise ValueError(log.w(f"Unsupported currency: {desired_currency_code}"))
+            raise ValidationError(f"Unsupported currency: {desired_currency_code}", INVALID_CURRENCY)
 
         if base_currency_code == desired_currency_code:
             return 1.0
@@ -184,12 +188,14 @@ class ExchangeRateFetcher:
         sleep(RATE_LIMIT_DELAY_S)
         api_url = f"https://{FIAT_CURRENCY_EXCHANGE.id}/currency/convert"
         params = {"format": "json", "from": base_currency_code, "to": desired_currency_code, "amount": "1.0"}
-        rapid_api_token = self.__di.access_token_resolver.require_access_token_for_tool(FIAT_CURRENCY_EXCHANGE)
-        headers = {"X-RapidAPI-Key": rapid_api_token.get_secret_value(), "X-RapidAPI-Host": FIAT_CURRENCY_EXCHANGE.id}
+        resolved = self.__di.access_token_resolver.require_access_token_for_tool(FIAT_CURRENCY_EXCHANGE)
+        headers = {"X-RapidAPI-Key": resolved.token.get_secret_value(), "X-RapidAPI-Host": FIAT_CURRENCY_EXCHANGE.id}
         fiat_tool: ConfiguredTool = ConfiguredTool(
             definition = FIAT_CURRENCY_EXCHANGE,
-            token = rapid_api_token,
+            token = resolved.token,
             purpose = ToolType.api_fiat_exchange,
+            payer_id = resolved.payer_id,
+            uses_credits = resolved.uses_credits,
         )
 
         fetcher = self.__di.tracked_web_fetcher(fiat_tool, api_url, headers, params, cache_ttl_json = CACHE_TTL)
@@ -199,4 +205,4 @@ class ExchangeRateFetcher:
         if rate:
             self.__save_rate_to_cache(base_currency_code, desired_currency_code, rate)
             return rate
-        raise ValueError(log.w(f"Invalid rate: {rate}; API: {FIAT_CURRENCY_EXCHANGE.id}; response data: {json.dumps(response)}"))
+        raise NotFoundError(f"Invalid rate: {rate}; API: {FIAT_CURRENCY_EXCHANGE.id}; response data: {json.dumps(response)}", EXCHANGE_RATE_NOT_FOUND)  # noqa: E501

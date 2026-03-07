@@ -7,13 +7,13 @@ The basic `Dockerfile` is available in the project's root directory. To run the 
 The basic command to run the configured image is:
 
 ```console
-$ docker-compose up
+$ docker compose up
 ```
 
 When you don't need the service anymore, you can just tear it down:
 
 ```console
-$ docker-compose down
+$ docker compose down
 ```
 
 ### How does the local Docker build work?
