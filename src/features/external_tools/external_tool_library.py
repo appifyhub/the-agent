@@ -156,6 +156,28 @@ GPT_5_2_PRO = ExternalTool(
     ),
 )
 
+GPT_5_4 = ExternalTool(
+    id = "gpt-5.4",
+    name = "GPT 5.4",
+    provider = OPEN_AI,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+    cost_estimate = CostEstimate(
+        input_1m_tokens = 250,
+        output_1m_tokens = 1500,
+    ),
+)
+
+GPT_5_4_PRO = ExternalTool(
+    id = "gpt-5.4-pro",
+    name = "GPT 5.4 Pro",
+    provider = OPEN_AI,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+    cost_estimate = CostEstimate(
+        input_1m_tokens = 3000,
+        output_1m_tokens = 18000,
+    ),
+)
+
 GPT_4O = ExternalTool(
     id = "gpt-4o",
     name = "GPT 4o",
@@ -669,6 +691,8 @@ ALL_EXTERNAL_TOOLS = [
     GPT_5_1,
     GPT_5_2,
     GPT_5_2_PRO,
+    GPT_5_4,
+    GPT_5_4_PRO,
     GPT_4O,
     GPT_4O_MINI,
     GPT_O3_MINI,
