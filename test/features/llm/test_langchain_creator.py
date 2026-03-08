@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import patch
+from uuid import UUID
 
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -7,9 +8,11 @@ from langchain_openai import ChatOpenAI
 from langchain_perplexity import ChatPerplexity
 from pydantic import SecretStr
 
+from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import CostEstimate, ExternalTool, ExternalToolProvider, ToolType
 from features.external_tools.external_tool_provider_library import ANTHROPIC, GOOGLE_AI, OPEN_AI, PERPLEXITY
 from features.llm.langchain_creator import create
+from util.errors import ConfigurationError
 
 
 class LangchainCreatorTest(unittest.TestCase):
@@ -53,13 +56,22 @@ class LangchainCreatorTest(unittest.TestCase):
             cost_estimate = default_cost,
         )
 
+    def _make_configured_tool(self, tool: ExternalTool, api_key: SecretStr, purpose: ToolType) -> ConfiguredTool:
+        return ConfiguredTool(
+            definition = tool,
+            token = api_key,
+            purpose = purpose,
+            payer_id = UUID(int = 1),
+            uses_credits = False,
+        )
+
     @patch("features.llm.langchain_creator.config")
     def test_create_openai_chat_model(self, mock_config):
         mock_config.web_retries = 3
         mock_config.web_timeout_s = 10
 
         api_key = SecretStr("test-openai-key")
-        configured_tool = (self.mock_openai_tool, api_key, ToolType.chat)
+        configured_tool = self._make_configured_tool(self.mock_openai_tool, api_key, ToolType.chat)
 
         result = create(configured_tool)
 
@@ -71,7 +83,7 @@ class LangchainCreatorTest(unittest.TestCase):
         mock_config.web_timeout_s = 15
 
         api_key = SecretStr("test-anthropic-key")
-        configured_tool = (self.mock_anthropic_tool, api_key, ToolType.reasoning)
+        configured_tool = self._make_configured_tool(self.mock_anthropic_tool, api_key, ToolType.reasoning)
 
         result = create(configured_tool)
 
@@ -83,7 +95,7 @@ class LangchainCreatorTest(unittest.TestCase):
         mock_config.web_timeout_s = 20
 
         api_key = SecretStr("test-perplexity-key")
-        configured_tool = (self.mock_perplexity_tool, api_key, ToolType.search)
+        configured_tool = self._make_configured_tool(self.mock_perplexity_tool, api_key, ToolType.search)
 
         result = create(configured_tool)
 
@@ -95,7 +107,7 @@ class LangchainCreatorTest(unittest.TestCase):
         mock_config.web_timeout_s = 10
 
         api_key = SecretStr("test-google-ai-key")
-        configured_tool = (self.mock_google_ai_tool, api_key, ToolType.chat)
+        configured_tool = self._make_configured_tool(self.mock_google_ai_tool, api_key, ToolType.chat)
 
         result = create(configured_tool)
 
@@ -107,7 +119,7 @@ class LangchainCreatorTest(unittest.TestCase):
         mock_config.web_timeout_s = 30
 
         api_key = SecretStr("test-key")
-        configured_tool = (self.mock_openai_tool, api_key, ToolType.copywriting)
+        configured_tool = self._make_configured_tool(self.mock_openai_tool, api_key, ToolType.copywriting)
 
         result = create(configured_tool)
 
@@ -119,7 +131,7 @@ class LangchainCreatorTest(unittest.TestCase):
         mock_config.web_timeout_s = 25
 
         api_key = SecretStr("test-key")
-        configured_tool = (self.mock_anthropic_tool, api_key, ToolType.vision)
+        configured_tool = self._make_configured_tool(self.mock_anthropic_tool, api_key, ToolType.vision)
 
         result = create(configured_tool)
 
@@ -143,39 +155,39 @@ class LangchainCreatorTest(unittest.TestCase):
         )
 
         api_key = SecretStr("test-key")
-        configured_tool = (unsupported_tool, api_key, ToolType.chat)
+        configured_tool = self._make_configured_tool(unsupported_tool, api_key, ToolType.chat)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ConfigurationError) as context:
             create(configured_tool)
 
         self.assertIn("does not support temperature", str(context.exception))
 
     def test_unsupported_tool_type_temperature(self):
         api_key = SecretStr("test-key")
-        configured_tool = (self.mock_openai_tool, api_key, ToolType.hearing)
+        configured_tool = self._make_configured_tool(self.mock_openai_tool, api_key, ToolType.hearing)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ConfigurationError) as context:
             create(configured_tool)
 
-        self.assertIn("does not support temperature", str(context.exception))
+        self.assertIn("does not support text timeouts", str(context.exception))
 
     def test_unsupported_tool_type_max_tokens(self):
         api_key = SecretStr("test-key")
-        configured_tool = (self.mock_openai_tool, api_key, ToolType.images_gen)
+        configured_tool = self._make_configured_tool(self.mock_openai_tool, api_key, ToolType.images_gen)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ConfigurationError) as context:
             create(configured_tool)
 
-        self.assertIn("does not support temperature", str(context.exception))
+        self.assertIn("does not support text timeouts", str(context.exception))
 
     def test_unsupported_tool_type_timeout(self):
         api_key = SecretStr("test-key")
-        configured_tool = (self.mock_openai_tool, api_key, ToolType.embedding)
+        configured_tool = self._make_configured_tool(self.mock_openai_tool, api_key, ToolType.embedding)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ConfigurationError) as context:
             create(configured_tool)
 
-        self.assertIn("does not support temperature", str(context.exception))
+        self.assertIn("does not support text timeouts", str(context.exception))
 
     def test_unsupported_provider_temperature_normalization(self):
         unsupported_provider = ExternalToolProvider(
@@ -195,9 +207,9 @@ class LangchainCreatorTest(unittest.TestCase):
         )
 
         api_key = SecretStr("test-key")
-        configured_tool = (unsupported_tool, api_key, ToolType.chat)
+        configured_tool = self._make_configured_tool(unsupported_tool, api_key, ToolType.chat)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ConfigurationError) as context:
             create(configured_tool)
 
         self.assertIn("does not support temperature", str(context.exception))
@@ -220,7 +232,7 @@ class LangchainCreatorTest(unittest.TestCase):
         for tool_type in supported_types:
             # noinspection PyUnresolvedReferences
             with self.subTest(tool_type = tool_type):
-                configured_tool = (self.mock_openai_tool, api_key, tool_type)
+                configured_tool = self._make_configured_tool(self.mock_openai_tool, api_key, tool_type)
                 result = create(configured_tool)
                 self.assertIsInstance(result, ChatOpenAI)
 
@@ -241,7 +253,7 @@ class LangchainCreatorTest(unittest.TestCase):
         api_key = SecretStr("test-key")
         for tool_type in supported_types:
             with self.subTest(tool_type = tool_type):
-                configured_tool = (self.mock_anthropic_tool, api_key, tool_type)
+                configured_tool = self._make_configured_tool(self.mock_anthropic_tool, api_key, tool_type)
                 result = create(configured_tool)
                 self.assertIsInstance(result, ChatAnthropic)
 
@@ -262,7 +274,7 @@ class LangchainCreatorTest(unittest.TestCase):
         api_key = SecretStr("test-key")
         for tool_type in supported_types:
             with self.subTest(tool_type = tool_type):
-                configured_tool = (self.mock_perplexity_tool, api_key, tool_type)
+                configured_tool = self._make_configured_tool(self.mock_perplexity_tool, api_key, tool_type)
                 result = create(configured_tool)
                 self.assertIsInstance(result, ChatPerplexity)
 
@@ -283,7 +295,7 @@ class LangchainCreatorTest(unittest.TestCase):
         api_key = SecretStr("test-key")
         for tool_type in supported_types:
             with self.subTest(tool_type = tool_type):
-                configured_tool = (self.mock_google_ai_tool, api_key, tool_type)
+                configured_tool = self._make_configured_tool(self.mock_google_ai_tool, api_key, tool_type)
                 result = create(configured_tool)
                 self.assertIsInstance(result, ChatGoogleGenerativeAI)
 
@@ -296,7 +308,7 @@ class LangchainCreatorTest(unittest.TestCase):
         # Just verify the function completes without error
         # The actual config usage is tested implicitly by the model creation
         api_key = SecretStr("test-key")
-        configured_tool = (self.mock_openai_tool, api_key, ToolType.chat)
+        configured_tool = self._make_configured_tool(self.mock_openai_tool, api_key, ToolType.chat)
         result = create(configured_tool)
         self.assertIsInstance(result, ChatOpenAI)
 
@@ -309,11 +321,11 @@ class LangchainCreatorTest(unittest.TestCase):
             mock_config.web_timeout_s = 10
 
             # Test that different tool types create models (temperature logic is internal)
-            configured_tool = (self.mock_openai_tool, api_key, ToolType.chat)
+            configured_tool = self._make_configured_tool(self.mock_openai_tool, api_key, ToolType.chat)
             chat_result = create(configured_tool)
-            configured_tool = (self.mock_openai_tool, api_key, ToolType.reasoning)
+            configured_tool = self._make_configured_tool(self.mock_openai_tool, api_key, ToolType.reasoning)
             reasoning_result = create(configured_tool)
-            configured_tool = (self.mock_openai_tool, api_key, ToolType.copywriting)
+            configured_tool = self._make_configured_tool(self.mock_openai_tool, api_key, ToolType.copywriting)
             copywriting_result = create(configured_tool)
 
             # All should be ChatOpenAI instances but potentially with different configs
@@ -329,12 +341,12 @@ class LangchainCreatorTest(unittest.TestCase):
         api_key = SecretStr("test-key")
 
         # [1] chat requested, tool supports reasoning -> 3x timeout
-        configured_tool_chat = (self.mock_openai_tool, api_key, ToolType.chat)
+        configured_tool_chat = self._make_configured_tool(self.mock_openai_tool, api_key, ToolType.chat)
         result_chat = create(configured_tool_chat)
         self.assertEqual(result_chat.request_timeout, 30)  # 10 * 3
 
         # [2] reasoning requested -> 3x timeout
-        configured_tool_reasoning = (self.mock_openai_tool, api_key, ToolType.reasoning)
+        configured_tool_reasoning = self._make_configured_tool(self.mock_openai_tool, api_key, ToolType.reasoning)
         result_reasoning = create(configured_tool_reasoning)
         self.assertEqual(result_reasoning.request_timeout, 30)  # 10 * 3
 
@@ -346,6 +358,6 @@ class LangchainCreatorTest(unittest.TestCase):
             types = [ToolType.chat],
             cost_estimate = CostEstimate(),
         )
-        configured_tool_chat_only = (chat_only_tool, api_key, ToolType.chat)
+        configured_tool_chat_only = self._make_configured_tool(chat_only_tool, api_key, ToolType.chat)
         result_chat_only = create(configured_tool_chat_only)
         self.assertEqual(result_chat_only.request_timeout, 10)  # 10 * 1

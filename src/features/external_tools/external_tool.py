@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum
 
+from features.images.image_size_utils import normalize_image_size_category
+
 
 @dataclass(frozen = True)
 class CostEstimate:
@@ -18,6 +20,43 @@ class CostEstimate:
     output_image_4k: int | None = None
     api_call: int | None = None
     second_of_runtime: float | None = None
+
+    def get_minimum_for(
+        self,
+        input_text: str = "A",
+        max_output_tokens: int = 1000,
+        search_tokens: int = 1,
+        runtime_seconds: float = 1.0,
+        input_image_sizes: list[str] | None = None,
+        output_image_sizes: list[str] | None = None,
+    ) -> float:
+        input_tokens = max(1, len(input_text) // 4) if input_text else 0
+        result = (input_tokens / 1_000_000) * (self.input_1m_tokens or 0)
+        result += (max_output_tokens / 1_000_000) * (self.output_1m_tokens or 0)
+        result += (search_tokens / 1_000_000) * (self.search_1m_tokens or 0)
+        result += runtime_seconds * (self.second_of_runtime or 0)
+        result += float(self.api_call or 0)
+        input_image_costs = {
+            "1k": float(self.input_image_1k or 0),
+            "2k": float(self.input_image_2k or 0),
+            "4k": float(self.input_image_4k or 0),
+            "8k": float(self.input_image_8k or 0),
+            "12k": float(self.input_image_12k or 0),
+        }
+        fallback_input = float(self.input_image_1k or 0)
+        for size in (input_image_sizes or []):
+            normalized = normalize_image_size_category(size)
+            result += input_image_costs.get(normalized, fallback_input)
+        output_image_costs = {
+            "1k": float(self.output_image_1k or 0),
+            "2k": float(self.output_image_2k or 0),
+            "4k": float(self.output_image_4k or 0),
+        }
+        fallback_output = float(self.output_image_1k or 0)
+        for size in (output_image_sizes or []):
+            normalized = normalize_image_size_category(size)
+            result += output_image_costs.get(normalized, fallback_output)
+        return result
 
 
 @dataclass(frozen = True)
@@ -47,6 +86,38 @@ class ToolType(str, Enum):
     api_crypto_exchange = "api_crypto_exchange"  # crypto exchange API
     api_twitter = "api_twitter"  # X (Twitter) API
     deprecated = "deprecated"  # deprecated tool type, for API compatibility
+
+    @property
+    def max_output_tokens(self) -> int:
+        match self:
+            case ToolType.chat:
+                return 2000
+            case ToolType.reasoning:
+                return 4000
+            case ToolType.copywriting:
+                return 4000
+            case ToolType.vision:
+                return 3000
+            case ToolType.search:
+                return 4000
+            case _:
+                return 0
+
+    @property
+    def temperature_percent(self) -> float:
+        match self:
+            case ToolType.chat:
+                return 0.25
+            case ToolType.reasoning:
+                return 0.25
+            case ToolType.copywriting:
+                return 0.4
+            case ToolType.vision:
+                return 0.25
+            case ToolType.search:
+                return 0.35
+            case _:
+                return 0.0
 
 
 @dataclass(frozen = True)

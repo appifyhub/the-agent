@@ -8,6 +8,7 @@ from features.prompting.prompt_composer import (
     PromptVar,
     build,
 )
+from util.errors import ValidationError
 
 
 class FunctionsTest(unittest.TestCase):
@@ -97,11 +98,9 @@ class FunctionsTest(unittest.TestCase):
     def test_missing_variables_raise_by_default(self):
         fragment = PromptFragment(id = "x", section = PromptSection.context, content = "Hi {agent_name}")
         comp = PromptComposer().add_fragments(fragment)
-        try:
+        with self.assertRaises(ValidationError) as context:
             comp.render()
-            self.fail("Expected ValueError for missing variable")
-        except ValueError as e:
-            self.assertIn("Missing variable", str(e))
+        self.assertIn("Missing prompt variable", str(context.exception))
 
     def test_build_function_creates_composer(self):
         frag1 = PromptFragment(id = "f1", section = PromptSection.context, content = "Hello {agent_name}")

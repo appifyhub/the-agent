@@ -14,6 +14,8 @@ from features.chat.telegram.model.message import Message
 from features.chat.telegram.model.update import Update
 from util import log
 from util.config import config
+from util.error_codes import ATTACHMENT_NOT_FOUND, MISSING_EXTERNAL_ATTACHMENT_ID, NO_ATTACHMENT_INSTANCE, PLATFORM_MAPPING_FAILED
+from util.errors import InternalError, NotFoundError
 from util.functions import first_key_with_value
 
 
@@ -120,10 +122,10 @@ class TelegramBotSDK:
         update = Update(update_id = time.time_ns(), message = message)
         mapping_result = self.__di.telegram_domain_mapper.map_update(update)
         if not mapping_result:
-            raise ValueError(f"Telegram API domain mapping failed for local update '{update.update_id}'")
+            raise InternalError(f"Telegram API domain mapping failed for local update '{update.update_id}'", PLATFORM_MAPPING_FAILED)  # noqa: E501
         resolution_result = self.__di.telegram_data_resolver.resolve(mapping_result)
         if not resolution_result.message:
-            raise ValueError(f"Telegram data resolution failed for local update '{update.update_id}'")
+            raise InternalError(f"Telegram data resolution failed for local update '{update.update_id}'", PLATFORM_MAPPING_FAILED)
         # noinspection PyTypeChecker
         return resolution_result.message
 
@@ -133,7 +135,7 @@ class TelegramBotSDK:
         for attachment_id in attachment_ids:
             attachment_db = self.__di.chat_message_attachment_crud.get(attachment_id)
             if not attachment_db:
-                raise ValueError(f"Attachment with ID '{attachment_id}' not found in DB")
+                raise NotFoundError(f"Attachment with ID '{attachment_id}' not found in DB", ATTACHMENT_NOT_FOUND)
             attachments.append(ChatMessageAttachment.model_validate(attachment_db))
         return self.refresh_attachment_instances(attachments)
 
@@ -159,7 +161,7 @@ class TelegramBotSDK:
             instance = ChatMessageAttachment.model_validate(instance_db) if instance_db else None
             instance_save = ChatMessageAttachmentSave(**instance.model_dump()) if instance else attachment_save
         else:
-            raise ValueError("No attachment instance provided")
+            raise InternalError("No attachment instance provided", NO_ATTACHMENT_INSTANCE)
 
         # check if instance data is already fresh
         if not instance_save.has_stale_data:
@@ -170,7 +172,7 @@ class TelegramBotSDK:
 
         # data is stale or missing, we need to fetch the attachment data from remote
         if not instance_save.external_id:
-            raise ValueError(log.e("No external ID provided for the attachment"))
+            raise InternalError("No external ID provided for the attachment", MISSING_EXTERNAL_ATTACHMENT_ID)
         log.t(f"Refreshing attachment data for external ID '{instance_save.external_id}'")
         api_file: File = self.__di.telegram_bot_api.get_file_info(instance_save.external_id)
 

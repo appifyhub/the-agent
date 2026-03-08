@@ -28,6 +28,8 @@ class UserSettingsPayload(BaseModel):
     tool_choice_api_crypto_exchange: str | None = None
     tool_choice_api_twitter: str | None = None
 
+    are_policies_accepted: bool | None = None
+
     # noinspection PyNestedDecorators
     @field_validator(
         "full_name",

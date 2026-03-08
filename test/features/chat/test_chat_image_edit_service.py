@@ -161,11 +161,7 @@ class ChatImageEditServiceTest(unittest.TestCase):
         expected_details = [
             {
                 "url": None,
-                "error": (
-                    "Failed to edit image from attachment 'attachment1'\n"
-                    " ├─ ! Exception (see below)\n"
-                    " ├─ Exception: Test exception"
-                ),
+                "error": "Failed to edit image from attachment 'attachment1': Test exception",
             },
         ]
         self.assertEqual(details, expected_details)
