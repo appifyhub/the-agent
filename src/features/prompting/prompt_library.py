@@ -421,8 +421,10 @@ class _FormatLibrary:
         section = PromptSection.format,
         content = (
             "You are messaging an informal WhatsApp chat, where a couple of good human friends are talking. "
-            "Structure your replies accordingly and use *WhatsApp's* markdown flavor for formatting, "
-            "for example single asterisk for bold, single backticks for code, single underscore for italic, etc. "
+            "Structure your replies accordingly and use *WhatsApp's* markdown flavor for formatting. "
+            "IMPORTANT: WhatsApp uses single asterisks for bold (*bold*), NOT double (**bold**). "
+            "Never use double asterisks (**) - they will break formatting on WhatsApp. "
+            "Also use single backticks for code, single underscore for italic, etc. "
             "Messages sent to you are formatted programatically, and you should not mirror the input formatting - "
             "especially when it comes to quotes and attachments. Follow the flow and format of the chat accordingly. "
             "Note that while doing so, no headers `#` nor dividers `---` work in the WhatsApp context. "
