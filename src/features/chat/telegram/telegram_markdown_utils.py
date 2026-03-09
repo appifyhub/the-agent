@@ -62,8 +62,9 @@ def escape_markdown(text: str) -> str:
     text = re.sub(r"\*\*([^*]+?)\*\*", rf"{BOLD_START}{BOLD_START}\1{BOLD_END}{BOLD_END}", text)
 
     # Protect *bold* (single asterisk - Telegram's format, not standard markdown!)
-    # Matches text with spaces inside: *bold text* is valid Telegram markdown
-    text = re.sub(r"(^|\s)\*([^*]+?)\*(\s|$)", rf"\1{BOLD_START}\2{BOLD_END}\3", text)
+    # Uses negative lookbehind/lookahead for word chars to allow punctuation adjacency:
+    # *bold*, and *bold*. are preserved, while 2*3*4 (word-char adjacent) still gets escaped
+    text = re.sub(r"(?<!\w)\*([^*\n]+?)\*(?!\w)", rf"{BOLD_START}\1{BOLD_END}", text)
 
     # Protect _italic_ (underscore italic - allow spaces inside)
     text = re.sub(r"\b_([^_]+?)_\b", rf"{ITALIC_START}\1{ITALIC_END}", text)
