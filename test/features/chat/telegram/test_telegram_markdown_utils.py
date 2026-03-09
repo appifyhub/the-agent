@@ -133,3 +133,21 @@ class TelegramMarkdownUtilsTest(unittest.TestCase):
         text = "**🚀 Verzija 5.0.6: Čišći Digitalni Otisak**"
         expected = "**🚀 Verzija 5.0.6: Čišći Digitalni Otisak**"
         self.assertEqual(escape_markdown(text), expected)
+
+    def test_escape_markdown_bold_adjacent_to_punctuation(self):
+        # Bold text adjacent to punctuation should be preserved
+        self.assertEqual(escape_markdown("*bold*."), "*bold*.")
+        self.assertEqual(escape_markdown("*bold*,"), "*bold*,")
+        self.assertEqual(escape_markdown("*bold*!"), "*bold*!")
+        self.assertEqual(escape_markdown("*bold*?"), "*bold*?")
+        self.assertEqual(escape_markdown("(*bold*)"), "(*bold*)")
+
+    def test_escape_markdown_bold_at_start_with_punctuation(self):
+        # Bold at start of string adjacent to punctuation
+        self.assertEqual(escape_markdown("*Hello.*"), "*Hello.*")
+        self.assertEqual(escape_markdown("*Done*,"), "*Done*,")
+
+    def test_escape_markdown_bold_in_sentence_with_punctuation(self):
+        # Bold embedded in a sentence with trailing punctuation
+        self.assertEqual(escape_markdown("Say *Hello.* right now"), "Say *Hello.* right now")
+        self.assertEqual(escape_markdown("I am *very happy*, you know"), "I am *very happy*, you know")
