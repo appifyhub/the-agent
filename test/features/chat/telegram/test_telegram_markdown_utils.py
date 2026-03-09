@@ -133,3 +133,21 @@ class TelegramMarkdownUtilsTest(unittest.TestCase):
         text = "**🚀 Verzija 5.0.6: Čišći Digitalni Otisak**"
         expected = "**🚀 Verzija 5.0.6: Čišći Digitalni Otisak**"
         self.assertEqual(escape_markdown(text), expected)
+
+    def test_escape_markdown_preserves_single_bold_adjacent_to_punctuation(self):
+        # Single-asterisk bold adjacent to punctuation should be preserved
+        self.assertEqual(escape_markdown("*bold*,"), "*bold*,")
+        self.assertEqual(escape_markdown("*bold*."), "*bold*.")
+        self.assertEqual(escape_markdown("*bold*!"), "*bold*!")
+        self.assertEqual(escape_markdown("*bold*?"), "*bold*?")
+        self.assertEqual(escape_markdown("*bold*;"), "*bold*;")
+        self.assertEqual(escape_markdown("Text: *bold*."), "Text: *bold*.")
+        self.assertEqual(escape_markdown("(*bold*)"), "(*bold*)")
+
+    def test_escape_markdown_preserves_double_bold_adjacent_to_punctuation(self):
+        # Double-asterisk bold adjacent to punctuation should be preserved
+        self.assertEqual(escape_markdown("**bold**,"), "**bold**,")
+        self.assertEqual(escape_markdown("**bold**."), "**bold**.")
+        self.assertEqual(escape_markdown("**bold.**"), "**bold.**")
+        self.assertEqual(escape_markdown("**bold**!"), "**bold**!")
+        self.assertEqual(escape_markdown("Text: **bold**."), "Text: **bold**.")

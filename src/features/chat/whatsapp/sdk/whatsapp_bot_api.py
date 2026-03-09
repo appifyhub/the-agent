@@ -3,6 +3,7 @@ from requests import RequestException, Response
 
 from features.chat.whatsapp.model.media_info import MediaInfo
 from features.chat.whatsapp.model.response import MarkAsReadResponse, MessageResponse
+from features.chat.whatsapp.whatsapp_markdown_utils import convert_for_whatsapp
 from util import log
 from util.config import config
 
@@ -25,7 +26,7 @@ class WhatsAppBotAPI:
         payload = self.__create_payload(
             recipient_id = recipient_id,
             message_type = "text",
-            content = {"text": {"body": text}},
+            content = {"text": {"body": convert_for_whatsapp(text)}},
         )
         response = self.__post_request(payload)
         return MessageResponse(**response)
@@ -39,7 +40,7 @@ class WhatsAppBotAPI:
         log.t(f"Sending image to recipient #{recipient_id}")
         image_payload = {"link": image_url}
         if caption:
-            image_payload["caption"] = caption
+            image_payload["caption"] = convert_for_whatsapp(caption)
         payload = self.__create_payload(
             recipient_id = recipient_id,
             message_type = "image",
@@ -58,7 +59,7 @@ class WhatsAppBotAPI:
         log.t(f"Sending document to recipient #{recipient_id}")
         document_payload = {"link": document_url}
         if caption:
-            document_payload["caption"] = caption
+            document_payload["caption"] = convert_for_whatsapp(caption)
         if filename:
             document_payload["filename"] = filename
         payload = self.__create_payload(
