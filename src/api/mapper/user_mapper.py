@@ -31,6 +31,8 @@ def api_to_domain(payload: UserSettingsPayload, existing_user: User) -> UserSave
         user_save.rapid_api_key = SecretStr(payload.rapid_api_key) if payload.rapid_api_key else None
     if payload.coinmarketcap_key is not None:
         user_save.coinmarketcap_key = SecretStr(payload.coinmarketcap_key) if payload.coinmarketcap_key else None
+    if payload.x_key is not None:
+        user_save.x_key = SecretStr(payload.x_key) if payload.x_key else None
 
     if payload.tool_choice_chat is not None:
         user_save.tool_choice_chat = payload.tool_choice_chat if payload.tool_choice_chat else None
@@ -88,6 +90,7 @@ def domain_to_api(user: User, is_sponsored: bool) -> UserSettingsResponse:
         replicate_key = mask_secret(user.replicate_key.get_secret_value() if user.replicate_key else None),
         rapid_api_key = mask_secret(user.rapid_api_key.get_secret_value() if user.rapid_api_key else None),
         coinmarketcap_key = mask_secret(user.coinmarketcap_key.get_secret_value() if user.coinmarketcap_key else None),
+        x_key = mask_secret(user.x_key.get_secret_value() if user.x_key else None),
 
         tool_choice_chat = user.tool_choice_chat,
         tool_choice_reasoning = user.tool_choice_reasoning,

@@ -72,7 +72,6 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.gumroad_auth_key.get_secret_value(), "it_is_really_gumroad")
         self.assertEqual(config.jwt_secret_key.get_secret_value(), "default")
         self.assertEqual(config.github_issues_token.get_secret_value(), "invalid")
-        self.assertEqual(config.rapid_api_twitter_token.get_secret_value(), "invalid")
         self.assertEqual(config.free_img_host_token.get_secret_value(), "invalid")
         self.assertEqual(config.token_encrypt_secret.get_secret_value(), "default")
         self.assertEqual(config.uploadcare_private_key.get_secret_value(), "invalid")
@@ -84,6 +83,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.platform_replicate_key.get_secret_value(), "invalid")
         self.assertEqual(config.platform_rapid_api_key.get_secret_value(), "invalid")
         self.assertEqual(config.platform_coinmarketcap_key.get_secret_value(), "invalid")
+        self.assertEqual(config.platform_x_key.get_secret_value(), "invalid")
 
     def test_custom_config(self):
         os.environ["LOG_LEVEL"] = "DEBUG"
@@ -137,7 +137,6 @@ class ConfigTest(unittest.TestCase):
         os.environ["GUMROAD_PING_AUTH_TOKEN"] = "mnop3456"
         os.environ["JWT_SECRET_KEY"] = "custom"
         os.environ["THE_AGENT_ISSUES_TOKEN"] = "sk-gi-valid"
-        os.environ["RAPID_API_TWITTER_TOKEN"] = "sk-rt-valid"
         os.environ["FREE_IMG_HOST_TOKEN"] = "sk-im-valid"
         os.environ["TOKEN_ENCRYPT_SECRET"] = "custom-encryption-key"
         os.environ["UPLOADCARE_PRIVATE_KEY"] = "private-key-123"
@@ -149,6 +148,7 @@ class ConfigTest(unittest.TestCase):
         os.environ["PLATFORM_REPLICATE_KEY"] = "platform-replicate-key"
         os.environ["PLATFORM_RAPID_API_KEY"] = "platform-rapid-api-key"
         os.environ["PLATFORM_COINMARKETCAP_KEY"] = "platform-coinmarketcap-key"
+        os.environ["PLATFORM_X_KEY"] = "platform-x-key"
 
         config = Config()
 
@@ -200,7 +200,6 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.gumroad_auth_key.get_secret_value(), "mnop3456")
         self.assertEqual(config.jwt_secret_key.get_secret_value(), "custom")
         self.assertEqual(config.github_issues_token.get_secret_value(), "sk-gi-valid")
-        self.assertEqual(config.rapid_api_twitter_token.get_secret_value(), "sk-rt-valid")
         self.assertEqual(config.free_img_host_token.get_secret_value(), "sk-im-valid")
         self.assertEqual(config.token_encrypt_secret.get_secret_value(), "custom-encryption-key")
         self.assertEqual(config.uploadcare_private_key.get_secret_value(), "private-key-123")
@@ -212,6 +211,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.platform_replicate_key.get_secret_value(), "platform-replicate-key")
         self.assertEqual(config.platform_rapid_api_key.get_secret_value(), "platform-rapid-api-key")
         self.assertEqual(config.platform_coinmarketcap_key.get_secret_value(), "platform-coinmarketcap-key")
+        self.assertEqual(config.platform_x_key.get_secret_value(), "platform-x-key")
 
     def test_products_loaded_from_yaml(self):
         config = Config(def_products_config_path = PRODUCTS_FIXTURE_PATH)

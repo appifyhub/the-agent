@@ -36,6 +36,7 @@ class UserCRUDTest(unittest.TestCase):
             replicate_key = SecretStr("test-replicate-key"),
             rapid_api_key = SecretStr("test-rapid-api-key"),
             coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
+            x_key = SecretStr("test-x-api-key"),
             tool_choice_chat = "gpt-4o",
             tool_choice_reasoning = "claude-3-7-sonnet-latest",
             tool_choice_copywriting = "gpt-4o-mini",
@@ -78,6 +79,8 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(user.rapid_api_key, user_data.rapid_api_key.get_secret_value())
         assert user_data.coinmarketcap_key is not None
         self.assertEqual(user.coinmarketcap_key, user_data.coinmarketcap_key.get_secret_value())
+        assert user_data.x_key is not None
+        self.assertEqual(user.x_key, user_data.x_key.get_secret_value())
         self.assertEqual(user.tool_choice_chat, user_data.tool_choice_chat)
         self.assertEqual(user.tool_choice_reasoning, user_data.tool_choice_reasoning)
         self.assertEqual(user.tool_choice_copywriting, user_data.tool_choice_copywriting)
@@ -109,6 +112,7 @@ class UserCRUDTest(unittest.TestCase):
             replicate_key = SecretStr("test-replicate-key"),
             rapid_api_key = SecretStr("test-rapid-api-key"),
             coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
+            x_key = SecretStr("test-x-api-key"),
             tool_choice_chat = "gpt-4o",
             tool_choice_vision = "gpt-4o",
             group = UserDB.Group.standard,
@@ -156,6 +160,7 @@ class UserCRUDTest(unittest.TestCase):
             replicate_key = SecretStr("test-replicate-key-1"),
             rapid_api_key = SecretStr("test-rapid-api-key-1"),
             coinmarketcap_key = SecretStr("test-coinmarketcap-key-1"),
+            x_key = SecretStr("test-x-api-key-1"),
             tool_choice_chat = "gpt-4o",
             tool_choice_reasoning = "claude-3-7-sonnet-latest",
             group = UserDB.Group.standard,
@@ -172,6 +177,7 @@ class UserCRUDTest(unittest.TestCase):
             replicate_key = SecretStr("test-replicate-key-2"),
             rapid_api_key = SecretStr("test-rapid-api-key-2"),
             coinmarketcap_key = SecretStr("test-coinmarketcap-key-2"),
+            x_key = SecretStr("test-x-api-key-2"),
             tool_choice_vision = "gpt-4o",
             tool_choice_images_gen = "dall-e-3",
             group = UserDB.Group.standard,
@@ -195,6 +201,7 @@ class UserCRUDTest(unittest.TestCase):
             replicate_key = SecretStr("test-replicate-key"),
             rapid_api_key = SecretStr("test-rapid-api-key"),
             coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
+            x_key = SecretStr("test-x-api-key"),
             tool_choice_hearing = "whisper-1",
             tool_choice_search = "perplexity-search",
             group = UserDB.Group.standard,
@@ -224,6 +231,7 @@ class UserCRUDTest(unittest.TestCase):
             replicate_key = SecretStr("test-replicate-key"),
             rapid_api_key = SecretStr("test-rapid-api-key"),
             coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
+            x_key = SecretStr("test-x-api-key"),
             tool_choice_embedding = "text-embedding-3-large",
             tool_choice_api_twitter = "rapid-api-twitter",
             group = UserDB.Group.standard,
@@ -255,6 +263,7 @@ class UserCRUDTest(unittest.TestCase):
             replicate_key = SecretStr("test-replicate-key"),
             rapid_api_key = SecretStr("test-rapid-api-key"),
             coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
+            x_key = SecretStr("test-x-api-key"),
             tool_choice_hearing = "whisper-1",
             tool_choice_search = "perplexity-search",
             group = UserDB.Group.standard,
@@ -324,6 +333,7 @@ class UserCRUDTest(unittest.TestCase):
             replicate_key = SecretStr("test-replicate-key"),
             rapid_api_key = SecretStr("test-rapid-api-key"),
             coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
+            x_key = SecretStr("test-x-api-key"),
             tool_choice_chat = "gpt-4o",
             tool_choice_reasoning = "claude-3-7-sonnet-latest",
             tool_choice_copywriting = "gpt-4o-mini",
@@ -358,6 +368,7 @@ class UserCRUDTest(unittest.TestCase):
             replicate_key = SecretStr("updated-replicate-key"),
             rapid_api_key = SecretStr("updated-rapid-api-key"),
             coinmarketcap_key = SecretStr("updated-coinmarketcap-key"),
+            x_key = SecretStr("updated-x-api-key"),
             tool_choice_chat = "claude-3-7-sonnet-latest",
             tool_choice_reasoning = "gpt-4o",
             tool_choice_copywriting = "claude-3-7-sonnet-latest",
@@ -433,6 +444,7 @@ class UserCRUDTest(unittest.TestCase):
             replicate_key = SecretStr("test-replicate-key"),
             rapid_api_key = SecretStr("test-rapid-api-key"),
             coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
+            x_key = SecretStr("test-x-api-key"),
             tool_choice_chat = "gpt-4o",
             tool_choice_reasoning = "claude-3-7-sonnet-latest",
             tool_choice_copywriting = "gpt-4o-mini",
@@ -475,6 +487,8 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(saved_user.rapid_api_key, user_data.rapid_api_key.get_secret_value())
         assert user_data.coinmarketcap_key is not None
         self.assertEqual(saved_user.coinmarketcap_key, user_data.coinmarketcap_key.get_secret_value())
+        assert user_data.x_key is not None
+        self.assertEqual(saved_user.x_key, user_data.x_key.get_secret_value())
         self.assertEqual(saved_user.tool_choice_chat, user_data.tool_choice_chat)
         self.assertEqual(saved_user.tool_choice_reasoning, user_data.tool_choice_reasoning)
         self.assertEqual(saved_user.tool_choice_copywriting, user_data.tool_choice_copywriting)
@@ -508,6 +522,7 @@ class UserCRUDTest(unittest.TestCase):
             replicate_key = SecretStr("updated-replicate-key"),
             rapid_api_key = SecretStr("updated-rapid-api-key"),
             coinmarketcap_key = SecretStr("updated-coinmarketcap-key"),
+            x_key = SecretStr("updated-x-api-key"),
             tool_choice_chat = "claude-3-7-sonnet-latest",
             tool_choice_reasoning = "gpt-4o",
             tool_choice_copywriting = "claude-3-7-sonnet-latest",
@@ -578,6 +593,7 @@ class UserCRUDTest(unittest.TestCase):
             replicate_key = SecretStr("test-replicate-key"),
             rapid_api_key = SecretStr("test-rapid-api-key"),
             coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
+            x_key = SecretStr("test-x-api-key"),
             group = UserDB.Group.standard,
         )
         created_user = self.sql.user_crud().create(user_data)
@@ -602,6 +618,7 @@ class UserCRUDTest(unittest.TestCase):
             replicate_key = SecretStr("test-replicate-key"),
             rapid_api_key = SecretStr("test-rapid-api-key"),
             coinmarketcap_key = SecretStr("test-coinmarketcap-key"),
+            x_key = SecretStr("test-x-api-key"),
             tool_choice_hearing = "whisper-1",
             tool_choice_search = "perplexity-search",
             group = UserDB.Group.standard,

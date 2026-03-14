@@ -14,6 +14,7 @@ class UserSettingsPayload(BaseModel):
     replicate_key: str | None = None
     rapid_api_key: str | None = None
     coinmarketcap_key: str | None = None
+    x_key: str | None = None
 
     tool_choice_chat: str | None = None
     tool_choice_reasoning: str | None = None
@@ -41,6 +42,7 @@ class UserSettingsPayload(BaseModel):
         "replicate_key",
         "rapid_api_key",
         "coinmarketcap_key",
+        "x_key",
         "tool_choice_chat",
         "tool_choice_reasoning",
         "tool_choice_copywriting",

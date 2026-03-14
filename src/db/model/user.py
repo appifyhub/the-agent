@@ -56,6 +56,7 @@ class UserDB(BaseModel):
     replicate_key = Column(EncryptedString, nullable = True)
     rapid_api_key = Column(EncryptedString, nullable = True)
     coinmarketcap_key = Column(EncryptedString, nullable = True)
+    x_key = Column(EncryptedString, nullable = True)
 
     # in sync with features.external_tools.external_tool.ToolType
     tool_choice_chat = Column(String, nullable = True)

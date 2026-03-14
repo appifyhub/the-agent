@@ -164,6 +164,8 @@ class ProfileConnectService:
             merged.rapid_api_key = casualty.rapid_api_key
         if not merged.coinmarketcap_key and casualty.coinmarketcap_key:
             merged.coinmarketcap_key = casualty.coinmarketcap_key
+        if not merged.x_key and casualty.x_key:
+            merged.x_key = casualty.x_key
 
         # Merge tool choices: prefer casualty's value when survivor lacks it
         if not merged.tool_choice_chat and casualty.tool_choice_chat:
