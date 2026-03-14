@@ -902,6 +902,10 @@ components:
           type: string
           nullable: true
           description: CoinMarketCap API key
+        x_key:
+          type: string
+          nullable: true
+          description: X / Twitter API key
         tool_choice_chat:
           type: string
           nullable: true
@@ -1018,6 +1022,10 @@ components:
           type: string
           nullable: true
           description: CoinMarketCap API key (masked)
+        x_key:
+          type: string
+          nullable: true
+          description: X / Twitter API key (masked)
         tool_choice_chat:
           type: string
           nullable: true
