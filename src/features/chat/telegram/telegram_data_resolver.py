@@ -110,6 +110,7 @@ class TelegramDataResolver:
             mapped_data.replicate_key = old_user.replicate_key
             mapped_data.rapid_api_key = old_user.rapid_api_key
             mapped_data.coinmarketcap_key = old_user.coinmarketcap_key
+            mapped_data.x_key = old_user.x_key
             mapped_data.tool_choice_chat = old_user.tool_choice_chat
             mapped_data.tool_choice_reasoning = old_user.tool_choice_reasoning
             mapped_data.tool_choice_copywriting = old_user.tool_choice_copywriting

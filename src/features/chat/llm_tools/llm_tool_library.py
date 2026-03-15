@@ -122,7 +122,7 @@ def generate_image(
 
 def fetch_web_content(di: DI, url: str) -> str:
     """
-    Fetches the text content from the given web page URL.
+    Fetches the text content from the given web page URL, including Twitter / X posts.
 
     Args:
         url: [mandatory] A valid URL of the web page, starting with 'http://' or 'https://' provided in the text

@@ -7,6 +7,7 @@ from features.external_tools.external_tool_provider_library import (
     PERPLEXITY,
     RAPID_API,
     REPLICATE,
+    X,
 )
 
 # Tools arrays are at the end of the file
@@ -640,7 +641,7 @@ IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_2 = ExternalTool(
     ),
 )
 
-###  Rapid API  ###
+###  API Integrations  ###
 
 FIAT_CURRENCY_EXCHANGE = ExternalTool(
     id = "currency-converter5.p.rapidapi.com",
@@ -652,17 +653,15 @@ FIAT_CURRENCY_EXCHANGE = ExternalTool(
     ),
 )
 
-TWITTER_API = ExternalTool(
-    id = "twitter-api-v1-1-enterprise.p.rapidapi.com",
-    name = "RapidAPI's Twitter API",
-    provider = RAPID_API,
+X_READ_POST = ExternalTool(
+    id = "x.api-v2-post.read",  # made-up ID, not an actual API path
+    name = "Post Reader for X",
+    provider = X,
     types = [ToolType.api_twitter],
     cost_estimate = CostEstimate(
-        api_call = 0,
+        api_call = 0.5,
     ),
 )
-
-###  CoinMarketCap API  ###
 
 CRYPTO_CURRENCY_EXCHANGE = ExternalTool(
     id = "v1.cryptocurrency.quotes.latest",
@@ -734,9 +733,8 @@ ALL_EXTERNAL_TOOLS = [
     IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA,
     IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO,
     IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_2,
-    # Rapid API
+    # API Integrations
     FIAT_CURRENCY_EXCHANGE,
-    TWITTER_API,
-    # CoinMarketCap
+    X_READ_POST,
     CRYPTO_CURRENCY_EXCHANGE,
 ]

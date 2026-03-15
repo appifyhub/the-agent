@@ -71,6 +71,7 @@ class Config(metaclass = Singleton):
     platform_replicate_key: SecretStr
     platform_rapid_api_key: SecretStr
     platform_coinmarketcap_key: SecretStr
+    platform_x_key: SecretStr
 
     db_url: SecretStr
     api_key: SecretStr
@@ -82,7 +83,6 @@ class Config(metaclass = Singleton):
     gumroad_auth_key: SecretStr
     jwt_secret_key: SecretStr
     github_issues_token: SecretStr
-    rapid_api_twitter_token: SecretStr
     free_img_host_token: SecretStr
     token_encrypt_secret: SecretStr
     uploadcare_private_key: SecretStr
@@ -100,7 +100,6 @@ class Config(metaclass = Singleton):
             self.gumroad_auth_key,
             self.jwt_secret_key,
             self.github_issues_token,
-            self.rapid_api_twitter_token,
             self.free_img_host_token,
             self.token_encrypt_secret,
             self.uploadcare_private_key,
@@ -112,6 +111,7 @@ class Config(metaclass = Singleton):
             self.platform_replicate_key,
             self.platform_rapid_api_key,
             self.platform_coinmarketcap_key,
+            self.platform_x_key,
         ]
 
     def __init__(
@@ -162,6 +162,7 @@ class Config(metaclass = Singleton):
         def_platform_replicate_key: SecretStr = SecretStr("invalid"),
         def_platform_rapid_api_key: SecretStr = SecretStr("invalid"),
         def_platform_coinmarketcap_key: SecretStr = SecretStr("invalid"),
+        def_platform_x_key: SecretStr = SecretStr("invalid"),
         def_db_user: SecretStr = SecretStr("root"),
         def_db_pass: SecretStr = SecretStr("root"),
         def_db_host: SecretStr = SecretStr("localhost"),
@@ -175,7 +176,6 @@ class Config(metaclass = Singleton):
         def_gumroad_auth_key: SecretStr = SecretStr("it_is_really_gumroad"),
         def_jwt_secret_key: SecretStr = SecretStr("default"),
         def_github_issues_token: SecretStr = SecretStr("invalid"),
-        def_rapid_api_twitter_token: SecretStr = SecretStr("invalid"),
         def_free_img_host_token: SecretStr = SecretStr("invalid"),
         def_token_encrypt_secret: SecretStr = SecretStr("default"),
         def_uploadcare_private_key: SecretStr = SecretStr("invalid"),
@@ -233,7 +233,6 @@ class Config(metaclass = Singleton):
         self.gumroad_auth_key = self.__senv("GUMROAD_PING_AUTH_TOKEN", lambda: def_gumroad_auth_key)
         self.jwt_secret_key = self.__senv("JWT_SECRET_KEY", lambda: def_jwt_secret_key)
         self.github_issues_token = self.__senv("THE_AGENT_ISSUES_TOKEN", lambda: def_github_issues_token)
-        self.rapid_api_twitter_token = self.__senv("RAPID_API_TWITTER_TOKEN", lambda: def_rapid_api_twitter_token)
         self.free_img_host_token = self.__senv("FREE_IMG_HOST_TOKEN", lambda: def_free_img_host_token)
         self.token_encrypt_secret = self.__senv("TOKEN_ENCRYPT_SECRET", lambda: def_token_encrypt_secret)
         self.uploadcare_private_key = self.__senv("UPLOADCARE_PRIVATE_KEY", lambda: def_uploadcare_private_key)
@@ -245,6 +244,7 @@ class Config(metaclass = Singleton):
         self.platform_replicate_key = self.__senv("PLATFORM_REPLICATE_KEY", lambda: def_platform_replicate_key)
         self.platform_rapid_api_key = self.__senv("PLATFORM_RAPID_API_KEY", lambda: def_platform_rapid_api_key)
         self.platform_coinmarketcap_key = self.__senv("PLATFORM_COINMARKETCAP_KEY", lambda: def_platform_coinmarketcap_key)
+        self.platform_x_key = self.__senv("PLATFORM_X_KEY", lambda: def_platform_x_key)
         # @formatter:on
 
     def __set_up_db(self, def_db_user: SecretStr, def_db_pass: SecretStr, def_db_host: SecretStr, def_db_name: SecretStr):

@@ -728,12 +728,11 @@ class DI:
     def twitter_status_fetcher(
         self,
         tweet_id: str,
-        twitter_api_tool: ConfiguredTool,
+        x_api_tool: ConfiguredTool,
         vision_tool: ConfiguredTool,
-        twitter_enterprise_tool: ConfiguredTool,
     ) -> "TwitterStatusFetcher":
         from features.web_browsing.twitter_status_fetcher import TwitterStatusFetcher
-        return TwitterStatusFetcher(tweet_id, twitter_api_tool, vision_tool, twitter_enterprise_tool, self)
+        return TwitterStatusFetcher(tweet_id, x_api_tool, vision_tool, self)
 
     def url_shortener(
         self,

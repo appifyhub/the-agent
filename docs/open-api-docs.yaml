@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: The Agent's user-facing API
   description: The user-facing parts of The Agent's API service (excluding system-level endpoints, chat completion, maintenance endpoints, etc.)
-  version: 5.0.23
+  version: 5.1.1
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -902,6 +902,10 @@ components:
           type: string
           nullable: true
           description: CoinMarketCap API key
+        x_key:
+          type: string
+          nullable: true
+          description: X / Twitter API key
         tool_choice_chat:
           type: string
           nullable: true
@@ -1018,6 +1022,10 @@ components:
           type: string
           nullable: true
           description: CoinMarketCap API key (masked)
+        x_key:
+          type: string
+          nullable: true
+          description: X / Twitter API key (masked)
         tool_choice_chat:
           type: string
           nullable: true

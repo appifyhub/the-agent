@@ -21,15 +21,13 @@ class TwitterStatusFetcherTest(unittest.TestCase):
     api_url: str
     cache_entry: ToolsCache
     mock_di: DI
-    mock_twitter_api_tool: ConfiguredTool
+    mock_x_api_tool: ConfiguredTool
     mock_vision_tool: ConfiguredTool
-    mock_twitter_enterprise_tool: ConfiguredTool
 
     def setUp(self):
         config.web_timeout_s = 0
-        config.rapid_api_twitter_token = SecretStr("test_twitter_api_token")
         self.tweet_id = "123456789"
-        self.api_url = "https://twitter-api-v1-1-enterprise.p.rapidapi.com/base/apitools/tweetSimple"
+        self.api_url = f"https://api.x.com/2/tweets/{self.tweet_id}"
         self.cache_entry = ToolsCache(
             key = "twitter-status-fetcher::123456789",
             value = "This is cached tweet content",
@@ -59,11 +57,11 @@ class TwitterStatusFetcherTest(unittest.TestCase):
         self.mock_di.tracked_http_get = MagicMock(return_value = mock_http_client)
 
         # Set up configured tools
-        mock_twitter_tool = MagicMock()
-        mock_twitter_tool.id = "twitter-api-v1-1-enterprise.p.rapidapi.com"
-        self.mock_twitter_api_tool = ConfiguredTool(
-            definition = mock_twitter_tool,
-            token = SecretStr("test_twitter_token"),
+        mock_x_tool = MagicMock()
+        mock_x_tool.id = "x.api-v2-post.read"
+        self.mock_x_api_tool = ConfiguredTool(
+            definition = mock_x_tool,
+            token = SecretStr("test_x_bearer_token"),
             purpose = MagicMock(),
             payer_id = UUID(int = 1),
             uses_credits = False,
@@ -79,16 +77,6 @@ class TwitterStatusFetcherTest(unittest.TestCase):
             uses_credits = False,
         )
 
-        mock_enterprise_tool = MagicMock()
-        mock_enterprise_tool.id = "enterprise-tool-id"
-        self.mock_twitter_enterprise_tool = ConfiguredTool(
-            definition = mock_enterprise_tool,
-            token = SecretStr("test_enterprise_token"),
-            purpose = MagicMock(),
-            payer_id = UUID(int = 1),
-            uses_credits = False,
-        )
-
     # noinspection PyUnusedLocal
     @requests_mock.Mocker()
     @patch("features.web_browsing.twitter_status_fetcher.sleep", return_value = None)
@@ -97,9 +85,8 @@ class TwitterStatusFetcherTest(unittest.TestCase):
 
         fetcher = TwitterStatusFetcher(
             tweet_id = "123456789",
-            twitter_api_tool = self.mock_twitter_api_tool,
+            x_api_tool = self.mock_x_api_tool,
             vision_tool = self.mock_vision_tool,
-            twitter_enterprise_tool = self.mock_twitter_enterprise_tool,
             di = self.mock_di,
         )
         result = fetcher.execute()
@@ -111,43 +98,38 @@ class TwitterStatusFetcherTest(unittest.TestCase):
     def test_execute_cache_miss(self, m: Mocker, mock_sleep):
         self.mock_di.tools_cache_crud.get.return_value = None
 
-        # Mock the API response
+        # Mock the X API v2 response
         m.get(
             self.api_url,
             json = {
                 "data": {
-                    "data": {
-                        "tweetResult": {
-                            "result": {
-                                "core": {
-                                    "user_results": {
-                                        "result": {
-                                            "legacy": {
-                                                "name": "Test User",
-                                                "screen_name": "testuser",
-                                                "description": "Test bio",
-                                            },
-                                        },
-                                    },
-                                },
-                                "legacy": {"full_text": "Test tweet content", "lang": "en"},
-                            },
+                    "text": "Test tweet content",
+                    "lang": "en",
+                    "author_id": "123",
+                },
+                "includes": {
+                    "users": [
+                        {
+                            "id": "123",
+                            "username": "testuser",
+                            "name": "Test User",
+                            "description": "Test bio",
                         },
-                    },
+                    ],
                 },
             },
         )
 
         fetcher = TwitterStatusFetcher(
             tweet_id = "123456789",
-            twitter_api_tool = self.mock_twitter_api_tool,
+            x_api_tool = self.mock_x_api_tool,
             vision_tool = self.mock_vision_tool,
-            twitter_enterprise_tool = self.mock_twitter_enterprise_tool,
             di = self.mock_di,
         )
         result = fetcher.execute()
-        self.assertIn("@testuser · Test User", result)
+        self.assertIn("@testuser (Test User)", result)
         self.assertIn("Test tweet content", result)
+        self.assertIn("@testuser's bio:", result)
 
     # noinspection PyUnusedLocal
     @requests_mock.Mocker()
@@ -160,9 +142,8 @@ class TwitterStatusFetcherTest(unittest.TestCase):
 
         fetcher = TwitterStatusFetcher(
             tweet_id = "123456789",
-            twitter_api_tool = self.mock_twitter_api_tool,
+            x_api_tool = self.mock_x_api_tool,
             vision_tool = self.mock_vision_tool,
-            twitter_enterprise_tool = self.mock_twitter_enterprise_tool,
             di = self.mock_di,
         )
         with self.assertRaises(requests.exceptions.HTTPError):
@@ -174,38 +155,32 @@ class TwitterStatusFetcherTest(unittest.TestCase):
     def test_api_call_parameters(self, m: Mocker, mock_sleep):
         self.mock_di.tools_cache_crud.get.return_value = None
 
-        # Mock the API response
+        # Mock the X API v2 response
         m.get(
             self.api_url,
             json = {
                 "data": {
-                    "data": {
-                        "tweetResult": {
-                            "result": {
-                                "core": {
-                                    "user_results": {
-                                        "result": {
-                                            "legacy": {
-                                                "name": "Test User",
-                                                "screen_name": "testuser",
-                                                "description": "Test bio",
-                                            },
-                                        },
-                                    },
-                                },
-                                "legacy": {"full_text": "Test tweet content", "lang": "en"},
-                            },
+                    "text": "Test tweet content",
+                    "lang": "en",
+                    "author_id": "123",
+                },
+                "includes": {
+                    "users": [
+                        {
+                            "id": "123",
+                            "username": "testuser",
+                            "name": "Test User",
+                            "description": "Test bio",
                         },
-                    },
+                    ],
                 },
             },
         )
 
         fetcher = TwitterStatusFetcher(
             tweet_id = "123456789",
-            twitter_api_tool = self.mock_twitter_api_tool,
+            x_api_tool = self.mock_x_api_tool,
             vision_tool = self.mock_vision_tool,
-            twitter_enterprise_tool = self.mock_twitter_enterprise_tool,
             di = self.mock_di,
         )
         fetcher.execute()
@@ -215,6 +190,7 @@ class TwitterStatusFetcherTest(unittest.TestCase):
         request = m.request_history[0]
         self.assertEqual(request.method, "GET")
         self.assertIn("123456789", request.url)
+        self.assertIn("Bearer test_x_bearer_token", request.headers.get("Authorization", ""))
 
     # noinspection PyUnusedLocal
     @requests_mock.Mocker()
@@ -227,49 +203,42 @@ class TwitterStatusFetcherTest(unittest.TestCase):
         mock_analyzer_instance.execute.return_value = "Photo description"
         self.mock_di.computer_vision_analyzer.return_value = mock_analyzer_instance
 
-        # Mock the API response with photo
+        # Mock the X API v2 response with photo
         m.get(
             self.api_url,
             json = {
                 "data": {
-                    "data": {
-                        "tweetResult": {
-                            "result": {
-                                "core": {
-                                    "user_results": {
-                                        "result": {
-                                            "legacy": {
-                                                "name": "Test User",
-                                                "screen_name": "testuser",
-                                                "description": "Test bio",
-                                            },
-                                        },
-                                    },
-                                },
-                                "legacy": {
-                                    "full_text": "Test tweet content",
-                                    "lang": "en",
-                                    "extended_entities": {
-                                        "media": [
-                                            {
-                                                "type": "photo",
-                                                "media_url_https": "https://example.com/photo.jpg",
-                                            },
-                                        ],
-                                    },
-                                },
-                            },
-                        },
+                    "text": "Test tweet content",
+                    "lang": "en",
+                    "author_id": "123",
+                    "attachments": {
+                        "media_keys": ["3_123"],
                     },
+                },
+                "includes": {
+                    "users": [
+                        {
+                            "id": "123",
+                            "username": "testuser",
+                            "name": "Test User",
+                            "description": "Test bio",
+                        },
+                    ],
+                    "media": [
+                        {
+                            "media_key": "3_123",
+                            "type": "photo",
+                            "url": "https://example.com/photo.jpg",
+                        },
+                    ],
                 },
             },
         )
 
         fetcher = TwitterStatusFetcher(
             tweet_id = "123456789",
-            twitter_api_tool = self.mock_twitter_api_tool,
+            x_api_tool = self.mock_x_api_tool,
             vision_tool = self.mock_vision_tool,
-            twitter_enterprise_tool = self.mock_twitter_enterprise_tool,
             di = self.mock_di,
         )
         result = fetcher.execute()
@@ -283,43 +252,34 @@ class TwitterStatusFetcherTest(unittest.TestCase):
     def test_format_tweet_content_handles_missing_data(self, m: Mocker, _):
         self.mock_di.tools_cache_crud.get.return_value = None
 
-        # Mock API response with missing data
+        # Mock X API v2 response with missing data
         m.get(
             self.api_url,
             json = {
                 "data": {
-                    "data": {
-                        "tweetResult": {
-                            "result": {
-                                "core": {
-                                    "user_results": {
-                                        "result": {
-                                            "legacy": {
-                                                "screen_name": "testuser",
-                                            },
-                                        },
-                                    },
-                                },
-                                "legacy": {
-                                    "lang": "en",
-                                },
-                            },
+                    "lang": "en",
+                    "author_id": "123",
+                },
+                "includes": {
+                    "users": [
+                        {
+                            "id": "123",
+                            "username": "testuser",
                         },
-                    },
+                    ],
                 },
             },
         )
 
         fetcher = TwitterStatusFetcher(
             tweet_id = "123456789",
-            twitter_api_tool = self.mock_twitter_api_tool,
+            x_api_tool = self.mock_x_api_tool,
             vision_tool = self.mock_vision_tool,
-            twitter_enterprise_tool = self.mock_twitter_enterprise_tool,
             di = self.mock_di,
         )
         result = fetcher.execute()
 
         # Should handle missing data gracefully
-        self.assertIn("@testuser · <Anonymous>", result)
-        self.assertIn("Bio: \"<No bio>\"", result)
-        self.assertIn("<This tweet has no text>", result)
+        self.assertIn("@testuser (<Anonymous>)", result)
+        self.assertIn("@testuser's bio: \"<No user bio>\"", result)
+        self.assertIn("<No text posted>", result)

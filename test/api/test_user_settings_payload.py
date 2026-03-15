@@ -14,6 +14,7 @@ class UserSettingsPayloadTest(unittest.TestCase):
             replicate_key = "r8_jkl012",
             rapid_api_key = "mno345",
             coinmarketcap_key = "pqr678-stu-901",
+            x_key = "x-vwx234",
             tool_choice_chat = "gpt-4o",
             tool_choice_reasoning = "claude-3-7-sonnet-latest",
             tool_choice_copywriting = "gpt-4o-mini",
@@ -34,6 +35,7 @@ class UserSettingsPayloadTest(unittest.TestCase):
         self.assertEqual(payload.replicate_key, "r8_jkl012")
         self.assertEqual(payload.rapid_api_key, "mno345")
         self.assertEqual(payload.coinmarketcap_key, "pqr678-stu-901")
+        self.assertEqual(payload.x_key, "x-vwx234")
         self.assertEqual(payload.tool_choice_chat, "gpt-4o")
         self.assertEqual(payload.tool_choice_reasoning, "claude-3-7-sonnet-latest")
         self.assertEqual(payload.tool_choice_copywriting, "gpt-4o-mini")
@@ -64,6 +66,7 @@ class UserSettingsPayloadTest(unittest.TestCase):
         self.assertIsNone(payload.replicate_key)
         self.assertIsNone(payload.rapid_api_key)
         self.assertIsNone(payload.coinmarketcap_key)
+        self.assertIsNone(payload.x_key)
         self.assertIsNone(payload.tool_choice_reasoning)
         self.assertIsNone(payload.tool_choice_copywriting)
         self.assertIsNone(payload.tool_choice_hearing)
@@ -154,6 +157,7 @@ class UserSettingsPayloadTest(unittest.TestCase):
         self.assertIsNone(payload.replicate_key)
         self.assertIsNone(payload.rapid_api_key)
         self.assertIsNone(payload.coinmarketcap_key)
+        self.assertIsNone(payload.x_key)
         self.assertIsNone(payload.tool_choice_chat)
         self.assertIsNone(payload.tool_choice_reasoning)
         self.assertIsNone(payload.tool_choice_copywriting)
@@ -184,6 +188,7 @@ class UserSettingsPayloadTest(unittest.TestCase):
         self.assertIsNone(payload.replicate_key)
         self.assertIsNone(payload.rapid_api_key)
         self.assertIsNone(payload.coinmarketcap_key)
+        self.assertIsNone(payload.x_key)
 
         # Tool choices should be set
         self.assertEqual(payload.tool_choice_chat, "gpt-4o")

@@ -47,7 +47,15 @@ RAPID_API = ExternalToolProvider(
     name = "RapidAPI",
     token_management_url = "https://docs.rapidapi.com/docs/configuring-api-security",
     token_format = "abc...123",
-    tools = ["Currency", "X (Twitter)", "Weather"],
+    tools = ["Currency", "Weather"],
+)
+
+X = ExternalToolProvider(
+    id = "x",
+    name = "X / Twitter",
+    token_management_url = "https://console.x.com",
+    token_format = "AAAA...xyz",
+    tools = ["Posts", "Users", "Trends"],
 )
 
 COINMARKETCAP = ExternalToolProvider(
@@ -58,4 +66,4 @@ COINMARKETCAP = ExternalToolProvider(
     tools = ["Crypto"],
 )
 
-ALL_PROVIDERS = [OPEN_AI, ANTHROPIC, GOOGLE_AI, PERPLEXITY, REPLICATE, RAPID_API, COINMARKETCAP]
+ALL_PROVIDERS = [OPEN_AI, ANTHROPIC, GOOGLE_AI, PERPLEXITY, REPLICATE, RAPID_API, COINMARKETCAP, X]
