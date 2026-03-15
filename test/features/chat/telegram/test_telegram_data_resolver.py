@@ -329,6 +329,7 @@ class TelegramDataResolverTest(unittest.TestCase):
             replicate_key = SecretStr("sk-key"),
             rapid_api_key = SecretStr("sk-key"),
             coinmarketcap_key = SecretStr("sk-key"),
+            x_key = SecretStr("sk-key"),
             about_me = SecretStr("Personal info about me"),
             credit_balance = 123.45,
             group = UserDB.Group.developer,
@@ -374,6 +375,7 @@ class TelegramDataResolverTest(unittest.TestCase):
         self.assertEqual(result.replicate_key, existing_user.replicate_key)
         self.assertEqual(result.rapid_api_key, existing_user.rapid_api_key)
         self.assertEqual(result.coinmarketcap_key, existing_user.coinmarketcap_key)
+        self.assertEqual(result.x_key, existing_user.x_key)
         self.assertEqual(result.about_me, existing_user.about_me)
         self.assertEqual(result.credit_balance, existing_user.credit_balance)
         self.assertEqual(result.group, existing_user.group)
@@ -442,6 +444,7 @@ class TelegramDataResolverTest(unittest.TestCase):
             replicate_key = None,
             rapid_api_key = None,
             coinmarketcap_key = None,
+            x_key = None,
             group = UserDB.Group.developer,
             created_at = datetime.now().date(),
         )
