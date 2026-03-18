@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from google.genai import Client as GoogleSDKClient
     from openai import OpenAI
     from replicate.client import Client as ReplicateSDKClient
+    from xai_sdk import Client as XAISDKClient
 
     from api.authorization_service import AuthorizationService
     from api.gumroad_controller import GumroadController
@@ -42,6 +43,7 @@ if TYPE_CHECKING:
     from features.accounting.usage.decorators.openai_usage_tracking_decorator import OpenAIUsageTrackingDecorator
     from features.accounting.usage.decorators.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
     from features.accounting.usage.decorators.web_fetcher_usage_tracking_decorator import WebFetcherUsageTrackingDecorator
+    from features.accounting.usage.decorators.x_ai_usage_tracking_decorator import XAIUsageTrackingDecorator
     from features.accounting.usage.usage_record_repo import UsageRecordRepository
     from features.accounting.usage.usage_tracking_service import UsageTrackingService
     from features.announcements.release_summary_service import ReleaseSummaryService
@@ -594,6 +596,34 @@ class DI:
 
         base_client = self.base_google_ai_client(configured_tool.token.get_secret_value(), timeout_s)
         return GoogleAIUsageTrackingDecorator(
+            base_client,
+            self.usage_tracking_service,
+            self.spending_service,
+            configured_tool,
+            output_image_sizes,
+            input_image_sizes,
+        )
+
+    def base_x_ai_client(
+        self,
+        configured_tool: ConfiguredTool,
+        timeout_s: float | None = None,
+    ) -> "XAISDKClient":
+        from xai_sdk import Client as XAISDKClient
+
+        return XAISDKClient(api_key = configured_tool.token.get_secret_value(), timeout = timeout_s)
+
+    def x_ai_client(
+        self,
+        configured_tool: ConfiguredTool,
+        timeout_s: float | None = None,
+        output_image_sizes: list[str] | None = None,
+        input_image_sizes: list[str] | None = None,
+    ) -> "XAIUsageTrackingDecorator":
+        from features.accounting.usage.decorators.x_ai_usage_tracking_decorator import XAIUsageTrackingDecorator
+
+        base_client = self.base_x_ai_client(configured_tool, timeout_s)
+        return XAIUsageTrackingDecorator(
             base_client,
             self.usage_tracking_service,
             self.spending_service,

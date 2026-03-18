@@ -22,6 +22,7 @@ from features.external_tools.external_tool_provider_library import (
     PERPLEXITY,
     RAPID_API,
     REPLICATE,
+    XAI,
     X,
 )
 
@@ -53,6 +54,7 @@ class AccessTokenResolverTest(unittest.TestCase):
             rapid_api_key = SecretStr("invoker_rapid_api_key"),
             coinmarketcap_key = SecretStr("invoker_coinmarketcap_key"),
             x_key = SecretStr("invoker_x_key"),
+            x_ai_key = SecretStr("invoker_x_ai_key"),
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
         )
@@ -70,6 +72,7 @@ class AccessTokenResolverTest(unittest.TestCase):
             rapid_api_key = SecretStr("sponsor_rapid_api_key"),
             coinmarketcap_key = SecretStr("sponsor_coinmarketcap_key"),
             x_key = SecretStr("sponsor_x_key"),
+            x_ai_key = SecretStr("sponsor_x_ai_key"),
             group = UserDB.Group.developer,
             created_at = datetime.now().date(),
         )
@@ -356,6 +359,17 @@ class AccessTokenResolverTest(unittest.TestCase):
         self.assertIsInstance(token, ResolvedToken)
         self.assertEqual(token.token.get_secret_value(), self.invoker_user.x_key.get_secret_value())
 
+    def test_get_access_token_x_ai_success_user_has_direct_token(self):
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+
+        resolver = AccessTokenResolver(self.mock_di)
+
+        token = resolver.get_access_token(XAI)
+
+        assert token is not None
+        self.assertIsInstance(token, ResolvedToken)
+        self.assertEqual(token.token.get_secret_value(), self.invoker_user.x_ai_key.get_secret_value())
+
     def test_get_access_token_google_ai_success_user_has_direct_token(self):
         self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
 
@@ -628,5 +642,24 @@ class AccessTokenResolverTest(unittest.TestCase):
 
         assert token is not None
         self.assertEqual(token.token.get_secret_value(), "platform-x-key")
+        self.assertTrue(token.uses_credits)
+        self.assertEqual(token.payer_id, user_with_credits.id)
+
+    def test_platform_key_x_ai_with_credits(self):
+        user_with_credits = self.invoker_user.model_copy(update = {
+            "x_ai_key": None,
+            "credit_balance": 50.0,
+        })
+        self.mock_di.invoker = user_with_credits
+        self.mock_sponsorship_dao.get_all_by_receiver.return_value = []
+
+        resolver = AccessTokenResolver(self.mock_di)
+
+        with patch("features.external_tools.access_token_resolver.config") as mock_config:
+            mock_config.platform_x_ai_key = SecretStr("platform-x-ai-key")
+            token = resolver.get_access_token(XAI)
+
+        assert token is not None
+        self.assertEqual(token.token.get_secret_value(), "platform-x-ai-key")
         self.assertTrue(token.uses_credits)
         self.assertEqual(token.payer_id, user_with_credits.id)

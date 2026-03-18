@@ -6,7 +6,7 @@ from di.di import DI
 from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import IMAGE_GEN_FLUX_1_1
-from features.external_tools.external_tool_provider_library import GOOGLE_AI, REPLICATE
+from features.external_tools.external_tool_provider_library import GOOGLE_AI, REPLICATE, XAI
 from features.images.image_api_utils import map_to_model_parameters
 from util import log
 from util.config import config
@@ -50,6 +50,8 @@ class SimpleStableDiffusionGenerator:
                 return self.__generate_with_replicate()
             elif self.__configured_tool.definition.provider == GOOGLE_AI:
                 return self.__generate_with_google_ai()
+            elif self.__configured_tool.definition.provider == XAI:
+                return self.__generate_with_x_ai()
             else:
                 raise ConfigurationError(f"Unsupported provider: '{self.__configured_tool.definition.provider}'", UNSUPPORTED_PROVIDER)  # noqa: E501
         except Exception as e:
@@ -131,4 +133,39 @@ class SimpleStableDiffusionGenerator:
 
         # upload the image to an external service to get a direct URL
         uploader = self.__di.image_uploader(binary_image = image_data)
+        return uploader.execute()
+
+    def __generate_with_x_ai(self) -> str | None:
+        log.t("Generating image with xAI")
+
+        unified_params = map_to_model_parameters(
+            tool = self.__configured_tool.definition, prompt = self.__prompt,
+            aspect_ratio = self.__aspect_ratio, output_size = self.__output_size,
+        )
+        log.t("Calling xAI image generator with params", unified_params)
+
+        x_ai_client = self.__di.x_ai_client(
+            self.__configured_tool,
+            config.web_timeout_s * 10,
+            output_image_sizes = [unified_params.resolution] if unified_params.resolution else None,
+        )
+
+        response = x_ai_client.image.sample(
+            prompt = self.__prompt,
+            model = self.__configured_tool.definition.id,
+            aspect_ratio = unified_params.aspect_ratio,
+            resolution = unified_params.resolution,
+            image_format = "base64",
+        )
+
+        log.d("xAI image response received")
+        if not response:
+            raise ExternalServiceError("No response returned from xAI", EXTERNAL_EMPTY_RESPONSE)
+        if not response.respect_moderation:
+            raise ExternalServiceError("xAI image was filtered by moderation", EXTERNAL_EMPTY_RESPONSE)
+        if not response.image:
+            raise ExternalServiceError("No image data returned from xAI", EXTERNAL_EMPTY_RESPONSE)
+
+        # upload the image to an external service to get a direct URL
+        uploader = self.__di.image_uploader(binary_image = response.image)
         return uploader.execute()

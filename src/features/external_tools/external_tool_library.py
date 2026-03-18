@@ -7,6 +7,7 @@ from features.external_tools.external_tool_provider_library import (
     PERPLEXITY,
     RAPID_API,
     REPLICATE,
+    XAI,
     X,
 )
 
@@ -440,6 +441,64 @@ GEMINI_3_PRO_IMAGE = ExternalTool(
     ),
 )
 
+###  xAI  ###
+
+GROK_4_1_FAST_NON_REASONING = ExternalTool(
+    id = "grok-4-1-fast-non-reasoning",
+    name = "Grok 4.1 Fast",
+    provider = XAI,
+    types = [ToolType.chat, ToolType.copywriting, ToolType.vision],
+    cost_estimate = CostEstimate(
+        input_1m_tokens = 20,
+        output_1m_tokens = 50,
+    ),
+)
+
+GROK_4_1_FAST_REASONING = ExternalTool(
+    id = "grok-4-1-fast-reasoning",
+    name = "Grok 4.1 Fast Reasoning",
+    provider = XAI,
+    types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
+    cost_estimate = CostEstimate(
+        input_1m_tokens = 20,
+        output_1m_tokens = 50,
+    ),
+)
+
+IMAGE_GEN_GROK_IMAGINE = ExternalTool(
+    id = "grok-imagine-image",
+    name = "xAI: Grok Imagine Image",
+    provider = XAI,
+    types = [ToolType.images_gen],
+    cost_estimate = CostEstimate(
+        output_image_1k = 2,
+        output_image_2k = 2,
+        output_image_4k = 2,
+        input_image_1k = 0.2,
+        input_image_2k = 0.2,
+        input_image_4k = 0.2,
+        input_image_8k = 0.2,
+        input_image_12k = 0.2,
+    ),
+)
+
+IMAGE_GEN_GROK_IMAGINE_PRO = ExternalTool(
+    id = "grok-imagine-image-pro",
+    name = "xAI: Grok Imagine Image Pro",
+    provider = XAI,
+    types = [ToolType.images_gen],
+    cost_estimate = CostEstimate(
+        output_image_1k = 7,
+        output_image_2k = 7,
+        output_image_4k = 7,
+        input_image_1k = 0.2,
+        input_image_2k = 0.2,
+        input_image_4k = 0.2,
+        input_image_8k = 0.2,
+        input_image_12k = 0.2,
+    ),
+)
+
 ###  Perplexity  ###
 
 SONAR = ExternalTool(
@@ -716,6 +775,11 @@ ALL_EXTERNAL_TOOLS = [
     GEMINI_FLASH_LATEST,
     GEMINI_PRO_LATEST,
     GEMINI_3_PRO_IMAGE,
+    # xAI
+    GROK_4_1_FAST_NON_REASONING,
+    GROK_4_1_FAST_REASONING,
+    IMAGE_GEN_GROK_IMAGINE,
+    IMAGE_GEN_GROK_IMAGINE_PRO,
     # Perplexity
     SONAR,
     SONAR_PRO,
