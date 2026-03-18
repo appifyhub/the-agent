@@ -906,6 +906,10 @@ components:
           type: string
           nullable: true
           description: X / Twitter API key
+        x_ai_key:
+          type: string
+          nullable: true
+          description: xAI API key
         tool_choice_chat:
           type: string
           nullable: true
@@ -1026,6 +1030,10 @@ components:
           type: string
           nullable: true
           description: X / Twitter API key (masked)
+        x_ai_key:
+          type: string
+          nullable: true
+          description: xAI API key (masked)
         tool_choice_chat:
           type: string
           nullable: true
