@@ -10,7 +10,7 @@ from util.error_codes import EXTERNAL_EMPTY_RESPONSE, FILE_UPLOAD_FAILED, MISSIN
 from util.errors import ExternalServiceError, ValidationError
 
 UPLOAD_URL = "https://api.imgbb.com/1/upload"
-DEFAULT_EXPIRATION_M = 1  # minutes
+DEFAULT_EXPIRATION_M = 5  # minutes
 
 
 # Not tested as it's just a proxy
