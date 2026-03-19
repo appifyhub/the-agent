@@ -76,8 +76,8 @@ if TYPE_CHECKING:
     from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
     from features.images.image_editor import ImageEditor
     from features.images.image_uploader import ImageUploader
-    from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
-    from features.images.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
+    from features.images.simple_image_generator import SimpleImageGenerator
+    from features.images.smart_image_generator import SmartImageGenerator
     from features.integrations.platform_bot_sdk import PlatformBotSDK
     from features.sponsorships.sponsorship_service import SponsorshipService
     from features.support.user_support_service import UserSupportService
@@ -790,29 +790,29 @@ class DI:
         from features.chat.currency_alert_service import CurrencyAlertService
         return CurrencyAlertService(target_chat_id, self)
 
-    def smart_stable_diffusion_generator(
+    def smart_image_generator(
         self,
         raw_prompt: str,
         configured_copywriter_tool: ConfiguredTool,
         configured_image_gen_tool: ConfiguredTool,
         aspect_ratio: str | None = None,
         output_size: str | None = None,
-    ) -> "SmartStableDiffusionGenerator":
-        from features.images.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
-        return SmartStableDiffusionGenerator(
+    ) -> "SmartImageGenerator":
+        from features.images.smart_image_generator import SmartImageGenerator
+        return SmartImageGenerator(
             raw_prompt, configured_copywriter_tool, configured_image_gen_tool, self, aspect_ratio, output_size,
         )
 
     # noinspection PyMethodMayBeStatic
-    def simple_stable_diffusion_generator(
+    def simple_image_generator(
         self,
         prompt: str,
         configured_tool: ConfiguredTool,
         aspect_ratio: str | None = None,
         output_size: str | None = None,
-    ) -> "SimpleStableDiffusionGenerator":
-        from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
-        return SimpleStableDiffusionGenerator(prompt, configured_tool, self, aspect_ratio, output_size)
+    ) -> "SimpleImageGenerator":
+        from features.images.simple_image_generator import SimpleImageGenerator
+        return SimpleImageGenerator(prompt, configured_tool, self, aspect_ratio, output_size)
 
     # noinspection PyMethodMayBeStatic
     def image_uploader(

@@ -7,7 +7,7 @@ from di.di import DI
 from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import CLAUDE_3_5_HAIKU
-from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
+from features.images.simple_image_generator import SimpleImageGenerator
 from features.integrations import prompt_resolvers
 from util import log
 from util.error_codes import EXTERNAL_EMPTY_RESPONSE, LLM_UNEXPECTED_RESPONSE
@@ -15,7 +15,7 @@ from util.errors import ExternalServiceError
 from util.functions import parse_ai_message_content
 
 
-class SmartStableDiffusionGenerator:
+class SmartImageGenerator:
 
     class Result(Enum):
         success = "Success"
@@ -24,8 +24,8 @@ class SmartStableDiffusionGenerator:
     DEFAULT_COPYWRITER_TOOL: ExternalTool = CLAUDE_3_5_HAIKU
     COPYWRITER_TOOL_TYPE: ToolType = ToolType.copywriting
 
-    DEFAULT_IMAGE_GEN_TOOL: ExternalTool = SimpleStableDiffusionGenerator.DEFAULT_TOOL
-    IMAGE_GEN_TOOL_TYPE: ToolType = SimpleStableDiffusionGenerator.TOOL_TYPE
+    DEFAULT_IMAGE_GEN_TOOL: ExternalTool = SimpleImageGenerator.DEFAULT_TOOL
+    IMAGE_GEN_TOOL_TYPE: ToolType = SimpleImageGenerator.TOOL_TYPE
 
     error: str | None = None
     __llm_input: list[BaseMessage]
@@ -70,12 +70,12 @@ class SmartStableDiffusionGenerator:
         except Exception as e:
             self.error = f"Error correcting raw prompt: {str(e)}"
             log.e("Error correcting raw prompt", e)
-            return SmartStableDiffusionGenerator.Result.failed
+            return SmartImageGenerator.Result.failed
 
         # let's generate the image now using the corrected prompt
         try:
             log.t("Starting image generation")
-            generator = self.__di.simple_stable_diffusion_generator(
+            generator = self.__di.simple_image_generator(
                 configured_tool = self.__image_gen_tool, prompt = prompt,
                 aspect_ratio = self.__aspect_ratio, output_size = self.__output_size,
             )
@@ -83,15 +83,15 @@ class SmartStableDiffusionGenerator:
             if generator.error:
                 self.error = f"Image generator failure: {generator.error}"
                 log.e("Image generator failure", generator.error)
-                return SmartStableDiffusionGenerator.Result.failed
+                return SmartImageGenerator.Result.failed
             if not image_url:
                 self.error = "Image generator failure (no image URL found)"
                 log.e(self.error)
-                return SmartStableDiffusionGenerator.Result.failed
+                return SmartImageGenerator.Result.failed
         except Exception as e:
             self.error = f"Error generating image: {str(e)}"
             log.e("Error generating image", e)
-            return SmartStableDiffusionGenerator.Result.failed
+            return SmartImageGenerator.Result.failed
 
         # let's send the image to the chat
         try:
@@ -106,7 +106,7 @@ class SmartStableDiffusionGenerator:
         except Exception as e:
             self.error = f"Error sending image: {str(e)}"
             log.e("Error sending image", e)
-            return SmartStableDiffusionGenerator.Result.failed
+            return SmartImageGenerator.Result.failed
 
         log.i("Image generated and sent successfully")
-        return SmartStableDiffusionGenerator.Result.success
+        return SmartImageGenerator.Result.success

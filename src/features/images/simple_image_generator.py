@@ -16,7 +16,7 @@ from util.functions import extract_url_from_replicate_result
 
 
 # Not tested as it's just a proxy
-class SimpleStableDiffusionGenerator:
+class SimpleImageGenerator:
 
     DEFAULT_TOOL: ExternalTool = IMAGE_GEN_FLUX_1_1
     TOOL_TYPE: ToolType = ToolType.images_gen
@@ -43,7 +43,7 @@ class SimpleStableDiffusionGenerator:
         self.__output_size = output_size
 
     def execute(self) -> str | None:
-        log.t(f"Starting text-stable-diffusion generator with prompt: '{self.__prompt}'")
+        log.t(f"Starting simple image generator with prompt: '{self.__prompt}'")
         self.error = None
         try:
             if self.__configured_tool.definition.provider == REPLICATE:
