@@ -26,6 +26,14 @@ GOOGLE_AI = ExternalToolProvider(
     tools = ["Gemini"],
 )
 
+XAI = ExternalToolProvider(
+    id = "x_ai",
+    name = "xAI",
+    token_management_url = "https://console.x.ai",
+    token_format = "xai-...abc123",
+    tools = ["Grok", "Grok Imagine"],
+)
+
 PERPLEXITY = ExternalToolProvider(
     id = "perplexity",
     name = "Perplexity",
@@ -66,4 +74,5 @@ COINMARKETCAP = ExternalToolProvider(
     tools = ["Crypto"],
 )
 
-ALL_PROVIDERS = [OPEN_AI, ANTHROPIC, GOOGLE_AI, PERPLEXITY, REPLICATE, RAPID_API, COINMARKETCAP, X]
+
+ALL_PROVIDERS = [OPEN_AI, ANTHROPIC, GOOGLE_AI, XAI, PERPLEXITY, REPLICATE, RAPID_API, X, COINMARKETCAP]

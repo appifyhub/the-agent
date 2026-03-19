@@ -72,6 +72,7 @@ class Config(metaclass = Singleton):
     platform_rapid_api_key: SecretStr
     platform_coinmarketcap_key: SecretStr
     platform_x_key: SecretStr
+    platform_x_ai_key: SecretStr
 
     db_url: SecretStr
     api_key: SecretStr
@@ -112,6 +113,7 @@ class Config(metaclass = Singleton):
             self.platform_rapid_api_key,
             self.platform_coinmarketcap_key,
             self.platform_x_key,
+            self.platform_x_ai_key,
         ]
 
     def __init__(
@@ -163,6 +165,7 @@ class Config(metaclass = Singleton):
         def_platform_rapid_api_key: SecretStr = SecretStr("invalid"),
         def_platform_coinmarketcap_key: SecretStr = SecretStr("invalid"),
         def_platform_x_key: SecretStr = SecretStr("invalid"),
+        def_platform_x_ai_key: SecretStr = SecretStr("invalid"),
         def_db_user: SecretStr = SecretStr("root"),
         def_db_pass: SecretStr = SecretStr("root"),
         def_db_host: SecretStr = SecretStr("localhost"),
@@ -245,6 +248,7 @@ class Config(metaclass = Singleton):
         self.platform_rapid_api_key = self.__senv("PLATFORM_RAPID_API_KEY", lambda: def_platform_rapid_api_key)
         self.platform_coinmarketcap_key = self.__senv("PLATFORM_COINMARKETCAP_KEY", lambda: def_platform_coinmarketcap_key)
         self.platform_x_key = self.__senv("PLATFORM_X_KEY", lambda: def_platform_x_key)
+        self.platform_x_ai_key = self.__senv("PLATFORM_X_AI_KEY", lambda: def_platform_x_ai_key)
         # @formatter:on
 
     def __set_up_db(self, def_db_user: SecretStr, def_db_pass: SecretStr, def_db_host: SecretStr, def_db_name: SecretStr):
