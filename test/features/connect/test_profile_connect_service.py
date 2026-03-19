@@ -308,6 +308,7 @@ class ProfileConnectServiceTest(unittest.TestCase):
             open_ai_key = SecretStr("survivor-key"),
             anthropic_key = None,
             x_key = None,
+            x_ai_key = None,
             credit_balance = 100.0,
             group = UserDB.Group.standard,
             created_at = datetime.now().date(),
@@ -324,6 +325,7 @@ class ProfileConnectServiceTest(unittest.TestCase):
             open_ai_key = None,
             anthropic_key = SecretStr("deleted-key"),
             x_key = SecretStr("deleted-x-key"),
+            x_ai_key = SecretStr("deleted-x-ai-key"),
             credit_balance = 50.0,
             group = UserDB.Group.developer,
             created_at = datetime.now().date(),
@@ -337,6 +339,7 @@ class ProfileConnectServiceTest(unittest.TestCase):
         self.assertEqual(merged.open_ai_key, survivor.open_ai_key)  # Survivor has value
         self.assertEqual(merged.anthropic_key, deleted.anthropic_key)  # Deleted has value, survivor doesn't
         self.assertEqual(merged.x_key, deleted.x_key)  # Deleted has value, survivor doesn't
+        self.assertEqual(merged.x_ai_key, deleted.x_ai_key)  # Deleted has value, survivor doesn't
         self.assertEqual(merged.credit_balance, 150.0)  # Credit balances are summed
         self.assertEqual(merged.group, UserDB.Group.developer)  # Developer group takes precedence
         self.assertTrue(merged.are_policies_accepted)

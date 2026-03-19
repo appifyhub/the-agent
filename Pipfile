@@ -36,6 +36,8 @@ pyuploadcare = "*"
 pillow = "*"
 google-genai = "*"
 python-multipart = "*"
+langchain-xai = "*"
+xai-sdk = "*"
 
 [dev-packages]
 pytest = "*"
