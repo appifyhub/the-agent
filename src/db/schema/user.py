@@ -33,6 +33,7 @@ class UserBase(BaseModel):
     rapid_api_key: SecretStr | None = None
     coinmarketcap_key: SecretStr | None = None
     x_key: SecretStr | None = None
+    x_ai_key: SecretStr | None = None
 
     tool_choice_chat: str | None = None
     tool_choice_reasoning: str | None = None
@@ -106,5 +107,6 @@ class User(UserBase):
             "rapid_api_key",
             "coinmarketcap_key",
             "x_key",
+            "x_ai_key",
         ]
         return any(getattr(self, field) is not None for field in api_key_fields)

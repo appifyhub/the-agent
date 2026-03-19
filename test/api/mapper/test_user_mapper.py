@@ -33,6 +33,7 @@ class UserMapperTest(unittest.TestCase):
             rapid_api_key = SecretStr("rapid-test345"),
             coinmarketcap_key = SecretStr("cmc-test678"),
             x_key = SecretStr("x-test901"),
+            x_ai_key = SecretStr("xai-test234"),
             tool_choice_chat = "gpt-4o",
             tool_choice_reasoning = "claude-3-7-sonnet-latest",
             tool_choice_copywriting = "gpt-4o-mini",
@@ -62,6 +63,7 @@ class UserMapperTest(unittest.TestCase):
             rapid_api_key = "rapid-new345",
             coinmarketcap_key = "cmc-new678",
             x_key = "x-new901",
+            x_ai_key = "xai-new234",
             tool_choice_chat = "gpt-4o-mini",
             tool_choice_reasoning = "claude-3-opus-latest",
             tool_choice_copywriting = "gpt-4o",
@@ -88,6 +90,7 @@ class UserMapperTest(unittest.TestCase):
         self.assertEqual(user_save.rapid_api_key.get_secret_value() if user_save.rapid_api_key else None, "rapid-new345")
         self.assertEqual(user_save.coinmarketcap_key.get_secret_value() if user_save.coinmarketcap_key else None, "cmc-new678")
         self.assertEqual(user_save.x_key.get_secret_value() if user_save.x_key else None, "x-new901")
+        self.assertEqual(user_save.x_ai_key.get_secret_value() if user_save.x_ai_key else None, "xai-new234")
         self.assertEqual(user_save.tool_choice_chat, "gpt-4o-mini")
         self.assertEqual(user_save.tool_choice_reasoning, "claude-3-opus-latest")
         self.assertEqual(user_save.tool_choice_copywriting, "gpt-4o")
@@ -220,6 +223,7 @@ class UserMapperTest(unittest.TestCase):
         self.assertEqual(masked_user.rapid_api_key, mask_secret(self.user.rapid_api_key))
         self.assertEqual(masked_user.coinmarketcap_key, mask_secret(self.user.coinmarketcap_key))
         self.assertEqual(masked_user.x_key, mask_secret(self.user.x_key))
+        self.assertEqual(masked_user.x_ai_key, mask_secret(self.user.x_ai_key))
 
         # Check that tool choices are not masked
         self.assertEqual(masked_user.tool_choice_chat, self.user.tool_choice_chat)
