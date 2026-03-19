@@ -456,7 +456,7 @@ GROK_4_1_FAST_NON_REASONING = ExternalTool(
 
 GROK_4_1_FAST_REASONING = ExternalTool(
     id = "grok-4-1-fast-reasoning",
-    name = "Grok 4.1 Fast Reasoning",
+    name = "Grok 4.1 Fast (Reasoning)",
     provider = XAI,
     types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.vision],
     cost_estimate = CostEstimate(
@@ -467,7 +467,7 @@ GROK_4_1_FAST_REASONING = ExternalTool(
 
 IMAGE_GEN_GROK_IMAGINE = ExternalTool(
     id = "grok-imagine-image",
-    name = "xAI: Grok Imagine Image",
+    name = "Grok Imagine Image",
     provider = XAI,
     types = [ToolType.images_gen],
     cost_estimate = CostEstimate(
@@ -484,7 +484,7 @@ IMAGE_GEN_GROK_IMAGINE = ExternalTool(
 
 IMAGE_GEN_GROK_IMAGINE_PRO = ExternalTool(
     id = "grok-imagine-image-pro",
-    name = "xAI: Grok Imagine Image Pro",
+    name = "Grok Imagine Image Pro",
     provider = XAI,
     types = [ToolType.images_gen],
     cost_estimate = CostEstimate(
@@ -529,7 +529,7 @@ SONAR_PRO = ExternalTool(
 
 SONAR_REASONING_PRO = ExternalTool(
     id = "sonar-reasoning-pro",
-    name = "Sonar Reasoning Pro",
+    name = "Sonar Pro (Reasoning)",
     provider = PERPLEXITY,
     types = [ToolType.chat, ToolType.reasoning, ToolType.copywriting, ToolType.search],
     cost_estimate = CostEstimate(
