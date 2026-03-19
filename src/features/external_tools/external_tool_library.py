@@ -427,17 +427,45 @@ GEMINI_PRO_LATEST = ExternalTool(
     ),
 )
 
-GEMINI_3_PRO_IMAGE = ExternalTool(
+NANO_BANANA = ExternalTool(
+    id = "gemini-3-flash-preview",
+    name = "Nano Banana",
+    provider = GOOGLE_AI,
+    types = [ToolType.images_gen],
+    cost_estimate = CostEstimate(
+        input_1m_tokens = 50,
+        output_1m_tokens = 300,
+        output_image_1k = 4,
+        output_image_2k = 4,
+        output_image_4k = 4,
+    ),
+)
+
+NANO_BANANA_PRO = ExternalTool(
     id = "gemini-3-pro-image-preview",
-    name = "Gemini 3 Pro Image",
+    name = "Nano Banana Pro",
     provider = GOOGLE_AI,
     types = [ToolType.images_gen],
     cost_estimate = CostEstimate(
         input_1m_tokens = 200,
         output_1m_tokens = 12000,
-        output_image_1k = 14,
-        output_image_2k = 14,
-        output_image_4k = 24,
+        output_image_1k = 15,
+        output_image_2k = 15,
+        output_image_4k = 30,
+    ),
+)
+
+NANO_BANANA_2 = ExternalTool(
+    id = "gemini-3.1-flash-image-preview",
+    name = "Nano Banana 2",
+    provider = GOOGLE_AI,
+    types = [ToolType.images_gen],
+    cost_estimate = CostEstimate(
+        input_1m_tokens = 50,
+        output_1m_tokens = 6000,
+        output_image_1k = 7,
+        output_image_2k = 11,
+        output_image_4k = 16,
     ),
 )
 
@@ -774,7 +802,9 @@ ALL_EXTERNAL_TOOLS = [
     GEMINI_2_5_PRO,
     GEMINI_FLASH_LATEST,
     GEMINI_PRO_LATEST,
-    GEMINI_3_PRO_IMAGE,
+    NANO_BANANA,
+    NANO_BANANA_PRO,
+    NANO_BANANA_2,
     # xAI
     GROK_4_1_FAST_NON_REASONING,
     GROK_4_1_FAST_REASONING,
