@@ -253,6 +253,40 @@ class LLMUsageStatsTest(unittest.TestCase):
         self.assertEqual(stats.output_tokens, 200)
         self.assertEqual(stats.total_tokens, 300)
 
+    def test_from_response_with_x_ai_chat_token_usage(self):
+        response = Mock(spec = AIMessage)
+        response.response_metadata = {
+            "token_usage": {
+                "completion_tokens": 8,
+                "prompt_tokens": 176,
+                "total_tokens": 184,
+                "completion_tokens_details": {
+                    "accepted_prediction_tokens": 0,
+                    "audio_tokens": 0,
+                    "reasoning_tokens": 0,
+                    "rejected_prediction_tokens": 0,
+                },
+                "prompt_tokens_details": {
+                    "audio_tokens": 0,
+                    "cached_tokens": 161,
+                    "text_tokens": 176,
+                    "image_tokens": 0,
+                },
+                "num_sources_used": 0,
+                "cost_in_usd_ticks": 150500,
+            },
+            "model_provider": "xai",
+            "model_name": "grok-4-1-fast-non-reasoning",
+            "finish_reason": "stop",
+        }
+        response.usage_metadata = None
+
+        stats = LLMUsageStats.from_response(response)
+
+        self.assertEqual(stats.input_tokens, 176)
+        self.assertEqual(stats.output_tokens, 8)
+        self.assertEqual(stats.total_tokens, 184)
+
     def test_from_response_with_perplexity_tokens_in_usage(self):
         response = Mock(spec = AIMessage)
         response.response_metadata = {

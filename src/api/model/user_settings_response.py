@@ -18,6 +18,7 @@ class UserSettingsResponse(BaseModel):
     rapid_api_key: str | None = None
     coinmarketcap_key: str | None = None
     x_key: str | None = None
+    x_ai_key: str | None = None
     tool_choice_chat: str | None = None
     tool_choice_reasoning: str | None = None
     tool_choice_copywriting: str | None = None

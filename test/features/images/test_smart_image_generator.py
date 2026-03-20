@@ -6,11 +6,11 @@ from langchain_core.messages import AIMessage
 from db.model.chat_config import ChatConfigDB
 from di.di import DI
 from features.external_tools.tool_choice_resolver import ConfiguredTool
-from features.images.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
+from features.images.smart_image_generator import SmartImageGenerator
 from features.integrations.platform_bot_sdk import PlatformBotSDK
 
 
-class SmartStableDiffusionGeneratorTest(unittest.TestCase):
+class SmartImageGeneratorTest(unittest.TestCase):
 
     raw_prompt: str
     mock_di: DI
@@ -35,11 +35,11 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         self.mock_platform_sdk.send_photo.return_value = {"result": {"message_id": 123}}
         self.mock_platform_sdk.send_document.return_value = {"result": {"message_id": 124}}
 
-        # Mock text_stable_diffusion_generator method
-        self.simple_stable_diffusion_generator = MagicMock()
+        # Mock simple_image_generator method
+        self.simple_image_generator = MagicMock()
         # Mock the error property - default to no error
-        self.simple_stable_diffusion_generator.error = None
-        self.mock_di.simple_stable_diffusion_generator = MagicMock(return_value = self.simple_stable_diffusion_generator)
+        self.simple_image_generator.error = None
+        self.mock_di.simple_image_generator = MagicMock(return_value = self.simple_image_generator)
 
         # Mock configured tools
         # noinspection PyTypeChecker
@@ -48,23 +48,23 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         self.mock_configured_image_gen_tool = MagicMock(spec = ConfiguredTool)
 
     def test_init_success(self):
-        generator = SmartStableDiffusionGenerator(
+        generator = SmartImageGenerator(
             self.raw_prompt,
             self.mock_configured_copywriter_tool,
             self.mock_configured_image_gen_tool,
             self.mock_di,
         )
-        self.assertIsInstance(generator, SmartStableDiffusionGenerator)
+        self.assertIsInstance(generator, SmartImageGenerator)
 
     def test_execute_success(self):
         mock_llm = MagicMock()
         mock_llm.invoke.return_value = AIMessage(content = "Refined prompt")
         self.mock_di.chat_langchain_model.return_value = mock_llm
 
-        self.simple_stable_diffusion_generator.execute.return_value = "http://example.com/image.png"
-        self.simple_stable_diffusion_generator.error = None
+        self.simple_image_generator.execute.return_value = "http://example.com/image.png"
+        self.simple_image_generator.error = None
 
-        generator = SmartStableDiffusionGenerator(
+        generator = SmartImageGenerator(
             self.raw_prompt,
             self.mock_configured_copywriter_tool,
             self.mock_configured_image_gen_tool,
@@ -72,10 +72,10 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         )
         result = generator.execute()
 
-        self.assertEqual(result, SmartStableDiffusionGenerator.Result.success)
+        self.assertEqual(result, SmartImageGenerator.Result.success)
         mock_llm.invoke.assert_called_once()
-        self.simple_stable_diffusion_generator.execute.assert_called_once()
-        self.mock_di.simple_stable_diffusion_generator.assert_called_once_with(
+        self.simple_image_generator.execute.assert_called_once()
+        self.mock_di.simple_image_generator.assert_called_once_with(
             configured_tool = self.mock_configured_image_gen_tool,
             prompt = "Refined prompt",
             aspect_ratio = None,
@@ -95,7 +95,7 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         mock_llm.invoke.side_effect = Exception("LLM error")
         self.mock_di.chat_langchain_model.return_value = mock_llm
 
-        generator = SmartStableDiffusionGenerator(
+        generator = SmartImageGenerator(
             self.raw_prompt,
             self.mock_configured_copywriter_tool,
             self.mock_configured_image_gen_tool,
@@ -103,10 +103,10 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         )
         result = generator.execute()
 
-        self.assertEqual(result, SmartStableDiffusionGenerator.Result.failed)
+        self.assertEqual(result, SmartImageGenerator.Result.failed)
         mock_llm.invoke.assert_called_once()
         # noinspection PyUnresolvedReferences
-        self.simple_stable_diffusion_generator.execute.assert_not_called()
+        self.simple_image_generator.execute.assert_not_called()
         # noinspection PyUnresolvedReferences
         self.mock_platform_sdk.send_document.assert_not_called()
         # noinspection PyUnresolvedReferences
@@ -117,11 +117,11 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         mock_llm.invoke.return_value = AIMessage(content = "Refined prompt")
         self.mock_di.chat_langchain_model.return_value = mock_llm
 
-        self.simple_stable_diffusion_generator.execute.return_value = None
+        self.simple_image_generator.execute.return_value = None
         # Set an error on the image generator
-        self.simple_stable_diffusion_generator.error = "Image generation failed"
+        self.simple_image_generator.error = "Image generation failed"
 
-        generator = SmartStableDiffusionGenerator(
+        generator = SmartImageGenerator(
             self.raw_prompt,
             self.mock_configured_copywriter_tool,
             self.mock_configured_image_gen_tool,
@@ -129,9 +129,9 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         )
         result = generator.execute()
 
-        self.assertEqual(result, SmartStableDiffusionGenerator.Result.failed)
+        self.assertEqual(result, SmartImageGenerator.Result.failed)
         mock_llm.invoke.assert_called_once()
-        self.simple_stable_diffusion_generator.execute.assert_called_once()
+        self.simple_image_generator.execute.assert_called_once()
         # noinspection PyUnresolvedReferences
         self.mock_platform_sdk.send_document.assert_not_called()
         # noinspection PyUnresolvedReferences
@@ -142,12 +142,12 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         mock_llm.invoke.return_value = AIMessage(content = "Refined prompt")
         self.mock_di.chat_langchain_model.return_value = mock_llm
 
-        self.simple_stable_diffusion_generator.execute.return_value = "http://example.com/image.png"
+        self.simple_image_generator.execute.return_value = "http://example.com/image.png"
         # Make sure no error is set on the image generator
-        self.simple_stable_diffusion_generator.error = None
+        self.simple_image_generator.error = None
         self.mock_platform_sdk.smart_send_photo.side_effect = Exception("Send photo error")
 
-        generator = SmartStableDiffusionGenerator(
+        generator = SmartImageGenerator(
             self.raw_prompt,
             self.mock_configured_copywriter_tool,
             self.mock_configured_image_gen_tool,
@@ -155,9 +155,9 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         )
         result = generator.execute()
 
-        self.assertEqual(result, SmartStableDiffusionGenerator.Result.failed)
+        self.assertEqual(result, SmartImageGenerator.Result.failed)
         mock_llm.invoke.assert_called_once()
-        self.simple_stable_diffusion_generator.execute.assert_called_once()
+        self.simple_image_generator.execute.assert_called_once()
         # noinspection PyUnresolvedReferences
         self.mock_platform_sdk.smart_send_photo.assert_called_once()
 
@@ -166,7 +166,7 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         mock_llm.invoke.return_value = "Not an AIMessage"
         self.mock_di.chat_langchain_model.return_value = mock_llm
 
-        generator = SmartStableDiffusionGenerator(
+        generator = SmartImageGenerator(
             self.raw_prompt,
             self.mock_configured_copywriter_tool,
             self.mock_configured_image_gen_tool,
@@ -174,7 +174,7 @@ class SmartStableDiffusionGeneratorTest(unittest.TestCase):
         )
         result = generator.execute()
 
-        self.assertEqual(result, SmartStableDiffusionGenerator.Result.failed)
+        self.assertEqual(result, SmartImageGenerator.Result.failed)
         mock_llm.invoke.assert_called_once()
         # noinspection PyUnresolvedReferences
         self.mock_platform_sdk.send_document.assert_not_called()

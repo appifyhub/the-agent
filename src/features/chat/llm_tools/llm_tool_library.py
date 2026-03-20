@@ -15,7 +15,7 @@ from features.chat.chat_agent import ChatAgent
 from features.chat.chat_attachment_processor import ChatAttachmentProcessor
 from features.chat.chat_image_edit_service import ChatImageEditService
 from features.chat.dev_announcements_service import DevAnnouncementsService
-from features.images.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
+from features.images.smart_image_generator import SmartImageGenerator
 from features.integrations.integrations import add_messaging_frequency_warning, resolve_private_chat_id
 from features.support.user_support_service import UserSupportService
 from features.web_browsing.ai_web_search import AIWebSearch
@@ -104,16 +104,16 @@ def generate_image(
     try:
         log.d(f"LLM requested to generate an image in aspect ratio {aspect_ratio}")
         copywriter_tool = di.tool_choice_resolver.require_tool(
-            SmartStableDiffusionGenerator.COPYWRITER_TOOL_TYPE,
-            SmartStableDiffusionGenerator.DEFAULT_COPYWRITER_TOOL,
+            SmartImageGenerator.COPYWRITER_TOOL_TYPE,
+            SmartImageGenerator.DEFAULT_COPYWRITER_TOOL,
         )
         image_gen_tool = di.tool_choice_resolver.require_tool(
-            SmartStableDiffusionGenerator.IMAGE_GEN_TOOL_TYPE,
-            SmartStableDiffusionGenerator.DEFAULT_IMAGE_GEN_TOOL,
+            SmartImageGenerator.IMAGE_GEN_TOOL_TYPE,
+            SmartImageGenerator.DEFAULT_IMAGE_GEN_TOOL,
         )
-        generator = di.smart_stable_diffusion_generator(prompt, copywriter_tool, image_gen_tool, aspect_ratio, size)
+        generator = di.smart_image_generator(prompt, copywriter_tool, image_gen_tool, aspect_ratio, size)
         result = generator.execute()
-        if result == SmartStableDiffusionGenerator.Result.failed:
+        if result == SmartImageGenerator.Result.failed:
             raise ExternalServiceError(f"Failed to generate the image! Reason: {str(generator.error)}", IMAGE_GENERATION_FAILED)
         return __success({"next_step": "Confirm to partner that the image has been sent"})
     except Exception as e:
