@@ -116,17 +116,22 @@ def map_to_model_parameters(
     elif tool == IMAGE_GEN_EDIT_SEEDREAM_4_5:
         return replace(unified_params, size = convert_size_to_k(unified_params.size))
     elif tool == NANO_BANANA:
-        return replace(unified_params, image_size = convert_size_to_k(unified_params.size))
+        ar = unified_params.aspect_ratio if unified_params.aspect_ratio != "match_input_image" else None
+        return replace(unified_params, size = convert_size_to_k(unified_params.size), aspect_ratio = ar)
     elif tool == NANO_BANANA_PRO:
-        return replace(unified_params, image_size = convert_size_to_k(unified_params.size))
+        ar = unified_params.aspect_ratio if unified_params.aspect_ratio != "match_input_image" else None
+        return replace(unified_params, size = convert_size_to_k(unified_params.size), aspect_ratio = ar)
     elif tool == NANO_BANANA_2:
-        return replace(unified_params, image_size = convert_size_to_k(unified_params.size))
+        ar = unified_params.aspect_ratio if unified_params.aspect_ratio != "match_input_image" else None
+        return replace(unified_params, size = convert_size_to_k(unified_params.size), aspect_ratio = ar)
     elif tool == IMAGE_GEN_GEMINI_2_5_FLASH_IMAGE:
         return replace(unified_params, image_size = convert_size_to_k(unified_params.size))
     elif tool == IMAGE_GEN_GROK_IMAGINE:
-        return replace(unified_params, resolution = convert_size_to_k(unified_params.size).lower())
+        ar = unified_params.aspect_ratio if unified_params.aspect_ratio != "match_input_image" else None
+        return replace(unified_params, resolution = convert_size_to_k(unified_params.size).lower(), aspect_ratio = ar)
     elif tool == IMAGE_GEN_GROK_IMAGINE_PRO:
-        return replace(unified_params, resolution = convert_size_to_k(unified_params.size).lower())
+        ar = unified_params.aspect_ratio if unified_params.aspect_ratio != "match_input_image" else None
+        return replace(unified_params, resolution = convert_size_to_k(unified_params.size).lower(), aspect_ratio = ar)
     else:
         log.w(f"Unknown model '{tool.id}', using default mapping")
         return unified_params
