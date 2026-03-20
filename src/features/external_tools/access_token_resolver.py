@@ -15,6 +15,7 @@ from features.external_tools.external_tool_provider_library import (
     PERPLEXITY,
     RAPID_API,
     REPLICATE,
+    XAI,
     X,
 )
 from util import log
@@ -151,6 +152,8 @@ class AccessTokenResolver:
                 token = config.platform_coinmarketcap_key
             case X.id:
                 token = config.platform_x_key
+            case XAI.id:
+                token = config.platform_x_ai_key
         if token is None or token.get_secret_value() == "invalid":
             return None
         return token
@@ -173,5 +176,7 @@ class AccessTokenResolver:
                 return user.google_ai_key
             case X.id:
                 return user.x_key
+            case XAI.id:
+                return user.x_ai_key
         log.t(f"Unknown provider '{provider.id}'")
         return None

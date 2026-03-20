@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from google.genai import Client as GoogleSDKClient
     from openai import OpenAI
     from replicate.client import Client as ReplicateSDKClient
+    from xai_sdk import Client as XAISDKClient
 
     from api.authorization_service import AuthorizationService
     from api.gumroad_controller import GumroadController
@@ -42,6 +43,7 @@ if TYPE_CHECKING:
     from features.accounting.usage.decorators.openai_usage_tracking_decorator import OpenAIUsageTrackingDecorator
     from features.accounting.usage.decorators.replicate_usage_tracking_decorator import ReplicateUsageTrackingDecorator
     from features.accounting.usage.decorators.web_fetcher_usage_tracking_decorator import WebFetcherUsageTrackingDecorator
+    from features.accounting.usage.decorators.x_ai_usage_tracking_decorator import XAIUsageTrackingDecorator
     from features.accounting.usage.usage_record_repo import UsageRecordRepository
     from features.accounting.usage.usage_tracking_service import UsageTrackingService
     from features.announcements.release_summary_service import ReleaseSummaryService
@@ -74,8 +76,8 @@ if TYPE_CHECKING:
     from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
     from features.images.image_editor import ImageEditor
     from features.images.image_uploader import ImageUploader
-    from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
-    from features.images.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
+    from features.images.simple_image_generator import SimpleImageGenerator
+    from features.images.smart_image_generator import SmartImageGenerator
     from features.integrations.platform_bot_sdk import PlatformBotSDK
     from features.sponsorships.sponsorship_service import SponsorshipService
     from features.support.user_support_service import UserSupportService
@@ -602,6 +604,34 @@ class DI:
             input_image_sizes,
         )
 
+    def base_x_ai_client(
+        self,
+        configured_tool: ConfiguredTool,
+        timeout_s: float | None = None,
+    ) -> "XAISDKClient":
+        from xai_sdk import Client as XAISDKClient
+
+        return XAISDKClient(api_key = configured_tool.token.get_secret_value(), timeout = timeout_s)
+
+    def x_ai_client(
+        self,
+        configured_tool: ConfiguredTool,
+        timeout_s: float | None = None,
+        output_image_sizes: list[str] | None = None,
+        input_image_sizes: list[str] | None = None,
+    ) -> "XAIUsageTrackingDecorator":
+        from features.accounting.usage.decorators.x_ai_usage_tracking_decorator import XAIUsageTrackingDecorator
+
+        base_client = self.base_x_ai_client(configured_tool, timeout_s)
+        return XAIUsageTrackingDecorator(
+            base_client,
+            self.usage_tracking_service,
+            self.spending_service,
+            configured_tool,
+            output_image_sizes,
+            input_image_sizes,
+        )
+
     def base_open_ai_client(
         self,
         configured_tool: ConfiguredTool,
@@ -760,29 +790,29 @@ class DI:
         from features.chat.currency_alert_service import CurrencyAlertService
         return CurrencyAlertService(target_chat_id, self)
 
-    def smart_stable_diffusion_generator(
+    def smart_image_generator(
         self,
         raw_prompt: str,
         configured_copywriter_tool: ConfiguredTool,
         configured_image_gen_tool: ConfiguredTool,
         aspect_ratio: str | None = None,
         output_size: str | None = None,
-    ) -> "SmartStableDiffusionGenerator":
-        from features.images.smart_stable_diffusion_generator import SmartStableDiffusionGenerator
-        return SmartStableDiffusionGenerator(
+    ) -> "SmartImageGenerator":
+        from features.images.smart_image_generator import SmartImageGenerator
+        return SmartImageGenerator(
             raw_prompt, configured_copywriter_tool, configured_image_gen_tool, self, aspect_ratio, output_size,
         )
 
     # noinspection PyMethodMayBeStatic
-    def simple_stable_diffusion_generator(
+    def simple_image_generator(
         self,
         prompt: str,
         configured_tool: ConfiguredTool,
         aspect_ratio: str | None = None,
         output_size: str | None = None,
-    ) -> "SimpleStableDiffusionGenerator":
-        from features.images.simple_stable_diffusion_generator import SimpleStableDiffusionGenerator
-        return SimpleStableDiffusionGenerator(prompt, configured_tool, self, aspect_ratio, output_size)
+    ) -> "SimpleImageGenerator":
+        from features.images.simple_image_generator import SimpleImageGenerator
+        return SimpleImageGenerator(prompt, configured_tool, self, aspect_ratio, output_size)
 
     # noinspection PyMethodMayBeStatic
     def image_uploader(

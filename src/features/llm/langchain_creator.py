@@ -3,6 +3,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langchain_perplexity import ChatPerplexity
+from langchain_xai import ChatXAI
 
 from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ExternalTool, ExternalToolProvider, ToolType
@@ -11,6 +12,7 @@ from features.external_tools.external_tool_provider_library import (
     GOOGLE_AI,
     OPEN_AI,
     PERPLEXITY,
+    XAI,
 )
 from util.config import config
 from util.error_codes import UNSUPPORTED_PROVIDER
@@ -39,6 +41,8 @@ def create(configured_tool: ConfiguredTool) -> BaseChatModel:
             return ChatPerplexity(**model_args)
         case GOOGLE_AI.id:
             return ChatGoogleGenerativeAI(**model_args)
+        case XAI.id:
+            return ChatXAI(**model_args)
     raise ConfigurationError(f"{definition.provider.name}/{definition.name} does not support LLMs", UNSUPPORTED_PROVIDER)
 
 
@@ -51,6 +55,8 @@ def __normalize_temperature(temperature_percent: float, provider: ExternalToolPr
         case PERPLEXITY.id:
             return temperature_percent * 2
         case GOOGLE_AI.id:
+            return temperature_percent * 2
+        case XAI.id:
             return temperature_percent * 2
     raise ConfigurationError(f"{provider.name}/{provider.id} does not support temperature", UNSUPPORTED_PROVIDER)
 

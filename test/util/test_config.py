@@ -84,6 +84,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.platform_rapid_api_key.get_secret_value(), "invalid")
         self.assertEqual(config.platform_coinmarketcap_key.get_secret_value(), "invalid")
         self.assertEqual(config.platform_x_key.get_secret_value(), "invalid")
+        self.assertEqual(config.platform_x_ai_key.get_secret_value(), "invalid")
 
     def test_custom_config(self):
         os.environ["LOG_LEVEL"] = "DEBUG"
@@ -149,6 +150,7 @@ class ConfigTest(unittest.TestCase):
         os.environ["PLATFORM_RAPID_API_KEY"] = "platform-rapid-api-key"
         os.environ["PLATFORM_COINMARKETCAP_KEY"] = "platform-coinmarketcap-key"
         os.environ["PLATFORM_X_KEY"] = "platform-x-key"
+        os.environ["PLATFORM_X_AI_KEY"] = "platform-x-ai-key"
 
         config = Config()
 
@@ -212,6 +214,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.platform_rapid_api_key.get_secret_value(), "platform-rapid-api-key")
         self.assertEqual(config.platform_coinmarketcap_key.get_secret_value(), "platform-coinmarketcap-key")
         self.assertEqual(config.platform_x_key.get_secret_value(), "platform-x-key")
+        self.assertEqual(config.platform_x_ai_key.get_secret_value(), "platform-x-ai-key")
 
     def test_products_loaded_from_yaml(self):
         config = Config(def_products_config_path = PRODUCTS_FIXTURE_PATH)

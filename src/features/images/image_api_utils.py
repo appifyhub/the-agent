@@ -4,7 +4,6 @@ from typing import IO
 
 from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import (
-    GEMINI_3_PRO_IMAGE,
     IMAGE_GEN_EDIT_FLUX_2_MAX,
     IMAGE_GEN_EDIT_FLUX_2_PRO,
     IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO,
@@ -16,6 +15,11 @@ from features.external_tools.external_tool_library import (
     IMAGE_GEN_EDIT_SEEDREAM_4_5,
     IMAGE_GEN_FLUX_1_1,
     IMAGE_GEN_GEMINI_2_5_FLASH_IMAGE,
+    IMAGE_GEN_GROK_IMAGINE,
+    IMAGE_GEN_GROK_IMAGINE_PRO,
+    NANO_BANANA,
+    NANO_BANANA_2,
+    NANO_BANANA_PRO,
 )
 from util import log
 
@@ -111,10 +115,23 @@ def map_to_model_parameters(
         return replace(unified_params, size = convert_size_to_k(unified_params.size))
     elif tool == IMAGE_GEN_EDIT_SEEDREAM_4_5:
         return replace(unified_params, size = convert_size_to_k(unified_params.size))
-    elif tool == GEMINI_3_PRO_IMAGE:
-        return replace(unified_params, image_size = convert_size_to_k(unified_params.size))
+    elif tool == NANO_BANANA:
+        ar = unified_params.aspect_ratio if unified_params.aspect_ratio != "match_input_image" else None
+        return replace(unified_params, size = convert_size_to_k(unified_params.size), aspect_ratio = ar)
+    elif tool == NANO_BANANA_PRO:
+        ar = unified_params.aspect_ratio if unified_params.aspect_ratio != "match_input_image" else None
+        return replace(unified_params, size = convert_size_to_k(unified_params.size), aspect_ratio = ar)
+    elif tool == NANO_BANANA_2:
+        ar = unified_params.aspect_ratio if unified_params.aspect_ratio != "match_input_image" else None
+        return replace(unified_params, size = convert_size_to_k(unified_params.size), aspect_ratio = ar)
     elif tool == IMAGE_GEN_GEMINI_2_5_FLASH_IMAGE:
         return replace(unified_params, image_size = convert_size_to_k(unified_params.size))
+    elif tool == IMAGE_GEN_GROK_IMAGINE:
+        ar = unified_params.aspect_ratio if unified_params.aspect_ratio != "match_input_image" else None
+        return replace(unified_params, resolution = convert_size_to_k(unified_params.size).lower(), aspect_ratio = ar)
+    elif tool == IMAGE_GEN_GROK_IMAGINE_PRO:
+        ar = unified_params.aspect_ratio if unified_params.aspect_ratio != "match_input_image" else None
+        return replace(unified_params, resolution = convert_size_to_k(unified_params.size).lower(), aspect_ratio = ar)
     else:
         log.w(f"Unknown model '{tool.id}', using default mapping")
         return unified_params
