@@ -7,13 +7,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.user.login != 'dependabot[bot]'
     permissions:
       contents: write
       packages: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 100
 
@@ -49,12 +48,15 @@ jobs:
         run: pipenv run pytest -v
 
       - name: Build Docker image
+        if: github.event.pull_request.user.login != 'dependabot[bot]'
         run: docker build . --file Dockerfile --tag the-agent
 
       - name: Auth for GitHub's Container Registry
+        if: github.event.pull_request.user.login != 'dependabot[bot]'
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
 
       - name: Tag Docker image
+        if: github.event.pull_request.user.login != 'dependabot[bot]'
         env:
           PR_NUMBER: ${{ github.event.number }}
         run: |
@@ -66,6 +68,7 @@ jobs:
           docker tag the-agent appifyhub/the-agent:latest_pr
 
       - name: Publish Docker images to GitHub
+        if: github.event.pull_request.user.login != 'dependabot[bot]'
         env:
           PR_NUMBER: ${{ github.event.number }}
         run: |
@@ -75,6 +78,7 @@ jobs:
           docker push ghcr.io/$GITHUB_REPOSITORY:latest_pr
 
       - name: Publish Docker images to DockerHub
+        if: github.event.pull_request.user.login != 'dependabot[bot]'
         id: docker_publish
         env:
           USER: ${{ secrets.DOCKER_HUB_USER }}
@@ -89,6 +93,7 @@ jobs:
           echo ::set-output name=the_agent_version::"$VERSION"
 
       - name: Comment build information
+        if: github.event.pull_request.user.login != 'dependabot[bot]'
         env:
           GITHUB_SHA: ${{ env.GITHUB_SHA }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -109,6 +114,7 @@ jobs:
           gh pr comment "$PR_NUMBER" -b "$NOTIFICATION"
 
       - name: Publish to GitHub Releases
+        if: github.event.pull_request.user.login != 'dependabot[bot]'
         id: publish_github_release
         env:
           ARTIFACT: "the-agent"

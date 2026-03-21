@@ -1,0 +1,68 @@
+name: Dependabot Auto-Merge
+
+on:
+  pull_request_target:
+    types: [ opened, reopened, synchronize ]
+    branches:
+      - main
+
+concurrency:
+  group: dependabot-auto-merge
+  cancel-in-progress: false
+
+jobs:
+  lock-and-merge:
+    name: Lock, Approve, and Auto-Merge
+    runs-on: ubuntu-latest
+    if: >
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.triggering_actor == 'dependabot[bot]'
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.CI_TOKEN_ABOT }}
+
+      - name: Set up Python
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.12"
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-python-${{ steps.setup-python.outputs.python-version }}-dependency-cache
+
+      - name: Install and lock dependencies
+        run: |
+          pip install --no-cache-dir pipenv
+          pipenv install --dev
+          pipenv lock --dev
+
+      - name: Commit and push lockfile if changed
+        run: |
+          git add Pipfile.lock
+          if ! git diff --cached --quiet; then
+            git config user.name "the-agent-abot"
+            git config user.email "the-agent-abot@users.noreply.github.com"
+            git commit -m "Auto-lock: Update dependencies"
+            git push
+          fi
+
+      - name: Approve PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr review ${{ github.event.pull_request.number }} --approve
+
+      - name: Enable auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge ${{ github.event.pull_request.number }} --auto --merge
