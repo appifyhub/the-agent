@@ -339,6 +339,7 @@ class SettingsControllerTest(unittest.TestCase):
                 {"definition": {"id": "updated-perplexity-search"}, "is_configured": True},
             ],
             "providers": [],
+            "presets": {},
         }
 
         controller = SettingsController(self.mock_di)
@@ -377,7 +378,7 @@ class SettingsControllerTest(unittest.TestCase):
 
     @patch("api.settings_controller.SettingsController.fetch_external_tools")
     def test_save_user_settings_reject_policy_false(self, mock_fetch_external_tools):
-        mock_fetch_external_tools.return_value = {"tools": [], "providers": []}
+        mock_fetch_external_tools.return_value = {"tools": [], "providers": [], "presets": {}}
         controller = SettingsController(self.mock_di)
         payload = UserSettingsPayload(are_policies_accepted = False)
 
@@ -388,7 +389,7 @@ class SettingsControllerTest(unittest.TestCase):
 
     @patch("api.settings_controller.SettingsController.fetch_external_tools")
     def test_save_user_settings_waitlisted_activation_when_capacity_available(self, mock_fetch_external_tools):
-        mock_fetch_external_tools.return_value = {"tools": [], "providers": []}
+        mock_fetch_external_tools.return_value = {"tools": [], "providers": [], "presets": {}}
         waitlisted_user = self.invoker_user.model_copy(
             update = {
                 "is_on_waitlist": True,
@@ -426,7 +427,7 @@ class SettingsControllerTest(unittest.TestCase):
 
     @patch("api.settings_controller.SettingsController.fetch_external_tools")
     def test_save_user_settings_waitlisted_activation_denied_without_invite_or_capacity(self, mock_fetch_external_tools):
-        mock_fetch_external_tools.return_value = {"tools": [], "providers": []}
+        mock_fetch_external_tools.return_value = {"tools": [], "providers": [], "presets": {}}
         waitlisted_user = self.invoker_user.model_copy(
             update = {
                 "is_on_waitlist": True,
@@ -801,6 +802,21 @@ class SettingsControllerTest(unittest.TestCase):
         unconfigured_providers = [provider for provider in result["providers"] if not provider["is_configured"]]
         self.assertEqual(len(configured_providers), 1)
         self.assertEqual(len(unconfigured_providers), 1)
+
+        # Verify presets are included with actual content
+        self.assertIn("presets", result)
+        self.assertIn("lowest_price", result["presets"])
+        self.assertIn("highest_price", result["presets"])
+        self.assertIn("agent_choice", result["presets"])
+
+        # Verify preset contents are non-empty dicts with tool type -> tool ID mappings
+        for preset_name, preset_choices in result["presets"].items():
+            self.assertIsInstance(preset_choices, dict, f"Preset {preset_name} should be a dict")
+            self.assertGreater(len(preset_choices), 0, f"Preset {preset_name} should not be empty")
+            for tool_type, tool_id in preset_choices.items():
+                self.assertIsInstance(tool_type, str, f"Tool type in {preset_name} should be str")
+                self.assertIsInstance(tool_id, str, f"Tool ID in {preset_name} should be str")
+                self.assertGreater(len(tool_id), 0, f"Tool ID in {preset_name}.{tool_type} should not be empty")
 
     def test_fetch_external_tools_includes_cost_estimate(self):
         """Verify that cost_estimate is properly serialized in API response"""

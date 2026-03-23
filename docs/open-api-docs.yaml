@@ -1267,9 +1267,25 @@ components:
           items:
             $ref: "#/components/schemas/ExternalToolProviderResponse"
           description: List of external tool providers
+        presets:
+          type: object
+          nullable: false
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: string
+          description: Intelligence presets mapping preset names to tool type choices
+          example:
+            lowest_price:
+              chat: "gpt-5-nano"
+              reasoning: "gpt-5-nano"
+            agent_choice:
+              chat: "gpt-5.4"
+              reasoning: "claude-sonnet-4-6"
       required:
         - tools
         - providers
+        - presets
 
     ProductsResponse:
       type: object

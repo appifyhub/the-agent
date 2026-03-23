@@ -1,6 +1,6 @@
 from dataclasses import asdict, replace
 from datetime import datetime, timedelta
-from typing import Annotated, Any, List, Literal, TypeAlias, get_args
+from typing import Annotated, Any, Literal, TypeAlias, get_args
 from uuid import UUID
 
 from api import auth
@@ -17,6 +17,7 @@ from db.schema.user import User
 from di.di import DI
 from features.external_tools.external_tool_library import ALL_EXTERNAL_TOOLS
 from features.external_tools.external_tool_provider_library import ALL_PROVIDERS
+from features.external_tools.intelligence_presets import get_all_presets
 from features.integrations.integrations import is_own_chat, resolve_agent_user, resolve_external_handle, resolve_external_id
 from util import log
 from util.config import config
@@ -119,7 +120,7 @@ class SettingsController:
         scoped_di = self.__di.clone(invoker_id = user.id.hex)
 
         # build the provider list first because we will need it to sort the tools (and check access from cache)
-        providers_response: List[ExternalToolProviderResponse] = []
+        providers_response: list[ExternalToolProviderResponse] = []
         provider_is_configured_cache: dict[str, bool] = {}
         provider_sort_order: dict[str, int] = {}
         for i, provider in enumerate(ALL_PROVIDERS):
@@ -129,7 +130,7 @@ class SettingsController:
             provider_sort_order[provider.id] = i
 
         # now we build the tool list using cached information
-        tools_response: List[ExternalToolResponse] = []
+        tools_response: list[ExternalToolResponse] = []
         for tool in ALL_EXTERNAL_TOOLS:
             is_configured = provider_is_configured_cache[tool.provider.id]
             tools_response.append(ExternalToolResponse(tool, is_configured))
@@ -137,7 +138,7 @@ class SettingsController:
         # and finally, we sort the tools by [1] provider order and [2] tool name
         tools_response.sort(key = lambda t: (provider_sort_order[t.definition.provider.id], t.definition.name))
 
-        return asdict(ExternalToolsResponse(tools_response, providers_response))
+        return asdict(ExternalToolsResponse(tools_response, providers_response, get_all_presets()))
 
     def fetch_products(self, user_id_hex: str) -> dict[str, Any]:
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
