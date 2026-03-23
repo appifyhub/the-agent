@@ -15,6 +15,7 @@ from features.chat.chat_agent import ChatAgent
 from features.chat.chat_attachment_processor import ChatAttachmentProcessor
 from features.chat.chat_image_edit_service import ChatImageEditService
 from features.chat.dev_announcements_service import DevAnnouncementsService
+from features.external_tools.intelligence_presets import default_tool_for
 from features.images.smart_image_generator import SmartImageGenerator
 from features.integrations.integrations import add_messaging_frequency_warning, resolve_private_chat_id
 from features.support.user_support_service import UserSupportService
@@ -105,11 +106,11 @@ def generate_image(
         log.d(f"LLM requested to generate an image in aspect ratio {aspect_ratio}")
         copywriter_tool = di.tool_choice_resolver.require_tool(
             SmartImageGenerator.COPYWRITER_TOOL_TYPE,
-            SmartImageGenerator.DEFAULT_COPYWRITER_TOOL,
+            default_tool_for(SmartImageGenerator.COPYWRITER_TOOL_TYPE),
         )
         image_gen_tool = di.tool_choice_resolver.require_tool(
             SmartImageGenerator.IMAGE_GEN_TOOL_TYPE,
-            SmartImageGenerator.DEFAULT_IMAGE_GEN_TOOL,
+            default_tool_for(SmartImageGenerator.IMAGE_GEN_TOOL_TYPE),
         )
         generator = di.smart_image_generator(prompt, copywriter_tool, image_gen_tool, aspect_ratio, size)
         result = generator.execute()
@@ -217,7 +218,7 @@ def ai_web_search(di: DI, search_query: str) -> str:
         search_query: [mandatory] The user's search query, in English
     """
     try:
-        configured_tool = di.tool_choice_resolver.require_tool(AIWebSearch.TOOL_TYPE, AIWebSearch.DEFAULT_TOOL)
+        configured_tool = di.tool_choice_resolver.require_tool(AIWebSearch.TOOL_TYPE, default_tool_for(AIWebSearch.TOOL_TYPE))
         search = di.ai_web_search(search_query, configured_tool)
         result = search.execute()
         if not result.content:
@@ -237,7 +238,7 @@ def announce_maintenance_or_news(di: DI, raw_announcement: str) -> str:
     try:
         configured_tool = di.tool_choice_resolver.require_tool(
             DevAnnouncementsService.TOOL_TYPE,
-            DevAnnouncementsService.DEFAULT_TOOL,
+            default_tool_for(DevAnnouncementsService.TOOL_TYPE),
         )
         results = di.dev_announcements_service(raw_announcement, None, configured_tool).execute()
         return __success(
@@ -261,7 +262,7 @@ def deliver_message(di: DI, message: str, target_handle: str) -> str:
     try:
         configured_tool = di.tool_choice_resolver.require_tool(
             DevAnnouncementsService.TOOL_TYPE,
-            DevAnnouncementsService.DEFAULT_TOOL,
+            default_tool_for(DevAnnouncementsService.TOOL_TYPE),
         )
         results = di.dev_announcements_service(message, target_handle, configured_tool).execute()
         return __success(
@@ -297,7 +298,7 @@ def request_feature_bug_or_support(
     try:
         configured_tool = di.tool_choice_resolver.require_tool(
             UserSupportService.TOOL_TYPE,
-            UserSupportService.DEFAULT_TOOL,
+            default_tool_for(UserSupportService.TOOL_TYPE),
         )
         service = di.user_support_service(
             user_request_details, author_github_username,
@@ -370,7 +371,7 @@ def get_version(di: DI) -> str:
     """
     try:
         log.t(f"Getting version for chat '{di.invoker_chat_id}'")
-        configured_tool = di.tool_choice_resolver.require_tool(ChatAgent.TOOL_TYPE, ChatAgent.DEFAULT_TOOL)
+        configured_tool = di.tool_choice_resolver.require_tool(ChatAgent.TOOL_TYPE, default_tool_for(ChatAgent.TOOL_TYPE))
         return __success(
             {
                 "service_version": f"v{config.version}",

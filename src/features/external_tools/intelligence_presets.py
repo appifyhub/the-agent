@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 
-from features.external_tools.external_tool import ToolType
+from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.external_tool_library import (
     CLAUDE_4_6_OPUS,
     CLAUDE_4_6_SONNET,
@@ -15,7 +15,7 @@ from features.external_tools.external_tool_library import (
     GPT_5_4_PRO,
     GPT_5_NANO,
     IMAGE_GEN_EDIT_FLUX_2_PRO,
-    IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_2,
+    IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO,
     IMAGE_GEN_EDIT_SEEDREAM_4,
     SONAR,
     SONAR_PRO,
@@ -25,6 +25,8 @@ from features.external_tools.external_tool_library import (
     WHISPER_1,
     X_READ_POST,
 )
+from util.error_codes import UNEXPECTED_ERROR
+from util.errors import InternalError
 
 
 class IntelligencePreset(str, Enum):
@@ -35,90 +37,94 @@ class IntelligencePreset(str, Enum):
 
 @dataclass(frozen = True)
 class PresetChoices:
-    chat: str | None = None
-    copywriting: str | None = None
-    reasoning: str | None = None
-    vision: str | None = None
-    hearing: str | None = None
-    images_gen: str | None = None
-    images_edit: str | None = None
-    search: str | None = None
-    embedding: str | None = None
-    api_fiat_exchange: str | None = None
-    api_crypto_exchange: str | None = None
-    api_twitter: str | None = None
-    deprecated: str | None = None
+    chat: ExternalTool
+    copywriting: ExternalTool
+    reasoning: ExternalTool
+    vision: ExternalTool
+    hearing: ExternalTool
+    images_gen: ExternalTool
+    images_edit: ExternalTool
+    search: ExternalTool
+    embedding: ExternalTool
+    api_fiat_exchange: ExternalTool
+    api_crypto_exchange: ExternalTool
+    api_twitter: ExternalTool
 
     def as_dict(self) -> dict[str, str]:
         return {
-            k: v
-            for k, v in {
-                ToolType.chat.value: self.chat,
-                ToolType.copywriting.value: self.copywriting,
-                ToolType.reasoning.value: self.reasoning,
-                ToolType.vision.value: self.vision,
-                ToolType.hearing.value: self.hearing,
-                ToolType.images_gen.value: self.images_gen,
-                ToolType.images_edit.value: self.images_edit,
-                ToolType.search.value: self.search,
-                ToolType.embedding.value: self.embedding,
-                ToolType.api_fiat_exchange.value: self.api_fiat_exchange,
-                ToolType.api_crypto_exchange.value: self.api_crypto_exchange,
-                ToolType.api_twitter.value: self.api_twitter,
-                ToolType.deprecated.value: self.deprecated,
-            }.items()
-            if v is not None
+            ToolType.chat.value: self.chat.id,
+            ToolType.copywriting.value: self.copywriting.id,
+            ToolType.reasoning.value: self.reasoning.id,
+            ToolType.vision.value: self.vision.id,
+            ToolType.hearing.value: self.hearing.id,
+            ToolType.images_gen.value: self.images_gen.id,
+            ToolType.images_edit.value: self.images_edit.id,
+            ToolType.search.value: self.search.id,
+            ToolType.embedding.value: self.embedding.id,
+            ToolType.api_fiat_exchange.value: self.api_fiat_exchange.id,
+            ToolType.api_crypto_exchange.value: self.api_crypto_exchange.id,
+            ToolType.api_twitter.value: self.api_twitter.id,
         }
 
 
 INTELLIGENCE_PRESETS: dict[IntelligencePreset, PresetChoices] = {
 
     IntelligencePreset.lowest_price: PresetChoices(
-        chat = GPT_5_NANO.id,
-        copywriting = GPT_5_NANO.id,
-        reasoning = GPT_5_NANO.id,
-        vision = GPT_4_1_NANO.id,
-        hearing = WHISPER_1.id,
-        images_gen = IMAGE_GEN_EDIT_SEEDREAM_4.id,
-        images_edit = IMAGE_GEN_EDIT_SEEDREAM_4.id,
-        search = SONAR.id,
-        embedding = TEXT_EMBEDDING_3_SMALL.id,
-        api_fiat_exchange = FIAT_CURRENCY_EXCHANGE.id,
-        api_crypto_exchange = CRYPTO_CURRENCY_EXCHANGE.id,
-        api_twitter = X_READ_POST.id,
+        chat = GPT_5_NANO,
+        copywriting = GPT_5_NANO,
+        reasoning = GPT_5_NANO,
+        vision = GPT_4_1_NANO,
+        hearing = WHISPER_1,
+        images_gen = IMAGE_GEN_EDIT_SEEDREAM_4,
+        images_edit = IMAGE_GEN_EDIT_SEEDREAM_4,
+        search = SONAR,
+        embedding = TEXT_EMBEDDING_3_SMALL,
+        api_fiat_exchange = FIAT_CURRENCY_EXCHANGE,
+        api_crypto_exchange = CRYPTO_CURRENCY_EXCHANGE,
+        api_twitter = X_READ_POST,
     ),
 
     IntelligencePreset.highest_price: PresetChoices(
-        chat = GPT_5_4_PRO.id,
-        copywriting = GPT_5_4_PRO.id,
-        reasoning = CLAUDE_4_6_OPUS.id,
-        vision = GPT_5_2.id,
-        hearing = GPT_4O_TRANSCRIBE.id,
-        images_gen = IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_2.id,
-        images_edit = IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_2.id,
-        search = SONAR_REASONING_PRO.id,
-        embedding = TEXT_EMBEDDING_5_LARGE.id,
-        api_fiat_exchange = FIAT_CURRENCY_EXCHANGE.id,
-        api_crypto_exchange = CRYPTO_CURRENCY_EXCHANGE.id,
-        api_twitter = X_READ_POST.id,
+        chat = GPT_5_4_PRO,
+        copywriting = GPT_5_4_PRO,
+        reasoning = CLAUDE_4_6_OPUS,
+        vision = GPT_5_2,
+        hearing = GPT_4O_TRANSCRIBE,
+        images_gen = IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO,
+        images_edit = IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO,
+        search = SONAR_REASONING_PRO,
+        embedding = TEXT_EMBEDDING_5_LARGE,
+        api_fiat_exchange = FIAT_CURRENCY_EXCHANGE,
+        api_crypto_exchange = CRYPTO_CURRENCY_EXCHANGE,
+        api_twitter = X_READ_POST,
     ),
 
     IntelligencePreset.agent_choice: PresetChoices(
-        chat = GPT_5_4.id,
-        copywriting = GPT_5_4.id,
-        reasoning = CLAUDE_4_6_SONNET.id,
-        vision = GPT_5_2.id,
-        hearing = GPT_4O_MINI_TRANSCRIBE.id,
-        images_gen = IMAGE_GEN_EDIT_FLUX_2_PRO.id,
-        images_edit = IMAGE_GEN_EDIT_FLUX_2_PRO.id,
-        search = SONAR_PRO.id,
-        embedding = TEXT_EMBEDDING_3_SMALL.id,
-        api_fiat_exchange = FIAT_CURRENCY_EXCHANGE.id,
-        api_crypto_exchange = CRYPTO_CURRENCY_EXCHANGE.id,
-        api_twitter = X_READ_POST.id,
+        chat = GPT_5_4,
+        copywriting = GPT_5_4,
+        reasoning = CLAUDE_4_6_SONNET,
+        vision = GPT_5_2,
+        hearing = GPT_4O_MINI_TRANSCRIBE,
+        images_gen = IMAGE_GEN_EDIT_FLUX_2_PRO,
+        images_edit = IMAGE_GEN_EDIT_FLUX_2_PRO,
+        search = SONAR_PRO,
+        embedding = TEXT_EMBEDDING_3_SMALL,
+        api_fiat_exchange = FIAT_CURRENCY_EXCHANGE,
+        api_crypto_exchange = CRYPTO_CURRENCY_EXCHANGE,
+        api_twitter = X_READ_POST,
     ),
 
 }
+
+
+def default_tool_for(tool_type: ToolType) -> ExternalTool:
+    if tool_type == ToolType.deprecated:
+        raise InternalError("Deprecated tool type cannot be requested", UNEXPECTED_ERROR)
+    choices = INTELLIGENCE_PRESETS[IntelligencePreset.agent_choice]
+    tool: ExternalTool | None = getattr(choices, tool_type.value, None)
+    if tool is None:
+        raise InternalError(f"No default tool configured for '{tool_type.value}'", UNEXPECTED_ERROR)
+    return tool
 
 
 def get_all_presets() -> dict[str, dict[str, str]]:

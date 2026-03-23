@@ -3,6 +3,7 @@ import json
 from db.schema.chat_config import ChatConfig
 from di.di import DI
 from features.announcements.sys_announcements_service import SysAnnouncementsService
+from features.external_tools.intelligence_presets import default_tool_for
 from util import log
 from util.config import config
 from util.error_codes import ANNOUNCEMENT_NOT_RECEIVED, CHAT_CONFIG_NOT_FOUND
@@ -53,7 +54,7 @@ def respond_with_currency_alerts(di: DI) -> dict:
                 raw_information = json.dumps(triggered_alert.model_dump(mode = "json"))
                 configured_tool = scoped_di.tool_choice_resolver.require_tool(
                     SysAnnouncementsService.TOOL_TYPE,
-                    SysAnnouncementsService.DEFAULT_TOOL,
+                    default_tool_for(SysAnnouncementsService.TOOL_TYPE),
                 )
                 _, answer = scoped_di.sys_announcements_service(raw_information, chat_config, configured_tool).execute()
                 if not answer.content:

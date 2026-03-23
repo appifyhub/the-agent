@@ -9,8 +9,7 @@ from langchain_core.runnables import Runnable
 
 from di.di import DI
 from features.external_tools.configured_tool import ConfiguredTool
-from features.external_tools.external_tool import ExternalTool, ToolType
-from features.external_tools.external_tool_library import GPT_4_1_MINI
+from features.external_tools.external_tool import ToolType
 from features.integrations import prompt_resolvers
 from features.integrations.integrations import resolve_agent_user, resolve_external_handle
 from features.prompting import prompt_library
@@ -34,7 +33,6 @@ class ChatAgent:
         is_handled: bool
         reply: AIMessage | None = None
 
-    DEFAULT_TOOL: ExternalTool = GPT_4_1_MINI
     TOOL_TYPE: ToolType = ToolType.chat
 
     __messages: list[BaseMessage]

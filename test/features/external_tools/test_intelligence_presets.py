@@ -1,20 +1,22 @@
 import unittest
 from dataclasses import fields
 
-from features.external_tools.external_tool import ToolType
+from features.external_tools.external_tool import ExternalTool, ToolType
 from features.external_tools.intelligence_presets import (
     INTELLIGENCE_PRESETS,
     IntelligencePreset,
     PresetChoices,
+    default_tool_for,
     get_all_presets,
 )
+from util.errors import InternalError
 
 
 class IntelligencePresetsTest(unittest.TestCase):
 
     def test_preset_choices_covers_all_tool_types(self):
         preset_field_names = {f.name for f in fields(PresetChoices)}
-        tool_type_names = {t.value for t in ToolType}
+        tool_type_names = {t.value for t in ToolType if t != ToolType.deprecated}
         self.assertEqual(
             preset_field_names,
             tool_type_names,
@@ -26,23 +28,12 @@ class IntelligencePresetsTest(unittest.TestCase):
         self.assertIn(IntelligencePreset.highest_price, INTELLIGENCE_PRESETS)
         self.assertIn(IntelligencePreset.agent_choice, INTELLIGENCE_PRESETS)
 
-    def test_preset_choices_as_dict_filters_none(self):
-        choices = PresetChoices(chat = "test-chat", reasoning = None)
-        result = choices.as_dict()
-        self.assertIn(ToolType.chat.value, result)
-        self.assertNotIn(ToolType.reasoning.value, result)
-        self.assertEqual(result[ToolType.chat.value], "test-chat")
-
     def test_preset_choices_as_dict_uses_tool_type_values(self):
-        choices = PresetChoices(
-            chat = "chat-model",
-            vision = "vision-model",
-            embedding = "embed-model",
-        )
+        choices = INTELLIGENCE_PRESETS[IntelligencePreset.agent_choice]
         result = choices.as_dict()
-        self.assertEqual(result["chat"], "chat-model")
-        self.assertEqual(result["vision"], "vision-model")
-        self.assertEqual(result["embedding"], "embed-model")
+        self.assertEqual(result["chat"], choices.chat.id)
+        self.assertEqual(result["search"], choices.search.id)
+        self.assertEqual(result["embedding"], choices.embedding.id)
 
     def test_get_all_presets_returns_dict_with_all_presets(self):
         result = get_all_presets()
@@ -78,3 +69,20 @@ class IntelligencePresetsTest(unittest.TestCase):
                     len(tool_id) > 0,
                     f"Preset {preset_name} has empty tool_id for {tool_type}",
                 )
+
+    def test_default_tool_for_returns_external_tool(self):
+        tool = default_tool_for(ToolType.chat)
+        self.assertIsInstance(tool, ExternalTool)
+        self.assertEqual(tool, INTELLIGENCE_PRESETS[IntelligencePreset.agent_choice].chat)
+
+    def test_default_tool_for_all_non_deprecated_types(self):
+        for tool_type in ToolType:
+            if tool_type == ToolType.deprecated:
+                continue
+            tool = default_tool_for(tool_type)
+            self.assertIsInstance(tool, ExternalTool)
+
+    def test_default_tool_for_deprecated_raises(self):
+        with self.assertRaises(InternalError) as context:
+            default_tool_for(ToolType.deprecated)
+        self.assertIn("Deprecated tool type", str(context.exception))

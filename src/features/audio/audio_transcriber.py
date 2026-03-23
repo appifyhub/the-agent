@@ -15,8 +15,7 @@ from features.chat.supported_files import (
     TARGET_AUDIO_FORMAT,
 )
 from features.external_tools.configured_tool import ConfiguredTool
-from features.external_tools.external_tool import ExternalTool, ToolType
-from features.external_tools.external_tool_library import CLAUDE_3_5_HAIKU, WHISPER_1
+from features.external_tools.external_tool import ToolType
 from features.integrations import prompt_resolvers
 from util import log
 from util.error_codes import LLM_UNEXPECTED_RESPONSE
@@ -26,9 +25,7 @@ from util.errors import ExternalServiceError
 # Not tested as it's just a proxy
 class AudioTranscriber:
 
-    DEFAULT_TRANSCRIBER_TOOL: ExternalTool = WHISPER_1
     TRANSCRIBER_TOOL_TYPE: ToolType = ToolType.hearing
-    DEFAULT_COPYWRITER_TOOL: ExternalTool = CLAUDE_3_5_HAIKU
     COPYWRITER_TOOL_TYPE: ToolType = ToolType.copywriting
 
     error: str | None

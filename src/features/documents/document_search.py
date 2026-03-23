@@ -7,8 +7,7 @@ from langchain_core.vectorstores import InMemoryVectorStore
 
 from di.di import DI
 from features.external_tools.configured_tool import ConfiguredTool
-from features.external_tools.external_tool import ExternalTool, ToolType
-from features.external_tools.external_tool_library import CLAUDE_4_6_SONNET, TEXT_EMBEDDING_3_SMALL
+from features.external_tools.external_tool import ToolType
 from features.integrations import prompt_resolvers
 from util import log
 from util.error_codes import LLM_UNEXPECTED_RESPONSE
@@ -21,9 +20,7 @@ SEARCH_RESULT_PAGES = 2
 # Not tested as it's just a proxy
 class DocumentSearch:
 
-    DEFAULT_EMBEDDING_TOOL: ExternalTool = TEXT_EMBEDDING_3_SMALL
     EMBEDDING_TOOL_TYPE: ToolType = ToolType.embedding
-    DEFAULT_COPYWRITER_TOOL: ExternalTool = CLAUDE_4_6_SONNET
     COPYWRITER_TOOL_TYPE: ToolType = ToolType.copywriting
 
     error: str | None

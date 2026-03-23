@@ -7,9 +7,7 @@ from di.di import DI
 from features.accounting.usage.decorators.http_usage_tracking_decorator import HTTPUsageTrackingDecorator
 from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from features.external_tools.configured_tool import ConfiguredTool
-from features.external_tools.external_tool import ExternalTool, ToolType
-from features.external_tools.external_tool_library import X_READ_POST
-from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
+from features.external_tools.external_tool import ToolType
 from util import log
 from util.config import config
 from util.error_codes import EXTERNAL_EMPTY_RESPONSE
@@ -22,10 +20,8 @@ RATE_LIMIT_DELAY_S = 2
 
 class TwitterStatusFetcher:
 
-    DEFAULT_TWITTER_TOOL: ExternalTool = X_READ_POST
     TWITTER_TOOL_TYPE: ToolType = ToolType.api_twitter
-    DEFAULT_VISION_TOOL: ExternalTool = ComputerVisionAnalyzer.DEFAULT_TOOL
-    VISION_TOOL_TYPE: ToolType = ComputerVisionAnalyzer.TOOL_TYPE
+    VISION_TOOL_TYPE: ToolType = ToolType.vision
 
     __tweet_id: str
     __x_api_tool: ConfiguredTool

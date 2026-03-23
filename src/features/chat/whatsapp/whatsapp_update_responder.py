@@ -11,6 +11,7 @@ from di.di import DI
 from features.chat.chat_agent import ChatAgent
 from features.chat.whatsapp.model.update import Update
 from features.chat.whatsapp.whatsapp_data_resolver import WhatsAppDataResolver
+from features.external_tools.intelligence_presets import default_tool_for
 from features.integrations import prompt_resolvers
 from features.integrations.integrations import resolve_agent_user
 from util import log
@@ -74,7 +75,7 @@ def respond_to_update(update: Update) -> bool:
             langchain_messages = [map_to_langchain(message) for message in past_messages][::-1]
 
             # process the update using LLM; get instead of require to allow the first message to be sent
-            tool = di.tool_choice_resolver.get_tool(ChatAgent.TOOL_TYPE, ChatAgent.DEFAULT_TOOL)
+            tool = di.tool_choice_resolver.get_tool(ChatAgent.TOOL_TYPE, default_tool_for(ChatAgent.TOOL_TYPE))
             chat_agent = di.chat_agent(
                 messages = list(langchain_messages),
                 raw_last_message = resolved_domain_data.message.text,  # excludes the resolver formatting
