@@ -526,7 +526,7 @@ if __name__ == "__main__":
             os.environ["API_KEY"] = api_key
             config.api_key = SecretStr(api_key)
             print("WARN:     Generated a new API key!", config.api_key.get_secret_value(), file = sys.stderr)
-        workers = 2
+        workers = 1
         reload = False
         # and run the database migrations
         print("INFO:     Running database migrations...")
