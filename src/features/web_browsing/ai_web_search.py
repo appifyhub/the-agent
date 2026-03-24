@@ -3,8 +3,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 
 from di.di import DI
 from features.external_tools.configured_tool import ConfiguredTool
-from features.external_tools.external_tool import ExternalTool, ToolType
-from features.external_tools.external_tool_library import SONAR
+from features.external_tools.external_tool import ToolType
 from features.integrations import prompt_resolvers
 from util import log
 from util.error_codes import EXTERNAL_EMPTY_RESPONSE, LLM_UNEXPECTED_RESPONSE
@@ -14,7 +13,6 @@ from util.errors import ExternalServiceError
 # Not tested as it's just a proxy
 class AIWebSearch:
 
-    DEFAULT_TOOL: ExternalTool = SONAR
     TOOL_TYPE: ToolType = ToolType.search
 
     __llm_input: list[BaseMessage]

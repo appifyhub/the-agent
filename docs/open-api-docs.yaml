@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: The Agent's user-facing API
   description: The user-facing parts of The Agent's API service (excluding system-level endpoints, chat completion, maintenance endpoints, etc.)
-  version: 5.3.0
+  version: 5.3.1
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -1267,9 +1267,25 @@ components:
           items:
             $ref: "#/components/schemas/ExternalToolProviderResponse"
           description: List of external tool providers
+        presets:
+          type: object
+          nullable: false
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: string
+          description: Intelligence presets mapping preset names to tool type choices
+          example:
+            lowest_price:
+              chat: "gpt-5-nano"
+              reasoning: "gpt-5-nano"
+            agent_choice:
+              chat: "gpt-5.4"
+              reasoning: "claude-sonnet-4-6"
       required:
         - tools
         - providers
+        - presets
 
     ProductsResponse:
       type: object

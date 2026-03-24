@@ -2,6 +2,7 @@ from enum import Enum
 
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from di.di import DI
+from features.external_tools.intelligence_presets import default_tool_for
 from features.images.image_editor import ImageEditor
 from util import log
 from util.error_codes import MISSING_IMAGE_ATTACHMENT
@@ -54,7 +55,9 @@ class ChatImageEditService:
                     errors.append(message)
                     result = ChatImageEditService.Result.partial
                     continue
-                configured_tool = self.__di.tool_choice_resolver.require_tool(ImageEditor.TOOL_TYPE, ImageEditor.DEFAULT_TOOL)
+                configured_tool = self.__di.tool_choice_resolver.require_tool(
+                    ImageEditor.TOOL_TYPE, default_tool_for(ImageEditor.TOOL_TYPE),
+                )
                 editor = self.__di.image_editor(
                     image_url = attachment.last_url,
                     configured_tool = configured_tool,
