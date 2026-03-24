@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List
 
 from features.external_tools.external_tool import ExternalTool, ExternalToolProvider
 
@@ -18,5 +17,6 @@ class ExternalToolResponse:
 
 @dataclass(frozen = True)
 class ExternalToolsResponse:
-    tools: List[ExternalToolResponse]
-    providers: List[ExternalToolProviderResponse]
+    tools: list[ExternalToolResponse]
+    providers: list[ExternalToolProviderResponse]
+    presets: dict[str, dict[str, str]]

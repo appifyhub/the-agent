@@ -6,6 +6,7 @@ from di.di import DI
 from features.accounting.purchases.purchase_aggregates import PurchaseAggregates
 from features.accounting.purchases.purchase_record import PurchaseRecord
 from features.announcements.sys_announcements_service import SysAnnouncementsService
+from features.external_tools.intelligence_presets import default_tool_for
 from features.integrations.integration_config import THE_AGENT
 from util import log
 from util.config import config
@@ -171,7 +172,7 @@ class PurchaseService:
             agent_scoped_di = self.__di.clone(invoker_id = str(THE_AGENT.id))
             configured_tool = agent_scoped_di.tool_choice_resolver.require_tool(
                 SysAnnouncementsService.TOOL_TYPE,
-                SysAnnouncementsService.DEFAULT_TOOL,
+                default_tool_for(SysAnnouncementsService.TOOL_TYPE),
             )
 
             # initialize the announcements engine with the purchaser-user and no chat selection, ensuring the best delivery method

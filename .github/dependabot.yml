@@ -7,7 +7,11 @@ updates:
       day: "saturday"
       time: "10:00"
       timezone: "Europe/Berlin"
-    open-pull-requests-limit: 10
+    groups:
+      pip-all:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 5
     rebase-strategy: "auto"
     labels:
       - "Dependabot"

@@ -9,6 +9,7 @@ from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig
 from di.di import DI
 from features.announcements.release_summary_service import ReleaseSummaryService
+from features.external_tools.intelligence_presets import default_tool_for
 from util import log
 from util.config import config
 from util.error_codes import ANNOUNCEMENT_NOT_RECEIVED
@@ -91,7 +92,7 @@ def respond_with_summary(payload: ReleaseOutputPayload, di: DI) -> dict:
     try:
         tool = di.tool_choice_resolver.require_tool(
             ReleaseSummaryService.TOOL_TYPE,
-            ReleaseSummaryService.DEFAULT_TOOL,
+            default_tool_for(ReleaseSummaryService.TOOL_TYPE),
         )
         answer = di.release_summary_service(release_notes, None, tool).execute()
         if not answer.content:
@@ -122,7 +123,7 @@ def respond_with_summary(payload: ReleaseOutputPayload, di: DI) -> dict:
             if not summary:
                 tool = scoped_di.tool_choice_resolver.require_tool(
                     ReleaseSummaryService.TOOL_TYPE,
-                    ReleaseSummaryService.DEFAULT_TOOL,
+                    default_tool_for(ReleaseSummaryService.TOOL_TYPE),
                 )
                 answer = scoped_di.release_summary_service(release_notes, chat, tool).execute()
                 if not answer.content:

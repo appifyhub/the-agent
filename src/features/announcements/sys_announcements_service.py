@@ -9,8 +9,7 @@ from db.schema.chat_message import ChatMessage
 from db.schema.user import User
 from di.di import DI
 from features.external_tools.configured_tool import ConfiguredTool
-from features.external_tools.external_tool import ExternalTool, ToolType
-from features.external_tools.external_tool_library import CLAUDE_4_6_SONNET
+from features.external_tools.external_tool import ToolType
 from features.integrations import prompt_resolvers
 from features.integrations.integrations import resolve_external_id
 from util import log
@@ -23,7 +22,6 @@ WHATSAPP_MESSAGING_WINDOW_HOURS = 24
 # Not tested as it's just a proxy
 class SysAnnouncementsService:
 
-    DEFAULT_TOOL: ExternalTool = CLAUDE_4_6_SONNET
     TOOL_TYPE: ToolType = ToolType.copywriting
 
     __di: DI

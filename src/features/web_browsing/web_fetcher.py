@@ -9,6 +9,7 @@ from requests.exceptions import RequestException, Timeout
 
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from di.di import DI
+from features.external_tools.intelligence_presets import default_tool_for
 from features.web_browsing.twitter_status_fetcher import TwitterStatusFetcher
 from features.web_browsing.twitter_utils import resolve_tweet_id
 from features.web_browsing.uri_cleanup import simplify_url
@@ -62,11 +63,11 @@ class WebFetcher:
             log.t(f"Resolved tweet ID: {self.__tweet_id}")
             x_api_tool = di.tool_choice_resolver.require_tool(
                 TwitterStatusFetcher.TWITTER_TOOL_TYPE,
-                TwitterStatusFetcher.DEFAULT_TWITTER_TOOL,
+                default_tool_for(TwitterStatusFetcher.TWITTER_TOOL_TYPE),
             )
             vision_tool = di.tool_choice_resolver.require_tool(
                 TwitterStatusFetcher.VISION_TOOL_TYPE,
-                TwitterStatusFetcher.DEFAULT_VISION_TOOL,
+                default_tool_for(TwitterStatusFetcher.VISION_TOOL_TYPE),
             )
             self.__tweet_fetcher = di.twitter_status_fetcher(
                 self.__tweet_id, x_api_tool, vision_tool,

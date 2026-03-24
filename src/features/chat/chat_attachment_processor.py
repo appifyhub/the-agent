@@ -10,6 +10,7 @@ from di.di import DI
 from features.audio.audio_transcriber import AudioTranscriber
 from features.chat.supported_files import KNOWN_AUDIO_FORMATS, KNOWN_DOCS_FORMATS, KNOWN_IMAGE_FORMATS
 from features.documents.document_search import DocumentSearch
+from features.external_tools.intelligence_presets import default_tool_for
 from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
 from util import log
 from util.error_codes import ATTACHMENT_NOT_FOUND, MALFORMED_ATTACHMENT_ID, MISSING_ATTACHMENT_IDS
@@ -144,7 +145,7 @@ class ChatAttachmentProcessor:
         if attachment.mime_type in KNOWN_IMAGE_FORMATS.values() or attachment.extension in KNOWN_IMAGE_FORMATS.keys():
             configured_tool = self.__di.tool_choice_resolver.require_tool(
                 ComputerVisionAnalyzer.TOOL_TYPE,
-                ComputerVisionAnalyzer.DEFAULT_TOOL,
+                default_tool_for(ComputerVisionAnalyzer.TOOL_TYPE),
             )
             return self.__di.computer_vision_analyzer(
                 job_id = attachment.id,
@@ -158,11 +159,11 @@ class ChatAttachmentProcessor:
         if attachment.mime_type in KNOWN_AUDIO_FORMATS.values() or attachment.extension in KNOWN_AUDIO_FORMATS.keys():
             transcriber_tool = self.__di.tool_choice_resolver.require_tool(
                 AudioTranscriber.TRANSCRIBER_TOOL_TYPE,
-                AudioTranscriber.DEFAULT_TRANSCRIBER_TOOL,
+                default_tool_for(AudioTranscriber.TRANSCRIBER_TOOL_TYPE),
             )
             copywriter_tool = self.__di.tool_choice_resolver.require_tool(
                 AudioTranscriber.COPYWRITER_TOOL_TYPE,
-                AudioTranscriber.DEFAULT_COPYWRITER_TOOL,
+                default_tool_for(AudioTranscriber.COPYWRITER_TOOL_TYPE),
             )
             return self.__di.audio_transcriber(
                 job_id = attachment.id,
@@ -177,11 +178,11 @@ class ChatAttachmentProcessor:
         if attachment.mime_type in KNOWN_DOCS_FORMATS.values() or attachment.extension in KNOWN_DOCS_FORMATS.keys():
             embedding_tool = self.__di.tool_choice_resolver.require_tool(
                 DocumentSearch.EMBEDDING_TOOL_TYPE,
-                DocumentSearch.DEFAULT_EMBEDDING_TOOL,
+                default_tool_for(DocumentSearch.EMBEDDING_TOOL_TYPE),
             )
             copywriter_tool = self.__di.tool_choice_resolver.require_tool(
                 DocumentSearch.COPYWRITER_TOOL_TYPE,
-                DocumentSearch.DEFAULT_COPYWRITER_TOOL,
+                default_tool_for(DocumentSearch.COPYWRITER_TOOL_TYPE),
             )
             return self.__di.document_search(
                 job_id = attachment.id,

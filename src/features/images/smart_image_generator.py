@@ -5,9 +5,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 
 from di.di import DI
 from features.external_tools.configured_tool import ConfiguredTool
-from features.external_tools.external_tool import ExternalTool, ToolType
-from features.external_tools.external_tool_library import CLAUDE_3_5_HAIKU
-from features.images.simple_image_generator import SimpleImageGenerator
+from features.external_tools.external_tool import ToolType
 from features.integrations import prompt_resolvers
 from util import log
 from util.error_codes import EXTERNAL_EMPTY_RESPONSE, LLM_UNEXPECTED_RESPONSE
@@ -21,11 +19,8 @@ class SmartImageGenerator:
         success = "Success"
         failed = "Failed"
 
-    DEFAULT_COPYWRITER_TOOL: ExternalTool = CLAUDE_3_5_HAIKU
     COPYWRITER_TOOL_TYPE: ToolType = ToolType.copywriting
-
-    DEFAULT_IMAGE_GEN_TOOL: ExternalTool = SimpleImageGenerator.DEFAULT_TOOL
-    IMAGE_GEN_TOOL_TYPE: ToolType = SimpleImageGenerator.TOOL_TYPE
+    IMAGE_GEN_TOOL_TYPE: ToolType = ToolType.images_gen
 
     error: str | None = None
     __llm_input: list[BaseMessage]
