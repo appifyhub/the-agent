@@ -376,6 +376,49 @@ paths:
       security:
         - bearerAuth: []
 
+  /user/{resource_id}/transfers:
+    post:
+      summary: Transfer credits to another user
+      description: Transfers credits from the authenticated user to another user identified by platform handle
+      operationId: transferCredits
+      tags: [CreditTransfers]
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Sender's user ID in hexadecimal format (UUID without hyphens)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreditTransferPayload"
+      responses:
+        "200":
+          description: Credits transferred successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          description: Insufficient credits
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceErrorResponse"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
   /user/{user_id}/usage:
     get:
       summary: Get user's usage records
@@ -432,6 +475,20 @@ paths:
             type: boolean
             default: false
           description: Include usage records from all users sponsored by current user
+        - name: include_transfers
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+          description: Include credit transfer records in results
+        - name: only_transfers
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Return only credit transfer records (takes precedence over include_transfers)
         - name: tool_id
           in: query
           required: false
@@ -513,6 +570,20 @@ paths:
             type: boolean
             default: false
           description: Include stats from all users sponsored by current user
+        - name: include_transfers
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+          description: Include credit transfer records in stats
+        - name: only_transfers
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Return stats for only credit transfer records (takes precedence over include_transfers)
         - name: tool_id
           in: query
           required: false
@@ -1227,6 +1298,32 @@ components:
         - platform_handle
         - platform
 
+    CreditTransferPayload:
+      type: object
+      properties:
+        platform:
+          type: string
+          nullable: false
+          enum: [telegram, whatsapp]
+          description: Platform type for the recipient handle resolution
+        platform_handle:
+          type: string
+          nullable: false
+          description: Platform-specific handle of the recipient (e.g., Telegram username, WhatsApp phone number)
+        amount:
+          type: number
+          format: float
+          nullable: false
+          description: Amount of credits to transfer (minimum 1.0)
+        note:
+          type: string
+          nullable: true
+          description: Optional note or reason for the transfer
+      required:
+        - platform
+        - platform_handle
+        - amount
+
     ChatInfo:
       type: object
       properties:
@@ -1498,7 +1595,7 @@ components:
         tool_purpose:
           type: string
           nullable: false
-          enum: [chat, reasoning, copywriting, vision, hearing, images_gen, images_edit, search, embedding, api_fiat_exchange, api_crypto_exchange, api_twitter, deprecated]
+          enum: [chat, reasoning, copywriting, vision, hearing, images_gen, images_edit, search, embedding, api_fiat_exchange, api_crypto_exchange, api_twitter, credit_transfer, deprecated]
           description: The purpose/type of tool usage
         timestamp:
           type: string
@@ -1568,6 +1665,18 @@ components:
           items:
             type: string
           description: Sizes of input images processed
+        counterpart_id:
+          type: string
+          nullable: true
+          description: The other party's user ID in hexadecimal format (only present for credit transfer records)
+        note:
+          type: string
+          nullable: true
+          description: Optional note attached to the record (only present for credit transfer records)
+        participant_details:
+          $ref: "#/components/schemas/ParticipantDetails"
+          nullable: true
+          description: Snapshot of participant identities at record creation time
       required:
         - user_id
         - payer_id
@@ -1582,6 +1691,44 @@ components:
         - api_call_cost_credits
         - maintenance_fee_credits
         - total_cost_credits
+
+    ParticipantInfo:
+      type: object
+      properties:
+        user_id:
+          type: string
+          description: User ID in hexadecimal format
+        full_name:
+          type: string
+          nullable: true
+          description: User's full name at record creation time
+        platform:
+          type: string
+          nullable: true
+          description: Platform name (e.g., "Telegram", "WhatsApp")
+        handle:
+          type: string
+          nullable: true
+          description: Platform-specific handle (username or phone number)
+      required:
+        - user_id
+
+    ParticipantDetails:
+      type: object
+      required:
+        - payer
+        - owner
+      properties:
+        payer:
+          $ref: "#/components/schemas/ParticipantInfo"
+          description: Who was billed for this usage
+        owner:
+          $ref: "#/components/schemas/ParticipantInfo"
+          description: Who ran the tool (same as payer for regular and transfer usage; differs for sponsored usage)
+        counterpart:
+          $ref: "#/components/schemas/ParticipantInfo"
+          nullable: true
+          description: The other party in a credit transfer (null for non-transfer records)
 
     UsageAggregatesResponse:
       type: object
