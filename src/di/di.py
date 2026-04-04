@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from api.purchases_controller import PurchasesController
     from api.settings_controller import SettingsController
     from api.sponsorships_controller import SponsorshipsController
+    from api.transfers_controller import TransfersController
     from api.usage_controller import UsageController
     from db.crud.chat_config import ChatConfigCRUD
     from db.crud.chat_message import ChatMessageCRUD
@@ -37,6 +38,7 @@ if TYPE_CHECKING:
     from features.accounting.purchases.purchase_record_repo import PurchaseRecordRepository
     from features.accounting.purchases.purchase_service import PurchaseService
     from features.accounting.spending.spending_service import SpendingService
+    from features.accounting.transfers.credit_transfer_service import CreditTransferService
     from features.accounting.usage.decorators.chat_model_usage_tracking_decorator import ChatModelUsageTrackingDecorator
     from features.accounting.usage.decorators.google_ai_usage_tracking_decorator import GoogleAIUsageTrackingDecorator
     from features.accounting.usage.decorators.http_usage_tracking_decorator import HTTPUsageTrackingDecorator
@@ -114,6 +116,7 @@ class DI:
     _purchase_record_repo: "PurchaseRecordRepository | None"
     # Services
     _sponsorship_service: "SponsorshipService | None"
+    _credit_transfer_service: "CreditTransferService | None"
     _profile_connect_service: "ProfileConnectService | None"
     _authorization_service: "AuthorizationService | None"
     _usage_tracking_service: "UsageTrackingService | None"
@@ -122,6 +125,7 @@ class DI:
     # Controllers
     _settings_controller: "SettingsController | None"
     _sponsorships_controller: "SponsorshipsController | None"
+    _transfers_controller: "TransfersController | None"
     _usage_controller: "UsageController | None"
     _profile_connect_controller: "ProfileConnectController | None"
     _gumroad_controller: "GumroadController | None"
@@ -168,6 +172,7 @@ class DI:
         self._purchase_record_repo = None
         # Services
         self._sponsorship_service = None
+        self._credit_transfer_service = None
         self._profile_connect_service = None
         self._authorization_service = None
         self._usage_tracking_service = None
@@ -176,6 +181,7 @@ class DI:
         # Controllers
         self._settings_controller = None
         self._sponsorships_controller = None
+        self._transfers_controller = None
         self._usage_controller = None
         self._profile_connect_controller = None
         self._gumroad_controller = None
@@ -396,6 +402,13 @@ class DI:
         return self._sponsorship_service
 
     @property
+    def credit_transfer_service(self) -> "CreditTransferService":
+        if self._credit_transfer_service is None:
+            from features.accounting.transfers.credit_transfer_service import CreditTransferService
+            self._credit_transfer_service = CreditTransferService(self)
+        return self._credit_transfer_service
+
+    @property
     def authorization_service(self) -> "AuthorizationService":
         if self._authorization_service is None:
             from api.authorization_service import AuthorizationService
@@ -445,6 +458,13 @@ class DI:
             from api.sponsorships_controller import SponsorshipsController
             self._sponsorships_controller = SponsorshipsController(self)
         return self._sponsorships_controller
+
+    @property
+    def transfers_controller(self) -> "TransfersController":
+        if self._transfers_controller is None:
+            from api.transfers_controller import TransfersController
+            self._transfers_controller = TransfersController(self)
+        return self._transfers_controller
 
     @property
     def usage_controller(self) -> "UsageController":

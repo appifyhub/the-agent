@@ -9,7 +9,7 @@ from di.di import DI
 from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ToolType
 from features.integrations import prompt_resolvers
-from features.integrations.integrations import resolve_external_handle, resolve_platform_name, resolve_user_link
+from features.integrations.integrations import resolve_external_handle, resolve_user_link
 from util import log
 from util.config import config
 from util.error_codes import LLM_UNEXPECTED_RESPONSE
@@ -83,9 +83,8 @@ class UserSupportService:
         user_info_parts = []
         if self.__include_platform_handle and platform_handle:
             user_link = resolve_user_link(self.__di.invoker, chat_type)
-            platform_name = resolve_platform_name(chat_type)
-            if user_link and platform_name:
-                user_info_parts.append(f"{platform_name} user: {user_link}")
+            if user_link:
+                user_info_parts.append(f"Platform user: {chat_type.value}/{user_link}")
             else:
                 user_info_parts.append(f"Platform handle: {platform_handle}")
         if self.__github_author:

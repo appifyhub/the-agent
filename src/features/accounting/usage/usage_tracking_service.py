@@ -1,10 +1,13 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
+from db.schema.user import User
 from di.di import DI
+from features.accounting.usage.participant_details import ParticipantDetails, ParticipantInfo
 from features.accounting.usage.usage_record import UsageRecord
 from features.external_tools.external_tool import CostEstimate, ExternalTool, ToolType
 from features.images.image_size_utils import normalize_image_size_category
+from features.integrations.integrations import user_to_participant
 from util import log
 from util.config import config
 
@@ -62,6 +65,7 @@ class UsageTrackingService:
             output_tokens = output_tokens,
             total_tokens = total_tokens,
             search_tokens = search_tokens,
+            participant_details = self.__build_participant_details(payer_id),
         )
         return self.__di.usage_record_repo.create(record)
 
@@ -115,6 +119,7 @@ class UsageTrackingService:
             total_tokens = total_tokens,
             output_image_sizes = output_image_sizes,
             input_image_sizes = input_image_sizes,
+            participant_details = self.__build_participant_details(payer_id),
         )
         return self.__di.usage_record_repo.create(record)
 
@@ -147,8 +152,23 @@ class UsageTrackingService:
             maintenance_fee_credits = maintenance_fee_credits,
             total_cost_credits = total_cost_credits,
             runtime_seconds = runtime_seconds,
+            participant_details = self.__build_participant_details(payer_id),
         )
         return self.__di.usage_record_repo.create(record)
+
+    def __build_participant_details(self, payer_id: UUID) -> ParticipantDetails:
+        invoker_info = user_to_participant(self.__di.invoker)
+        if payer_id == self.__di.invoker.id:
+            return ParticipantDetails(payer = invoker_info, owner = invoker_info)
+        payer_db = self.__di.user_crud.get(payer_id)
+        if payer_db is None:
+            payer_info = ParticipantInfo(user_id = payer_id, full_name = None, platform = None, handle = None)
+        else:
+            payer_info = user_to_participant(User.model_validate(payer_db))
+        return ParticipantDetails(
+            payer = payer_info,
+            owner = user_to_participant(self.__di.invoker),
+        )
 
     def __calculate_llm_cost(
         self,

@@ -3,6 +3,7 @@ from features.external_tools.external_tool_provider_library import (
     ANTHROPIC,
     COINMARKETCAP,
     GOOGLE_AI,
+    INTERNAL,
     OPEN_AI,
     PERPLEXITY,
     RAPID_API,
@@ -760,6 +761,16 @@ CRYPTO_CURRENCY_EXCHANGE = ExternalTool(
     ),
 )
 
+###  Internal  ###
+
+TRANSFER_TOOL = ExternalTool(
+    id = "credit_transfer",
+    name = "Internal Credit Transfer",
+    provider = INTERNAL,
+    types = [ToolType.credit_transfer],
+    cost_estimate = CostEstimate(),
+)
+
 ###  All External Tools  ###
 
 ALL_EXTERNAL_TOOLS = [
@@ -831,4 +842,6 @@ ALL_EXTERNAL_TOOLS = [
     FIAT_CURRENCY_EXCHANGE,
     X_READ_POST,
     CRYPTO_CURRENCY_EXCHANGE,
+    # Internal
+    TRANSFER_TOOL,
 ]

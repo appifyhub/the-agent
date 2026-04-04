@@ -1,13 +1,14 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import func
+from sqlalchemy import ColumnElement, and_, func, or_
 from sqlalchemy.orm import Query, Session
 
 from db.model.usage_record import UsageRecordDB
 from features.accounting.usage.usage_aggregates import AggregateStats, ProviderInfo, ToolInfo, UsageAggregates
 from features.accounting.usage.usage_record import UsageRecord
 from features.accounting.usage.usage_record_mapper import db, domain
+from features.external_tools.external_tool import ToolType
 
 
 class UsageRecordRepository:
@@ -28,6 +29,15 @@ class UsageRecordRepository:
         self._db.refresh(db_model)
         return domain(db_model)
 
+    def create_all(self, records: list[UsageRecord]) -> list[UsageRecord]:
+        db_models = [db(record) for record in records]
+        for db_model in db_models:
+            self._db.add(db_model)
+        self._db.commit()
+        for db_model in db_models:
+            self._db.refresh(db_model)
+        return [domain(db_model) for db_model in db_models]
+
     def get_by_user(
         self,
         user_id: UUID,
@@ -37,11 +47,17 @@ class UsageRecordRepository:
         end_date: datetime | None = None,
         exclude_self: bool = False,
         include_sponsored: bool = False,
+        include_transfers: bool = True,
+        only_transfers: bool = False,
         tool_id: str | None = None,
         purpose: str | None = None,
         provider_id: str | None = None,
     ) -> list[UsageRecord]:
-        base_query = self._build_user_query(user_id, start_date, end_date, exclude_self, include_sponsored)
+        base_query = self._build_user_query(
+            user_id, start_date, end_date,
+            exclude_self, include_sponsored,
+            include_transfers, only_transfers,
+        )
 
         # apply optional filters
         if tool_id:
@@ -61,16 +77,26 @@ class UsageRecordRepository:
         end_date: datetime | None = None,
         exclude_self: bool = False,
         include_sponsored: bool = False,
+        include_transfers: bool = True,
+        only_transfers: bool = False,
         tool_id: str | None = None,
         purpose: str | None = None,
         provider_id: str | None = None,
     ) -> UsageAggregates:
         # unfiltered query for all_*_used lists (dropdown options)
-        unfiltered_query = self._build_user_query(user_id, start_date, end_date, exclude_self, include_sponsored)
+        unfiltered_query = self._build_user_query(
+            user_id, start_date, end_date,
+            exclude_self, include_sponsored,
+            include_transfers, only_transfers,
+        )
         unfiltered_subquery = unfiltered_query.subquery()
 
         # filtered query for totals and by_* breakdowns
-        filtered_query = self._build_user_query(user_id, start_date, end_date, exclude_self, include_sponsored)
+        filtered_query = self._build_user_query(
+            user_id, start_date, end_date,
+            exclude_self, include_sponsored,
+            include_transfers, only_transfers,
+        )
         if tool_id:
             filtered_query = filtered_query.filter(UsageRecordDB.tool_id == tool_id)
         if purpose:
@@ -164,16 +190,36 @@ class UsageRecordRepository:
         end_date: datetime | None,
         exclude_self: bool,
         include_sponsored: bool,
+        include_transfers: bool = True,
+        only_transfers: bool = False,
     ) -> Query:
+        ownership_filter: ColumnElement[bool]
         if not include_sponsored:
-            base_query = self._db.query(UsageRecordDB).filter(UsageRecordDB.user_id == user_id)
+            ownership_filter = UsageRecordDB.user_id == user_id
         elif exclude_self:
+            ownership_filter = and_(UsageRecordDB.payer_id == user_id, UsageRecordDB.user_id != user_id)
+        else:
+            ownership_filter = UsageRecordDB.payer_id == user_id
+
+        transfer_purpose = ToolType.credit_transfer.value
+        counterpart_transfer_filter = and_(
+            UsageRecordDB.counterpart_id == user_id,
+            UsageRecordDB.purpose == transfer_purpose,
+        )
+        if only_transfers:
             base_query = self._db.query(UsageRecordDB).filter(
-                UsageRecordDB.payer_id == user_id,
-                UsageRecordDB.user_id != user_id,
+                or_(ownership_filter, counterpart_transfer_filter),
+                UsageRecordDB.purpose == transfer_purpose,
+            )
+        elif include_transfers:
+            base_query = self._db.query(UsageRecordDB).filter(
+                or_(ownership_filter, counterpart_transfer_filter),
             )
         else:
-            base_query = self._db.query(UsageRecordDB).filter(UsageRecordDB.payer_id == user_id)
+            base_query = self._db.query(UsageRecordDB).filter(
+                ownership_filter,
+                UsageRecordDB.purpose != transfer_purpose,
+            )
 
         if start_date is not None:
             base_query = base_query.filter(UsageRecordDB.timestamp >= start_date)

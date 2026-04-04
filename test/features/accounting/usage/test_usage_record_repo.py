@@ -10,7 +10,7 @@ from db.schema.user import UserSave
 from features.accounting.usage.usage_record import UsageRecord
 from features.accounting.usage.usage_record_repo import UsageRecordRepository
 from features.external_tools.external_tool import ToolType
-from features.external_tools.external_tool_library import CLAUDE_3_5_HAIKU, GPT_4O
+from features.external_tools.external_tool_library import CLAUDE_3_5_HAIKU, GPT_4O, TRANSFER_TOOL
 
 
 class UsageRecordRepositoryTest(unittest.TestCase):
@@ -35,6 +35,7 @@ class UsageRecordRepositoryTest(unittest.TestCase):
         tool_purpose = ToolType.chat,
         total_cost_credits = 1.0,
         timestamp = None,
+        counterpart_id = None,
     ) -> UsageRecord:
         actual_user_id = user_id or self.user.id
         return UsageRecord(
@@ -49,6 +50,7 @@ class UsageRecordRepositoryTest(unittest.TestCase):
             maintenance_fee_credits = 0,
             total_cost_credits = total_cost_credits,
             runtime_seconds = 1.0,
+            counterpart_id = counterpart_id,
         )
 
     def test_create(self):
@@ -340,3 +342,132 @@ class UsageRecordRepositoryTest(unittest.TestCase):
         self.assertEqual(len(provider_ids), 2)
         self.assertIn(GPT_4O.provider.id, provider_ids)
         self.assertIn(CLAUDE_3_5_HAIKU.provider.id, provider_ids)
+
+    def test_get_by_user_includes_transfers_by_default(self):
+        self.repo.create(self._create_record(tool = GPT_4O, tool_purpose = ToolType.chat))
+        self.repo.create(self._create_record(tool = TRANSFER_TOOL, tool_purpose = ToolType.credit_transfer))
+
+        records = self.repo.get_by_user(self.user.id)
+
+        self.assertEqual(len(records), 2)
+
+    def test_get_by_user_exclude_transfers(self):
+        self.repo.create(self._create_record(tool = GPT_4O, tool_purpose = ToolType.chat))
+        self.repo.create(self._create_record(tool = TRANSFER_TOOL, tool_purpose = ToolType.credit_transfer))
+
+        records = self.repo.get_by_user(self.user.id, include_transfers = False)
+
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0].tool_purpose, ToolType.chat)
+
+    def test_get_by_user_only_transfers(self):
+        self.repo.create(self._create_record(tool = GPT_4O, tool_purpose = ToolType.chat))
+        self.repo.create(self._create_record(tool = TRANSFER_TOOL, tool_purpose = ToolType.credit_transfer))
+        self.repo.create(self._create_record(tool = TRANSFER_TOOL, tool_purpose = ToolType.credit_transfer))
+
+        records = self.repo.get_by_user(self.user.id, only_transfers = True)
+
+        self.assertEqual(len(records), 2)
+        for r in records:
+            self.assertEqual(r.tool_purpose, ToolType.credit_transfer)
+
+    def test_get_aggregates_includes_transfers_by_default(self):
+        self.repo.create(self._create_record(tool = GPT_4O, tool_purpose = ToolType.chat, total_cost_credits = 10))
+        self.repo.create(self._create_record(tool = TRANSFER_TOOL, tool_purpose = ToolType.credit_transfer, total_cost_credits = 50))
+
+        stats = self.repo.get_aggregates_by_user(self.user.id)
+
+        self.assertEqual(stats.total_records, 2)
+        self.assertEqual(stats.total_cost_credits, 60.0)
+        self.assertIn(ToolType.credit_transfer.value, stats.all_purposes_used)
+
+    def test_get_aggregates_exclude_transfers(self):
+        self.repo.create(self._create_record(tool = GPT_4O, tool_purpose = ToolType.chat, total_cost_credits = 10))
+        self.repo.create(self._create_record(tool = TRANSFER_TOOL, tool_purpose = ToolType.credit_transfer, total_cost_credits = 50))
+
+        stats = self.repo.get_aggregates_by_user(self.user.id, include_transfers = False)
+
+        self.assertEqual(stats.total_records, 1)
+        self.assertEqual(stats.total_cost_credits, 10.0)
+        self.assertNotIn(ToolType.credit_transfer.value, stats.all_purposes_used)
+
+    def test_get_aggregates_only_transfers(self):
+        self.repo.create(self._create_record(tool = GPT_4O, tool_purpose = ToolType.chat, total_cost_credits = 10))
+        self.repo.create(self._create_record(tool = TRANSFER_TOOL, tool_purpose = ToolType.credit_transfer, total_cost_credits = 50))
+
+        stats = self.repo.get_aggregates_by_user(self.user.id, only_transfers = True)
+
+        self.assertEqual(stats.total_records, 1)
+        self.assertEqual(stats.total_cost_credits, 50.0)
+        self.assertNotIn(ToolType.chat.value, stats.all_purposes_used)
+
+    def test_get_by_user_includes_incoming_transfer_as_counterpart(self):
+        other_user = self.sql.user_crud().create(UserSave(connect_key = "OTHER-KEY"))
+        self.repo.create(self._create_record(tool = GPT_4O, tool_purpose = ToolType.chat))
+        self.repo.create(self._create_record(
+            user_id = other_user.id,
+            payer_id = other_user.id,
+            tool = TRANSFER_TOOL,
+            tool_purpose = ToolType.credit_transfer,
+            total_cost_credits = 25,
+            counterpart_id = self.user.id,
+        ))
+
+        records = self.repo.get_by_user(self.user.id)
+
+        self.assertEqual(len(records), 2)
+        purposes = {r.tool_purpose for r in records}
+        self.assertIn(ToolType.credit_transfer, purposes)
+        self.assertIn(ToolType.chat, purposes)
+
+    def test_get_by_user_excludes_incoming_transfer_when_transfers_excluded(self):
+        other_user = self.sql.user_crud().create(UserSave(connect_key = "OTHER-KEY"))
+        self.repo.create(self._create_record(tool = GPT_4O, tool_purpose = ToolType.chat))
+        self.repo.create(self._create_record(
+            user_id = other_user.id,
+            payer_id = other_user.id,
+            tool = TRANSFER_TOOL,
+            tool_purpose = ToolType.credit_transfer,
+            total_cost_credits = 25,
+            counterpart_id = self.user.id,
+        ))
+
+        records = self.repo.get_by_user(self.user.id, include_transfers = False)
+
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0].tool_purpose, ToolType.chat)
+
+    def test_get_by_user_only_transfers_includes_counterpart(self):
+        other_user = self.sql.user_crud().create(UserSave(connect_key = "OTHER-KEY"))
+        self.repo.create(self._create_record(tool = GPT_4O, tool_purpose = ToolType.chat))
+        self.repo.create(self._create_record(
+            user_id = other_user.id,
+            payer_id = other_user.id,
+            tool = TRANSFER_TOOL,
+            tool_purpose = ToolType.credit_transfer,
+            total_cost_credits = 25,
+            counterpart_id = self.user.id,
+        ))
+
+        records = self.repo.get_by_user(self.user.id, only_transfers = True)
+
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0].tool_purpose, ToolType.credit_transfer)
+        self.assertEqual(records[0].counterpart_id, self.user.id)
+
+    def test_get_aggregates_includes_incoming_transfer_as_counterpart(self):
+        other_user = self.sql.user_crud().create(UserSave(connect_key = "OTHER-KEY"))
+        self.repo.create(self._create_record(tool = GPT_4O, tool_purpose = ToolType.chat, total_cost_credits = 10))
+        self.repo.create(self._create_record(
+            user_id = other_user.id,
+            payer_id = other_user.id,
+            tool = TRANSFER_TOOL,
+            tool_purpose = ToolType.credit_transfer,
+            total_cost_credits = 25,
+            counterpart_id = self.user.id,
+        ))
+
+        stats = self.repo.get_aggregates_by_user(self.user.id)
+
+        self.assertEqual(stats.total_records, 2)
+        self.assertEqual(stats.total_cost_credits, 35.0)
