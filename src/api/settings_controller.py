@@ -210,11 +210,10 @@ class SettingsController:
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
 
         # validate tool choices
-        configured_tools = self.fetch_external_tools(user_id_hex)
-        configured_tool_ids = {tool["definition"]["id"] for tool in configured_tools["tools"] if tool["is_configured"]}
+        all_tool_ids = {tool.id for tool in ALL_EXTERNAL_TOOLS}
         for key, value in payload.model_dump().items():
-            if key.startswith("tool_choice_") and value and (value not in configured_tool_ids):
-                raise ValidationError(f"Invalid tool choice '{value}' for '{key}'. Tool is not configured.", INVALID_TOOL_CHOICE)
+            if key.startswith("tool_choice_") and value and (value not in all_tool_ids):
+                raise ValidationError(f"Invalid tool choice '{value}' for '{key}'. Tool is not recognized.", INVALID_TOOL_CHOICE)
 
         if payload.are_policies_accepted is False:
             raise ValidationError(
