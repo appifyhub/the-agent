@@ -33,7 +33,7 @@ List any relevant details for your test configuration.
 
 I have completed the following:
 
-- [ ] I have followed the [Contirubing guide](https://github.com/appifyhub/the-agent/blob/main/CONTRIBUTING.md).
+- [ ] I have followed the [Contirubing guide](https://github.com/appifyhub/agent-backend/blob/main/CONTRIBUTING.md).
 - [ ] I have performed a self-review of my code and materials.
 - [ ] I have commented my code in hard-to-understand areas.
 - [ ] I have made the corresponding changes to the documentation.

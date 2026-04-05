@@ -23,6 +23,7 @@ class UserCRUDTest(unittest.TestCase):
         user_data = UserSave(
             full_name = "Test User",
             about_me = SecretStr("About me text"),
+            custom_prompt = SecretStr("Custom prompt text"),
             telegram_username = "test-user",
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
@@ -60,6 +61,8 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(user.full_name, user_data.full_name)
         assert user_data.about_me is not None
         self.assertEqual(user.about_me, user_data.about_me.get_secret_value())
+        assert user_data.custom_prompt is not None
+        self.assertEqual(user.custom_prompt, user_data.custom_prompt.get_secret_value())
         self.assertEqual(user.telegram_username, user_data.telegram_username)
         self.assertEqual(user.telegram_chat_id, user_data.telegram_chat_id)
         self.assertEqual(user.telegram_user_id, user_data.telegram_user_id)
@@ -329,6 +332,7 @@ class UserCRUDTest(unittest.TestCase):
         user_data = UserSave(
             full_name = "Test User",
             about_me = SecretStr("Original about me"),
+            custom_prompt = SecretStr("Original custom prompt"),
             telegram_username = "test-user",
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
@@ -365,6 +369,7 @@ class UserCRUDTest(unittest.TestCase):
             id = created_user.id,
             full_name = "Updated User",
             about_me = SecretStr("Updated about me"),
+            custom_prompt = SecretStr("Updated custom prompt"),
             telegram_username = "updated-user",
             telegram_chat_id = "654321",
             telegram_user_id = 654321,
@@ -402,6 +407,8 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(updated_user.full_name, update_data.full_name)
         assert update_data.about_me is not None
         self.assertEqual(updated_user.about_me, update_data.about_me.get_secret_value())
+        assert update_data.custom_prompt is not None
+        self.assertEqual(updated_user.custom_prompt, update_data.custom_prompt.get_secret_value())
         self.assertEqual(updated_user.telegram_username, update_data.telegram_username)
         self.assertEqual(updated_user.telegram_chat_id, update_data.telegram_chat_id)
         self.assertEqual(updated_user.telegram_user_id, update_data.telegram_user_id)
@@ -442,6 +449,7 @@ class UserCRUDTest(unittest.TestCase):
         user_data = UserSave(
             full_name = "Test User",
             about_me = SecretStr("About me text"),
+            custom_prompt = SecretStr("Custom prompt text"),
             telegram_username = "test-user",
             telegram_chat_id = "123456",
             telegram_user_id = 123456,
@@ -479,6 +487,8 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(saved_user.full_name, user_data.full_name)
         assert user_data.about_me is not None
         self.assertEqual(saved_user.about_me, user_data.about_me.get_secret_value())
+        assert user_data.custom_prompt is not None
+        self.assertEqual(saved_user.custom_prompt, user_data.custom_prompt.get_secret_value())
         self.assertEqual(saved_user.telegram_username, user_data.telegram_username)
         self.assertEqual(saved_user.telegram_chat_id, user_data.telegram_chat_id)
         self.assertEqual(saved_user.telegram_user_id, user_data.telegram_user_id)
@@ -523,6 +533,7 @@ class UserCRUDTest(unittest.TestCase):
             id = saved_user.id,
             full_name = "Updated User",
             about_me = SecretStr("Updated about me"),
+            custom_prompt = SecretStr("Updated custom prompt"),
             telegram_username = "updated-user",
             telegram_chat_id = "654321",
             telegram_user_id = 654321,
@@ -558,6 +569,8 @@ class UserCRUDTest(unittest.TestCase):
         self.assertEqual(updated_user.full_name, update_data.full_name)
         assert update_data.about_me is not None
         self.assertEqual(updated_user.about_me, update_data.about_me.get_secret_value())
+        assert update_data.custom_prompt is not None
+        self.assertEqual(updated_user.custom_prompt, update_data.custom_prompt.get_secret_value())
         self.assertEqual(updated_user.telegram_username, update_data.telegram_username)
         self.assertEqual(updated_user.telegram_chat_id, update_data.telegram_chat_id)
         self.assertEqual(updated_user.telegram_user_id, update_data.telegram_user_id)

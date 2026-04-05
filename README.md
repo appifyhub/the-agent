@@ -1,11 +1,11 @@
-![License](https://img.shields.io/github/license/appifyhub/the-agent?logo=github&logoColor=white&label=License&color=FA3080)
-![Date](https://img.shields.io/github/release-date/appifyhub/the-agent?display_date=published_at&logo=docker&logoColor=white&label=Released&color=FA3080)
-![Release](https://img.shields.io/github/v/release/appifyhub/the-agent?sort=semver&display_name=release&logo=github&logoColor=white&label=Latest&color=FA3080)  
-![Code](https://img.shields.io/github/repo-size/appifyhub/the-agent?logo=github&logoColor=white&label=Sources&color=FAFA20)
+![License](https://img.shields.io/github/license/appifyhub/agent-backend?logo=github&logoColor=white&label=License&color=FA3080)
+![Date](https://img.shields.io/github/release-date/appifyhub/agent-backend?display_date=published_at&logo=docker&logoColor=white&label=Released&color=FA3080)
+![Release](https://img.shields.io/github/v/release/appifyhub/agent-backend?sort=semver&display_name=release&logo=github&logoColor=white&label=Latest&color=FA3080)  
+![Code](https://img.shields.io/github/repo-size/appifyhub/agent-backend?logo=github&logoColor=white&label=Sources&color=FAFA20)
 ![Image](https://img.shields.io/docker/image-size/appifyhub/the-agent?sort=semver&logo=docker&logoColor=white&label=Image&color=FAFA20)  
-![Build](https://img.shields.io/github/actions/workflow/status/appifyhub/the-agent/release.yml?branch=release&logo=github&logoColor=white&label=Build)
-![Issues](https://img.shields.io/github/issues-closed/appifyhub/the-agent?logo=github&logoColor=white&label=Issues&color=blue)
-![PRs](https://img.shields.io/github/issues-pr-closed/appifyhub/the-agent?logo=github&logoColor=white&label=PRs&color=blue)
+![Build](https://img.shields.io/github/actions/workflow/status/appifyhub/agent-backend/release.yml?branch=release&logo=github&logoColor=white&label=Build)
+![Issues](https://img.shields.io/github/issues-closed/appifyhub/agent-backend?logo=github&logoColor=white&label=Issues&color=blue)
+![PRs](https://img.shields.io/github/issues-pr-closed/appifyhub/agent-backend?logo=github&logoColor=white&label=PRs&color=blue)
 
 # The Agent · Our Intelligent Virtual Assistant
 
@@ -129,4 +129,4 @@ Check out the license [here](LICENSE).
 
 ---
 
-For frontend and user interface details, see the [web app repository](https://github.com/appifyhub/the-agent-web-app).
+For frontend and user interface details, see the [web app repository](https://github.com/appifyhub/agent-backend-web-app).

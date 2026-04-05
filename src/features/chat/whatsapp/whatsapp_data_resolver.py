@@ -88,10 +88,12 @@ class WhatsAppDataResolver:
             mapped_data.release_notifications = old_chat_config.release_notifications
             mapped_data.media_mode = old_chat_config.media_mode
             mapped_data.use_about_me = old_chat_config.use_about_me
+            mapped_data.use_custom_prompt = old_chat_config.use_custom_prompt
         else:
             # new chat, let's set sensible default values
             mapped_data.media_mode = ChatConfigDB.MediaMode.photo
             mapped_data.use_about_me = True
+            mapped_data.use_custom_prompt = True
             if mapped_data.is_private:
                 mapped_data.release_notifications = ChatConfigDB.ReleaseNotifications.major
             else:
@@ -115,6 +117,7 @@ class WhatsAppDataResolver:
             mapped_data.id = old_user.id
             mapped_data.full_name = mapped_data.full_name if not old_user.full_name else old_user.full_name
             mapped_data.about_me = old_user.about_me
+            mapped_data.custom_prompt = old_user.custom_prompt
             mapped_data.whatsapp_phone_number = mapped_data.whatsapp_phone_number or old_user.whatsapp_phone_number
             mapped_data.telegram_chat_id = old_user.telegram_chat_id
             mapped_data.telegram_user_id = old_user.telegram_user_id

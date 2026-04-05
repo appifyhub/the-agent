@@ -11,5 +11,6 @@ class ChatSettingsResponse(BaseModel):
     release_notifications: str
     media_mode: str
     use_about_me: bool
+    use_custom_prompt: bool
     is_private: bool
     is_own: bool

@@ -10,6 +10,7 @@ class ChatSettingsPayload(BaseModel):
     release_notifications: str
     media_mode: str
     use_about_me: bool
+    use_custom_prompt: bool
 
     # noinspection PyNestedDecorators
     @field_validator(

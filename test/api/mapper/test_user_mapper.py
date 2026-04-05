@@ -20,6 +20,7 @@ class UserMapperTest(unittest.TestCase):
             id = UUID("12345678-1234-5678-1234-567812345678"),
             full_name = "Test User",
             about_me = SecretStr("I love Python programming and enjoy hiking on weekends"),
+            custom_prompt = SecretStr("Always respond concisely and in bullet points"),
             telegram_username = "testuser",
             telegram_chat_id = "123456789",
             telegram_user_id = 123456789,
@@ -188,6 +189,31 @@ class UserMapperTest(unittest.TestCase):
         user_save = api_to_domain(payload_none, self.user)
         self.assertEqual(user_save.about_me, self.user.about_me)
 
+    def test_api_to_domain_with_custom_prompt(self):
+        # Test setting a new custom_prompt
+        payload_set = UserSettingsPayload(
+            custom_prompt = "Always respond in formal English",
+        )
+        user_save = api_to_domain(payload_set, self.user)
+        self.assertEqual(
+            user_save.custom_prompt.get_secret_value() if user_save.custom_prompt else None,
+            "Always respond in formal English",
+        )
+
+        # Test clearing custom_prompt with empty string
+        payload_clear = UserSettingsPayload(
+            custom_prompt = "",
+        )
+        user_save = api_to_domain(payload_clear, self.user)
+        self.assertIsNone(user_save.custom_prompt)
+
+        # Test that None in payload preserves existing value
+        payload_none = UserSettingsPayload(
+            open_ai_key = "sk-test",
+        )
+        user_save = api_to_domain(payload_none, self.user)
+        self.assertEqual(user_save.custom_prompt, self.user.custom_prompt)
+
     def test_domain_to_api_conversion(self):
         masked_user = domain_to_api(self.user, is_sponsored = False)
 
@@ -199,6 +225,12 @@ class UserMapperTest(unittest.TestCase):
         self.assertEqual(
             masked_user.about_me,
             self.user.about_me.get_secret_value(),
+        )
+        # Check that custom_prompt is NOT masked (returned as-is)
+        assert self.user.custom_prompt is not None
+        self.assertEqual(
+            masked_user.custom_prompt,
+            self.user.custom_prompt.get_secret_value(),
         )
         self.assertEqual(masked_user.telegram_username, self.user.telegram_username)
         self.assertEqual(masked_user.telegram_chat_id, self.user.telegram_chat_id)
@@ -243,6 +275,7 @@ class UserMapperTest(unittest.TestCase):
         user_with_nones = self.user.model_copy(
             update = {
                 "about_me": None,
+                "custom_prompt": None,
                 "open_ai_key": None,
                 "tool_choice_chat": None,
                 "tool_choice_reasoning": None,
@@ -253,6 +286,7 @@ class UserMapperTest(unittest.TestCase):
 
         # Check that None values remain None
         self.assertIsNone(masked_user.about_me)
+        self.assertIsNone(masked_user.custom_prompt)
         self.assertIsNone(masked_user.open_ai_key)
         self.assertIsNone(masked_user.tool_choice_chat)
         self.assertIsNone(masked_user.tool_choice_reasoning)

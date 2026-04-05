@@ -25,6 +25,7 @@ from features.chat.telegram.model.user import User as TelegramUser
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.external_tools.access_token_resolver import AccessTokenResolver
 from features.external_tools.external_tool import CostEstimate, ExternalTool, ExternalToolProvider, ToolType
+from features.external_tools.external_tool_library import CLAUDE_4_SONNET, GPT_4O, IMAGE_GEN_FLUX_1_1, SONAR
 from util.config import ConfiguredProduct
 from util.error_codes import (
     MALFORMED_CHAT_ID,
@@ -87,6 +88,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
 
@@ -224,6 +226,7 @@ class SettingsControllerTest(unittest.TestCase):
         self.assertEqual(result["release_notifications"], self.chat_config.release_notifications.value)
         self.assertEqual(result["media_mode"], self.chat_config.media_mode.value)
         self.assertEqual(result["use_about_me"], self.chat_config.use_about_me)
+        self.assertEqual(result["use_custom_prompt"], self.chat_config.use_custom_prompt)
         self.assertIn("is_own", result)
 
     def test_fetch_user_settings_success(self):
@@ -279,6 +282,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.all,  # Updated value
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_chat_config_dao.save.return_value = saved_chat_config_db
@@ -291,6 +295,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = "all",
             media_mode = "photo",
             use_about_me = True,
+            use_custom_prompt = True,
         )
 
         # Should not raise any exception
@@ -300,8 +305,7 @@ class SettingsControllerTest(unittest.TestCase):
         # noinspection PyUnresolvedReferences
         self.mock_chat_config_dao.save.assert_called_once()
 
-    @patch("api.settings_controller.SettingsController.fetch_external_tools")
-    def test_save_user_settings_with_all_tokens(self, mock_fetch_external_tools):
+    def test_save_user_settings_with_all_tokens(self):
         # Create a proper UserDB mock for the save return value
         saved_user_db = UserDB(
             id = self.invoker_user.id,
@@ -316,11 +320,11 @@ class SettingsControllerTest(unittest.TestCase):
             replicate_key = SecretStr("new_replicate_key"),
             rapid_api_key = SecretStr("new_rapid_api_key"),
             coinmarketcap_key = SecretStr("new_coinmarketcap_key"),
-            tool_choice_chat = "claude-3-7-sonnet-latest",
-            tool_choice_reasoning = "gpt-4o",
-            tool_choice_vision = "claude-3-7-sonnet-latest",
-            tool_choice_images_gen = "dall-e-2",
-            tool_choice_search = "updated-perplexity-search",
+            tool_choice_chat = CLAUDE_4_SONNET.id,
+            tool_choice_reasoning = GPT_4O.id,
+            tool_choice_vision = CLAUDE_4_SONNET.id,
+            tool_choice_images_gen = IMAGE_GEN_FLUX_1_1.id,
+            tool_choice_search = SONAR.id,
             group = self.invoker_user.group,
             created_at = self.invoker_user.created_at,
             credit_balance = 0.0,
@@ -330,18 +334,6 @@ class SettingsControllerTest(unittest.TestCase):
         )
         self.mock_user_dao.save.return_value = saved_user_db
 
-        # Mock the fetch_external_tools method
-        mock_fetch_external_tools.return_value = {
-            "tools": [
-                {"definition": {"id": "claude-3-7-sonnet-latest"}, "is_configured": True},
-                {"definition": {"id": "gpt-4o"}, "is_configured": True},
-                {"definition": {"id": "dall-e-2"}, "is_configured": True},
-                {"definition": {"id": "updated-perplexity-search"}, "is_configured": True},
-            ],
-            "providers": [],
-            "presets": {},
-        }
-
         controller = SettingsController(self.mock_di)
         payload = UserSettingsPayload(
             open_ai_key = "new_openai_key",
@@ -350,11 +342,11 @@ class SettingsControllerTest(unittest.TestCase):
             replicate_key = "new_replicate_key",
             rapid_api_key = "new_rapid_api_key",
             coinmarketcap_key = "new_coinmarketcap_key",
-            tool_choice_chat = "claude-3-7-sonnet-latest",
-            tool_choice_reasoning = "gpt-4o",
-            tool_choice_vision = "claude-3-7-sonnet-latest",
-            tool_choice_images_gen = "dall-e-2",
-            tool_choice_search = "updated-perplexity-search",
+            tool_choice_chat = CLAUDE_4_SONNET.id,
+            tool_choice_reasoning = GPT_4O.id,
+            tool_choice_vision = CLAUDE_4_SONNET.id,
+            tool_choice_images_gen = IMAGE_GEN_FLUX_1_1.id,
+            tool_choice_search = SONAR.id,
         )
 
         # Should not raise any exception
@@ -374,11 +366,9 @@ class SettingsControllerTest(unittest.TestCase):
             controller.save_user_settings(self.invoker_user.id.hex, payload)
 
         self.assertIn("Invalid tool choice", str(context.exception))
-        self.assertIn("not configured", str(context.exception))
+        self.assertIn("not recognized", str(context.exception))
 
-    @patch("api.settings_controller.SettingsController.fetch_external_tools")
-    def test_save_user_settings_reject_policy_false(self, mock_fetch_external_tools):
-        mock_fetch_external_tools.return_value = {"tools": [], "providers": [], "presets": {}}
+    def test_save_user_settings_reject_policy_false(self):
         controller = SettingsController(self.mock_di)
         payload = UserSettingsPayload(are_policies_accepted = False)
 
@@ -387,9 +377,7 @@ class SettingsControllerTest(unittest.TestCase):
 
         self.assertEqual(context.exception.error_code, POLICY_ACCEPTANCE_REVOCATION_FORBIDDEN)
 
-    @patch("api.settings_controller.SettingsController.fetch_external_tools")
-    def test_save_user_settings_waitlisted_activation_when_capacity_available(self, mock_fetch_external_tools):
-        mock_fetch_external_tools.return_value = {"tools": [], "providers": [], "presets": {}}
+    def test_save_user_settings_waitlisted_activation_when_capacity_available(self):
         waitlisted_user = self.invoker_user.model_copy(
             update = {
                 "is_on_waitlist": True,
@@ -425,9 +413,7 @@ class SettingsControllerTest(unittest.TestCase):
         self.assertFalse(saved_payload.is_invited_to_start)
         self.assertTrue(saved_payload.are_policies_accepted)
 
-    @patch("api.settings_controller.SettingsController.fetch_external_tools")
-    def test_save_user_settings_waitlisted_activation_denied_without_invite_or_capacity(self, mock_fetch_external_tools):
-        mock_fetch_external_tools.return_value = {"tools": [], "providers": [], "presets": {}}
+    def test_save_user_settings_waitlisted_activation_denied_without_invite_or_capacity(self):
         waitlisted_user = self.invoker_user.model_copy(
             update = {
                 "is_on_waitlist": True,
@@ -461,6 +447,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = "all",
             media_mode = "photo",
             use_about_me = True,
+            use_custom_prompt = True,
         )
 
         with self.assertRaises(ValidationError) as context:
@@ -480,6 +467,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_chat_config_dao.get.return_value = private_chat_config
@@ -493,6 +481,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = "all",
             media_mode = "photo",
             use_about_me = True,
+            use_custom_prompt = True,
         )
 
         with self.assertRaises(ValidationError) as context:
@@ -512,6 +501,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = "invalid_value",  # This should fail
             media_mode = "photo",
             use_about_me = True,
+            use_custom_prompt = True,
         )
 
         with self.assertRaises(ValidationError) as context:
@@ -534,6 +524,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.major,  # Updated value
             media_mode = ChatConfigDB.MediaMode.file,  # Updated value
             use_about_me = False,
+            use_custom_prompt = False,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_chat_config_dao.save.return_value = saved_chat_config_db
@@ -546,6 +537,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = "major",
             media_mode = "file",
             use_about_me = False,
+            use_custom_prompt = False,
         )
 
         # Should not raise any exception
@@ -571,6 +563,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.major,
             media_mode = ChatConfigDB.MediaMode.file,
             use_about_me = False,  # Toggled off
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_chat_config_dao.save.return_value = saved_chat_config_db
@@ -583,6 +576,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = "major",
             media_mode = "file",
             use_about_me = False,  # Toggling off
+            use_custom_prompt = True,
         )
 
         # Should not raise any exception
@@ -593,6 +587,47 @@ class SettingsControllerTest(unittest.TestCase):
         self.mock_chat_config_dao.save.assert_called_once()
         saved_data = self.mock_chat_config_dao.save.call_args[0][0]
         self.assertEqual(saved_data.use_about_me, False)
+
+    def test_save_chat_settings_use_custom_prompt(self):
+        self.mock_user_dao.get.return_value = self.invoker_user
+        self.mock_chat_config_dao.get.return_value = self.chat_config
+
+        # Test toggling use_custom_prompt flag
+        saved_chat_config_db = ChatConfigDB(
+            chat_id = self.chat_config.chat_id,
+            external_id = self.chat_config.external_id,
+            title = self.chat_config.title,
+            language_name = "Spanish",
+            language_iso_code = "es",
+            reply_chance_percent = 75,
+            is_private = self.chat_config.is_private,
+            release_notifications = ChatConfigDB.ReleaseNotifications.major,
+            media_mode = ChatConfigDB.MediaMode.file,
+            use_about_me = True,
+            use_custom_prompt = False,  # Toggled off
+            chat_type = ChatConfigDB.ChatType.telegram,
+        )
+        self.mock_chat_config_dao.save.return_value = saved_chat_config_db
+
+        controller = SettingsController(self.mock_di)
+        payload = ChatSettingsPayload(
+            language_name = "Spanish",
+            language_iso_code = "es",
+            reply_chance_percent = 75,
+            release_notifications = "major",
+            media_mode = "file",
+            use_about_me = True,
+            use_custom_prompt = False,  # Toggling off
+        )
+
+        # Should not raise any exception
+        controller.save_chat_settings("test_chat_123", payload)
+
+        # Verify the mock was called with the updated value
+        # noinspection PyUnresolvedReferences
+        self.mock_chat_config_dao.save.assert_called_once()
+        saved_data = self.mock_chat_config_dao.save.call_args[0][0]
+        self.assertEqual(saved_data.use_custom_prompt, False)
 
     def test_fetch_admin_chats_success(self):
         self.invoker_user.telegram_chat_id = "invoker_chat_id"  # As in setUp
@@ -617,6 +652,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         no_title_chat_config = ChatConfig(
@@ -629,6 +665,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
 
@@ -898,6 +935,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_authorization_service.authorize_for_chat.return_value = custom_chat_config

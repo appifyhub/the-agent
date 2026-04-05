@@ -50,7 +50,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.whatsapp_phone_number_id, "invalid")
         self.assertEqual(config.whatsapp_bot_phone_number, "11234567890")
         self.assertEqual(config.chat_history_depth, 30)
-        self.assertEqual(config.github_issues_repo, "appifyhub/the-agent")
+        self.assertEqual(config.github_issues_repo, "appifyhub/agent-backend")
         self.assertEqual(config.issue_templates_abs_path, ".github/ISSUE_TEMPLATE")
         self.assertEqual(config.jwt_expires_in_minutes, 30)
         self.assertEqual(config.backoffice_url_base, "http://127.0.0.1.sslip.io:5173")

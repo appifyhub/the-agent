@@ -317,6 +317,7 @@ class ReleaseSummaryResponderTest(unittest.TestCase):
             release_notifications = notifications,
             media_mode = media_mode,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
 
@@ -340,6 +341,7 @@ class ReleaseSummaryResponderTest(unittest.TestCase):
                 release_notifications = notifications,
                 media_mode = media_mode,
                 use_about_me = True,
+                use_custom_prompt = True,
                 chat_type = ChatConfigDB.ChatType.telegram,
             ),
         )

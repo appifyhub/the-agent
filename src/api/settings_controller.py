@@ -29,6 +29,7 @@ from util.error_codes import (
     INVALID_SETTINGS_TYPE,
     INVALID_TOOL_CHOICE,
     INVALID_USE_ABOUT_ME,
+    INVALID_USE_CUSTOM_PROMPT,
     MISSING_CHAT_CONTEXT,
     NO_PRIVATE_CHAT,
     POLICY_ACCEPTANCE_REVOCATION_FORBIDDEN,
@@ -194,6 +195,12 @@ class SettingsController:
         log.t(f"  Updating use_about_me to '{payload.use_about_me}'")
         chat_config_save.use_about_me = payload.use_about_me
 
+        # validate use_custom_prompt changes (it should always be valid, but let's keep)
+        if not isinstance(payload.use_custom_prompt, bool):
+            raise ValidationError(f"Invalid use_custom_prompt value '{payload.use_custom_prompt}'", INVALID_USE_CUSTOM_PROMPT)
+        log.t(f"  Updating use_custom_prompt to '{payload.use_custom_prompt}'")
+        chat_config_save.use_custom_prompt = payload.use_custom_prompt
+
         # finally store the changes
         ChatConfig.model_validate(self.__di.chat_config_crud.save(chat_config_save))
         log.i("Chat settings saved")
@@ -203,11 +210,10 @@ class SettingsController:
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
 
         # validate tool choices
-        configured_tools = self.fetch_external_tools(user_id_hex)
-        configured_tool_ids = {tool["definition"]["id"] for tool in configured_tools["tools"] if tool["is_configured"]}
+        all_tool_ids = {tool.id for tool in ALL_EXTERNAL_TOOLS}
         for key, value in payload.model_dump().items():
-            if key.startswith("tool_choice_") and value and (value not in configured_tool_ids):
-                raise ValidationError(f"Invalid tool choice '{value}' for '{key}'. Tool is not configured.", INVALID_TOOL_CHOICE)
+            if key.startswith("tool_choice_") and value and (value not in all_tool_ids):
+                raise ValidationError(f"Invalid tool choice '{value}' for '{key}'. Tool is not recognized.", INVALID_TOOL_CHOICE)
 
         if payload.are_policies_accepted is False:
             raise ValidationError(

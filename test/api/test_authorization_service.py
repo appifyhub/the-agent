@@ -60,6 +60,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.chat_member = self.create_admin_member(self.invoker_telegram_user, is_manager = False)
@@ -201,6 +202,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             reply_chance_percent = 50,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         chat_config_2 = ChatConfig(
@@ -212,6 +214,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             reply_chance_percent = 50,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         chat_config_3 = ChatConfig(
@@ -223,6 +226,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             reply_chance_percent = 50,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
 
@@ -265,6 +269,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             is_private = False, release_notifications = ChatConfigDB.ReleaseNotifications.all,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         chat_config2 = ChatConfig(
@@ -273,6 +278,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             is_private = False, release_notifications = ChatConfigDB.ReleaseNotifications.all,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         chat_config3 = ChatConfig(
@@ -281,6 +287,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             is_private = False, release_notifications = ChatConfigDB.ReleaseNotifications.all,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         all_chat_configs = [chat_config1, chat_config2, chat_config3]
@@ -342,6 +349,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             reply_chance_percent = 100,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         group_chat_z = ChatConfig(
@@ -353,6 +361,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             reply_chance_percent = 50,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         group_chat_a = ChatConfig(
@@ -364,6 +373,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             reply_chance_percent = 50,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         group_chat_no_title = ChatConfig(
@@ -375,6 +385,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             reply_chance_percent = 50,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
 

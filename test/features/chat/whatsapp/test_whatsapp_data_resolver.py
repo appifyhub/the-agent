@@ -188,6 +188,7 @@ class WhatsAppDataResolverTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.major,
             media_mode = ChatConfigDB.MediaMode.all,  # Non-default value to test preservation
             use_about_me = False,  # Non-default value to test preservation
+            use_custom_prompt = False,  # Non-default value to test preservation
             chat_type = ChatConfigDB.ChatType.whatsapp,
         )
         existing_config_db = self.sql.chat_config_crud().save(existing_config_data)
@@ -214,6 +215,7 @@ class WhatsAppDataResolverTest(unittest.TestCase):
         self.assertEqual(result.release_notifications, existing_config.release_notifications)
         self.assertEqual(result.media_mode, existing_config.media_mode)
         self.assertEqual(result.use_about_me, existing_config.use_about_me)
+        self.assertEqual(result.use_custom_prompt, existing_config.use_custom_prompt)
 
     def test_resolve_chat_config_new(self):
         mapped_data = ChatConfigSave(
@@ -318,6 +320,7 @@ class WhatsAppDataResolverTest(unittest.TestCase):
             x_key = SecretStr("sk-key"),
             x_ai_key = SecretStr("sk-key"),
             about_me = SecretStr("Personal info about me"),
+            custom_prompt = SecretStr("Custom instructions to preserve"),
             credit_balance = 123.45,
             group = UserDB.Group.developer,
             # Add all tool choice fields to test preservation
@@ -363,6 +366,7 @@ class WhatsAppDataResolverTest(unittest.TestCase):
         self.assertEqual(result.x_key, existing_user.x_key)
         self.assertEqual(result.x_ai_key, existing_user.x_ai_key)
         self.assertEqual(result.about_me, existing_user.about_me)
+        self.assertEqual(result.custom_prompt, existing_user.custom_prompt)
         self.assertEqual(result.credit_balance, existing_user.credit_balance)
         self.assertEqual(result.group, existing_user.group)
         self.assertEqual(result.created_at, existing_user.created_at)
