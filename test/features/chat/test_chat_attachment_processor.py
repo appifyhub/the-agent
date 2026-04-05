@@ -74,6 +74,7 @@ class ChatAttachmentProcessorTest(unittest.TestCase):
             language_name = "Spanish",
             language_iso_code = "es",
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.attachment = ChatMessageAttachment(

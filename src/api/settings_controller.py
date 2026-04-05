@@ -29,6 +29,7 @@ from util.error_codes import (
     INVALID_SETTINGS_TYPE,
     INVALID_TOOL_CHOICE,
     INVALID_USE_ABOUT_ME,
+    INVALID_USE_CUSTOM_PROMPT,
     MISSING_CHAT_CONTEXT,
     NO_PRIVATE_CHAT,
     POLICY_ACCEPTANCE_REVOCATION_FORBIDDEN,
@@ -193,6 +194,12 @@ class SettingsController:
             raise ValidationError(f"Invalid use_about_me value '{payload.use_about_me}'", INVALID_USE_ABOUT_ME)
         log.t(f"  Updating use_about_me to '{payload.use_about_me}'")
         chat_config_save.use_about_me = payload.use_about_me
+
+        # validate use_custom_prompt changes (it should always be valid, but let's keep)
+        if not isinstance(payload.use_custom_prompt, bool):
+            raise ValidationError(f"Invalid use_custom_prompt value '{payload.use_custom_prompt}'", INVALID_USE_CUSTOM_PROMPT)
+        log.t(f"  Updating use_custom_prompt to '{payload.use_custom_prompt}'")
+        chat_config_save.use_custom_prompt = payload.use_custom_prompt
 
         # finally store the changes
         ChatConfig.model_validate(self.__di.chat_config_crud.save(chat_config_save))

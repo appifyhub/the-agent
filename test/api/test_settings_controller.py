@@ -87,6 +87,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
 
@@ -224,6 +225,7 @@ class SettingsControllerTest(unittest.TestCase):
         self.assertEqual(result["release_notifications"], self.chat_config.release_notifications.value)
         self.assertEqual(result["media_mode"], self.chat_config.media_mode.value)
         self.assertEqual(result["use_about_me"], self.chat_config.use_about_me)
+        self.assertEqual(result["use_custom_prompt"], self.chat_config.use_custom_prompt)
         self.assertIn("is_own", result)
 
     def test_fetch_user_settings_success(self):
@@ -279,6 +281,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.all,  # Updated value
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_chat_config_dao.save.return_value = saved_chat_config_db
@@ -291,6 +294,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = "all",
             media_mode = "photo",
             use_about_me = True,
+            use_custom_prompt = True,
         )
 
         # Should not raise any exception
@@ -461,6 +465,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = "all",
             media_mode = "photo",
             use_about_me = True,
+            use_custom_prompt = True,
         )
 
         with self.assertRaises(ValidationError) as context:
@@ -480,6 +485,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_chat_config_dao.get.return_value = private_chat_config
@@ -493,6 +499,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = "all",
             media_mode = "photo",
             use_about_me = True,
+            use_custom_prompt = True,
         )
 
         with self.assertRaises(ValidationError) as context:
@@ -512,6 +519,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = "invalid_value",  # This should fail
             media_mode = "photo",
             use_about_me = True,
+            use_custom_prompt = True,
         )
 
         with self.assertRaises(ValidationError) as context:
@@ -534,6 +542,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.major,  # Updated value
             media_mode = ChatConfigDB.MediaMode.file,  # Updated value
             use_about_me = False,
+            use_custom_prompt = False,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_chat_config_dao.save.return_value = saved_chat_config_db
@@ -546,6 +555,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = "major",
             media_mode = "file",
             use_about_me = False,
+            use_custom_prompt = False,
         )
 
         # Should not raise any exception
@@ -571,6 +581,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.major,
             media_mode = ChatConfigDB.MediaMode.file,
             use_about_me = False,  # Toggled off
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_chat_config_dao.save.return_value = saved_chat_config_db
@@ -583,6 +594,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = "major",
             media_mode = "file",
             use_about_me = False,  # Toggling off
+            use_custom_prompt = True,
         )
 
         # Should not raise any exception
@@ -593,6 +605,47 @@ class SettingsControllerTest(unittest.TestCase):
         self.mock_chat_config_dao.save.assert_called_once()
         saved_data = self.mock_chat_config_dao.save.call_args[0][0]
         self.assertEqual(saved_data.use_about_me, False)
+
+    def test_save_chat_settings_use_custom_prompt(self):
+        self.mock_user_dao.get.return_value = self.invoker_user
+        self.mock_chat_config_dao.get.return_value = self.chat_config
+
+        # Test toggling use_custom_prompt flag
+        saved_chat_config_db = ChatConfigDB(
+            chat_id = self.chat_config.chat_id,
+            external_id = self.chat_config.external_id,
+            title = self.chat_config.title,
+            language_name = "Spanish",
+            language_iso_code = "es",
+            reply_chance_percent = 75,
+            is_private = self.chat_config.is_private,
+            release_notifications = ChatConfigDB.ReleaseNotifications.major,
+            media_mode = ChatConfigDB.MediaMode.file,
+            use_about_me = True,
+            use_custom_prompt = False,  # Toggled off
+            chat_type = ChatConfigDB.ChatType.telegram,
+        )
+        self.mock_chat_config_dao.save.return_value = saved_chat_config_db
+
+        controller = SettingsController(self.mock_di)
+        payload = ChatSettingsPayload(
+            language_name = "Spanish",
+            language_iso_code = "es",
+            reply_chance_percent = 75,
+            release_notifications = "major",
+            media_mode = "file",
+            use_about_me = True,
+            use_custom_prompt = False,  # Toggling off
+        )
+
+        # Should not raise any exception
+        controller.save_chat_settings("test_chat_123", payload)
+
+        # Verify the mock was called with the updated value
+        # noinspection PyUnresolvedReferences
+        self.mock_chat_config_dao.save.assert_called_once()
+        saved_data = self.mock_chat_config_dao.save.call_args[0][0]
+        self.assertEqual(saved_data.use_custom_prompt, False)
 
     def test_fetch_admin_chats_success(self):
         self.invoker_user.telegram_chat_id = "invoker_chat_id"  # As in setUp
@@ -617,6 +670,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         no_title_chat_config = ChatConfig(
@@ -629,6 +683,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
 
@@ -898,6 +953,7 @@ class SettingsControllerTest(unittest.TestCase):
             release_notifications = ChatConfigDB.ReleaseNotifications.all,
             media_mode = ChatConfigDB.MediaMode.photo,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.mock_authorization_service.authorize_for_chat.return_value = custom_chat_config
