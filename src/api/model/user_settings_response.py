@@ -5,6 +5,7 @@ class UserSettingsResponse(BaseModel):
     id: str
     full_name: str | None = None
     about_me: str | None = None
+    custom_prompt: str | None = None
     telegram_username: str | None = None
     telegram_chat_id: str | None = None
     telegram_user_id: int | None = None

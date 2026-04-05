@@ -16,6 +16,7 @@ class ChatSettingsPayloadTest(unittest.TestCase):
             release_notifications = "all",
             media_mode = "photo",
             use_about_me = True,
+            use_custom_prompt = True,
         )
 
         self.assertEqual(payload.language_name, "Spanish")
@@ -40,6 +41,7 @@ class ChatSettingsPayloadTest(unittest.TestCase):
             release_notifications = "  none  ",
             media_mode = "  file  ",
             use_about_me = False,
+            use_custom_prompt = False,
         )
 
         self.assertEqual(payload.language_name, "English")
@@ -57,6 +59,7 @@ class ChatSettingsPayloadTest(unittest.TestCase):
             release_notifications = "\t\n",  # Tabs and newlines
             media_mode = "\t\n",  # Tabs and newlines
             use_about_me = True,
+            use_custom_prompt = True,
         )
 
         # After trimming, these should all be empty strings
@@ -76,6 +79,7 @@ class ChatSettingsPayloadTest(unittest.TestCase):
             release_notifications = "all",
             media_mode = "photo",
             use_about_me = True,
+            use_custom_prompt = True,
         )
         payload_100 = ChatSettingsPayload(
             language_name = "English",
@@ -84,6 +88,7 @@ class ChatSettingsPayloadTest(unittest.TestCase):
             release_notifications = "all",
             media_mode = "file",
             use_about_me = False,
+            use_custom_prompt = False,
         )
         payload_50 = ChatSettingsPayload(
             language_name = "English",
@@ -92,6 +97,7 @@ class ChatSettingsPayloadTest(unittest.TestCase):
             release_notifications = "all",
             media_mode = "all",
             use_about_me = True,
+            use_custom_prompt = True,
         )
 
         self.assertEqual(payload_0.reply_chance_percent, 0)
@@ -109,6 +115,7 @@ class ChatSettingsPayloadTest(unittest.TestCase):
                 release_notifications = "all",
                 media_mode = "photo",
                 use_about_me = True,
+                use_custom_prompt = True,
             )
         self.assertIn("Reply chance percent must be between 0 and 100", str(context.exception))
 
@@ -120,5 +127,6 @@ class ChatSettingsPayloadTest(unittest.TestCase):
                 release_notifications = "all",
                 media_mode = "photo",
                 use_about_me = True,
+                use_custom_prompt = True,
             )
         self.assertIn("Reply chance percent must be between 0 and 100", str(context.exception))

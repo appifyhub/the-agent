@@ -16,6 +16,8 @@ def api_to_domain(payload: UserSettingsPayload, existing_user: User) -> UserSave
         user_save.full_name = payload.full_name if payload.full_name else None
     if payload.about_me is not None:
         user_save.about_me = SecretStr(payload.about_me) if payload.about_me else None
+    if payload.custom_prompt is not None:
+        user_save.custom_prompt = SecretStr(payload.custom_prompt) if payload.custom_prompt else None
 
     if payload.open_ai_key is not None:
         user_save.open_ai_key = SecretStr(payload.open_ai_key) if payload.open_ai_key else None
@@ -73,6 +75,7 @@ def domain_to_api(user: User, is_sponsored: bool) -> UserSettingsResponse:
         id = user.id.hex,
         full_name = user.full_name,
         about_me = user.about_me.get_secret_value() if user.about_me else None,
+        custom_prompt = user.custom_prompt.get_secret_value() if user.custom_prompt else None,
         group = user.group.value,
 
         telegram_username = user.telegram_username,

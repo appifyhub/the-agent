@@ -86,6 +86,7 @@ class WhatsAppUpdateResponderTest(unittest.TestCase):
                     release_notifications = ChatConfigDB.ReleaseNotifications.all,
                     media_mode = ChatConfigDB.MediaMode.photo,
                     use_about_me = True,
+                    use_custom_prompt = True,
                     chat_type = ChatConfigDB.ChatType.whatsapp,
                 ),
                 author = User.model_validate(author_db),

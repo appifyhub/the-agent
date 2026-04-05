@@ -29,6 +29,7 @@ class PromptVar(Enum):
     author_username = "author_username"
     author_role = "author_role"
     author_info = "author_info"
+    custom_prompt = "custom_prompt"
     language_name = "language_name"
     language_iso = "language_iso"
     date_and_time = "date_and_time"

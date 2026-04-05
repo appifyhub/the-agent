@@ -13,6 +13,7 @@ def domain_to_api(chat: ChatConfig, is_own: bool) -> ChatSettingsResponse:
         release_notifications = chat.release_notifications.value,
         media_mode = chat.media_mode.value,
         use_about_me = chat.use_about_me,
+        use_custom_prompt = chat.use_custom_prompt,
         is_private = chat.is_private,
         is_own = is_own,
     )

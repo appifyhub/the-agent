@@ -25,8 +25,6 @@ def chat(
         prompt_library.contexts.core,
         prompt_library.contexts.chat,
         prompt_library.styles.chat,
-        prompt_library.personalities.chat_abot,
-        prompt_library.tones.chat_abot,
         prompt_library.appendices.translate,
         prompt_library.metas.agent_username,
         prompt_library.metas.agent_website,
@@ -47,11 +45,26 @@ def chat(
         (PromptVar.tools_list, tools_list or PLACEHOLDER_NO_DATA),
     )
     # add conditional generic components
-    if target_chat.use_about_me and invoker.about_me and (about_me_text := invoker.about_me.get_secret_value()):
+    if target_chat.use_about_me and invoker.about_me and (
+        about_me_text := invoker.about_me.get_secret_value()
+    ):
         composer = (
             composer
             .add_fragments(prompt_library.metas.author_info)
             .add_variables((PromptVar.author_info, about_me_text))
+        )
+    if target_chat.use_custom_prompt and invoker.custom_prompt and (
+        custom_prompt_text := invoker.custom_prompt.get_secret_value().strip()
+    ):
+        composer = (
+            composer
+            .add_fragments(prompt_library.personalities.custom_prompt)
+            .add_variables((PromptVar.custom_prompt, custom_prompt_text))
+        )
+    else:
+        composer = composer.add_fragments(
+            prompt_library.personalities.chat_abot,
+            prompt_library.tones.chat_abot,
         )
     # override and add platform-specific fragments and variables
     match target_chat.chat_type:

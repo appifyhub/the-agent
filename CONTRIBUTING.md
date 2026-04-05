@@ -55,7 +55,7 @@ Please, **do not** open new pull requests at random without creating an issue fi
 
 Not sure where to begin contributing to The Agent?
 
-You can start by looking through the [list of open issues](https://github.com/appifyhub/the-agent/issues).
+You can start by looking through the [list of open issues](https://github.com/appifyhub/agent-backend/issues).
 We will try to categorize the issues using labels/tags, so you'll be able to use labels/tags to filter.
 While not perfect, the number of comments on an issue is a reasonable proxy for impact a given change will have.
 
@@ -105,7 +105,7 @@ The general how-to:
 
 1. Read this Contributing guide
 1. Take note of the project's [license](./LICENSE)
-1. Check the [issues](https://github.com/appifyhub/the-agent/issues) to see if your change was already requested
+1. Check the [issues](https://github.com/appifyhub/agent-backend/issues) to see if your change was already requested
 1. Create your own fork of the repository
 1. Make the changes inside your fork
 1. When you finally like the changes and think the project could use them:

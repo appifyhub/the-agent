@@ -56,6 +56,7 @@ class ChatAgentTest(unittest.TestCase):
             is_private = False,
             reply_chance_percent = 50,
             use_about_me = True,
+            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
 

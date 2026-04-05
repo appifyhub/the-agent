@@ -123,6 +123,7 @@ class ChatConfigDB(BaseModel):
     release_notifications = Column(EnumSQL(ReleaseNotifications), nullable = False, default = ReleaseNotifications.all)
     media_mode = Column(EnumSQL(MediaMode), nullable = False, default = MediaMode.photo)
     use_about_me = Column(Boolean, nullable = False, default = True)
+    use_custom_prompt = Column(Boolean, nullable = False, default = True)
     chat_type = Column(EnumSQL(ChatType), nullable = False)
 
     __table_args__ = (
