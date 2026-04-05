@@ -945,6 +945,10 @@ components:
           type: string
           nullable: true
           description: Personal information about the user for personalized interactions
+        custom_prompt:
+          type: string
+          nullable: true
+          description: Custom instructions for the AI agent to follow during interactions
         open_ai_key:
           type: string
           nullable: true
@@ -1049,6 +1053,10 @@ components:
           type: string
           nullable: true
           description: Personal information about the user
+        custom_prompt:
+          type: string
+          nullable: true
+          description: Custom instructions for the AI agent
         telegram_username:
           type: string
           nullable: true
@@ -1212,6 +1220,10 @@ components:
           type: boolean
           nullable: false
           description: Whether to include the participants' "about me" information in agent interactions for this chat
+        use_custom_prompt:
+          type: boolean
+          nullable: false
+          description: Whether to apply the participants' custom prompt instructions in agent interactions for this chat
       required:
         - language_name
         - language_iso_code
@@ -1219,6 +1231,7 @@ components:
         - release_notifications
         - media_mode
         - use_about_me
+        - use_custom_prompt
 
     ChatSettingsResponse:
       type: object
@@ -1264,6 +1277,10 @@ components:
           type: boolean
           nullable: false
           description: Whether to include the participants' "about me" information in agent interactions for this chat
+        use_custom_prompt:
+          type: boolean
+          nullable: false
+          description: Whether to apply the participants' custom prompt instructions in agent interactions for this chat
         is_private:
           type: boolean
           nullable: false
@@ -1279,6 +1296,7 @@ components:
         - release_notifications
         - media_mode
         - use_about_me
+        - use_custom_prompt
         - is_private
         - is_own
 
