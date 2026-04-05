@@ -74,5 +74,13 @@ COINMARKETCAP = ExternalToolProvider(
     tools = ["Crypto"],
 )
 
+INTERNAL = ExternalToolProvider(
+    id = "internal",
+    name = "Internal",
+    token_management_url = "https://to.appifyhub.com/agent",
+    token_format = "eyJ...abc123",
+    tools = ["Credits"],
+)
 
-ALL_PROVIDERS = [OPEN_AI, ANTHROPIC, GOOGLE_AI, XAI, PERPLEXITY, REPLICATE, RAPID_API, X, COINMARKETCAP]
+
+ALL_PROVIDERS = [OPEN_AI, ANTHROPIC, GOOGLE_AI, XAI, PERPLEXITY, REPLICATE, RAPID_API, X, COINMARKETCAP, INTERNAL]

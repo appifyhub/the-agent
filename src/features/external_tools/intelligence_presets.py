@@ -22,6 +22,7 @@ from features.external_tools.external_tool_library import (
     SONAR_REASONING_PRO,
     TEXT_EMBEDDING_3_SMALL,
     TEXT_EMBEDDING_5_LARGE,
+    TRANSFER_TOOL,
     WHISPER_1,
     X_READ_POST,
 )
@@ -49,6 +50,7 @@ class PresetChoices:
     api_fiat_exchange: ExternalTool
     api_crypto_exchange: ExternalTool
     api_twitter: ExternalTool
+    credit_transfer: ExternalTool
 
     def as_dict(self) -> dict[str, str]:
         return {
@@ -82,6 +84,7 @@ INTELLIGENCE_PRESETS: dict[IntelligencePreset, PresetChoices] = {
         api_fiat_exchange = FIAT_CURRENCY_EXCHANGE,
         api_crypto_exchange = CRYPTO_CURRENCY_EXCHANGE,
         api_twitter = X_READ_POST,
+        credit_transfer = TRANSFER_TOOL,
     ),
 
     IntelligencePreset.highest_price: PresetChoices(
@@ -97,6 +100,7 @@ INTELLIGENCE_PRESETS: dict[IntelligencePreset, PresetChoices] = {
         api_fiat_exchange = FIAT_CURRENCY_EXCHANGE,
         api_crypto_exchange = CRYPTO_CURRENCY_EXCHANGE,
         api_twitter = X_READ_POST,
+        credit_transfer = TRANSFER_TOOL,
     ),
 
     IntelligencePreset.agent_choice: PresetChoices(
@@ -112,6 +116,7 @@ INTELLIGENCE_PRESETS: dict[IntelligencePreset, PresetChoices] = {
         api_fiat_exchange = FIAT_CURRENCY_EXCHANGE,
         api_crypto_exchange = CRYPTO_CURRENCY_EXCHANGE,
         api_twitter = X_READ_POST,
+        credit_transfer = TRANSFER_TOOL,
     ),
 
 }

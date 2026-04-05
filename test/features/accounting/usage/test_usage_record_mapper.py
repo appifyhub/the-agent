@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from unittest.mock import patch
 
 from db.model.usage_record import UsageRecordDB
+from features.accounting.usage.participant_details import ParticipantDetails, ParticipantInfo
 from features.accounting.usage.usage_record import UsageRecord
 from features.accounting.usage.usage_record_mapper import db, domain
 from features.external_tools.external_tool import ToolType
@@ -126,3 +127,62 @@ class UsageRecordMapperTest(unittest.TestCase):
             self.assertEqual(domain_obj.tool.provider.id, self.tool.provider.id)
             # Purpose should fall back to deprecated
             self.assertEqual(domain_obj.tool_purpose, ToolType.deprecated)
+
+    def test_db_to_domain_null_participant_details(self):
+        self.db_record.participant_details = None
+        domain_obj = domain(self.db_record)
+        self.assertIsNone(domain_obj.participant_details)
+
+    def test_db_to_domain_with_participant_details(self):
+        uid1 = uuid.uuid4()
+        uid2 = uuid.uuid4()
+        self.db_record.participant_details = {
+            "payer": {"user_id": str(uid1), "full_name": "Payer", "platform": "Telegram", "handle": "ph"},
+            "owner": {"user_id": str(uid2), "full_name": "Owner", "platform": "WhatsApp", "handle": "oh"},
+            "counterpart": None,
+        }
+
+        domain_obj = domain(self.db_record)
+
+        self.assertIsNotNone(domain_obj.participant_details)
+        self.assertEqual(domain_obj.participant_details.payer.user_id, uid1)
+        self.assertEqual(domain_obj.participant_details.payer.full_name, "Payer")
+        self.assertEqual(domain_obj.participant_details.payer.platform, "Telegram")
+        self.assertEqual(domain_obj.participant_details.payer.handle, "ph")
+        self.assertEqual(domain_obj.participant_details.owner.user_id, uid2)
+        self.assertEqual(domain_obj.participant_details.owner.platform, "WhatsApp")
+        self.assertIsNone(domain_obj.participant_details.counterpart)
+
+    def test_domain_to_db_with_participant_details(self):
+        uid1 = uuid.uuid4()
+        uid2 = uuid.uuid4()
+        payer = ParticipantInfo(user_id = uid1, full_name = "Payer", platform = "Telegram", handle = "ph")
+        owner = ParticipantInfo(user_id = uid1, full_name = "Payer", platform = "Telegram", handle = "ph")
+        counterpart = ParticipantInfo(user_id = uid2, full_name = "CP", platform = None, handle = None)
+        self.domain_record.participant_details = ParticipantDetails(payer = payer, owner = owner, counterpart = counterpart)
+
+        db_obj = db(self.domain_record)
+
+        self.assertIsNotNone(db_obj.participant_details)
+        self.assertEqual(db_obj.participant_details["payer"]["user_id"], str(uid1))
+        self.assertEqual(db_obj.participant_details["payer"]["platform"], "Telegram")
+        self.assertEqual(db_obj.participant_details["owner"]["user_id"], str(uid1))
+        self.assertEqual(db_obj.participant_details["counterpart"]["user_id"], str(uid2))
+        self.assertIsNone(db_obj.participant_details["counterpart"]["platform"])
+
+    def test_participant_details_round_trip(self):
+        uid1 = uuid.uuid4()
+        uid2 = uuid.uuid4()
+        payer = ParticipantInfo(user_id = uid1, full_name = "Payer", platform = "Telegram", handle = "ph")
+        owner = ParticipantInfo(user_id = uid1, full_name = "Payer", platform = "Telegram", handle = "ph")
+        counterpart = ParticipantInfo(user_id = uid2, full_name = "CP", platform = None, handle = None)
+        self.domain_record.participant_details = ParticipantDetails(payer = payer, owner = owner, counterpart = counterpart)
+
+        db_obj = db(self.domain_record)
+        restored = domain(db_obj)
+
+        self.assertEqual(restored.participant_details.payer.user_id, uid1)
+        self.assertEqual(restored.participant_details.payer.full_name, "Payer")
+        self.assertEqual(restored.participant_details.owner.user_id, uid1)
+        self.assertEqual(restored.participant_details.counterpart.user_id, uid2)
+        self.assertIsNone(restored.participant_details.counterpart.platform)

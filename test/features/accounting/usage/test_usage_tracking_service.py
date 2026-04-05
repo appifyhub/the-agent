@@ -1,7 +1,10 @@
 import unittest
+from datetime import date
 from unittest.mock import MagicMock, Mock
 from uuid import UUID
 
+from db.model.user import UserDB
+from db.schema.user import User
 from di.di import DI
 from features.accounting.usage.usage_record import UsageRecord
 from features.accounting.usage.usage_tracking_service import UsageTrackingService
@@ -34,6 +37,7 @@ class UsageTrackingServiceTest(unittest.TestCase):
         mock_repo = Mock()
         mock_repo.create = MagicMock(side_effect = lambda x: x)
         self.mock_di.usage_record_repo = mock_repo
+        self.mock_di.user_crud.get.return_value = None
 
         self.original_fee = config.usage_maintenance_fee_credits
         config.usage_maintenance_fee_credits = 1.0
@@ -579,3 +583,95 @@ class UsageTrackingServiceTest(unittest.TestCase):
         )
         self.assertEqual(record.payer_id, payer_id)
         self.assertFalse(record.uses_credits)
+
+    def test_participant_details_regular_usage(self):
+        tool = self._create_tool()
+        record = self.service.track_text_model(
+            tool = tool,
+            tool_purpose = ToolType.chat,
+            runtime_seconds = 1,
+            payer_id = self.user_id,
+            uses_credits = True,
+            input_tokens = 100,
+        )
+        self.assertIsNotNone(record.participant_details)
+        self.assertIsNotNone(record.participant_details.payer)
+        self.assertEqual(record.participant_details.payer.user_id, self.user_id)
+        self.assertIsNotNone(record.participant_details.owner)
+        self.assertEqual(record.participant_details.owner.user_id, self.user_id)
+        self.assertIsNone(record.participant_details.counterpart)
+
+    def test_participant_details_sponsored_payer_not_in_db(self):
+        tool = self._create_tool()
+        record = self.service.track_text_model(
+            tool = tool,
+            tool_purpose = ToolType.chat,
+            runtime_seconds = 1,
+            payer_id = self.payer_id,
+            uses_credits = True,
+            input_tokens = 100,
+        )
+        self.assertIsNotNone(record.participant_details)
+        self.assertIsNotNone(record.participant_details.payer)
+        self.assertEqual(record.participant_details.payer.user_id, self.payer_id)
+        self.assertIsNone(record.participant_details.payer.full_name)
+        self.assertIsNone(record.participant_details.payer.platform)
+        self.assertIsNotNone(record.participant_details.owner)
+        self.assertEqual(record.participant_details.owner.user_id, self.user_id)
+
+    def test_participant_details_sponsored_payer_found_in_db(self):
+        payer = User(
+            id = self.payer_id,
+            full_name = "Payer User",
+            telegram_username = "payer_handle",
+            group = UserDB.Group.standard,
+            created_at = date.today(),
+            credit_balance = 50.0,
+        )
+        self.mock_di.user_crud.get.return_value = payer.model_dump()
+
+        tool = self._create_tool()
+        record = self.service.track_text_model(
+            tool = tool,
+            tool_purpose = ToolType.chat,
+            runtime_seconds = 1,
+            payer_id = self.payer_id,
+            uses_credits = True,
+            input_tokens = 100,
+        )
+
+        self.assertEqual(record.participant_details.payer.user_id, self.payer_id)
+        self.assertEqual(record.participant_details.payer.full_name, "Payer User")
+        self.assertIsNotNone(record.participant_details.owner)
+        self.assertEqual(record.participant_details.owner.user_id, self.user_id)
+
+    def test_participant_details_image_model(self):
+        tool = self._create_tool(output_image_1k = 10)
+        record = self.service.track_image_model(
+            tool = tool,
+            tool_purpose = ToolType.images_gen,
+            runtime_seconds = 1,
+            payer_id = self.user_id,
+            uses_credits = True,
+            output_image_sizes = ["1k"],
+        )
+        self.assertIsNotNone(record.participant_details)
+        self.assertIsNotNone(record.participant_details.payer)
+        self.assertEqual(record.participant_details.payer.user_id, self.user_id)
+        self.assertIsNotNone(record.participant_details.owner)
+        self.assertEqual(record.participant_details.owner.user_id, self.user_id)
+
+    def test_participant_details_api_call(self):
+        tool = self._create_tool(api_call = 5)
+        record = self.service.track_api_call(
+            tool = tool,
+            tool_purpose = ToolType.api_twitter,
+            runtime_seconds = 1,
+            payer_id = self.user_id,
+            uses_credits = True,
+        )
+        self.assertIsNotNone(record.participant_details)
+        self.assertIsNotNone(record.participant_details.payer)
+        self.assertEqual(record.participant_details.payer.user_id, self.user_id)
+        self.assertIsNotNone(record.participant_details.owner)
+        self.assertEqual(record.participant_details.owner.user_id, self.user_id)

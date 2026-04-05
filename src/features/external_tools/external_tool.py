@@ -85,6 +85,7 @@ class ToolType(str, Enum):
     api_fiat_exchange = "api_fiat_exchange"  # fiat exchange API
     api_crypto_exchange = "api_crypto_exchange"  # crypto exchange API
     api_twitter = "api_twitter"  # X (Twitter) API
+    credit_transfer = "credit_transfer"  # credit transfer between users
     deprecated = "deprecated"  # deprecated tool type, for API compatibility
 
     @property

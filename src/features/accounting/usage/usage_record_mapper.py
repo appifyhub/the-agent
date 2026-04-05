@@ -1,4 +1,8 @@
+from dataclasses import asdict
+from uuid import UUID
+
 from db.model.usage_record import UsageRecordDB
+from features.accounting.usage.participant_details import ParticipantDetails, ParticipantInfo
 from features.accounting.usage.usage_record import UsageRecord
 from features.external_tools.external_tool import ExternalTool, ExternalToolProvider, ToolType
 from features.external_tools.external_tool_library import ALL_EXTERNAL_TOOLS
@@ -61,6 +65,9 @@ def domain(db_model: UsageRecordDB | None) -> UsageRecord | None:
         total_tokens = db_model.total_tokens,
         output_image_sizes = db_model.output_image_sizes,
         input_image_sizes = db_model.input_image_sizes,
+        counterpart_id = db_model.counterpart_id,
+        note = db_model.note,
+        participant_details = _participant_details_from_dict(db_model.participant_details),
     )
 
 
@@ -93,4 +100,39 @@ def db(domain_model: UsageRecord | None) -> UsageRecordDB | None:
         total_tokens = domain_model.total_tokens,
         output_image_sizes = domain_model.output_image_sizes,
         input_image_sizes = domain_model.input_image_sizes,
+        counterpart_id = domain_model.counterpart_id,
+        note = domain_model.note,
+        participant_details = _participant_details_to_dict(domain_model.participant_details),
     )
+
+
+def _participant_details_from_dict(data: dict | None) -> ParticipantDetails | None:
+    if data is None:
+        return None
+
+    def to_domain_info(input: dict | None) -> ParticipantInfo | None:
+        if input is None:
+            return None
+        return ParticipantInfo(
+            user_id = UUID(input["user_id"]),
+            full_name = input.get("full_name"),
+            platform = input.get("platform"),
+            handle = input.get("handle"),
+        )
+
+    return ParticipantDetails(
+        payer = to_domain_info(data.get("payer")),
+        owner = to_domain_info(data.get("owner")),
+        counterpart = to_domain_info(data.get("counterpart")),
+    )
+
+
+def _participant_details_to_dict(details: ParticipantDetails | None) -> dict | None:
+    if details is None:
+        return None
+    data = asdict(details)
+    for role in ("payer", "owner", "counterpart"):
+        if data[role] is not None:
+            # because UUID is not easily serialized
+            data[role]["user_id"] = str(data[role]["user_id"])
+    return data

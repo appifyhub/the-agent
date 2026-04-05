@@ -44,6 +44,14 @@ class UsageRecordDB(BaseModel):
     output_image_sizes = Column(JSON, nullable = True)
     input_image_sizes = Column(JSON, nullable = True)
 
+    # transfer-related properties
+    counterpart_id = Column(UUID(as_uuid = True), nullable = True)
+    note = Column(String, nullable = True)
+
+    # participant snapshot properties
+    participant_details = Column(JSON, nullable = True)
+
     __table_args__ = (
         Index("idx_usage_records_user_timestamp", user_id, timestamp.desc()),
+        Index("idx_usage_records_counterpart_timestamp", counterpart_id, timestamp.desc()),
     )

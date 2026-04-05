@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from uuid import UUID
 
+from features.accounting.usage.participant_details import ParticipantDetails
 from features.external_tools.external_tool import ExternalTool, ToolType
 
 
@@ -32,3 +33,8 @@ class UsageRecord:
     # image-related properties
     output_image_sizes: list[str] | None = None
     input_image_sizes: list[str] | None = None
+    # transfer-related properties
+    counterpart_id: UUID | None = None
+    note: str | None = None
+    # participant snapshot properties
+    participant_details: ParticipantDetails | None = None
