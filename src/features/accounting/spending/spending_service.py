@@ -4,7 +4,7 @@ from features.external_tools.configured_tool import ConfiguredTool
 from util import log
 from util.config import config
 from util.error_codes import INSUFFICIENT_CREDITS, USER_NOT_FOUND
-from util.errors import NotFoundError, RateLimitError
+from util.errors import NotFoundError, ValidationError
 
 
 class SpendingService:
@@ -38,7 +38,7 @@ class SpendingService:
             raise NotFoundError(f"Payer user not found for id {configured_tool.payer_id}", USER_NOT_FOUND)
         user = User.model_validate(user_db)
         if user.credit_balance < estimated_cost:
-            raise RateLimitError(f"Insufficient credits: minimum required {estimated_cost}, available {user.credit_balance}", INSUFFICIENT_CREDITS)  # noqa: E501
+            raise ValidationError(f"Insufficient credits: minimum required {estimated_cost}, available {user.credit_balance}", INSUFFICIENT_CREDITS)  # noqa: E501
 
     def deduct(self, configured_tool: ConfiguredTool, amount: float) -> None:
         if not configured_tool.uses_credits:
@@ -47,6 +47,9 @@ class SpendingService:
         def apply(user):
             available = user.credit_balance or 0.0
             if amount > available:
-                log.w(f"Actual cost {amount} exceeds pre-flight estimate for user {configured_tool.payer_id}; balance will go negative")
+                log.w(
+                    f"Actual cost {amount} exceeds pre-flight estimate for user "
+                    f"{configured_tool.payer_id}; balance will go negative",
+                )
             user.credit_balance = available - amount
         self.__di.user_crud.update_locked(configured_tool.payer_id, apply)

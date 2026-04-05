@@ -90,6 +90,29 @@ class UserCRUD:
         self._db.refresh(user)
         return user
 
+    def update_locked_pair(
+        self,
+        first_id: UUID,
+        second_id: UUID,
+        update_fn: Callable[[UserDB, UserDB], None],
+    ) -> tuple[UserDB, UserDB]:
+        lock_order = sorted([first_id, second_id])
+        first = self._db.query(UserDB).filter(
+            UserDB.id == lock_order[0],
+        ).with_for_update().first()
+        second = self._db.query(UserDB).filter(
+            UserDB.id == lock_order[1],
+        ).with_for_update().first()
+        if first is None or second is None:
+            raise NotFoundError("User not found", USER_NOT_FOUND)
+        mapped_first = first if first.id == first_id else second
+        mapped_second = second if second.id == second_id else first
+        update_fn(mapped_first, mapped_second)
+        self._db.commit()
+        self._db.refresh(mapped_first)
+        self._db.refresh(mapped_second)
+        return mapped_first, mapped_second
+
     def delete(self, user_id: UUID, commit: bool = True) -> UserDB | None:
         user = self.get(user_id)
         if user:

@@ -29,6 +29,7 @@ from api.auth import (
 from api.model.bind_license_key_payload import BindLicenseKeyPayload
 from api.model.chat_settings_payload import ChatSettingsPayload
 from api.model.connect_key_response import ConnectKeyResponse
+from api.model.credit_transfer_payload import CreditTransferPayload
 from api.model.gumroad_ping_payload import GumroadPingPayload
 from api.model.release_output_payload import ReleaseOutputPayload
 from api.model.settings_link_response import SettingsLinkResponse
@@ -337,6 +338,21 @@ def unsponsor_self(
     return {"status": "OK"}
 
 
+@app.post("/user/{resource_id}/transfers")
+def transfer_credits(
+    resource_id: str,
+    payload: CreditTransferPayload,
+    db = Depends(get_session),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
+) -> dict:
+    log.d(f"Transferring credits from {resource_id}")
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    di = DI(db, invoker_id_hex)
+    di.transfers_controller.transfer_credits(resource_id, payload)
+    return {"status": "OK"}
+
+
 @app.get("/user/{resource_id}/usage")
 def get_usage_records(
     resource_id: str,
@@ -346,6 +362,8 @@ def get_usage_records(
     end_date: str | None = None,
     exclude_self: bool = False,
     include_sponsored: bool = False,
+    include_transfers: bool = True,
+    only_transfers: bool = False,
     tool_id: str | None = None,
     purpose: str | None = None,
     provider_id: str | None = None,
@@ -365,6 +383,8 @@ def get_usage_records(
         end_date = end_date_obj,
         exclude_self = exclude_self,
         include_sponsored = include_sponsored,
+        include_transfers = include_transfers,
+        only_transfers = only_transfers,
         tool_id = tool_id,
         purpose = purpose,
         provider_id = provider_id,
@@ -378,6 +398,8 @@ def get_usage_stats(
     end_date: str | None = None,
     exclude_self: bool = False,
     include_sponsored: bool = False,
+    include_transfers: bool = True,
+    only_transfers: bool = False,
     tool_id: str | None = None,
     purpose: str | None = None,
     provider_id: str | None = None,
@@ -395,6 +417,8 @@ def get_usage_stats(
         end_date = end_date_obj,
         exclude_self = exclude_self,
         include_sponsored = include_sponsored,
+        include_transfers = include_transfers,
+        only_transfers = only_transfers,
         tool_id = tool_id,
         purpose = purpose,
         provider_id = provider_id,

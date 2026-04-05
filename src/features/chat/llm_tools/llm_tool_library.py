@@ -403,6 +403,70 @@ def connect_profiles(di: DI, connect_key: str) -> str:
         return __error(e)
 
 
+def check_usage_and_balance(di: DI) -> str:
+    """
+    Checks the user's usage model, credit balance, and the last 5 usage records.
+
+    Args:
+        None.
+    """
+    try:
+        if di.invoker.has_any_api_key() and di.invoker.credit_balance > 0:
+            usage_model = "API keys and credits"
+        elif di.invoker.has_any_api_key():
+            usage_model = "API keys only"
+        else:
+            usage_model = "Credits only"
+        records = di.usage_record_repo.get_by_user(di.invoker.id, limit = 5)
+        recent_usage = [
+            {
+                "tool": record.tool.name,
+                "purpose": record.tool_purpose.value,
+                "cost_credits": record.total_cost_credits,
+                "timestamp": record.timestamp.isoformat(),
+            }
+            for record in records
+        ]
+        return __success({
+            "usage_model": usage_model,
+            "credit_balance": di.invoker.credit_balance,
+            "recent_usage": recent_usage,
+            "next_step": "Offer to the user to open settings and inspect usage in detail",
+        })
+    except Exception as e:
+        return __error(e)
+
+
+def transfer_credits_to_user(
+    di: DI,
+    recipient_handle: str,
+    amount: str,
+    note: str | None = None,
+) -> str:
+    """
+    Transfers credits from the current user to another user on the same platform.
+
+    Args:
+        recipient_handle: [mandatory] The recipient's platform handle (username or phone number), without '@' or '+'
+        amount: [mandatory] The amount of credits to transfer (minimum 1.0)
+        note: [optional] An optional note or reason for the transfer
+    """
+    try:
+        chat_type = di.require_invoker_chat_type()
+        di.credit_transfer_service.transfer_credits(
+            sender_id = di.invoker.id,
+            recipient_handle = recipient_handle,
+            chat_type = chat_type,
+            amount = float(amount),
+            note = note,
+        )
+        return __success({
+            "next_step": "Offer to the user to open settings and inspect usage in detail",
+        })
+    except Exception as e:
+        return __error(e)
+
+
 # === Helper functions ===
 
 
@@ -445,6 +509,8 @@ ALL_LLM_TOOLS: dict[str, Callable[..., str]] = {
     "read_help_and_features": read_help_and_features,
     "get_version": get_version,
     "connect_profiles": connect_profiles,
+    "check_usage_and_balance": check_usage_and_balance,
+    "transfer_credits_to_user": transfer_credits_to_user,
 }
 
 
