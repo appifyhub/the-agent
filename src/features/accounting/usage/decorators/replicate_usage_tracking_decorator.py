@@ -85,6 +85,22 @@ class PredictionUsageTrackingDecorator:
             is_failed = True,
         )
 
+    @property
+    def output(self) -> Any:
+        return self.__wrapped_prediction.output
+
+    @property
+    def error(self) -> str | None:
+        return self.__wrapped_prediction.error
+
+    @property
+    def logs(self) -> str | None:
+        return self.__wrapped_prediction.logs
+
+    @property
+    def status(self) -> str:
+        return self.__wrapped_prediction.status
+
     def __getattr__(self, name: str) -> Any:
         return getattr(self.__wrapped_prediction, name)
 
