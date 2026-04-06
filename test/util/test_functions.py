@@ -11,6 +11,21 @@ from util.functions import (
 )
 
 
+class MockPrediction:
+
+    def __init__(
+        self,
+        output = None,
+        status = "succeeded",
+        error = None,
+        logs = None,
+    ):
+        self.output = output
+        self.status = status
+        self.error = error
+        self.logs = logs
+
+
 class FunctionsTest(unittest.TestCase):
 
     def test_silent_function_no_exception(self):
@@ -170,11 +185,13 @@ class FunctionsTest(unittest.TestCase):
 
             url = "https://example.com/image.png"
 
-        result = extract_url_from_replicate_result([MockFileOutput()])
+        prediction = MockPrediction(output = [MockFileOutput()])
+        result = extract_url_from_replicate_result(prediction)
         self.assertEqual(result, "https://example.com/image.png")
 
     def test_extract_url_from_replicate_result_list_with_string(self):
-        result = extract_url_from_replicate_result(["https://example.com/image.png"])
+        prediction = MockPrediction(output = ["https://example.com/image.png"])
+        result = extract_url_from_replicate_result(prediction)
         self.assertEqual(result, "https://example.com/image.png")
 
     def test_extract_url_from_replicate_result_single_file_output(self):
@@ -182,27 +199,51 @@ class FunctionsTest(unittest.TestCase):
 
             url = "https://example.com/image.png"
 
-        result = extract_url_from_replicate_result(MockFileOutput())
+        prediction = MockPrediction(output = MockFileOutput())
+        result = extract_url_from_replicate_result(prediction)
         self.assertEqual(result, "https://example.com/image.png")
 
     def test_extract_url_from_replicate_result_single_string(self):
-        result = extract_url_from_replicate_result("https://example.com/image.png")
+        prediction = MockPrediction(output = "https://example.com/image.png")
+        result = extract_url_from_replicate_result(prediction)
         self.assertEqual(result, "https://example.com/image.png")
 
     def test_extract_url_from_replicate_result_empty_list(self):
+        prediction = MockPrediction(output = [])
         with self.assertRaises(ExternalServiceError) as context:
-            extract_url_from_replicate_result([])
-        self.assertIn("Empty result list", str(context.exception))
+            extract_url_from_replicate_result(prediction)
+        self.assertIn("empty result", str(context.exception).lower())
 
     def test_extract_url_from_replicate_result_unexpected_type_in_list(self):
+        prediction = MockPrediction(output = [12345])
         with self.assertRaises(ExternalServiceError) as context:
-            extract_url_from_replicate_result([12345])
+            extract_url_from_replicate_result(prediction)
         self.assertIn("Unexpected result type in list", str(context.exception))
 
     def test_extract_url_from_replicate_result_unexpected_type(self):
+        prediction = MockPrediction(output = 12345)
         with self.assertRaises(ExternalServiceError) as context:
-            extract_url_from_replicate_result(12345)
+            extract_url_from_replicate_result(prediction)
         self.assertIn("Unexpected result type from Replicate", str(context.exception))
+
+    def test_extract_url_from_replicate_result_none_output_with_error(self):
+        prediction = MockPrediction(output = None, status = "failed", error = "NSFW content detected")
+        with self.assertRaises(ExternalServiceError) as context:
+            extract_url_from_replicate_result(prediction)
+        self.assertIn("NSFW content detected", str(context.exception))
+        self.assertIn("failed", str(context.exception))
+
+    def test_extract_url_from_replicate_result_none_output_falls_back_to_logs(self):
+        prediction = MockPrediction(output = None, status = "failed", error = None, logs = "OOM killed")
+        with self.assertRaises(ExternalServiceError) as context:
+            extract_url_from_replicate_result(prediction)
+        self.assertIn("OOM killed", str(context.exception))
+
+    def test_extract_url_from_replicate_result_none_output_no_diagnostics(self):
+        prediction = MockPrediction(output = None)
+        with self.assertRaises(ExternalServiceError) as context:
+            extract_url_from_replicate_result(prediction)
+        self.assertIn("unknown", str(context.exception))
 
     def test_normalize_phone_number_none(self):
         from util.functions import normalize_phone_number

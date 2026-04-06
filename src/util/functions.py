@@ -75,10 +75,18 @@ def normalize_username(username: str | None) -> str | None:
     return username.replace("@", "").replace("+", "").replace(" ", "").strip()
 
 
-def extract_url_from_replicate_result(result: Any) -> str:
+def extract_url_from_replicate_result(prediction: Any) -> str:
+    result = prediction.output
+
+    if not result:
+        error_detail = str(prediction.error or prediction.logs or "unknown")
+        status = prediction.status or "unknown"
+        raise ExternalServiceError(
+            f"Replicate returned empty result (status = ```{status}```, detail = ```{error_detail})```",
+            EXTERNAL_EMPTY_RESPONSE,
+        )
+
     if isinstance(result, list):
-        if not result:
-            raise ExternalServiceError("Empty result list from Replicate", EXTERNAL_EMPTY_RESPONSE)
         first_item = result[0]
         if hasattr(first_item, "url"):
             return first_item.url
