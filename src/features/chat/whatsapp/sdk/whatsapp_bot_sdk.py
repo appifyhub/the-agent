@@ -25,7 +25,7 @@ from util.error_codes import (
 from util.errors import ExternalServiceError, InternalError, NotFoundError
 from util.functions import first_key_with_value
 
-ATTACHMENT_URL_EXPIRATION = 30 * 24 * 60 * 60  # 30 days in seconds
+ATTACHMENT_URL_EXPIRATION = 23 * 60 * 60  # 23 hours in seconds
 WHATSAPP_MEDIA_URL_EXPIRATION = 5 * 60  # 5 minutes in seconds
 
 

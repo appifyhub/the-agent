@@ -16,7 +16,7 @@ from features.images.image_api_utils import map_to_model_parameters
 from features.images.image_size_utils import calculate_image_size_category
 from util import log
 from util.config import config
-from util.error_codes import EXTERNAL_EMPTY_RESPONSE, IMAGE_EDIT_FAILED, UNSUPPORTED_PROVIDER
+from util.error_codes import EXTERNAL_EMPTY_RESPONSE, UNSUPPORTED_PROVIDER
 from util.errors import ConfigurationError, ExternalServiceError
 from util.functions import extract_url_from_replicate_result, first_key_with_value
 
@@ -108,11 +108,10 @@ class ImageEditor:
             prediction = replicate.predictions.create(version = self.__configured_tool.definition.id, input = dict_params)
             prediction.wait()
 
-            result = prediction.output
-        if not result:
-            raise ExternalServiceError("Failed to edit the image (no result returned)", IMAGE_EDIT_FAILED)
+        result = extract_url_from_replicate_result(prediction)
+
         log.d("Image edit successful")
-        return extract_url_from_replicate_result(result)
+        return result
 
     def __edit_with_google_ai(self, temp_file_path: str, input_image_size: str | None) -> str | None:
         log.t("Editing image with Google AI")

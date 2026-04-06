@@ -81,11 +81,7 @@ class SimpleImageGenerator:
         )
         prediction.wait()
 
-        result = prediction.output
-        log.d("Result", result)
-        if not result:
-            raise ExternalServiceError("No result returned from image generation", EXTERNAL_EMPTY_RESPONSE)
-        return extract_url_from_replicate_result(result)
+        return extract_url_from_replicate_result(prediction)
 
     def __generate_with_google_ai(self) -> str | None:
         log.t("Generating image with Google AI")

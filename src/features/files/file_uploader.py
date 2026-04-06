@@ -39,7 +39,7 @@ class FileUploader:
                 tmp_file.write(self.__content)
                 tmp_file.flush()
                 tmp_file.name = self.__filename
-                ucare_file = uploadcare.upload(tmp_file, store = True)
+                ucare_file = uploadcare.upload(tmp_file, store = False)
             log.t("File uploaded successfully!")
             file_url = f"{ucare_file.cdn_url}{ucare_file.filename}"
             return file_url

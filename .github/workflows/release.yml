@@ -135,6 +135,11 @@ jobs:
               -H "Content-Type: application/json" \
               -d "{\"release_output_b64\": \"$RELEASE_OUTPUT_B64\"}" \
               -s || true)
+            if ! echo "$SUMMARY_RESPONSE" | jq empty 2>/dev/null; then
+              echo "Warning: non-JSON response on attempt $i/$MAX_ATTEMPTS (raw): $SUMMARY_RESPONSE"
+              sleep $INTERVAL
+              continue
+            fi
             SHOULD_RETRY=$(echo "$SUMMARY_RESPONSE" | jq -r '.should_retry // false')
             if [[ "$SHOULD_RETRY" != "true" ]]; then
               echo "Notification successful (should_retry = $SHOULD_RETRY)"
