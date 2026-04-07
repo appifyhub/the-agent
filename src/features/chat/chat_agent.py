@@ -1,5 +1,6 @@
 import random
 import re
+import time
 from dataclasses import dataclass
 from typing import Any, TypeVar
 
@@ -69,6 +70,17 @@ class ChatAgent:
     def __last_message(self) -> BaseMessage:
         return self.__messages[-1]
 
+    def __has_newer_burst_message(self) -> bool:
+        if config.chat_debounce_delay_s <= 0.0:
+            return False
+        time.sleep(config.chat_debounce_delay_s)
+        chat_id = self.__di.require_invoker_chat().chat_id
+        latest_messages = self.__di.chat_message_crud.get_latest_chat_messages(chat_id, limit = 1)
+        if latest_messages and latest_messages[0].message_id != self.__last_message_id:
+            log.d(f"Message burst detected: skipping message '{self.__last_message_id}'")
+            return True
+        return False
+
     def execute(self) -> AIMessage | None:
         log.t(f"Starting chat completion for '{self.__last_message.content}'")
 
@@ -86,6 +98,10 @@ class ChatAgent:
             self.__di.authorization_service.require_user_is_chat_ready(self.__di.invoker)
         except ServiceError as e:
             return AIMessage(prompt_resolvers.simple_chat_error(str(e)))
+
+        # check for bursts and skip if a newer message came in with the burst
+        if self.__has_newer_burst_message():
+            return None
 
         # handle access control before doing any LLM processing
         if not self.__configured_tool:

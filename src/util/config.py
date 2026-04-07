@@ -50,6 +50,7 @@ class Config(metaclass = Singleton):
     whatsapp_phone_number_id: str
     whatsapp_bot_phone_number: str
     chat_history_depth: int
+    chat_debounce_delay_s: float
     github_issues_repo: str
     issue_templates_abs_path: str
     jwt_expires_in_minutes: int
@@ -145,10 +146,11 @@ class Config(metaclass = Singleton):
         def_whatsapp_phone_number_id: str = "invalid",
         def_whatsapp_bot_phone_number: str = "11234567890",
         def_chat_history_depth: int = 30,
+        def_chat_debounce_delay_s: float = 1.0,
         def_github_issues_repo: str = "appifyhub/agent-backend",
         def_issue_templates_path: str = ".github/ISSUE_TEMPLATE",
         def_jwt_expires_in_minutes: int = 30,
-        def_backoffice_url_base: str = "http://127.0.0.1.sslip.io:5173",
+        def_backoffice_url_base: str = "http://localhost:5173",
         def_main_language_name: str = "English",
         def_main_language_iso_code: str = "en",
         def_uploadcare_public_key: str = "invalid",
@@ -212,6 +214,7 @@ class Config(metaclass = Singleton):
         self.whatsapp_phone_number_id = self.__env("WHATSAPP_PHONE_NUMBER_ID", lambda: def_whatsapp_phone_number_id)
         self.whatsapp_bot_phone_number = self.__env("WHATSAPP_BOT_PHONE_NUMBER", lambda: def_whatsapp_bot_phone_number)
         self.chat_history_depth = int(self.__env("CHAT_HISTORY_DEPTH", lambda: str(def_chat_history_depth)))
+        self.chat_debounce_delay_s = float(self.__env("CHAT_DEBOUNCE_DELAY_S", lambda: str(def_chat_debounce_delay_s)))
         self.github_issues_repo = self.__env("THE_AGENT_ISSUES_REPO", lambda: def_github_issues_repo)
         self.issue_templates_abs_path = self.__env("THE_AGENT_ISSUE_TEMPLATES_PATH", lambda: def_issue_templates_path)
         self.jwt_expires_in_minutes = int(self.__env("JWT_EXPIRES_IN_MINUTES", lambda: str(def_jwt_expires_in_minutes)))

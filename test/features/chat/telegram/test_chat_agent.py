@@ -90,6 +90,14 @@ class ChatAgentTest(unittest.TestCase):
         # noinspection PyTypeChecker
         self.configured_tool = Mock(spec = ConfiguredTool)
 
+        # Mock chat_message_crud so debounce sees our message as the latest by default
+        mock_latest_message = Mock()
+        mock_latest_message.message_id = "msg_123"
+        self.mock_di.chat_message_crud.get_latest_chat_messages.return_value = [mock_latest_message]
+
+        self.sleep_patcher = patch("features.chat.chat_agent.time.sleep")
+        self.mock_sleep = self.sleep_patcher.start()
+
         self.agent = ChatAgent(
             messages = [HumanMessage("Test message")],
             raw_last_message = "Test message",
@@ -332,6 +340,7 @@ class ChatAgentTest(unittest.TestCase):
             reply = None,
         )
         mock_config.max_chatbot_iterations = 2
+        mock_config.chat_debounce_delay_s = 0.0
 
         # Create AI messages with tool_calls to simulate continued iterations
         tool_call = {"id": "1", "name": "test_tool", "args": {}}
@@ -401,3 +410,61 @@ class ChatAgentTest(unittest.TestCase):
         result = self.agent.execute()
         self.assertIsNotNone(result)
         self.assertIn("policies", result.content.lower())
+
+    def tearDown(self):
+        self.sleep_patcher.stop()
+
+    @patch("features.chat.chat_agent.config")
+    @patch("features.chat.chat_agent.ChatAgent.process_commands")
+    @patch("features.chat.chat_agent.ChatAgent.should_reply")
+    def test_has_newer_burst_message_disabled_when_delay_is_zero(self, mock_should_reply, mock_process_commands, mock_config):
+        mock_should_reply.return_value = True
+        mock_process_commands.return_value = ChatAgent.CommandHandlingResult(is_handled = False, reply = None)
+        mock_config.chat_debounce_delay_s = 0.0
+        mock_config.max_chatbot_iterations = 20
+        mock_tools_model = Mock()
+        mock_tools_model.invoke.return_value = AIMessage("response")
+        self.mock_di.llm_tool_library.bind_tools.return_value = mock_tools_model
+
+        self.agent.execute()
+
+        self.mock_sleep.assert_not_called()
+        self.mock_di.chat_message_crud.get_latest_chat_messages.assert_not_called()
+
+    @patch("features.chat.chat_agent.config")
+    @patch("features.chat.chat_agent.ChatAgent.process_commands")
+    @patch("features.chat.chat_agent.ChatAgent.should_reply")
+    def test_has_newer_burst_message_proceeds_when_message_is_latest(
+        self, mock_should_reply, mock_process_commands, mock_config,
+    ):
+        mock_should_reply.return_value = True
+        mock_process_commands.return_value = ChatAgent.CommandHandlingResult(is_handled = False, reply = None)
+        mock_config.chat_debounce_delay_s = 1.0
+        mock_config.max_chatbot_iterations = 20
+        mock_tools_model = Mock()
+        mock_tools_model.invoke.return_value = AIMessage("LLM response")
+        self.mock_di.llm_tool_library.bind_tools.return_value = mock_tools_model
+
+        result = self.agent.execute()
+
+        self.mock_sleep.assert_called_once_with(1.0)
+        self.assertEqual(result.content, "LLM response")
+
+    @patch("features.chat.chat_agent.config")
+    @patch("features.chat.chat_agent.ChatAgent.process_commands")
+    @patch("features.chat.chat_agent.ChatAgent.should_reply")
+    def test_has_newer_burst_message_skips_llm_when_newer_message_exists(
+        self, mock_should_reply, mock_process_commands, mock_config,
+    ):
+        mock_should_reply.return_value = True
+        mock_process_commands.return_value = ChatAgent.CommandHandlingResult(is_handled = False, reply = None)
+        mock_config.chat_debounce_delay_s = 1.0
+        newer_message = Mock()
+        newer_message.message_id = "msg_999"
+        self.mock_di.chat_message_crud.get_latest_chat_messages.return_value = [newer_message]
+
+        result = self.agent.execute()
+
+        self.mock_sleep.assert_called_once_with(1.0)
+        self.assertIsNone(result)
+        self.mock_di.llm_tool_library.bind_tools.assert_not_called()
