@@ -18,7 +18,7 @@ class ServiceErrorTest(unittest.TestCase):
     def test_to_log_string_without_cause(self):
         error = ServiceError("Something went wrong", error_code = 42, emoji = "🫖")
 
-        self.assertEqual(error.to_log_string(), "[🫖 E42] Something went wrong")
+        self.assertEqual(error.to_log_string(), "[E42] 🫖 Something went wrong")
 
     def test_to_log_string_with_cause(self):
         try:
@@ -27,7 +27,7 @@ class ServiceErrorTest(unittest.TestCase):
             except ValueError as cause:
                 raise ServiceError("Something went wrong", error_code = 42, emoji = "🫖") from cause
         except ServiceError as error:
-            self.assertEqual(error.to_log_string(), "[🫖 E42] Something went wrong # Caused by: root cause")
+            self.assertEqual(error.to_log_string(), "[E42] 🫖 Something went wrong # Caused by: root cause")
 
     def test_str_equals_to_log_string(self):
         error = ServiceError("Something went wrong", error_code = 42, emoji = "🫖")

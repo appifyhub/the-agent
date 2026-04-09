@@ -5,7 +5,7 @@ from di.di import DI
 from features.integrations.integrations import resolve_agent_user, resolve_external_handle, resolve_private_chat_id
 from util import log
 from util.error_codes import UNEXPECTED_ERROR, UNKNOWN_COMMAND
-from util.errors import NotFoundError, ServiceError
+from util.errors import NotFoundError
 
 COMMAND_START = "start"
 COMMAND_SETTINGS = "settings"
@@ -55,9 +55,6 @@ class CommandProcessor:
                     return CommandProcessor.Result(status)
             log.t("No known command found")
             return CommandProcessor.Result("ignored")
-        except ServiceError as e:
-            log.e("Failed to process command (recognized error)", e)
-            return CommandProcessor.Result("failed", str(e), e.error_code)
         except Exception as e:
             log.e("Failed to process command (unrecognized error)", e)
             return CommandProcessor.Result("failed", "Failed to process command.", UNEXPECTED_ERROR)

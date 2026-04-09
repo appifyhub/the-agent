@@ -23,7 +23,7 @@ class ServiceError(Exception):
 
     def to_log_string(self) -> str:
         cause_str = f" # Caused by: {self.__cause__}" if self.__cause__ else ""
-        return f"[{self.emoji} E{self.error_code}] {super().__str__()}{cause_str}"
+        return f"[E{self.error_code}] {self.emoji} {super().__str__()}{cause_str}"
 
     def to_api_dict(self) -> dict[str, Any]:
         return {
