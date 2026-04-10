@@ -49,7 +49,7 @@ def process_attachments(
     """
     Processes the contents of the given attachments. Allowed operations are:
         - 'analyze' (default): Analyzes the image contents using vision, transcribes audio, searches documents
-        - 'image-edit': Edits image attachments based on the context and user instructions
+        - 'image-edit': Generates a new image using the provided attachments as visual reference or inspiration — use this whenever the partner's images should influence the output (e.g. "use this logo", "generate a variant of this", "apply this style"). Multiple images can be provided for multi-reference generation. To process images individually (one output per image), call this function multiple times with a single image each time.
 
     Args:
         attachment_ids: [mandatory] A comma-separated list of verbatim, unique 📎 attachment IDs that need to be processed (located in each message); include any dashes, underscores or other symbols; these IDs are not to be cleaned or truncated
@@ -95,7 +95,7 @@ def generate_image(
     size: str | None = None,
 ) -> str:
     """
-    Generates (draws) a new image based on the given prompt using Generative AI.
+    Generates (draws) a new image from text only, with no reference images. Use this when creating something entirely new from a description. If the partner has provided image attachments that should influence the output (e.g. "use this logo", "based on this photo"), use process_attachments with 'image-edit' instead.
 
     Args:
         prompt: [mandatory] The user's description or prompt for the generated image

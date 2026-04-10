@@ -128,6 +128,7 @@ class ExternalTool:
     provider: ExternalToolProvider
     types: list[ToolType]
     cost_estimate: CostEstimate
+    max_input_images: int = 0
 
     def __hash__(self) -> int:
         return hash(self.id)

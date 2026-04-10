@@ -28,7 +28,7 @@ class ChatImageEditServiceTest(unittest.TestCase):
         mock_chat = MagicMock()
         mock_chat.external_id = "test_chat_id"
         mock_chat.chat_type = ChatConfigDB.ChatType.telegram
-        mock_chat.media_mode = ChatConfigDB.MediaMode.all  # Default to 'all' mode to match old behavior
+        mock_chat.media_mode = ChatConfigDB.MediaMode.all
         self.mock_di.require_invoker_chat = MagicMock(return_value = mock_chat)
         self.mock_di.require_invoker_chat_type = MagicMock(return_value = ChatConfigDB.ChatType.telegram)
         self.mock_di.tool_choice_resolver = MagicMock()
@@ -47,7 +47,6 @@ class ChatImageEditServiceTest(unittest.TestCase):
         )
         self.mock_di.user_dao.get.return_value = self.user
 
-        # Create a mock ChatMessageAttachmentDB instance
         self.mock_attachment_db = ChatMessageAttachmentDB(
             id = "attachment1",
             external_id = "telegram_file_1",
@@ -62,10 +61,35 @@ class ChatImageEditServiceTest(unittest.TestCase):
         self.mock_di.chat_message_attachment_crud.get.return_value = self.mock_attachment_db
         self.attachment = ChatMessageAttachment.model_validate(self.mock_attachment_db)
 
-        # Mock the SDK refresh_attachments_by_ids method
+        self.mock_attachment_db2 = ChatMessageAttachmentDB(
+            id = "attachment2",
+            external_id = "telegram_file_2",
+            chat_id = UUID(int = 1),
+            message_id = "message1",
+            size = 2048,
+            last_url = "http://test.com/image2.png",
+            last_url_until = int(datetime.now().timestamp()) + 3600,
+            extension = "png",
+            mime_type = "image/png",
+        )
+        self.attachment2 = ChatMessageAttachment.model_validate(self.mock_attachment_db2)
+
+        self.mock_attachment_no_url_db = ChatMessageAttachmentDB(
+            id = "attachment_no_url",
+            external_id = "telegram_file_3",
+            chat_id = UUID(int = 1),
+            message_id = "message1",
+            size = 512,
+            last_url = None,
+            last_url_until = None,
+            extension = "png",
+            mime_type = "image/png",
+        )
+        self.attachment_no_url = ChatMessageAttachment.model_validate(self.mock_attachment_no_url_db)
+
         self.patcher = patch.object(self.mock_platform_sdk, "refresh_attachments_by_ids")
         self.mock_refresh = self.patcher.start()
-        self.mock_refresh.return_value = [ChatMessageAttachment.model_validate(self.mock_attachment_db)]
+        self.mock_refresh.return_value = [self.attachment]
 
     def tearDown(self):
         self.patcher.stop()
@@ -81,101 +105,12 @@ class ChatImageEditServiceTest(unittest.TestCase):
             )
             self.assertIsInstance(service, ChatImageEditService)
 
-    def test_execute_edit_image_partial(self):
-        self.mock_platform_sdk.refresh_attachments_by_ids.return_value = [self.attachment, self.attachment]
-        mock_editor_instance1 = MagicMock()
-        mock_editor_instance1.execute.return_value = "http://test.com/edited_image.png"
-        mock_editor_instance1.error = None
-        mock_editor_instance2 = MagicMock()
-        mock_editor_instance2.execute.return_value = None
-        mock_editor_instance2.error = "Processing failed"
-        self.mock_di.image_editor.side_effect = [mock_editor_instance1, mock_editor_instance2]
-        self.mock_platform_sdk.send_document.return_value = {"result": {"message_id": 123}}
-        self.mock_platform_sdk.send_photo.return_value = {"result": {"message_id": 124}}
-
-        service = ChatImageEditService(
-            attachment_ids = self.attachment_ids,
-            operation_guidance = self.operation_guidance,
-            aspect_ratio = None,
-            output_size = None,
-            di = self.mock_di,
-        )
-        result, details = service.execute()
-
-        self.assertEqual(result, ChatImageEditService.Result.partial)
-        expected_details = [
-            {"url": "http://test.com/edited_image.png", "error": None, "status": "delivered"},
-            {"url": None, "error": "Error editing image from attachment 'attachment1': Processing failed"},
-        ]
-        self.assertEqual(details, expected_details)
-        self.assertEqual(self.mock_di.image_editor.call_count, 2)
-        self.mock_platform_sdk.smart_send_photo.assert_called_once_with(
-            media_mode = ChatConfigDB.MediaMode.all,
-            chat_id = "test_chat_id",
-            photo_url = "http://test.com/edited_image.png",
-            caption = "📸",
-            thumbnail = "http://test.com/edited_image.png",
-        )
-
-    def test_execute_edit_image_failed(self):
+    def test_execute_edit_image_success_single(self):
         self.mock_platform_sdk.refresh_attachments_by_ids.return_value = [self.attachment]
-        mock_editor_instance = MagicMock()
-        mock_editor_instance.execute.return_value = None
-        mock_editor_instance.error = "Image editing failed"
-        self.mock_di.image_editor.return_value = mock_editor_instance
-
-        service = ChatImageEditService(
-            attachment_ids = self.attachment_ids,
-            operation_guidance = self.operation_guidance,
-            aspect_ratio = None,
-            output_size = None,
-            di = self.mock_di,
-        )
-        result, details = service.execute()
-
-        self.assertEqual(result, ChatImageEditService.Result.failed)
-        expected_details = [
-            {"url": None, "error": "Error editing image from attachment 'attachment1': Image editing failed"},
-        ]
-        self.assertEqual(details, expected_details)
-        mock_editor_instance.execute.assert_called_once()
-        self.mock_platform_sdk.send_document.assert_not_called()
-
-    def test_execute_edit_image_exception(self):
-        self.mock_platform_sdk.refresh_attachments_by_ids.return_value = [self.attachment]
-        mock_editor_instance = MagicMock()
-        mock_editor_instance.execute.side_effect = Exception("Test exception")
-        mock_editor_instance.error = None
-        self.mock_di.image_editor.return_value = mock_editor_instance
-
-        service = ChatImageEditService(
-            attachment_ids = self.attachment_ids,
-            operation_guidance = self.operation_guidance,
-            aspect_ratio = None,
-            output_size = None,
-            di = self.mock_di,
-        )
-        result, details = service.execute()
-
-        self.assertEqual(result, ChatImageEditService.Result.failed)
-        expected_details = [
-            {
-                "url": None,
-                "error": "Failed to edit image from attachment 'attachment1': Test exception",
-            },
-        ]
-        self.assertEqual(details, expected_details)
-        mock_editor_instance.execute.assert_called_once()
-        self.mock_platform_sdk.send_document.assert_not_called()
-
-    def test_execute_edit_image_success(self):
-        self.mock_platform_sdk.refresh_attachments_by_ids.return_value = [self.attachment]
-        mock_editor_instance = MagicMock()
-        mock_editor_instance.execute.return_value = "http://test.com/edited_image.png"
-        mock_editor_instance.error = None
-        self.mock_di.image_editor.return_value = mock_editor_instance
-        self.mock_platform_sdk.send_document.return_value = {"result": {"message_id": 123}}
-        self.mock_platform_sdk.send_photo.return_value = {"result": {"message_id": 124}}
+        mock_editor = MagicMock()
+        mock_editor.execute.return_value = "http://test.com/edited_image.png"
+        mock_editor.error = None
+        self.mock_di.image_editor.return_value = mock_editor
 
         service = ChatImageEditService(
             attachment_ids = self.attachment_ids,
@@ -187,9 +122,15 @@ class ChatImageEditServiceTest(unittest.TestCase):
         result, details = service.execute()
 
         self.assertEqual(result, ChatImageEditService.Result.success)
-        expected_details = [{"url": "http://test.com/edited_image.png", "error": None, "status": "delivered"}]
-        self.assertEqual(details, expected_details)
-        mock_editor_instance.execute.assert_called_once()
+        self.assertEqual(details, [{"url": "http://test.com/edited_image.png", "error": None, "status": "delivered"}])
+        self.mock_di.image_editor.assert_called_once_with(
+            image_urls = ["http://test.com/image.png"],
+            configured_tool = self.mock_di.tool_choice_resolver.require_tool.return_value,
+            prompt = "<empty>",
+            input_mime_types = ["image/png"],
+            aspect_ratio = None,
+            output_size = None,
+        )
         self.mock_platform_sdk.smart_send_photo.assert_called_once_with(
             media_mode = ChatConfigDB.MediaMode.all,
             chat_id = "test_chat_id",
@@ -197,3 +138,135 @@ class ChatImageEditServiceTest(unittest.TestCase):
             caption = "📸",
             thumbnail = "http://test.com/edited_image.png",
         )
+
+    def test_execute_edit_image_success_multi(self):
+        self.mock_platform_sdk.refresh_attachments_by_ids.return_value = [self.attachment, self.attachment2]
+        mock_editor = MagicMock()
+        mock_editor.execute.return_value = "http://test.com/edited_image.png"
+        mock_editor.error = None
+        self.mock_di.image_editor.return_value = mock_editor
+
+        service = ChatImageEditService(
+            attachment_ids = self.attachment_ids,
+            operation_guidance = self.operation_guidance,
+            aspect_ratio = None,
+            output_size = None,
+            di = self.mock_di,
+        )
+        result, details = service.execute()
+
+        self.assertEqual(result, ChatImageEditService.Result.success)
+        self.assertEqual(details, [{"url": "http://test.com/edited_image.png", "error": None, "status": "delivered"}])
+        self.mock_di.image_editor.assert_called_once_with(
+            image_urls = ["http://test.com/image.png", "http://test.com/image2.png"],
+            configured_tool = self.mock_di.tool_choice_resolver.require_tool.return_value,
+            prompt = "<empty>",
+            input_mime_types = ["image/png", "image/png"],
+            aspect_ratio = None,
+            output_size = None,
+        )
+
+    def test_execute_edit_image_partial_some_urls_missing(self):
+        self.mock_platform_sdk.refresh_attachments_by_ids.return_value = [self.attachment, self.attachment_no_url]
+        mock_editor = MagicMock()
+        mock_editor.execute.return_value = "http://test.com/edited_image.png"
+        mock_editor.error = None
+        self.mock_di.image_editor.return_value = mock_editor
+
+        service = ChatImageEditService(
+            attachment_ids = self.attachment_ids,
+            operation_guidance = self.operation_guidance,
+            aspect_ratio = None,
+            output_size = None,
+            di = self.mock_di,
+        )
+        result, details = service.execute()
+
+        self.assertEqual(result, ChatImageEditService.Result.partial)
+        self.assertEqual(details, [{"url": "http://test.com/edited_image.png", "error": None, "status": "delivered"}])
+        # Only the valid URL is passed to the editor
+        self.mock_di.image_editor.assert_called_once_with(
+            image_urls = ["http://test.com/image.png"],
+            configured_tool = self.mock_di.tool_choice_resolver.require_tool.return_value,
+            prompt = "<empty>",
+            input_mime_types = ["image/png"],
+            aspect_ratio = None,
+            output_size = None,
+        )
+
+    def test_execute_edit_image_all_urls_missing(self):
+        self.mock_platform_sdk.refresh_attachments_by_ids.return_value = [self.attachment_no_url]
+
+        service = ChatImageEditService(
+            attachment_ids = self.attachment_ids,
+            operation_guidance = self.operation_guidance,
+            aspect_ratio = None,
+            output_size = None,
+            di = self.mock_di,
+        )
+        result, details = service.execute()
+
+        self.assertEqual(result, ChatImageEditService.Result.failed)
+        self.assertEqual(details, [{"url": None, "error": "No valid attachment URLs found"}])
+        self.mock_di.image_editor.assert_not_called()
+
+    def test_execute_edit_image_failed_editor_error(self):
+        self.mock_platform_sdk.refresh_attachments_by_ids.return_value = [self.attachment]
+        mock_editor = MagicMock()
+        mock_editor.execute.return_value = None
+        mock_editor.error = "Image editing failed"
+        self.mock_di.image_editor.return_value = mock_editor
+
+        service = ChatImageEditService(
+            attachment_ids = self.attachment_ids,
+            operation_guidance = self.operation_guidance,
+            aspect_ratio = None,
+            output_size = None,
+            di = self.mock_di,
+        )
+        result, details = service.execute()
+
+        self.assertEqual(result, ChatImageEditService.Result.failed)
+        self.assertEqual(details, [{"url": None, "error": "Image editing failed"}])
+        mock_editor.execute.assert_called_once()
+        self.mock_platform_sdk.smart_send_photo.assert_not_called()
+
+    def test_execute_edit_image_failed_no_result(self):
+        self.mock_platform_sdk.refresh_attachments_by_ids.return_value = [self.attachment]
+        mock_editor = MagicMock()
+        mock_editor.execute.return_value = None
+        mock_editor.error = None
+        self.mock_di.image_editor.return_value = mock_editor
+
+        service = ChatImageEditService(
+            attachment_ids = self.attachment_ids,
+            operation_guidance = self.operation_guidance,
+            aspect_ratio = None,
+            output_size = None,
+            di = self.mock_di,
+        )
+        result, details = service.execute()
+
+        self.assertEqual(result, ChatImageEditService.Result.failed)
+        self.assertEqual(details, [{"url": None, "error": "Failed to edit images"}])
+        self.mock_platform_sdk.smart_send_photo.assert_not_called()
+
+    def test_execute_edit_image_exception(self):
+        self.mock_platform_sdk.refresh_attachments_by_ids.return_value = [self.attachment]
+        mock_editor = MagicMock()
+        mock_editor.execute.side_effect = Exception("Test exception")
+        mock_editor.error = None
+        self.mock_di.image_editor.return_value = mock_editor
+
+        service = ChatImageEditService(
+            attachment_ids = self.attachment_ids,
+            operation_guidance = self.operation_guidance,
+            aspect_ratio = None,
+            output_size = None,
+            di = self.mock_di,
+        )
+        result, details = service.execute()
+
+        self.assertEqual(result, ChatImageEditService.Result.failed)
+        self.assertEqual(details, [{"url": None, "error": "Test exception"}])
+        self.mock_platform_sdk.smart_send_photo.assert_not_called()
