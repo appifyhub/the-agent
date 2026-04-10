@@ -22,8 +22,14 @@ class ServiceError(Exception):
         return self.to_log_string()
 
     def to_log_string(self) -> str:
+        from util.config import config
         cause_str = f" # Caused by: {self.__cause__}" if self.__cause__ else ""
-        return f"[E{self.error_code}] {self.emoji} {super().__str__()}{cause_str}"
+        raw = f"[E{self.error_code}] {self.emoji} {super().__str__()}{cause_str}"
+        for secret in config.all_secrets():
+            value = secret.get_secret_value()
+            if value:
+                raw = raw.replace(value, "****")
+        return raw
 
     def to_api_dict(self) -> dict[str, Any]:
         return {
