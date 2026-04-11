@@ -1486,12 +1486,17 @@ components:
           description: Tool types/capabilities
         cost_estimate:
           $ref: "#/components/schemas/CostEstimate"
+        max_input_images:
+          type: integer
+          nullable: false
+          description: Maximum number of input images supported (0 means no image input, generation-only)
       required:
         - id
         - name
         - provider
         - types
         - cost_estimate
+        - max_input_images
 
     ExternalToolProvider:
       type: object
@@ -1530,51 +1535,51 @@ components:
       description: Cost estimation for using an external tool (all costs in credits)
       properties:
         input_1m_tokens:
-          type: integer
+          type: number
           nullable: true
           description: Cost per 1 million input tokens in credits
         output_1m_tokens:
-          type: integer
+          type: number
           nullable: true
           description: Cost per 1 million output tokens in credits
         search_1m_tokens:
-          type: integer
+          type: number
           nullable: true
           description: Cost per 1 million search tokens in credits
         input_image_1k:
-          type: integer
+          type: number
           nullable: true
           description: Cost per 1k resolution input image in credits
         input_image_2k:
-          type: integer
+          type: number
           nullable: true
           description: Cost per 2k resolution input image in credits
         input_image_4k:
-          type: integer
+          type: number
           nullable: true
           description: Cost per 4k resolution input image in credits
         input_image_8k:
-          type: integer
+          type: number
           nullable: true
           description: Cost per 8k resolution input image in credits
         input_image_12k:
-          type: integer
+          type: number
           nullable: true
           description: Cost per 12k resolution input image in credits
         output_image_1k:
-          type: integer
+          type: number
           nullable: true
           description: Cost per 1k resolution output image in credits
         output_image_2k:
-          type: integer
+          type: number
           nullable: true
           description: Cost per 2k resolution output image in credits
         output_image_4k:
-          type: integer
+          type: number
           nullable: true
           description: Cost per 4k resolution output image in credits
         api_call:
-          type: integer
+          type: number
           nullable: true
           description: Fixed cost per API call in credits
         second_of_runtime:
