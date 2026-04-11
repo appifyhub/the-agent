@@ -63,6 +63,7 @@ class UnifiedImageParameters:
     moderation: str = "low"
     safety_tolerance: int = 2
     safety_filter_level: str = "block_only_high"
+    disable_safety_checker: bool = True
     # search
     google_search: bool = False
     image_search: bool = False
@@ -85,14 +86,16 @@ def map_to_model_parameters(
 ) -> UnifiedImageParameters:
     log.d(f"Mapping image parameters for model '{tool.id}'")
 
+    single_image = input_files[0] if input_files else None
+    multi_images = input_files if input_files and tool.max_input_images > 1 else None
     unified_params = UnifiedImageParameters(
         prompt = prompt,
         aspect_ratio = resolve_aspect_ratio(tool, aspect_ratio, input_files),
         size = output_size or "2K",
-        image = input_files[0] if input_files else None,
-        input_image = input_files[0] if input_files else None,
-        image_input = input_files,
-        input_images = input_files,
+        image = single_image,
+        input_image = single_image,
+        image_input = multi_images,
+        input_images = multi_images,
     )
 
     if tool == IMAGE_GEN_FLUX_1_1:
@@ -114,7 +117,9 @@ def map_to_model_parameters(
     elif tool == IMAGE_GEN_EDIT_SEEDREAM_4:
         return replace(unified_params, size = convert_size_to_k(unified_params.size))
     elif tool == IMAGE_GEN_EDIT_SEEDREAM_4_5:
-        return replace(unified_params, size = convert_size_to_k(unified_params.size))
+        normalized_size = convert_size_to_k(unified_params.size)
+        clamped_size = "2K" if normalized_size == "1K" else normalized_size
+        return replace(unified_params, size = clamped_size)
     elif tool == NANO_BANANA:
         ar = unified_params.aspect_ratio if unified_params.aspect_ratio != "match_input_image" else None
         return replace(unified_params, size = convert_size_to_k(unified_params.size), aspect_ratio = ar)

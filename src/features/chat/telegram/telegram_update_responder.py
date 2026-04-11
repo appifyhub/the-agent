@@ -17,6 +17,7 @@ from features.integrations import prompt_resolvers
 from features.integrations.integrations import resolve_agent_user
 from util import log
 from util.config import config
+from util.errors import ServiceError
 from util.functions import silent
 
 
@@ -107,7 +108,8 @@ def __notify_of_errors(
     error: Exception,
 ):
     if resolved_domain_data:
-        answer = AIMessage(prompt_resolvers.simple_chat_error(str(error)))
+        emoji = error.emoji if isinstance(error, ServiceError) else "🤯"
+        answer = AIMessage(prompt_resolvers.simple_chat_error(str(error), emoji = emoji))
         messages = di.domain_langchain_mapper.map_bot_message_to_storage(resolved_domain_data.chat, answer)
         for message in messages:
             di.telegram_bot_sdk.send_text_message(str(resolved_domain_data.chat.external_id), message.text)

@@ -356,7 +356,7 @@ class ChatAgentTest(unittest.TestCase):
 
         # The OverflowError should be caught and converted to an AIMessage with error content
         self.assertIsInstance(result, AIMessage)
-        self.assertIn("🤯", result.content)  # Error indicator
+        self.assertIn("⚠️", result.content)  # InternalError emoji
         self.assertIn("Reached max iterations", result.content)
         self.assertIn("2", result.content)  # Should include the max iterations count
 

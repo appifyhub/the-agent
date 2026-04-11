@@ -866,27 +866,27 @@ class DI:
 
     def image_editor(
         self,
-        image_url: str,
+        image_urls: list[str],
         configured_tool: ConfiguredTool,
         prompt: str,
-        input_mime_type: str | None = None,
+        input_mime_types: list[str | None],
         aspect_ratio: str | None = None,
         output_size: str | None = None,
     ) -> "ImageEditor":
         from features.images.image_editor import ImageEditor
-        return ImageEditor(image_url, configured_tool, prompt, self, input_mime_type, aspect_ratio, output_size)
+        return ImageEditor(image_urls, configured_tool, prompt, self, input_mime_types, aspect_ratio, output_size)
 
     def computer_vision_analyzer(
         self,
         job_id: str,
-        image_mime_type: str,
+        image_mime_types: list[str],
         configured_tool: ConfiguredTool,
-        image_url: str | None = None,
-        image_b64: str | None = None,
+        image_urls: list[str] | None = None,
+        image_b64s: list[str] | None = None,
         additional_context: str | None = None,
     ) -> "ComputerVisionAnalyzer":
         from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
-        return ComputerVisionAnalyzer(job_id, image_mime_type, configured_tool, self, image_url, image_b64, additional_context)
+        return ComputerVisionAnalyzer(job_id, image_mime_types, configured_tool, self, image_urls, image_b64s, additional_context)
 
     def document_search(
         self,

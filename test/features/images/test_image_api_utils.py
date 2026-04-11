@@ -3,6 +3,7 @@ from io import BytesIO
 from typing import IO
 
 from features.external_tools.external_tool_library import (
+    IMAGE_GEN_EDIT_FLUX_2_PRO,
     IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO,
     IMAGE_GEN_FLUX_1_1,
 )
@@ -124,13 +125,13 @@ class ImageApiUtilsTest(unittest.TestCase):
     def test_convert_size_to_k_invalid_defaults_to_2k(self):
         self.assertEqual(image_api_utils.convert_size_to_k("invalid"), "2K")
 
-    def test_map_to_model_parameters_preserves_file_objects(self):
+    def test_map_to_model_parameters_single_image_model_uses_singular_fields_only(self):
         file1 = BytesIO(b"test image data")
         file2 = BytesIO(b"test image data 2")
         input_files: list[IO[bytes]] = [file1, file2]
 
         result = image_api_utils.map_to_model_parameters(
-            tool = IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO,
+            tool = IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO,  # max_input_images = 1
             prompt = "test prompt",
             aspect_ratio = "1:1",
             output_size = "2K",
@@ -139,8 +140,26 @@ class ImageApiUtilsTest(unittest.TestCase):
 
         self.assertIsInstance(result.image, BytesIO)
         self.assertIsInstance(result.input_image, BytesIO)
-        assert result.image_input is not None
-        assert result.input_images is not None
+        self.assertIsNone(result.image_input)
+        self.assertIsNone(result.input_images)
+
+    def test_map_to_model_parameters_multi_image_model_uses_list_fields(self):
+        file1 = BytesIO(b"test image data")
+        file2 = BytesIO(b"test image data 2")
+        input_files: list[IO[bytes]] = [file1, file2]
+
+        result = image_api_utils.map_to_model_parameters(
+            tool = IMAGE_GEN_EDIT_FLUX_2_PRO,  # max_input_images = 8
+            prompt = "test prompt",
+            aspect_ratio = "1:1",
+            output_size = "2K",
+            input_files = input_files,
+        )
+
+        self.assertIsInstance(result.image, BytesIO)
+        self.assertIsInstance(result.input_image, BytesIO)
+        self.assertIsNotNone(result.image_input)
+        self.assertIsNotNone(result.input_images)
         self.assertEqual(len(result.image_input), 2)
         self.assertEqual(len(result.input_images), 2)
         self.assertIsInstance(result.image_input[0], BytesIO)
