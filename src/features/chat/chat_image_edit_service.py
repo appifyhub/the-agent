@@ -43,55 +43,49 @@ class ChatImageEditService:
 
     def __edit_image(self) -> tuple[Result, URLList, ErrorList]:
         log.t(f"Editing {len(self.__attachments)} images in aspect ratio {self.__aspect_ratio}")
-        result = ChatImageEditService.Result.success
-        urls: URLList = []
-        errors: ErrorList = []
+
+        # Collect valid attachments; track missing URLs as partial failures
+        image_urls: list[str] = []
+        mime_types: list[str | None] = []
+        skip_errors: list[str | None] = []
         for attachment in self.__attachments:
-            try:
-                if not attachment.last_url:
-                    message = f"Attachment '{attachment.id}' has no URL, skipping"
-                    log.w(message)
-                    urls.append(None)
-                    errors.append(message)
-                    result = ChatImageEditService.Result.partial
-                    continue
-                configured_tool = self.__di.tool_choice_resolver.require_tool(
-                    ImageEditor.TOOL_TYPE, default_tool_for(ImageEditor.TOOL_TYPE),
-                )
-                editor = self.__di.image_editor(
-                    image_url = attachment.last_url,
-                    configured_tool = configured_tool,
-                    prompt = self.__operation_guidance or "<empty>",
-                    input_mime_type = attachment.mime_type,
-                    aspect_ratio = self.__aspect_ratio,
-                    output_size = self.__output_size,
-                )
-                editing_result = editor.execute()
-                if editor.error:
-                    log.w(f"Error editing image from attachment '{attachment.id}'", editor.error)
-                    urls.append(None)
-                    errors.append(f"Error editing image from attachment '{attachment.id}': {editor.error}")
-                    result = ChatImageEditService.Result.partial
-                    continue
-                if not editing_result:
-                    message = f"Failed to edit image from attachment '{attachment.id}'"
-                    log.w(message)
-                    urls.append(None)
-                    errors.append(message)
-                    result = ChatImageEditService.Result.partial
-                    continue
-                log.t(f"Image from attachment '{attachment.id}' was edited!")
-                urls.append(editing_result)
-                errors.append(None)
-            except Exception as e:
-                log.w(f"Failed to edit image from attachment '{attachment.id}'", e)
-                urls.append(None)
-                errors.append(f"Failed to edit image from attachment '{attachment.id}': {str(e)}")
-                result = ChatImageEditService.Result.partial
-        if not urls or all(url is None for url in urls):
-            log.w("Failed to edit all images")
-            result = ChatImageEditService.Result.failed
-        return result, urls, errors
+            if not attachment.last_url:
+                message = f"Attachment '{attachment.id}' has no URL, skipping"
+                log.w(message)
+                skip_errors.append(message)
+            else:
+                image_urls.append(attachment.last_url)
+                mime_types.append(attachment.mime_type)
+                skip_errors.append(None)
+
+        if not image_urls:
+            return ChatImageEditService.Result.failed, [None], ["No valid attachment URLs found"]
+
+        try:
+            configured_tool = self.__di.tool_choice_resolver.require_tool(
+                ImageEditor.TOOL_TYPE, default_tool_for(ImageEditor.TOOL_TYPE),
+            )
+            editor = self.__di.image_editor(
+                image_urls = image_urls,
+                configured_tool = configured_tool,
+                prompt = self.__operation_guidance or "<empty>",
+                input_mime_types = mime_types,
+                aspect_ratio = self.__aspect_ratio,
+                output_size = self.__output_size,
+            )
+            editing_result = editor.execute()
+            if editor.error:
+                log.w("Error editing images", editor.error)
+                return ChatImageEditService.Result.failed, [None], [editor.error]
+            if not editing_result:
+                return ChatImageEditService.Result.failed, [None], ["Failed to edit images"]
+            log.t("Images edited successfully")
+            had_skips = any(e is not None for e in skip_errors)
+            result = ChatImageEditService.Result.partial if had_skips else ChatImageEditService.Result.success
+            return result, [editing_result], [None]
+        except Exception as e:
+            log.w("Failed to edit images", e)
+            return ChatImageEditService.Result.failed, [None], [str(e)]
 
     def execute(self) -> tuple[Result, list[dict[str, str | None]]]:
         invoker_chat = self.__di.require_invoker_chat()

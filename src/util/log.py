@@ -8,6 +8,14 @@ from util.config import config
 from util.errors import ServiceError
 
 
+def _scrub_secrets(text: str) -> str:
+    for secret in config.all_secrets():
+        value = secret.get_secret_value()
+        if value:
+            text = text.replace(value, "****")
+    return text
+
+
 def _should_log(level: str) -> bool:
     if config.log_level == "local":
         return True  # we always log in local context
@@ -56,6 +64,8 @@ def _log_message(level: str, message: str, exceptions: list[Exception]):
     if not _should_log(level) and not exceptions:
         return
 
+    message = _scrub_secrets(message)
+
     # for uvicorn, use the uvicorn logger
     if config.log_level != "local":
         try:
@@ -72,7 +82,7 @@ def _log_message(level: str, message: str, exceptions: list[Exception]):
                         logger.error(message)
             # log the exceptions (message + traceback)
             for exception in exceptions:
-                logger.error(f"Message: {str(exception)}")
+                logger.error(f"Message: {_scrub_secrets(str(exception))}")
                 if trace := exception.__traceback__:
                     trace_lines = traceback.format_tb(trace)
                     indented_trace = "".join(trace_lines).strip()
@@ -82,7 +92,7 @@ def _log_message(level: str, message: str, exceptions: list[Exception]):
             if _should_log(level):
                 print(f"[{level[0]}] {message}")
             for exception in exceptions:
-                print(f" ‼  Message: {str(exception)}", file = sys.stderr)
+                print(f" ‼  Message: {_scrub_secrets(str(exception))}", file = sys.stderr)
                 if trace := exception.__traceback__:
                     trace_lines = traceback.format_tb(trace)
                     indented_trace = "".join(trace_lines).strip()
@@ -92,7 +102,7 @@ def _log_message(level: str, message: str, exceptions: list[Exception]):
     # for local execution, print to stdout/stderr
     print(f"[{level[0]}] {message}")
     for exception in exceptions:
-        print(f" ‼  Message: {str(exception)}", file = sys.stderr)
+        print(f" ‼  Message: {_scrub_secrets(str(exception))}", file = sys.stderr)
         if trace := exception.__traceback__:
             trace_lines = traceback.format_tb(trace)
             indented_trace = "".join(("    " + line.strip()) for line in trace_lines)

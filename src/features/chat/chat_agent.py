@@ -97,7 +97,7 @@ class ChatAgent:
         try:
             self.__di.authorization_service.require_user_is_chat_ready(self.__di.invoker)
         except ServiceError as e:
-            return AIMessage(prompt_resolvers.simple_chat_error(str(e)))
+            return AIMessage(prompt_resolvers.simple_chat_error(str(e), emoji = e.emoji))
 
         # check for bursts and skip if a newer message came in with the burst
         if self.__has_newer_burst_message():
@@ -177,17 +177,23 @@ class ChatAgent:
                     raise NotFoundError("Couldn't find tools to invoke!", TOOL_NOT_FOUND)
         except ServiceError as e:
             log.e("Chat completion failed (recognized error)", e)
-            message = prompt_resolvers.simple_chat_error(str(e))
+            message = prompt_resolvers.simple_chat_error(str(e), emoji = e.emoji)
             return AIMessage(message)
         except Exception as e:
             log.e("Chat completion failed (unrecognized error)", e)
-            message = prompt_resolvers.simple_chat_error(str(e))
+            emoji = e.emoji if isinstance(e, ServiceError) else "🤯"
+            message = prompt_resolvers.simple_chat_error(str(e), emoji = emoji)
             return AIMessage(message)
         finally:
             progress_notifier.stop()
 
     def process_commands(self) -> CommandHandlingResult:
-        result = self.__di.command_processor.execute(self.__raw_last_message)
+        try:
+            result = self.__di.command_processor.execute(self.__raw_last_message)
+        except ServiceError as e:
+            log.e("Command processing failed (recognized error)", e)
+            message = prompt_resolvers.simple_chat_error(str(e), emoji = e.emoji)
+            return ChatAgent.CommandHandlingResult(is_handled = True, reply = AIMessage(message))
         log.d(f"Command processing result is {result.status}")
         if result.status == "success":
             log.t("Command processed successfully, skipping LLM processing")

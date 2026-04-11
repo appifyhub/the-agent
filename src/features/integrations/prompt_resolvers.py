@@ -420,11 +420,11 @@ def copywriting_support_request_description(
     raise ConfigurationError(f"Unsupported chat type: {chat_type}", UNSUPPORTED_CHAT_TYPE)
 
 
-def simple_chat_error(error_reason: str) -> str:
+def simple_chat_error(error_reason: str, emoji: str = "🤯") -> str:
     clean_reason = error_reason
     for secret in config.all_secrets():
         clean_reason = clean_reason.replace(secret.get_secret_value(), "****")
-    return CHAT_MESSAGE_DELIMITER.join(["🤯", f"```\n{clean_reason}\n```", "Open /settings"])
+    return CHAT_MESSAGE_DELIMITER.join([emoji, f"```\n{clean_reason}\n```", "Open /settings"])
 
 
 def __now() -> str:

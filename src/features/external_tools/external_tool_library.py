@@ -440,6 +440,7 @@ NANO_BANANA = ExternalTool(
         output_image_2k = 4,
         output_image_4k = 4,
     ),
+    max_input_images = 3,
 )
 
 NANO_BANANA_PRO = ExternalTool(
@@ -454,6 +455,7 @@ NANO_BANANA_PRO = ExternalTool(
         output_image_2k = 15,
         output_image_4k = 30,
     ),
+    max_input_images = 5,
 )
 
 NANO_BANANA_2 = ExternalTool(
@@ -468,6 +470,7 @@ NANO_BANANA_2 = ExternalTool(
         output_image_2k = 11,
         output_image_4k = 16,
     ),
+    max_input_images = 14,
 )
 
 ###  xAI  ###
@@ -509,6 +512,7 @@ IMAGE_GEN_GROK_IMAGINE = ExternalTool(
         input_image_8k = 0.2,
         input_image_12k = 0.2,
     ),
+    max_input_images = 5,
 )
 
 IMAGE_GEN_GROK_IMAGINE_PRO = ExternalTool(
@@ -526,6 +530,7 @@ IMAGE_GEN_GROK_IMAGINE_PRO = ExternalTool(
         input_image_8k = 0.2,
         input_image_12k = 0.2,
     ),
+    max_input_images = 1,
 )
 
 ###  Perplexity  ###
@@ -606,6 +611,7 @@ IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO = ExternalTool(
         output_image_2k = 4,
         output_image_4k = 4,
     ),
+    max_input_images = 1,
 )
 
 IMAGE_GEN_EDIT_FLUX_2_PRO = ExternalTool(
@@ -624,6 +630,7 @@ IMAGE_GEN_EDIT_FLUX_2_PRO = ExternalTool(
         input_image_12k = 18,
         api_call = 2,
     ),
+    max_input_images = 8,
 )
 
 IMAGE_GEN_EDIT_FLUX_2_MAX = ExternalTool(
@@ -642,6 +649,7 @@ IMAGE_GEN_EDIT_FLUX_2_MAX = ExternalTool(
         input_image_12k = 36,
         api_call = 4,
     ),
+    max_input_images = 8,
 )
 
 IMAGE_GEN_EDIT_GPT_IMAGE_1_5 = ExternalTool(
@@ -654,6 +662,7 @@ IMAGE_GEN_EDIT_GPT_IMAGE_1_5 = ExternalTool(
         output_image_2k = 14,
         output_image_4k = 14,
     ),
+    max_input_images = 16,
 )
 
 
@@ -667,6 +676,7 @@ IMAGE_GEN_EDIT_SEEDREAM_4 = ExternalTool(
         output_image_2k = 3,
         output_image_4k = 3,
     ),
+    max_input_images = 10,
 )
 
 IMAGE_GEN_EDIT_SEEDREAM_4_5 = ExternalTool(
@@ -679,6 +689,7 @@ IMAGE_GEN_EDIT_SEEDREAM_4_5 = ExternalTool(
         output_image_2k = 4,
         output_image_4k = 4,
     ),
+    max_input_images = 14,
 )
 
 IMAGE_GEN_GEMINI_2_5_FLASH_IMAGE = ExternalTool(
@@ -703,6 +714,7 @@ IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA = ExternalTool(
         output_image_2k = 4,
         output_image_4k = 4,
     ),
+    max_input_images = 3,
 )
 
 IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO = ExternalTool(
@@ -715,6 +727,7 @@ IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO = ExternalTool(
         output_image_2k = 15,
         output_image_4k = 30,
     ),
+    max_input_images = 5,
 )
 
 IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_2 = ExternalTool(
@@ -727,6 +740,7 @@ IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_2 = ExternalTool(
         output_image_2k = 11,
         output_image_4k = 16,
     ),
+    max_input_images = 14,
 )
 
 ###  API Integrations  ###
