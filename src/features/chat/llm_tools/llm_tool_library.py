@@ -48,7 +48,7 @@ def process_attachments(
 ) -> str:
     """
     Processes the contents of the given attachments. Allowed operations are:
-        - 'analyze' (default): Analyzes the image contents using vision, transcribes audio, searches documents
+        - 'analyze' (default): Analyzes attachments and returns descriptions — images are analyzed using vision (multiple images can be provided and all will be described), audio is transcribed, documents are searched
         - 'image-edit': Generates a new image using the provided attachments as visual reference or inspiration — use this whenever the partner's images should influence the output (e.g. "use this logo", "generate a variant of this", "apply this style"). Multiple images can be provided for multi-reference generation. To process images individually (one output per image), call this function multiple times with a single image each time.
 
     Args:

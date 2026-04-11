@@ -879,14 +879,14 @@ class DI:
     def computer_vision_analyzer(
         self,
         job_id: str,
-        image_mime_type: str,
+        image_mime_types: list[str],
         configured_tool: ConfiguredTool,
-        image_url: str | None = None,
-        image_b64: str | None = None,
+        image_urls: list[str] | None = None,
+        image_b64s: list[str] | None = None,
         additional_context: str | None = None,
     ) -> "ComputerVisionAnalyzer":
         from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
-        return ComputerVisionAnalyzer(job_id, image_mime_type, configured_tool, self, image_url, image_b64, additional_context)
+        return ComputerVisionAnalyzer(job_id, image_mime_types, configured_tool, self, image_urls, image_b64s, additional_context)
 
     def document_search(
         self,
