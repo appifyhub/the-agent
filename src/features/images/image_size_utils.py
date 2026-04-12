@@ -1,4 +1,5 @@
 import io
+import math
 import re
 import tempfile
 from pathlib import Path
@@ -10,7 +11,10 @@ from util import log
 from util.error_codes import INVALID_IMAGE_SIZE
 from util.errors import ValidationError
 
-MAX_ITERATIONS = 30
+MAX_ITERATIONS = 10
+QUALITY = 90
+MIN_DIMENSION = 64
+TARGET_RATIO_LO = 0.90
 
 
 def __write_temp_file(content: bytes, suffix: str) -> str:
@@ -31,76 +35,44 @@ def resize_file(input_path: str, max_size_bytes: int) -> str:
             original_format = image.format or "PNG"
             log.t(f"Original image: {image.size}, format: {original_format}")
 
-            # configure resizing parameters
-            quality = 95
-            quality_min = 85
-            quality_step = 5
-            scale_factor = 0.9
-            scale_step = 0.02
-            scale_min = 0.1
+            suffix = Path(input_path).suffix or ".png"
+            save_format = original_format if original_format in ["JPEG", "PNG", "WEBP"] else "PNG"
+
+            save_kwargs: dict[str, Any] = {"format": save_format, "optimize": True}
+            if save_format != "PNG":
+                save_kwargs["quality"] = QUALITY
+
+            original_width, original_height = image.size
             best_under: bytes | None = None
             best_under_diff: float = float("inf")
             best_any: bytes | None = None
             best_any_diff: float = float("inf")
-            suffix = Path(input_path).suffix or ".png"
-            prev_diff: float | None = None
 
-            # resize the image until it fits the size limit
-            iteration = 0
-            while True:
-                iteration += 1
-                if iteration >= MAX_ITERATIONS:
-                    log.w("Max iterations reached, returning best effort")
-                    if best_under is not None:
-                        return __write_temp_file(best_under, suffix)
-                    if best_any is not None:
-                        return __write_temp_file(best_any, suffix)
-                    raise ValidationError(f"Could not resize image to acceptable size in {MAX_ITERATIONS} iterations", INVALID_IMAGE_SIZE)  # noqa: E501
-                log.d(f"Resizing in iteration {iteration}, scale_factor: {scale_factor}, quality: {quality}")
+            scale = max(0.1, min(1.0, math.sqrt(max_size_bytes / original_size)))
+            lo = 0.1
+            hi = 1.0
+
+            for iteration in range(MAX_ITERATIONS):
+                new_width = int(original_width * scale)
+                new_height = int(original_height * scale)
+
+                if new_width < MIN_DIMENSION or new_height < MIN_DIMENSION:
+                    log.w("Image hit minimum dimension during search, using best effort")
+                    break
+
+                log.d(f"Binary search iteration {iteration + 1}, scale: {scale:.4f}")
 
                 output = io.BytesIO()
-                current_image = image.copy()
-
-                # run the basic resizing operation
-                width, height = current_image.size
-                new_width = int(width * scale_factor)
-                new_height = int(height * scale_factor)
-
-                if new_width < 32 or new_height < 32:
-                    log.w("Image became too small during resizing, using best effort")
-                    if best_under is not None:
-                        return __write_temp_file(best_under, suffix)
-                    if best_any is not None:
-                        return __write_temp_file(best_any, suffix)
-                    raise ValidationError("Could not resize image to acceptable size", INVALID_IMAGE_SIZE)
-
-                current_image = current_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
-
-                # compute the format and quality metadata
-                save_format = original_format
-                if save_format not in ["JPEG", "PNG", "WEBP"]:
-                    save_format = "PNG"
-                is_lossless = save_format == "PNG"
-
-                save_kwargs: dict[str, Any] = {"format": save_format}
-                if save_format == "JPEG":
-                    save_kwargs["quality"] = quality
-                    save_kwargs["optimize"] = True
-                elif save_format == "PNG":
-                    save_kwargs["optimize"] = True
-                elif save_format == "WEBP":
-                    save_kwargs["quality"] = quality
-
-                current_image.save(output, **save_kwargs)
+                resized = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                resized.save(output, **save_kwargs)
                 output_size = output.tell()
 
                 output_mb = output_size / 1024 / 1024
-                log.t(f"Resized to {current_image.size}, size: {output_mb:.2f} MB, quality: {quality}")
+                log.t(f"Resized to {resized.size}, size: {output_mb:.2f} MB")
 
                 output.seek(0)
                 output_bytes = output.read()
 
-                # check the result to see if it's the best so far
                 diff = abs(output_size - max_size_bytes)
                 if output_size <= max_size_bytes and diff < best_under_diff:
                     best_under_diff = diff
@@ -109,38 +81,26 @@ def resize_file(input_path: str, max_size_bytes: int) -> str:
                     best_any_diff = diff
                     best_any = output_bytes
 
-                # if the result is within the size limit, return it
-                if output_size <= max_size_bytes:
-                    if output_size >= max_size_bytes * 0.97:
-                        original_mb = original_size / 1024 / 1024
-                        log.i(
-                            f"Successfully resized image from {original_mb:.2f} MB to "
-                            f"{output_mb:.2f} MB (within 3% margin)",
-                        )
-                        return __write_temp_file(output_bytes, suffix)
-                    if prev_diff is not None and diff > prev_diff:
-                        log.t("Diff started increasing below target; returning best under-limit")
-                        if best_under is not None:
-                            return __write_temp_file(best_under, suffix)
-                        if best_any is not None:
-                            return __write_temp_file(best_any, suffix)
-                        return __write_temp_file(output_bytes, suffix)
-
-                # if the result is not within the size limit, adjust the parameters and loop again
-                if (not is_lossless) and quality > quality_min + quality_step:
-                    quality -= quality_step
-                else:
-                    scale_factor -= scale_step
-                prev_diff = diff
-
-                # check if the parameters are too small to continue
-                if scale_factor <= scale_min or quality <= quality_min:
-                    log.w("Could not resize image to fit size limit closely, returning best effort")
-                    if best_under is not None:
-                        return __write_temp_file(best_under, suffix)
-                    if best_any is not None:
-                        return __write_temp_file(best_any, suffix)
+                if max_size_bytes * TARGET_RATIO_LO <= output_size <= max_size_bytes:
+                    original_mb = original_size / 1024 / 1024
+                    log.i(f"Successfully resized image from {original_mb:.2f} MB to {output_mb:.2f} MB")
                     return __write_temp_file(output_bytes, suffix)
+
+                if output_size > max_size_bytes:
+                    hi = scale
+                else:
+                    lo = scale
+                scale = (lo + hi) / 2
+
+            log.w("Binary search ended without hitting target band, returning best effort")
+            if best_under is not None:
+                return __write_temp_file(best_under, suffix)
+            if best_any is not None:
+                return __write_temp_file(best_any, suffix)
+            raise ValidationError(
+                f"Could not resize image to acceptable size in {MAX_ITERATIONS} iterations",
+                INVALID_IMAGE_SIZE,
+            )
     except Exception as e:
         log.e("Failed to resize image", e)
         raise
@@ -177,7 +137,6 @@ def calculate_image_size_category(file_path: str) -> str:
         elif megapixels <= 8:
             return "8k"
         elif megapixels <= 14:
-            # we tolerate 14 megapixels for now
             if megapixels > 12:
                 log.w(f"Large input image ({megapixels:.2f} MP) is tolerated, counting as 12k")
             return "12k"
