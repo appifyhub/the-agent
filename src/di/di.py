@@ -68,6 +68,7 @@ if TYPE_CHECKING:
     from features.chat.whatsapp.sdk.whatsapp_bot_sdk import WhatsAppBotSDK
     from features.chat.whatsapp.whatsapp_data_resolver import WhatsAppDataResolver
     from features.chat.whatsapp.whatsapp_domain_mapper import WhatsAppDomainMapper
+    from features.cleanup.cleanup_service import CleanupService
     from features.connect.profile_connect_service import ProfileConnectService
     from features.currencies.exchange_rate_fetcher import ExchangeRateFetcher
     from features.documents.document_search import DocumentSearch
@@ -115,6 +116,7 @@ class DI:
     _usage_record_repo: "UsageRecordRepository | None"
     _purchase_record_repo: "PurchaseRecordRepository | None"
     # Services
+    _cleanup_service: "CleanupService | None"
     _sponsorship_service: "SponsorshipService | None"
     _credit_transfer_service: "CreditTransferService | None"
     _profile_connect_service: "ProfileConnectService | None"
@@ -171,6 +173,7 @@ class DI:
         self._usage_record_repo = None
         self._purchase_record_repo = None
         # Services
+        self._cleanup_service = None
         self._sponsorship_service = None
         self._credit_transfer_service = None
         self._profile_connect_service = None
@@ -393,6 +396,13 @@ class DI:
         return self._purchase_record_repo
 
     # === Services ===
+
+    @property
+    def cleanup_service(self) -> "CleanupService":
+        if self._cleanup_service is None:
+            from features.cleanup.cleanup_service import CleanupService
+            self._cleanup_service = CleanupService(self)
+        return self._cleanup_service
 
     @property
     def sponsorship_service(self) -> "SponsorshipService":

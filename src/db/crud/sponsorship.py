@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -70,3 +71,11 @@ class SponsorshipCRUD:
         ).delete(synchronize_session = False)  # optimizes by assuming no other session will use these objects
         self._db.commit()
         return result
+
+    def delete_unaccepted_older_than(self, cutoff: datetime) -> int:
+        deleted = self._db.query(SponsorshipDB).filter(
+            SponsorshipDB.accepted_at.is_(None),
+            SponsorshipDB.sponsored_at < cutoff,
+        ).delete(synchronize_session = False)
+        self._db.commit()
+        return deleted

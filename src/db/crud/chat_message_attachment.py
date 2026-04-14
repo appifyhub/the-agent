@@ -1,7 +1,10 @@
+from datetime import datetime
 from uuid import UUID
 
+from sqlalchemy import select, tuple_
 from sqlalchemy.orm import Session
 
+from db.model.chat_message import ChatMessageDB
 from db.model.chat_message_attachment import ChatMessageAttachmentDB
 from db.schema.chat_message_attachment import ChatMessageAttachmentSave
 from util.functions import generate_short_uuid
@@ -67,3 +70,13 @@ class ChatMessageAttachmentCRUD:
             self._db.delete(attachment)
             self._db.commit()
         return attachment
+
+    def delete_by_old_messages(self, cutoff: datetime) -> int:
+        old_message_pairs = select(ChatMessageDB.chat_id, ChatMessageDB.message_id).where(
+            ChatMessageDB.sent_at < cutoff,
+        )
+        deleted = self._db.query(ChatMessageAttachmentDB).filter(
+            tuple_(ChatMessageAttachmentDB.chat_id, ChatMessageAttachmentDB.message_id).in_(old_message_pairs),
+        ).delete(synchronize_session = False)
+        self._db.commit()
+        return deleted

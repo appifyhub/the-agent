@@ -58,7 +58,7 @@ class ToolsCacheCRUD:
     def delete_expired(self) -> int:
         expired = self._db.query(ToolsCacheDB).filter(
             ToolsCacheDB.expires_at < datetime.now(),
-        ).delete()
+        ).delete(synchronize_session = False)
         self._db.commit()
         return expired
 

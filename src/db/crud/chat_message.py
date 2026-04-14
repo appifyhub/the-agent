@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import desc
@@ -64,3 +65,10 @@ class ChatMessageCRUD:
             self._db.delete(chat_message)
             self._db.commit()
         return chat_message
+
+    def delete_older_than(self, cutoff: datetime) -> int:
+        deleted = self._db.query(ChatMessageDB).filter(
+            ChatMessageDB.sent_at < cutoff,
+        ).delete(synchronize_session = False)
+        self._db.commit()
+        return deleted

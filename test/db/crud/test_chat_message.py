@@ -303,3 +303,45 @@ class ChatMessageCRUDTest(unittest.TestCase):
         self.assertIsNone(
             self.sql.chat_message_crud().get(created_chat_message.chat_id, created_chat_message.message_id),
         )
+
+    def test_delete_older_than(self):
+        chat = self.sql.chat_config_crud().create(
+            ChatConfigSave(external_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram),
+        )
+        user = self.sql.user_crud().create(
+            UserSave(
+                full_name = "Test User",
+                telegram_username = "test-user",
+                telegram_chat_id = "123456",
+                telegram_user_id = 123456,
+                open_ai_key = SecretStr("test-key"),
+                group = UserDB.Group.standard,
+            ),
+        )
+        old_message = self.sql.chat_message_crud().create(
+            ChatMessageSave(
+                chat_id = chat.chat_id,
+                message_id = "old_msg",
+                author_id = user.id,
+                sent_at = datetime.now() - timedelta(days = 31),
+                text = "Old message",
+            ),
+        )
+        recent_message = self.sql.chat_message_crud().create(
+            ChatMessageSave(
+                chat_id = chat.chat_id,
+                message_id = "recent_msg",
+                author_id = user.id,
+                sent_at = datetime.now(),
+                text = "Recent message",
+            ),
+        )
+        old_chat_id, old_message_id = old_message.chat_id, old_message.message_id
+        recent_chat_id, recent_message_id = recent_message.chat_id, recent_message.message_id
+        cutoff = datetime.now() - timedelta(days = 30)
+
+        deleted_count = self.sql.chat_message_crud().delete_older_than(cutoff)
+
+        self.assertEqual(deleted_count, 1)
+        self.assertIsNone(self.sql.chat_message_crud().get(old_chat_id, old_message_id))
+        self.assertIsNotNone(self.sql.chat_message_crud().get(recent_chat_id, recent_message_id))
