@@ -1,3 +1,4 @@
+import dataclasses
 import multiprocessing
 import os
 import random
@@ -185,14 +186,15 @@ def notify_of_release(
     return respond_with_summary(payload, di)
 
 
-@app.post("/task/clear-expired-cache")
-def clear_expired_cache(
+@app.post("/task/cleanup")
+def cleanup(
     db = Depends(get_session),
     _ = Depends(verify_api_key),
 ) -> dict:
-    cleared_count = DI(db).tools_cache_crud.delete_expired()
-    log.i(f"Cleared expired cache entries: {cleared_count}")
-    return {"cleared_entries_count": cleared_count}
+    result = DI(db).cleanup_service.run()
+    result_map = dataclasses.asdict(result)
+    log.i("Responding to cleanup request", result_map)
+    return result_map
 
 
 @app.get("/settings/{settings_type}/{resource_id}")

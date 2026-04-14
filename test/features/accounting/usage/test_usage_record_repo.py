@@ -373,7 +373,9 @@ class UsageRecordRepositoryTest(unittest.TestCase):
 
     def test_get_aggregates_includes_transfers_by_default(self):
         self.repo.create(self._create_record(tool = GPT_4O, tool_purpose = ToolType.chat, total_cost_credits = 10))
-        self.repo.create(self._create_record(tool = TRANSFER_TOOL, tool_purpose = ToolType.credit_transfer, total_cost_credits = 50))
+        self.repo.create(self._create_record(
+            tool = TRANSFER_TOOL, tool_purpose = ToolType.credit_transfer, total_cost_credits = 50,
+        ))
 
         stats = self.repo.get_aggregates_by_user(self.user.id)
 
@@ -383,7 +385,9 @@ class UsageRecordRepositoryTest(unittest.TestCase):
 
     def test_get_aggregates_exclude_transfers(self):
         self.repo.create(self._create_record(tool = GPT_4O, tool_purpose = ToolType.chat, total_cost_credits = 10))
-        self.repo.create(self._create_record(tool = TRANSFER_TOOL, tool_purpose = ToolType.credit_transfer, total_cost_credits = 50))
+        self.repo.create(self._create_record(
+            tool = TRANSFER_TOOL, tool_purpose = ToolType.credit_transfer, total_cost_credits = 50,
+        ))
 
         stats = self.repo.get_aggregates_by_user(self.user.id, include_transfers = False)
 
@@ -393,7 +397,9 @@ class UsageRecordRepositoryTest(unittest.TestCase):
 
     def test_get_aggregates_only_transfers(self):
         self.repo.create(self._create_record(tool = GPT_4O, tool_purpose = ToolType.chat, total_cost_credits = 10))
-        self.repo.create(self._create_record(tool = TRANSFER_TOOL, tool_purpose = ToolType.credit_transfer, total_cost_credits = 50))
+        self.repo.create(self._create_record(
+            tool = TRANSFER_TOOL, tool_purpose = ToolType.credit_transfer, total_cost_credits = 50,
+        ))
 
         stats = self.repo.get_aggregates_by_user(self.user.id, only_transfers = True)
 
@@ -471,3 +477,15 @@ class UsageRecordRepositoryTest(unittest.TestCase):
 
         self.assertEqual(stats.total_records, 2)
         self.assertEqual(stats.total_cost_credits, 35.0)
+
+    def test_delete_older_than(self):
+        self.repo.create(self._create_record(timestamp = datetime.now(timezone.utc) - timedelta(days = 31)))
+        self.repo.create(self._create_record(timestamp = datetime.now(timezone.utc) - timedelta(days = 31)))
+        self.repo.create(self._create_record(timestamp = datetime.now(timezone.utc)))
+        cutoff = datetime.now(timezone.utc) - timedelta(days = 30)
+
+        deleted_count = self.repo.delete_older_than(cutoff)
+
+        self.assertEqual(deleted_count, 2)
+        remaining = self.repo.get_by_user(self.user.id)
+        self.assertEqual(len(remaining), 1)
