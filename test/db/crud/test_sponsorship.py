@@ -1,8 +1,9 @@
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from db.sql_util import SQLUtil
 
+from db.model.sponsorship import SponsorshipDB
 from db.schema.sponsorship import SponsorshipSave
 from db.schema.user import UserSave
 
@@ -173,3 +174,41 @@ class SponsorshipCRUDTest(unittest.TestCase):
         self.assertEqual(deleted_count, 2)
         remaining_sponsorships = self.sql.sponsorship_crud().get_all_by_receiver(receiver.id)
         self.assertEqual(len(remaining_sponsorships), 0)
+
+    def test_delete_unaccepted_older_than(self):
+        sponsor = self.sql.user_crud().create(UserSave())
+        receiver1 = self.sql.user_crud().create(UserSave())
+        receiver2 = self.sql.user_crud().create(UserSave())
+        receiver3 = self.sql.user_crud().create(UserSave())
+
+        old_unaccepted = self.sql.sponsorship_crud().create(
+            SponsorshipSave(sponsor_id = sponsor.id, receiver_id = receiver1.id),
+        )
+        self.sql.sponsorship_crud().create(
+            SponsorshipSave(sponsor_id = sponsor.id, receiver_id = receiver2.id),
+        )
+        old_accepted = self.sql.sponsorship_crud().create(
+            SponsorshipSave(sponsor_id = sponsor.id, receiver_id = receiver3.id, accepted_at = datetime.now()),
+        )
+
+        session = self.sql.get_session()
+        old_unaccepted_db = session.query(SponsorshipDB).filter(
+            SponsorshipDB.sponsor_id == old_unaccepted.sponsor_id,
+            SponsorshipDB.receiver_id == old_unaccepted.receiver_id,
+        ).first()
+        old_unaccepted_db.sponsored_at = datetime.now() - timedelta(days = 31)
+        old_accepted_db = session.query(SponsorshipDB).filter(
+            SponsorshipDB.sponsor_id == old_accepted.sponsor_id,
+            SponsorshipDB.receiver_id == old_accepted.receiver_id,
+        ).first()
+        old_accepted_db.sponsored_at = datetime.now() - timedelta(days = 31)
+        session.commit()
+
+        cutoff = datetime.now() - timedelta(days = 30)
+
+        deleted_count = self.sql.sponsorship_crud().delete_unaccepted_older_than(cutoff)
+
+        self.assertEqual(deleted_count, 1)
+        self.assertIsNone(self.sql.sponsorship_crud().get(sponsor.id, receiver1.id))
+        self.assertIsNotNone(self.sql.sponsorship_crud().get(sponsor.id, receiver2.id))
+        self.assertIsNotNone(self.sql.sponsorship_crud().get(sponsor.id, receiver3.id))

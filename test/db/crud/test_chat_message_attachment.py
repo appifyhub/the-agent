@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime, timedelta
 from uuid import UUID
 
 from db.sql_util import SQLUtil
@@ -464,3 +465,46 @@ class ChatMessageAttachmentCRUDTest(unittest.TestCase):
         # Both lookups should return the same record
         self.assertEqual(by_id.id, "custom_id_123")
         self.assertEqual(by_id.external_id, "telegram_external_456")
+
+    def test_delete_by_old_messages(self):
+        chat = self.sql.chat_config_crud().create(
+            ChatConfigSave(external_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram),
+        )
+        old_message = self.sql.chat_message_crud().create(
+            ChatMessageSave(
+                chat_id = chat.chat_id,
+                message_id = "old_msg",
+                sent_at = datetime.now() - timedelta(days = 31),
+                text = "Old",
+            ),
+        )
+        recent_message = self.sql.chat_message_crud().create(
+            ChatMessageSave(
+                chat_id = chat.chat_id,
+                message_id = "recent_msg",
+                sent_at = datetime.now(),
+                text = "Recent",
+            ),
+        )
+        old_attachment = self.sql.chat_message_attachment_crud().create(
+            ChatMessageAttachmentSave(
+                id = "attach_old",
+                chat_id = old_message.chat_id,
+                message_id = old_message.message_id,
+            ),
+        )
+        recent_attachment = self.sql.chat_message_attachment_crud().create(
+            ChatMessageAttachmentSave(
+                id = "attach_recent",
+                chat_id = recent_message.chat_id,
+                message_id = recent_message.message_id,
+            ),
+        )
+        old_attachment_id, recent_attachment_id = old_attachment.id, recent_attachment.id
+        cutoff = datetime.now() - timedelta(days = 30)
+
+        deleted_count = self.sql.chat_message_attachment_crud().delete_by_old_messages(cutoff)
+
+        self.assertEqual(deleted_count, 1)
+        self.assertIsNone(self.sql.chat_message_attachment_crud().get(old_attachment_id))
+        self.assertIsNotNone(self.sql.chat_message_attachment_crud().get(recent_attachment_id))

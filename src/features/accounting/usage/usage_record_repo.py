@@ -228,3 +228,10 @@ class UsageRecordRepository:
             base_query = base_query.filter(UsageRecordDB.timestamp <= end_date)
 
         return base_query
+
+    def delete_older_than(self, cutoff: datetime) -> int:
+        deleted = self._db.query(UsageRecordDB).filter(
+            UsageRecordDB.timestamp < cutoff,
+        ).delete(synchronize_session = False)
+        self._db.commit()
+        return deleted

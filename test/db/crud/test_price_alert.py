@@ -266,3 +266,40 @@ class PriceAlertCRUDTest(unittest.TestCase):
                 created_price_alert.desired_currency,
             ),
         )
+
+    def test_delete_stale(self):
+        chat = self.sql.chat_config_crud().create(
+            ChatConfigSave(external_id = "chat1", chat_type = ChatConfigDB.ChatType.telegram),
+        )
+        user_id = self._create_test_user()
+        stale_alert = self.sql.price_alert_crud().create(
+            PriceAlertSave(
+                chat_id = chat.chat_id,
+                owner_id = user_id,
+                base_currency = "USD",
+                desired_currency = "EUR",
+                threshold_percent = 5,
+                last_price = 0.85,
+                last_price_time = datetime.now() - timedelta(days = 361),
+            ),
+        )
+        fresh_alert = self.sql.price_alert_crud().create(
+            PriceAlertSave(
+                chat_id = chat.chat_id,
+                owner_id = user_id,
+                base_currency = "BTC",
+                desired_currency = "USD",
+                threshold_percent = 10,
+                last_price = 50000.0,
+                last_price_time = datetime.now(),
+            ),
+        )
+        stale_chat_id, stale_base, stale_desired = stale_alert.chat_id, stale_alert.base_currency, stale_alert.desired_currency
+        fresh_chat_id, fresh_base, fresh_desired = fresh_alert.chat_id, fresh_alert.base_currency, fresh_alert.desired_currency
+        cutoff = datetime.now() - timedelta(days = 360)
+
+        deleted_count = self.sql.price_alert_crud().delete_stale(cutoff)
+
+        self.assertEqual(deleted_count, 1)
+        self.assertIsNone(self.sql.price_alert_crud().get(stale_chat_id, stale_base, stale_desired))
+        self.assertIsNotNone(self.sql.price_alert_crud().get(fresh_chat_id, fresh_base, fresh_desired))

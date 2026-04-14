@@ -52,6 +52,9 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.whatsapp_bot_phone_number, "11234567890")
         self.assertEqual(config.chat_history_depth, 30)
         self.assertEqual(config.chat_debounce_delay_s, 1.0)
+        self.assertEqual(config.cleanup_message_retention_days, 30)
+        self.assertEqual(config.cleanup_price_alert_staleness_days, 360)
+        self.assertEqual(config.cleanup_sponsorship_staleness_days, 30)
         self.assertEqual(config.github_issues_repo, "appifyhub/agent-backend")
         self.assertEqual(config.issue_templates_abs_path, ".github/ISSUE_TEMPLATE")
         self.assertEqual(config.jwt_expires_in_minutes, 30)
@@ -117,6 +120,9 @@ class ConfigTest(unittest.TestCase):
         os.environ["WHATSAPP_BOT_PHONE_NUMBER"] = "19876543210"
         os.environ["CHAT_HISTORY_DEPTH"] = "10"
         os.environ["CHAT_DEBOUNCE_DELAY_S"] = "2.5"
+        os.environ["CLEANUP_MESSAGE_RETENTION_DAYS"] = "60"
+        os.environ["CLEANUP_PRICE_ALERT_STALENESS_DAYS"] = "180"
+        os.environ["CLEANUP_SPONSORSHIP_STALENESS_DAYS"] = "14"
         os.environ["THE_AGENT_ISSUES_REPO"] = "appifyhub/the-new-agent"
         os.environ["THE_AGENT_ISSUE_TEMPLATES_PATH"] = "issue_templates"
         os.environ["JWT_EXPIRES_IN_MINUTES"] = "10"
@@ -186,6 +192,9 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.whatsapp_bot_phone_number, "19876543210")
         self.assertEqual(config.chat_history_depth, 10)
         self.assertEqual(config.chat_debounce_delay_s, 2.5)
+        self.assertEqual(config.cleanup_message_retention_days, 60)
+        self.assertEqual(config.cleanup_price_alert_staleness_days, 180)
+        self.assertEqual(config.cleanup_sponsorship_staleness_days, 14)
         self.assertEqual(config.github_issues_repo, "appifyhub/the-new-agent")
         self.assertEqual(config.issue_templates_abs_path, "issue_templates")
         self.assertEqual(config.jwt_expires_in_minutes, 10)

@@ -125,17 +125,17 @@ class ToolsCacheCRUDTest(unittest.TestCase):
             ToolsCacheSave(key = "tool2", value = "value2", expires_at = datetime.now() - timedelta(days = 1)),
         )
 
+        not_expired_key, expired_key = tools_cache_not_expired.key, tools_cache_expired.key
+
         # Deleting expired cache entries
         count_deleted = self.sql.tools_cache_crud().delete_expired()
         self.assertEqual(count_deleted, 1)
 
         # Asserting non-expired entry still exists
-        fetched_non_expired = self.sql.tools_cache_crud().get(tools_cache_not_expired.key)
-        self.assertIsNotNone(fetched_non_expired)
+        self.assertIsNotNone(self.sql.tools_cache_crud().get(not_expired_key))
 
         # Asserting expired entry does not exist
-        fetched_expired = self.sql.tools_cache_crud().get(tools_cache_expired.key)
-        self.assertIsNone(fetched_expired)
+        self.assertIsNone(self.sql.tools_cache_crud().get(expired_key))
 
     def test_create_key(self):
         key = ToolsCacheCRUD.create_key("prefix", "identifier")

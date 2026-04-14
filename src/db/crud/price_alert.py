@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -58,3 +59,10 @@ class PriceAlertCRUD:
             self._db.delete(price_alert)
             self._db.commit()
         return price_alert
+
+    def delete_stale(self, cutoff: datetime) -> int:
+        deleted = self._db.query(PriceAlertDB).filter(
+            PriceAlertDB.last_price_time < cutoff,
+        ).delete(synchronize_session = False)
+        self._db.commit()
+        return deleted
