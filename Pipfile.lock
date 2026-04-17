@@ -1118,12 +1118,12 @@
         },
         "langchain-core": {
             "hashes": [
-                "sha256:26fa50894449b29b31b3712fa4975db679d26abe8241a966ea2c5978b68d8394",
-                "sha256:ee6c6b3476215c4be438231bab7003d880359230b9fdf1f65e0ffa1bde8a58e0"
+                "sha256:aad3ecc9e4dce2dd2bb79526c81b92e5322fd81db7834a031cb80359f2e3ebaa",
+                "sha256:c407193edb99311cc36ec3e4d3667a065bbc4d7d72fbb6e368538b9b134d4033"
             ],
             "index": "pypi",
             "markers": "python_full_version >= '3.10.0' and python_full_version < '4.0.0'",
-            "version": "==1.2.30"
+            "version": "==1.2.31"
         },
         "langchain-google-genai": {
             "hashes": [
@@ -1136,12 +1136,12 @@
         },
         "langchain-openai": {
             "hashes": [
-                "sha256:54ba1e9f2f0f428aeea68271a87823a0a1b22360283990a713c731d2ef7da926",
-                "sha256:88e13342407016785bd3c48be32ded1f28b992403bbb82505b558d81b038adc2"
+                "sha256:71b4262932fabe506ce79c175dbc956cc48f24d81e20b27662df493147750643",
+                "sha256:cb525d2011f9813fc15a7dcfd4bca5b87badcbcb2c113a7fbe45d1b8a1bbb69c"
             ],
             "index": "pypi",
             "markers": "python_full_version >= '3.10.0' and python_full_version < '4.0.0'",
-            "version": "==1.1.13"
+            "version": "==1.1.14"
         },
         "langchain-perplexity": {
             "hashes": [
@@ -1203,11 +1203,11 @@
         },
         "langsmith": {
             "hashes": [
-                "sha256:0291d49203f6e80dda011af1afda61eb0595a4d697adb684590a8805e1d61fb6",
-                "sha256:331ee4f7c26bb5be4022b9859b7d7b122cbf8c9d01d9f530114c1914b0349ffb"
+                "sha256:b59b8e106d0e4c4842e158229296086e2aa7c561e3f602acda73d3ad0062e915",
+                "sha256:e1fde928990c4c52f47dc5132708cec674355d9101723d564183e965f383bf5f"
             ],
             "markers": "python_version >= '3.10'",
-            "version": "==0.7.31"
+            "version": "==0.7.32"
         },
         "lxml": {
             "hashes": [
@@ -1700,11 +1700,11 @@
         },
         "openai": {
             "hashes": [
-                "sha256:43ca59a88fc973ad1848d86b98d7fac207e265ebbd1828b5e4bdfc85f79427a5",
-                "sha256:44e1344d87e56a493d649b17e2fac519d1368cbb0745f59f1957c4c26de50a0a"
+                "sha256:4dcc9badeb4bf54ad0d187453742f290226d30150890b7890711bda4f32f192f",
+                "sha256:c54b27a9e4cb8d51f0dd94972ffd1a04437efeb259a9e60d8922b8bd26fe55e0"
             ],
             "markers": "python_version >= '3.9'",
-            "version": "==2.31.0"
+            "version": "==2.32.0"
         },
         "opentelemetry-api": {
             "hashes": [
