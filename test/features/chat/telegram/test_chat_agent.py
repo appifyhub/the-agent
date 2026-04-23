@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import MagicMock, Mock, patch
 from uuid import UUID
 
@@ -174,12 +174,12 @@ class ChatAgentTest(unittest.TestCase):
         mock_randint.return_value = 75
         self.assertFalse(self.agent.should_reply())
 
-    def test_should_not_reply_empty_message(self):
+    def test_is_dispatchable_rejects_empty_message(self):
         self.chat_config.is_private = True
         self.chat_config.reply_chance_percent = 100
         self.agent._ChatAgent__raw_last_message = " "
 
-        self.assertFalse(self.agent.should_reply())
+        self.assertFalse(self.agent._ChatAgent__is_dispatchable())
 
     def test_should_not_reply_zero_chance(self):
         self.chat_config.is_private = False
@@ -204,22 +204,22 @@ class ChatAgentTest(unittest.TestCase):
         self.assertTrue(self.agent.should_reply())
 
     # noinspection PyUnresolvedReferences
-    def test_should_not_reply_to_self(self):
+    def test_is_dispatchable_rejects_self_authored(self):
         self.chat_config.is_private = False
         self.chat_config.reply_chance_percent = 100
         self.agent._ChatAgent__raw_last_message = "Hello"
         self.mock_di.invoker.telegram_username = self.agent_user.telegram_username
 
-        self.assertFalse(self.agent.should_reply())
+        self.assertFalse(self.agent._ChatAgent__is_dispatchable())
 
     # noinspection PyUnresolvedReferences
-    def test_should_reply_to_other_user(self):
+    def test_is_dispatchable_accepts_other_user(self):
         self.chat_config.is_private = False
         self.chat_config.reply_chance_percent = 100
         self.agent._ChatAgent__raw_last_message = "Hello"
         self.mock_di.invoker.telegram_username = "other_user"
 
-        self.assertTrue(self.agent.should_reply())
+        self.assertTrue(self.agent._ChatAgent__is_dispatchable())
 
     @patch("features.chat.chat_agent.ChatAgent.should_reply")
     def test_execute_no_reply_needed(self, mock_should_reply):
@@ -230,6 +230,7 @@ class ChatAgentTest(unittest.TestCase):
     @patch("features.chat.chat_agent.ChatAgent.process_commands")
     @patch("features.chat.chat_agent.ChatAgent.should_reply")
     def test_execute_command_processed(self, mock_should_reply, mock_process_commands):
+        self.chat_config.is_private = True
         mock_should_reply.return_value = True
         mock_process_commands.return_value = ChatAgent.CommandHandlingResult(
             is_handled = True,
@@ -241,6 +242,7 @@ class ChatAgentTest(unittest.TestCase):
     @patch("features.chat.chat_agent.ChatAgent.process_commands")
     @patch("features.chat.chat_agent.ChatAgent.should_reply")
     def test_execute_command_failed(self, mock_should_reply, mock_process_commands):
+        self.chat_config.is_private = True
         mock_should_reply.return_value = True
         mock_process_commands.return_value = ChatAgent.CommandHandlingResult(
             is_handled = True,
@@ -380,6 +382,7 @@ class ChatAgentTest(unittest.TestCase):
     @patch("features.chat.chat_agent.ChatAgent.process_commands")
     @patch("features.chat.chat_agent.ChatAgent.should_reply")
     def test_execute_waitlist_guard_does_not_override_command_failure(self, mock_should_reply, mock_process_commands):
+        self.chat_config.is_private = True
         mock_should_reply.return_value = True
         mock_process_commands.return_value = ChatAgent.CommandHandlingResult(
             is_handled = True,
@@ -468,3 +471,84 @@ class ChatAgentTest(unittest.TestCase):
         self.mock_sleep.assert_called_once_with(1.0)
         self.assertIsNone(result)
         self.mock_di.llm_tool_library.bind_tools.assert_not_called()
+
+    def test_is_addressable_private_chat(self):
+        self.chat_config.is_private = True
+        self.agent._ChatAgent__raw_last_message = "anything"
+
+        self.assertTrue(self.agent._ChatAgent__is_addressable())
+
+    def test_is_addressable_group_chat_with_mention(self):
+        self.chat_config.is_private = False
+        self.agent._ChatAgent__raw_last_message = f"hello @{self.agent_user.telegram_username}"
+
+        self.assertTrue(self.agent._ChatAgent__is_addressable())
+
+    def test_is_addressable_group_chat_without_mention(self):
+        self.chat_config.is_private = False
+        self.agent._ChatAgent__raw_last_message = "hello"
+
+        self.assertFalse(self.agent._ChatAgent__is_addressable())
+
+    @patch("features.chat.chat_agent.ChatAgent.process_commands")
+    @patch("features.chat.chat_agent.ChatAgent.should_reply")
+    def test_execute_skips_commands_when_not_addressable(self, mock_should_reply, mock_process_commands):
+        self.chat_config.is_private = False
+        self.agent._ChatAgent__raw_last_message = "hello"
+        mock_should_reply.return_value = False
+
+        result = self.agent.execute()
+
+        self.assertIsNone(result)
+        mock_process_commands.assert_not_called()
+
+    @patch("features.chat.chat_agent.config")
+    def test_should_reply_carries_mention_from_recent_burst_message(self, mock_config):
+        self.chat_config.is_private = False
+        self.chat_config.reply_chance_percent = 0
+        self.agent._ChatAgent__raw_last_message = "follow up"
+        mock_config.chat_debounce_delay_s = 1.0
+        recent_tagged = Mock()
+        recent_tagged.message_id = "msg_001"
+        recent_tagged.author_id = self.user.id
+        recent_tagged.sent_at = datetime.now()
+        recent_tagged.text = f"Hello @{self.agent_user.telegram_username}"
+        current = Mock()
+        current.message_id = "msg_123"
+        self.mock_di.chat_message_crud.get_latest_chat_messages.return_value = [current, recent_tagged]
+
+        self.assertTrue(self.agent.should_reply())
+
+    @patch("features.chat.chat_agent.config")
+    def test_should_reply_ignores_mention_from_different_invoker(self, mock_config):
+        self.chat_config.is_private = False
+        self.chat_config.reply_chance_percent = 0
+        self.agent._ChatAgent__raw_last_message = "follow up"
+        mock_config.chat_debounce_delay_s = 1.0
+        other_tagged = Mock()
+        other_tagged.message_id = "msg_001"
+        other_tagged.author_id = UUID(int = 999)
+        other_tagged.sent_at = datetime.now()
+        other_tagged.text = f"Hello @{self.agent_user.telegram_username}"
+        current = Mock()
+        current.message_id = "msg_123"
+        self.mock_di.chat_message_crud.get_latest_chat_messages.return_value = [current, other_tagged]
+
+        self.assertFalse(self.agent.should_reply())
+
+    @patch("features.chat.chat_agent.config")
+    def test_should_reply_ignores_mention_outside_burst_window(self, mock_config):
+        self.chat_config.is_private = False
+        self.chat_config.reply_chance_percent = 0
+        self.agent._ChatAgent__raw_last_message = "follow up"
+        mock_config.chat_debounce_delay_s = 1.0
+        stale_tagged = Mock()
+        stale_tagged.message_id = "msg_001"
+        stale_tagged.author_id = self.user.id
+        stale_tagged.sent_at = datetime.now() - timedelta(seconds = 5)
+        stale_tagged.text = f"Hello @{self.agent_user.telegram_username}"
+        current = Mock()
+        current.message_id = "msg_123"
+        self.mock_di.chat_message_crud.get_latest_chat_messages.return_value = [current, stale_tagged]
+
+        self.assertFalse(self.agent.should_reply())
