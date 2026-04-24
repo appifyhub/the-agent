@@ -2,6 +2,7 @@ import random
 import re
 import time
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Any, TypeVar
 
 from langchain_core.language_models import LanguageModelInput
@@ -84,24 +85,30 @@ class ChatAgent:
     def execute(self) -> AIMessage | None:
         log.t(f"Starting chat completion for '{self.__last_message.content}'")
 
-        # check if a reply is needed at all
-        if not self.should_reply():
+        # drop empty or self-authored messages before anything else
+        if not self.__is_dispatchable():
             return None
 
-        # handle commands first
-        command_handling = self.process_commands()
-        if command_handling.is_handled:
-            return command_handling.reply
+        # commands run eagerly when the bot is directly addressed, so a later
+        # message in the same burst does not swallow the command
+        if self.__is_addressable():
+            command_handling = self.process_commands()
+            if command_handling.is_handled:
+                return command_handling.reply
+
+        # burst gate: only the latest message in a burst reaches LLM processing
+        if self.__has_newer_burst_message():
+            return None
+
+        # full reply decision runs on the burst winner with burst-aware mention
+        if not self.should_reply():
+            return None
 
         # handle user profile constraints next
         try:
             self.__di.authorization_service.require_user_is_chat_ready(self.__di.invoker)
         except ServiceError as e:
             return AIMessage(prompt_resolvers.simple_chat_error(str(e), emoji = e.emoji))
-
-        # check for bursts and skip if a newer message came in with the burst
-        if self.__has_newer_burst_message():
-            return None
 
         # handle access control before doing any LLM processing
         if not self.__configured_tool:
@@ -208,14 +215,50 @@ class ChatAgent:
         message = prompt_resolvers.simple_chat_error("Confused with processing command.")
         return ChatAgent.CommandHandlingResult(is_handled = True, reply = AIMessage(message))
 
-    def should_reply(self) -> bool:
+    def __is_dispatchable(self) -> bool:
         has_content = bool(self.__raw_last_message.strip())
         chat_type = self.__di.require_invoker_chat_type()
         agent_user = resolve_agent_user(chat_type)
         invoker_handle = resolve_external_handle(self.__di.invoker, chat_type)
         agent_handle = resolve_external_handle(agent_user, chat_type)
         is_not_recursive = invoker_handle != agent_handle
-        is_bot_mentioned = f"@{agent_handle}" in self.__raw_last_message
+        return has_content and is_not_recursive
+
+    def __is_addressable(self) -> bool:
+        chat_type = self.__di.require_invoker_chat_type()
+        agent_user = resolve_agent_user(chat_type)
+        agent_handle = resolve_external_handle(agent_user, chat_type)
+        is_bot_mentioned = bool(agent_handle) and f"@{agent_handle}" in self.__raw_last_message
+        return self.__di.require_invoker_chat().is_private or is_bot_mentioned
+
+    def __is_bot_mentioned_in_burst(self, agent_handle: str | None) -> bool:
+        if not agent_handle:
+            return False
+        mention_token = f"@{agent_handle}"
+        if mention_token in self.__raw_last_message:
+            return True
+        if config.chat_debounce_delay_s <= 0.0:
+            return False
+        invoker_id = self.__di.invoker.id
+        chat_id = self.__di.require_invoker_chat().chat_id
+        recent_messages = self.__di.chat_message_crud.get_latest_chat_messages(chat_id, limit = 5)
+        cutoff = datetime.now() - timedelta(seconds = config.chat_debounce_delay_s)
+        for message in recent_messages:
+            if message.message_id == self.__last_message_id:
+                continue
+            if message.author_id != invoker_id:
+                continue
+            if message.sent_at < cutoff:
+                continue
+            if mention_token in message.text:
+                return True
+        return False
+
+    def should_reply(self) -> bool:
+        chat_type = self.__di.require_invoker_chat_type()
+        agent_user = resolve_agent_user(chat_type)
+        agent_handle = resolve_external_handle(agent_user, chat_type)
+        is_bot_mentioned = self.__is_bot_mentioned_in_burst(agent_handle)
         invoker_chat = self.__di.require_invoker_chat()
         if invoker_chat.reply_chance_percent == 100:
             should_reply_at_random = True
@@ -224,14 +267,10 @@ class ChatAgent:
         else:
             should_reply_at_random = random.randint(0, 100) <= invoker_chat.reply_chance_percent
         should_reply = (
-            has_content and
-            is_not_recursive and
-            (invoker_chat.is_private or is_bot_mentioned or should_reply_at_random)
+            invoker_chat.is_private or is_bot_mentioned or should_reply_at_random
         )
         log.d(
             f"Reply decision: {'REPLYING' if should_reply else 'NOT REPLYING'}. Conditions:\n"
-            f"  · has_content      = {has_content}\n"
-            f"  · is_not_recursive = {is_not_recursive}\n"
             f"  · is_private_chat  = {invoker_chat.is_private}\n"
             f"  · is_bot_mentioned = {is_bot_mentioned}\n"
             f"  · reply_at_random  = {should_reply_at_random}\n"
