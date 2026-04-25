@@ -12,7 +12,7 @@ from db.model.user import UserDB
 from db.schema.user import User
 from di.di import DI
 from features.external_tools.external_tool import ExternalTool, ToolType
-from features.external_tools.external_tool_library import CLAUDE_4_SONNET
+from features.external_tools.external_tool_library import CLAUDE_4_6_SONNET
 from features.support.user_support_service import UserSupportService
 
 
@@ -47,7 +47,7 @@ class UserSupportServiceTest(unittest.TestCase):
             mock_shortener.execute.return_value = long_url
             return mock_shortener
         self.mock_di.url_shortener = MagicMock(side_effect = mock_url_shortener)
-        self.mock_configured_tool = (CLAUDE_4_SONNET, SecretStr("test_key"), ToolType.copywriting)
+        self.mock_configured_tool = (CLAUDE_4_6_SONNET, SecretStr("test_key"), ToolType.copywriting)
         self.service = UserSupportService(
             user_input = "Test input",
             github_author = "test_github",

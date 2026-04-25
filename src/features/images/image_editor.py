@@ -13,7 +13,7 @@ from features.chat.supported_files import KNOWN_IMAGE_FORMATS
 from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ToolType
 from features.external_tools.external_tool_provider_library import GOOGLE_AI, REPLICATE, XAI
-from features.images.image_api_utils import map_to_model_parameters
+from features.images.image_api_utils import filter_replicate_params, map_to_model_parameters
 from features.images.image_size_utils import calculate_image_size_category
 from util import log
 from util.config import config
@@ -126,6 +126,7 @@ class ImageEditor:
             dict_params = {
                 k: v for k, v in unified_params.__dict__.items() if v is not None
             }
+            dict_params = filter_replicate_params(self.__configured_tool.definition, dict_params)
             log.t("Calling Replicate image editing with params", dict_params)
 
             valid_sizes = [s for s in input_image_sizes if s is not None] or None

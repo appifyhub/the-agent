@@ -6,7 +6,7 @@ from di.di import DI
 from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ToolType
 from features.external_tools.external_tool_provider_library import GOOGLE_AI, REPLICATE, XAI
-from features.images.image_api_utils import map_to_model_parameters
+from features.images.image_api_utils import filter_replicate_params, map_to_model_parameters
 from util import log
 from util.config import config
 from util.error_codes import EXTERNAL_EMPTY_RESPONSE, UNSUPPORTED_PROVIDER
@@ -67,6 +67,7 @@ class SimpleImageGenerator:
         dict_params = {
             k: v for k, v in unified_params.__dict__.items() if v is not None
         }
+        dict_params = filter_replicate_params(self.__configured_tool.definition, dict_params)
         log.t("Calling Replicate image generator with params", dict_params)
 
         replicate = self.__di.replicate_client(

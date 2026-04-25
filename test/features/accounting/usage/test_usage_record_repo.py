@@ -10,7 +10,7 @@ from db.schema.user import UserSave
 from features.accounting.usage.usage_record import UsageRecord
 from features.accounting.usage.usage_record_repo import UsageRecordRepository
 from features.external_tools.external_tool import ToolType
-from features.external_tools.external_tool_library import CLAUDE_3_5_HAIKU, GPT_4O, TRANSFER_TOOL
+from features.external_tools.external_tool_library import CLAUDE_4_5_HAIKU, GPT_4O, TRANSFER_TOOL
 
 
 class UsageRecordRepositoryTest(unittest.TestCase):
@@ -185,7 +185,7 @@ class UsageRecordRepositoryTest(unittest.TestCase):
             total_cost_credits = 5,
         ))
         self.repo.create(self._create_record(
-            tool = CLAUDE_3_5_HAIKU,
+            tool = CLAUDE_4_5_HAIKU,
             tool_purpose = ToolType.images_gen,
             total_cost_credits = 20,
         ))
@@ -200,8 +200,8 @@ class UsageRecordRepositoryTest(unittest.TestCase):
         self.assertEqual(len(stats.by_tool), 2)
         self.assertEqual(stats.by_tool[GPT_4O.id].record_count, 2)
         self.assertEqual(stats.by_tool[GPT_4O.id].total_cost, 15.0)
-        self.assertEqual(stats.by_tool[CLAUDE_3_5_HAIKU.id].record_count, 1)
-        self.assertEqual(stats.by_tool[CLAUDE_3_5_HAIKU.id].total_cost, 20.0)
+        self.assertEqual(stats.by_tool[CLAUDE_4_5_HAIKU.id].record_count, 1)
+        self.assertEqual(stats.by_tool[CLAUDE_4_5_HAIKU.id].total_cost, 20.0)
 
         # by_purpose
         self.assertEqual(len(stats.by_purpose), 2)
@@ -214,13 +214,13 @@ class UsageRecordRepositoryTest(unittest.TestCase):
         self.assertEqual(len(stats.by_provider), 2)
         self.assertEqual(stats.by_provider[GPT_4O.provider.id].record_count, 2)
         self.assertEqual(stats.by_provider[GPT_4O.provider.id].total_cost, 15.0)
-        self.assertEqual(stats.by_provider[CLAUDE_3_5_HAIKU.provider.id].record_count, 1)
-        self.assertEqual(stats.by_provider[CLAUDE_3_5_HAIKU.provider.id].total_cost, 20.0)
+        self.assertEqual(stats.by_provider[CLAUDE_4_5_HAIKU.provider.id].record_count, 1)
+        self.assertEqual(stats.by_provider[CLAUDE_4_5_HAIKU.provider.id].total_cost, 20.0)
 
         # all_tools_used (list of ToolInfo)
         tool_ids = [t.id for t in stats.all_tools_used]
         self.assertIn(GPT_4O.id, tool_ids)
-        self.assertIn(CLAUDE_3_5_HAIKU.id, tool_ids)
+        self.assertIn(CLAUDE_4_5_HAIKU.id, tool_ids)
         self.assertIn(ToolType.chat.value, stats.all_purposes_used)
         self.assertIn(ToolType.images_gen.value, stats.all_purposes_used)
 
@@ -274,7 +274,7 @@ class UsageRecordRepositoryTest(unittest.TestCase):
     def test_get_by_user_tool_filter(self):
         self.repo.create(self._create_record(tool = GPT_4O))
         self.repo.create(self._create_record(tool = GPT_4O))
-        self.repo.create(self._create_record(tool = CLAUDE_3_5_HAIKU))
+        self.repo.create(self._create_record(tool = CLAUDE_4_5_HAIKU))
 
         records = self.repo.get_by_user(self.user.id, tool_id = GPT_4O.id)
 
@@ -296,7 +296,7 @@ class UsageRecordRepositoryTest(unittest.TestCase):
     def test_get_by_user_provider_filter(self):
         self.repo.create(self._create_record(tool = GPT_4O))
         self.repo.create(self._create_record(tool = GPT_4O))
-        self.repo.create(self._create_record(tool = CLAUDE_3_5_HAIKU))
+        self.repo.create(self._create_record(tool = CLAUDE_4_5_HAIKU))
 
         records = self.repo.get_by_user(self.user.id, provider_id = GPT_4O.provider.id)
 
@@ -312,7 +312,7 @@ class UsageRecordRepositoryTest(unittest.TestCase):
             total_cost_credits = 10,
         ))
         self.repo.create(self._create_record(
-            tool = CLAUDE_3_5_HAIKU,
+            tool = CLAUDE_4_5_HAIKU,
             tool_purpose = ToolType.images_gen,
             total_cost_credits = 20,
         ))
@@ -330,7 +330,7 @@ class UsageRecordRepositoryTest(unittest.TestCase):
         tool_ids = [t.id for t in stats.all_tools_used]
         self.assertEqual(len(tool_ids), 2)
         self.assertIn(GPT_4O.id, tool_ids)
-        self.assertIn(CLAUDE_3_5_HAIKU.id, tool_ids)
+        self.assertIn(CLAUDE_4_5_HAIKU.id, tool_ids)
 
         # Same for purposes
         self.assertEqual(len(stats.all_purposes_used), 2)
@@ -341,7 +341,7 @@ class UsageRecordRepositoryTest(unittest.TestCase):
         provider_ids = [p.id for p in stats.all_providers_used]
         self.assertEqual(len(provider_ids), 2)
         self.assertIn(GPT_4O.provider.id, provider_ids)
-        self.assertIn(CLAUDE_3_5_HAIKU.provider.id, provider_ids)
+        self.assertIn(CLAUDE_4_5_HAIKU.provider.id, provider_ids)
 
     def test_get_by_user_includes_transfers_by_default(self):
         self.repo.create(self._create_record(tool = GPT_4O, tool_purpose = ToolType.chat))

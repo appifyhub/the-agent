@@ -11,10 +11,10 @@ from features.external_tools.external_tool_library import (
     IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_2,
     IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO,
     IMAGE_GEN_EDIT_GPT_IMAGE_1_5,
+    IMAGE_GEN_EDIT_GPT_IMAGE_2,
     IMAGE_GEN_EDIT_SEEDREAM_4,
     IMAGE_GEN_EDIT_SEEDREAM_4_5,
     IMAGE_GEN_FLUX_1_1,
-    IMAGE_GEN_GEMINI_2_5_FLASH_IMAGE,
     IMAGE_GEN_GROK_IMAGINE,
     IMAGE_GEN_GROK_IMAGINE_PRO,
     NANO_BANANA,
@@ -32,6 +32,13 @@ VALID_ASPECT_RATIOS = [
     "3:2",   # Wide landscape
     "16:9",  # Ultra-wide landscape
 ]
+
+ALLOWED_REPLICATE_PARAMS: dict[str, set[str]] = {
+    IMAGE_GEN_EDIT_SEEDREAM_4_5.id: {
+        "prompt", "image_input", "size", "aspect_ratio",
+        "sequential_image_generation", "max_images", "disable_safety_checker",
+    },
+}
 
 
 @dataclass(frozen = True)
@@ -108,6 +115,8 @@ def map_to_model_parameters(
         return unified_params
     elif tool == IMAGE_GEN_EDIT_GPT_IMAGE_1_5:
         return unified_params
+    elif tool == IMAGE_GEN_EDIT_GPT_IMAGE_2:
+        return unified_params
     elif tool == IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA:
         return unified_params
     elif tool == IMAGE_GEN_EDIT_GOOGLE_NANO_BANANA_PRO:
@@ -129,8 +138,6 @@ def map_to_model_parameters(
     elif tool == NANO_BANANA_2:
         ar = unified_params.aspect_ratio if unified_params.aspect_ratio != "match_input_image" else None
         return replace(unified_params, size = convert_size_to_k(unified_params.size), aspect_ratio = ar)
-    elif tool == IMAGE_GEN_GEMINI_2_5_FLASH_IMAGE:
-        return replace(unified_params, image_size = convert_size_to_k(unified_params.size))
     elif tool == IMAGE_GEN_GROK_IMAGINE:
         ar = unified_params.aspect_ratio if unified_params.aspect_ratio != "match_input_image" else None
         return replace(unified_params, resolution = convert_size_to_k(unified_params.size).lower(), aspect_ratio = ar)
@@ -140,6 +147,13 @@ def map_to_model_parameters(
     else:
         log.w(f"Unknown model '{tool.id}', using default mapping")
         return unified_params
+
+
+def filter_replicate_params(tool: ExternalTool, params: dict) -> dict:
+    allowed = ALLOWED_REPLICATE_PARAMS.get(tool.id)
+    if allowed is None:
+        return params
+    return {k: v for k, v in params.items() if k in allowed}
 
 
 def resolve_aspect_ratio(
