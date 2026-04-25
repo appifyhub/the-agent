@@ -537,18 +537,111 @@ class ChatAgentTest(unittest.TestCase):
         self.assertFalse(self.agent.should_reply())
 
     @patch("features.chat.chat_agent.config")
-    def test_should_reply_ignores_mention_outside_burst_window(self, mock_config):
+    def test_should_reply_ignores_mention_after_bot_response(self, mock_config):
         self.chat_config.is_private = False
         self.chat_config.reply_chance_percent = 0
         self.agent._ChatAgent__raw_last_message = "follow up"
         mock_config.chat_debounce_delay_s = 1.0
-        stale_tagged = Mock()
-        stale_tagged.message_id = "msg_001"
-        stale_tagged.author_id = self.user.id
-        stale_tagged.sent_at = datetime.now() - timedelta(seconds = 5)
-        stale_tagged.text = f"Hello @{self.agent_user.telegram_username}"
+        mock_config.chat_history_depth = 30
+        bot_reply = Mock()
+        bot_reply.message_id = "msg_002"
+        bot_reply.author_id = UUID(int = 999)  # bot/non-invoker breaks the chain
+        bot_reply.sent_at = datetime.now()
+        bot_reply.text = "you're welcome"
+        old_tagged = Mock()
+        old_tagged.message_id = "msg_001"
+        old_tagged.author_id = self.user.id
+        old_tagged.sent_at = datetime.now()
+        old_tagged.text = f"Hello @{self.agent_user.telegram_username}"
         current = Mock()
         current.message_id = "msg_123"
-        self.mock_di.chat_message_crud.get_latest_chat_messages.return_value = [current, stale_tagged]
+        self.mock_di.chat_message_crud.get_latest_chat_messages.return_value = [current, bot_reply, old_tagged]
 
         self.assertFalse(self.agent.should_reply())
+
+    @patch("features.chat.chat_agent.config")
+    def test_should_reply_skips_chain_walk_when_debounce_disabled(self, mock_config):
+        # debounce=0 turns off burst coordination, so carry-over must not run — otherwise
+        # an untagged follow-up could double-respond alongside the still-running tagged
+        # message's instance (no chain-break in DB yet).
+        self.chat_config.is_private = False
+        self.chat_config.reply_chance_percent = 0
+        self.agent._ChatAgent__raw_last_message = "follow up with no tag"
+        mock_config.chat_debounce_delay_s = 0.0
+        mock_config.chat_history_depth = 30
+        recent_tagged = Mock()
+        recent_tagged.message_id = "msg_001"
+        recent_tagged.author_id = self.user.id
+        recent_tagged.sent_at = datetime.now()
+        recent_tagged.text = f"Hello @{self.agent_user.telegram_username}"
+        current = Mock()
+        current.message_id = "msg_123"
+        self.mock_di.chat_message_crud.get_latest_chat_messages.return_value = [current, recent_tagged]
+
+        self.assertFalse(self.agent.should_reply())
+        # the chain walk must not even hit the DB when debounce is disabled
+        self.mock_di.chat_message_crud.get_latest_chat_messages.assert_not_called()
+
+    @patch("features.chat.chat_agent.config")
+    def test_should_reply_direct_mention_works_when_debounce_disabled(self, mock_config):
+        # direct mention in the current message must always trigger a reply, even with
+        # the chain walk disabled by debounce=0
+        self.chat_config.is_private = False
+        self.chat_config.reply_chance_percent = 0
+        self.agent._ChatAgent__raw_last_message = f"hey @{self.agent_user.telegram_username}"
+        mock_config.chat_debounce_delay_s = 0.0
+        mock_config.chat_history_depth = 30
+
+        self.assertTrue(self.agent.should_reply())
+        self.mock_di.chat_message_crud.get_latest_chat_messages.assert_not_called()
+
+    @patch("features.chat.chat_agent.config")
+    def test_should_reply_skips_command_message_in_burst(self, mock_config):
+        # Command messages tag the bot as part of syntax, not as a conversational mention.
+        # The chain walk must skip them so a follow-up does not inherit the command's tag,
+        # even when the command's bot reply is racing to land in the DB.
+        self.chat_config.is_private = False
+        self.chat_config.reply_chance_percent = 0
+        self.agent._ChatAgent__raw_last_message = "hey guys what's up"
+        mock_config.chat_debounce_delay_s = 1.0
+        mock_config.chat_history_depth = 30
+        command_message = Mock()
+        command_message.message_id = "msg_001"
+        command_message.author_id = self.user.id
+        command_message.sent_at = datetime.now()
+        command_message.text = f"/help@{self.agent_user.telegram_username}"
+        current = Mock()
+        current.message_id = "msg_123"
+        self.mock_di.chat_message_crud.get_latest_chat_messages.return_value = [current, command_message]
+
+        self.assertFalse(self.agent.should_reply())
+
+    @patch("features.chat.chat_agent.config")
+    def test_should_reply_carries_mention_from_seconds_old_burst_message(self, mock_config):
+        # Regression for prod bug: bot did not reply to msg3 (no tag) when msg2 (TAG)
+        # arrived within seconds. The should_reply call always happens after a debounce
+        # sleep, so any prior burst message is older than debounce_delay_s by definition
+        # — a cutoff of now - debounce_delay_s excludes exactly the messages we want to
+        # carry the mention from.
+        self.chat_config.is_private = False
+        self.chat_config.reply_chance_percent = 0
+        self.agent._ChatAgent__raw_last_message = "follow up with no tag"
+        mock_config.chat_debounce_delay_s = 1.0
+        mock_config.chat_history_depth = 30
+        tagged_older = Mock()
+        tagged_older.message_id = "msg_002"
+        tagged_older.author_id = self.user.id
+        tagged_older.sent_at = datetime.now() - timedelta(seconds = 5)  # older than debounce
+        tagged_older.text = f"@{self.agent_user.telegram_username} ova poruka treba da triggeruje odgovor"
+        earlier_untagged = Mock()
+        earlier_untagged.message_id = "msg_001"
+        earlier_untagged.author_id = self.user.id
+        earlier_untagged.sent_at = datetime.now() - timedelta(seconds = 60)
+        earlier_untagged.text = "Mislim da sam popravio"
+        current = Mock()
+        current.message_id = "msg_123"
+        self.mock_di.chat_message_crud.get_latest_chat_messages.return_value = [
+            current, tagged_older, earlier_untagged,
+        ]
+
+        self.assertTrue(self.agent.should_reply())

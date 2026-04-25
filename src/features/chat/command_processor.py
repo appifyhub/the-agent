@@ -14,6 +14,22 @@ COMMAND_CONNECT = "connect"
 SUPPORTED_COMMANDS = [COMMAND_START, COMMAND_SETTINGS, COMMAND_HELP, COMMAND_CONNECT]
 
 
+def is_known_command(raw_input: str | None, agent_handle: str | None) -> bool:
+    if not raw_input:
+        return False
+    parts = raw_input.split()
+    if not parts or not parts[0].startswith("/"):
+        return False
+    full_command_with_tag = parts[0]
+    if "@" in full_command_with_tag:
+        core_command, bot_tag = full_command_with_tag.split("@", 1)
+        if bot_tag != agent_handle:
+            return False
+    else:
+        core_command = full_command_with_tag
+    return core_command[1:] in SUPPORTED_COMMANDS
+
+
 class CommandProcessor:
 
     @dataclass

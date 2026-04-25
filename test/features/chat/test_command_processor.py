@@ -11,7 +11,14 @@ from db.model.user import UserDB
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User, UserSave
 from di.di import DI
-from features.chat.command_processor import COMMAND_CONNECT, COMMAND_HELP, COMMAND_SETTINGS, COMMAND_START, CommandProcessor
+from features.chat.command_processor import (
+    COMMAND_CONNECT,
+    COMMAND_HELP,
+    COMMAND_SETTINGS,
+    COMMAND_START,
+    CommandProcessor,
+    is_known_command,
+)
 from features.connect.profile_connect_service import ProfileConnectService
 from features.integrations.integrations import resolve_agent_user
 from features.integrations.platform_bot_sdk import PlatformBotSDK
@@ -90,6 +97,42 @@ class CommandProcessorTest(unittest.TestCase):
     def test_non_command_input(self):
         result = self.processor.execute("This is not a command")
         self.assertEqual(result.status, "ignored")
+
+    def test_is_known_command_rejects_empty_or_blank(self):
+        self.assertFalse(is_known_command("", "the_agent"))
+        self.assertFalse(is_known_command(None, "the_agent"))
+        self.assertFalse(is_known_command("   ", "the_agent"))
+
+    def test_is_known_command_rejects_non_slash_input(self):
+        self.assertFalse(is_known_command("hello", "the_agent"))
+        self.assertFalse(is_known_command(f"hi /{COMMAND_HELP}", "the_agent"))  # slash not first token
+
+    def test_is_known_command_rejects_unknown_command(self):
+        self.assertFalse(is_known_command("/notacommand", "the_agent"))
+        self.assertFalse(is_known_command("/notacommand@the_agent", "the_agent"))
+
+    def test_is_known_command_rejects_malformed_slash_tokens(self):
+        self.assertFalse(is_known_command("/", "the_agent"))
+        self.assertFalse(is_known_command("/@the_agent", "the_agent"))
+        self.assertFalse(is_known_command(f"/{COMMAND_HELP}@", "the_agent"))  # empty tag part
+
+    def test_is_known_command_accepts_all_supported_commands(self):
+        for command in (COMMAND_START, COMMAND_SETTINGS, COMMAND_HELP, COMMAND_CONNECT):
+            self.assertTrue(is_known_command(f"/{command}", "the_agent"))
+            self.assertTrue(is_known_command(f"/{command}@the_agent", "the_agent"))
+
+    def test_is_known_command_accepts_command_with_trailing_args(self):
+        self.assertTrue(is_known_command(f"/{COMMAND_CONNECT} ABC-123", "the_agent"))
+        self.assertTrue(is_known_command(f"/{COMMAND_CONNECT}@the_agent ABC-123", "the_agent"))
+
+    def test_is_known_command_rejects_known_command_with_wrong_tag(self):
+        self.assertFalse(is_known_command(f"/{COMMAND_HELP}@otherbot", "the_agent"))
+
+    def test_is_known_command_handles_missing_agent_handle(self):
+        # untagged commands work even when the chat type has no resolvable agent handle
+        self.assertTrue(is_known_command(f"/{COMMAND_HELP}", None))
+        # tagged commands require a real handle to match against; None can never match
+        self.assertFalse(is_known_command(f"/{COMMAND_HELP}@the_agent", None))
 
     def test_start_command_no_sponsorship(self):
         result = self.processor.execute(f"/{COMMAND_START}")

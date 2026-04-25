@@ -2,7 +2,6 @@ import random
 import re
 import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta
 from typing import Any, TypeVar
 
 from langchain_core.language_models import LanguageModelInput
@@ -10,6 +9,7 @@ from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolM
 from langchain_core.runnables import Runnable
 
 from di.di import DI
+from features.chat.command_processor import is_known_command
 from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ToolType
 from features.integrations import prompt_resolvers
@@ -231,7 +231,7 @@ class ChatAgent:
         is_bot_mentioned = bool(agent_handle) and f"@{agent_handle}" in self.__raw_last_message
         return self.__di.require_invoker_chat().is_private or is_bot_mentioned
 
-    def __is_bot_mentioned_in_burst(self, agent_handle: str | None) -> bool:
+    def __has_unanswered_bot_mention(self, agent_handle: str | None) -> bool:
         if not agent_handle:
             return False
         mention_token = f"@{agent_handle}"
@@ -241,14 +241,17 @@ class ChatAgent:
             return False
         invoker_id = self.__di.invoker.id
         chat_id = self.__di.require_invoker_chat().chat_id
-        recent_messages = self.__di.chat_message_crud.get_latest_chat_messages(chat_id, limit = 5)
-        cutoff = datetime.now() - timedelta(seconds = config.chat_debounce_delay_s)
+        recent_messages = self.__di.chat_message_crud.get_latest_chat_messages(chat_id, limit = config.chat_history_depth)
+        # walk back through consecutive invoker messages; a non-invoker entry (the bot's
+        # own reply or another user) means the prior interaction was already answered.
+        # known commands are self-contained — their @-tag is syntax, not conversation —
+        # so we skip them rather than treating their tag as a pending mention.
         for message in recent_messages:
             if message.message_id == self.__last_message_id:
                 continue
             if message.author_id != invoker_id:
-                continue
-            if message.sent_at < cutoff:
+                return False
+            if is_known_command(message.text, agent_handle):
                 continue
             if mention_token in message.text:
                 return True
@@ -258,7 +261,7 @@ class ChatAgent:
         chat_type = self.__di.require_invoker_chat_type()
         agent_user = resolve_agent_user(chat_type)
         agent_handle = resolve_external_handle(agent_user, chat_type)
-        is_bot_mentioned = self.__is_bot_mentioned_in_burst(agent_handle)
+        is_bot_mentioned = self.__has_unanswered_bot_mention(agent_handle)
         invoker_chat = self.__di.require_invoker_chat()
         if invoker_chat.reply_chance_percent == 100:
             should_reply_at_random = True
