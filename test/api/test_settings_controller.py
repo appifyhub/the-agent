@@ -25,7 +25,7 @@ from features.chat.telegram.model.user import User as TelegramUser
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
 from features.external_tools.access_token_resolver import AccessTokenResolver
 from features.external_tools.external_tool import CostEstimate, ExternalTool, ExternalToolProvider, ToolType
-from features.external_tools.external_tool_library import CLAUDE_4_SONNET, GPT_4O, IMAGE_GEN_FLUX_1_1, SONAR
+from features.external_tools.external_tool_library import CLAUDE_4_6_SONNET, GPT_4O, IMAGE_GEN_FLUX_1_1, SONAR
 from util.config import ConfiguredProduct
 from util.error_codes import (
     MALFORMED_CHAT_ID,
@@ -320,9 +320,9 @@ class SettingsControllerTest(unittest.TestCase):
             replicate_key = SecretStr("new_replicate_key"),
             rapid_api_key = SecretStr("new_rapid_api_key"),
             coinmarketcap_key = SecretStr("new_coinmarketcap_key"),
-            tool_choice_chat = CLAUDE_4_SONNET.id,
+            tool_choice_chat = CLAUDE_4_6_SONNET.id,
             tool_choice_reasoning = GPT_4O.id,
-            tool_choice_vision = CLAUDE_4_SONNET.id,
+            tool_choice_vision = CLAUDE_4_6_SONNET.id,
             tool_choice_images_gen = IMAGE_GEN_FLUX_1_1.id,
             tool_choice_search = SONAR.id,
             group = self.invoker_user.group,
@@ -342,9 +342,9 @@ class SettingsControllerTest(unittest.TestCase):
             replicate_key = "new_replicate_key",
             rapid_api_key = "new_rapid_api_key",
             coinmarketcap_key = "new_coinmarketcap_key",
-            tool_choice_chat = CLAUDE_4_SONNET.id,
+            tool_choice_chat = CLAUDE_4_6_SONNET.id,
             tool_choice_reasoning = GPT_4O.id,
-            tool_choice_vision = CLAUDE_4_SONNET.id,
+            tool_choice_vision = CLAUDE_4_6_SONNET.id,
             tool_choice_images_gen = IMAGE_GEN_FLUX_1_1.id,
             tool_choice_search = SONAR.id,
         )
