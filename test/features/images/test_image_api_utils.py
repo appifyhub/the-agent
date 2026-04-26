@@ -5,6 +5,8 @@ from typing import IO
 from features.external_tools.external_tool_library import (
     IMAGE_GEN_EDIT_FLUX_2_PRO,
     IMAGE_GEN_EDIT_FLUX_KONTEXT_PRO,
+    IMAGE_GEN_EDIT_GPT_IMAGE_2,
+    IMAGE_GEN_EDIT_SEEDREAM_4_5,
     IMAGE_GEN_FLUX_1_1,
 )
 from features.images import image_api_utils
@@ -164,3 +166,38 @@ class ImageApiUtilsTest(unittest.TestCase):
         self.assertEqual(len(result.input_images), 2)
         self.assertIsInstance(result.image_input[0], BytesIO)
         self.assertIsInstance(result.input_images[0], BytesIO)
+
+    def test_map_to_model_parameters_gpt_image_2_returns_unified_params(self):
+        result = image_api_utils.map_to_model_parameters(
+            tool = IMAGE_GEN_EDIT_GPT_IMAGE_2,
+            prompt = "test prompt",
+            output_size = "2K",
+        )
+        self.assertEqual(result.prompt, "test prompt")
+        self.assertEqual(result.size, "2K")
+        self.assertIsNone(result.resolution)
+
+    def test_filter_replicate_params_seedream_4_5_strips_disallowed(self):
+        params = {
+            "prompt": "test",
+            "size": "2K",
+            "aspect_ratio": "2:3",
+            "max_images": 1,
+            "disable_safety_checker": True,
+            "sequential_image_generation": "disabled",
+            "image_input": None,
+            "quality": "high",
+            "output_format": "png",
+            "num_inference_steps": 30,
+            "prompt_upsampling": False,
+        }
+        result = image_api_utils.filter_replicate_params(IMAGE_GEN_EDIT_SEEDREAM_4_5, params)
+        self.assertEqual(set(result.keys()), {
+            "prompt", "size", "aspect_ratio", "max_images",
+            "disable_safety_checker", "sequential_image_generation", "image_input",
+        })
+
+    def test_filter_replicate_params_non_allowlisted_model_passes_through(self):
+        params = {"prompt": "test", "quality": "high", "num_inference_steps": 30}
+        result = image_api_utils.filter_replicate_params(IMAGE_GEN_EDIT_FLUX_2_PRO, params)
+        self.assertEqual(result, params)
