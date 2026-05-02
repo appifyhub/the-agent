@@ -5,11 +5,14 @@ from typing import Literal
 import requests
 
 from db.model.chat_config import ChatConfigDB
+from db.schema.chat_config import ChatConfig
 from db.schema.chat_message import ChatMessage
 from db.schema.chat_message_attachment import ChatMessageAttachment
+from db.schema.user import User
 from di.di import DI
 from features.images.image_size_utils import resize_file
 from features.integrations.integration_config import TELEGRAM_MAX_PHOTO_SIZE_BYTES, WHATSAPP_MAX_PHOTO_SIZE_BYTES
+from features.integrations.integrations import is_own_chat
 from util import log
 from util.error_codes import UNSUPPORTED_CHAT_TYPE
 from util.errors import ConfigurationError
@@ -161,6 +164,21 @@ class PlatformBotSDK:
                 return self.__di.whatsapp_bot_sdk.refresh_attachment_instances(attachments)
             case _:
                 raise ConfigurationError(f"Unsupported chat type: {self.__di.require_invoker_chat_type()}", UNSUPPORTED_CHAT_TYPE)
+
+    def resolve_member_is_admin(self, chat: ChatConfig, user: User) -> bool:
+        if is_own_chat(chat, user):
+            return True
+        if chat.is_private:
+            return False
+        match chat.chat_type:
+            case ChatConfigDB.ChatType.telegram:
+                if not user.telegram_user_id:
+                    return False
+                member = self.__di.telegram_bot_sdk.get_chat_member(str(chat.external_id), user.telegram_user_id)
+                return member is not None and member.status in ("creator", "administrator")
+            # others either don't support group chats or user management in group chats
+            case _:
+                return False
 
     def __resize_and_reupload(self, photo_url: str) -> str:
         chat_type = self.__di.require_invoker_chat_type()

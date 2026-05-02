@@ -26,8 +26,6 @@ class ChatConfigCRUDTest(unittest.TestCase):
             reply_chance_percent = 100,
             release_notifications = ChatConfigDB.ReleaseNotifications.major,
             media_mode = ChatConfigDB.MediaMode.photo,
-            use_about_me = True,
-            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
 
@@ -42,8 +40,6 @@ class ChatConfigCRUDTest(unittest.TestCase):
         self.assertEqual(chat_config.reply_chance_percent, chat_config_data.reply_chance_percent)
         self.assertEqual(chat_config.release_notifications, chat_config_data.release_notifications)
         self.assertEqual(chat_config.media_mode, chat_config_data.media_mode)
-        self.assertEqual(chat_config.use_about_me, chat_config_data.use_about_me)
-        self.assertEqual(chat_config.use_custom_prompt, chat_config_data.use_custom_prompt)
         self.assertEqual(chat_config.chat_type, chat_config_data.chat_type)
 
     def test_get_chat_config(self):
@@ -56,8 +52,6 @@ class ChatConfigCRUDTest(unittest.TestCase):
             reply_chance_percent = 100,
             release_notifications = ChatConfigDB.ReleaseNotifications.major,
             media_mode = ChatConfigDB.MediaMode.photo,
-            use_about_me = True,
-            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         created_chat_config = self.sql.chat_config_crud().create(chat_config_data)
@@ -92,8 +86,6 @@ class ChatConfigCRUDTest(unittest.TestCase):
             reply_chance_percent = 100,
             release_notifications = ChatConfigDB.ReleaseNotifications.major,
             media_mode = ChatConfigDB.MediaMode.photo,
-            use_about_me = True,
-            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         created_chat_config = self.sql.chat_config_crud().create(chat_config_data)
@@ -107,8 +99,6 @@ class ChatConfigCRUDTest(unittest.TestCase):
             reply_chance_percent = 0,
             release_notifications = ChatConfigDB.ReleaseNotifications.minor,
             media_mode = ChatConfigDB.MediaMode.file,
-            use_about_me = False,
-            use_custom_prompt = False,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         updated_chat_config = self.sql.chat_config_crud().update(update_data)
@@ -120,8 +110,6 @@ class ChatConfigCRUDTest(unittest.TestCase):
         self.assertEqual(updated_chat_config.is_private, update_data.is_private)
         self.assertEqual(updated_chat_config.reply_chance_percent, update_data.reply_chance_percent)
         self.assertEqual(updated_chat_config.media_mode, update_data.media_mode)
-        self.assertEqual(updated_chat_config.use_about_me, update_data.use_about_me)
-        self.assertEqual(updated_chat_config.use_custom_prompt, update_data.use_custom_prompt)
         self.assertEqual(updated_chat_config.chat_type, update_data.chat_type)
 
     def test_save_chat_config(self):
@@ -134,8 +122,6 @@ class ChatConfigCRUDTest(unittest.TestCase):
             reply_chance_percent = 100,
             release_notifications = ChatConfigDB.ReleaseNotifications.major,
             media_mode = ChatConfigDB.MediaMode.photo,
-            use_about_me = True,
-            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
 
@@ -151,8 +137,6 @@ class ChatConfigCRUDTest(unittest.TestCase):
         self.assertEqual(saved_chat_config.reply_chance_percent, chat_config_data.reply_chance_percent)
         self.assertEqual(saved_chat_config.release_notifications, chat_config_data.release_notifications)
         self.assertEqual(saved_chat_config.media_mode, chat_config_data.media_mode)
-        self.assertEqual(saved_chat_config.use_about_me, chat_config_data.use_about_me)
-        self.assertEqual(saved_chat_config.use_custom_prompt, chat_config_data.use_custom_prompt)
         self.assertEqual(saved_chat_config.chat_type, chat_config_data.chat_type)
 
         # Now, save should update the existing record
@@ -165,8 +149,6 @@ class ChatConfigCRUDTest(unittest.TestCase):
             reply_chance_percent = 0,
             release_notifications = ChatConfigDB.ReleaseNotifications.minor,
             media_mode = ChatConfigDB.MediaMode.file,
-            use_about_me = False,
-            use_custom_prompt = False,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         updated_chat_config = self.sql.chat_config_crud().save(update_data)
@@ -179,8 +161,6 @@ class ChatConfigCRUDTest(unittest.TestCase):
         self.assertEqual(updated_chat_config.reply_chance_percent, update_data.reply_chance_percent)
         self.assertEqual(updated_chat_config.release_notifications, update_data.release_notifications)
         self.assertEqual(updated_chat_config.media_mode, update_data.media_mode)
-        self.assertEqual(updated_chat_config.use_about_me, update_data.use_about_me)
-        self.assertEqual(updated_chat_config.use_custom_prompt, update_data.use_custom_prompt)
         self.assertEqual(updated_chat_config.chat_type, update_data.chat_type)
 
     def test_delete_chat_config(self):

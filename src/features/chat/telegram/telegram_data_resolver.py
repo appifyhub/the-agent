@@ -37,12 +37,17 @@ class TelegramDataResolver:
         log.t(f"Resolving mapping result: {mapping_result}")
         resolved_chat_config = self.resolve_chat_config(mapping_result.chat)
         resolved_author: User | None = None
+        is_author_the_agent = False
         if mapping_result.author:
-            if is_the_agent(mapping_result.author, ChatConfigDB.ChatType.telegram):
+            is_author_the_agent = is_the_agent(mapping_result.author, ChatConfigDB.ChatType.telegram)
+            if is_author_the_agent:
                 mapping_result.author.telegram_chat_id = None  # bot has no private chat
             resolved_author = self.resolve_author(mapping_result.author)
             if resolved_author:
                 mapping_result.message.author_id = resolved_author.id
+        # ensure a membership row exists for real users (skip the agent itself)
+        if resolved_author and not is_author_the_agent:
+            self.__di.chat_membership_service.get_or_create(resolved_author, resolved_chat_config)
         # we need to set the resolved chat's UUID to the message and attachments
         mapping_result.message.chat_id = resolved_chat_config.chat_id
         for attachment in mapping_result.attachments:
@@ -72,13 +77,9 @@ class TelegramDataResolver:
             mapped_data.reply_chance_percent = old_chat_config.reply_chance_percent
             mapped_data.release_notifications = old_chat_config.release_notifications
             mapped_data.media_mode = old_chat_config.media_mode
-            mapped_data.use_about_me = old_chat_config.use_about_me
-            mapped_data.use_custom_prompt = old_chat_config.use_custom_prompt
         else:
             # new chat, let's set sensible default values
             mapped_data.media_mode = ChatConfigDB.MediaMode.photo
-            mapped_data.use_about_me = True
-            mapped_data.use_custom_prompt = True
             if mapped_data.is_private:
                 mapped_data.release_notifications = ChatConfigDB.ReleaseNotifications.major
             else:

@@ -45,6 +45,8 @@ class WhatsAppDataResolverTest(unittest.TestCase):
         # so that attachment refresh returns real models instead of Mock objects
         # noinspection PyPropertyAccess
         self.mock_di.whatsapp_bot_sdk = WhatsAppBotSDK(self.mock_di)
+        # noinspection PyPropertyAccess
+        self.mock_di.chat_membership_service = MagicMock()
         self.resolver = WhatsAppDataResolver(self.mock_di)
 
     def tearDown(self):
@@ -132,6 +134,7 @@ class WhatsAppDataResolverTest(unittest.TestCase):
         self.assertEqual(result.attachments[0].id, attachment_data.id)
         self.assertEqual(result.attachments[0].message_id, attachment_data.message_id)
         self.assertEqual(result.attachments[0].chat_id, result.chat.chat_id)
+        self.mock_di.chat_membership_service.get_or_create.assert_not_called()
 
     def test_resolve_with_author_normal(self):
         chat_config_data = ChatConfigSave(
@@ -176,6 +179,7 @@ class WhatsAppDataResolverTest(unittest.TestCase):
         self.assertEqual(result.attachments[0].id, attachment_data.id)
         self.assertEqual(result.attachments[0].message_id, attachment_data.message_id)
         self.assertEqual(result.attachments[0].chat_id, result.chat.chat_id)
+        self.mock_di.chat_membership_service.get_or_create.assert_called_once()
 
     def test_resolve_chat_config_existing(self):
         existing_config_data = ChatConfigSave(
@@ -187,8 +191,6 @@ class WhatsAppDataResolverTest(unittest.TestCase):
             reply_chance_percent = 100,
             release_notifications = ChatConfigDB.ReleaseNotifications.major,
             media_mode = ChatConfigDB.MediaMode.all,  # Non-default value to test preservation
-            use_about_me = False,  # Non-default value to test preservation
-            use_custom_prompt = False,  # Non-default value to test preservation
             chat_type = ChatConfigDB.ChatType.whatsapp,
         )
         existing_config_db = self.sql.chat_config_crud().save(existing_config_data)
@@ -214,8 +216,6 @@ class WhatsAppDataResolverTest(unittest.TestCase):
         self.assertEqual(result.reply_chance_percent, mapped_data.reply_chance_percent)
         self.assertEqual(result.release_notifications, existing_config.release_notifications)
         self.assertEqual(result.media_mode, existing_config.media_mode)
-        self.assertEqual(result.use_about_me, existing_config.use_about_me)
-        self.assertEqual(result.use_custom_prompt, existing_config.use_custom_prompt)
 
     def test_resolve_chat_config_new(self):
         mapped_data = ChatConfigSave(

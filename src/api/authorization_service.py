@@ -3,7 +3,7 @@ from uuid import UUID
 from db.schema.chat_config import ChatConfig
 from db.schema.user import User
 from di.di import DI
-from features.integrations.integrations import is_own_chat, lookup_all_admin_chats
+from features.chat.membership.chat_membership import ChatMembership
 from util import log
 from util.config import config
 from util.error_codes import (
@@ -71,30 +71,13 @@ class AuthorizationService:
         for chat_config in all_chat_configs:
             log.t(f"    Checking {chat_config.chat_type.value} chat: {chat_config.title} ({chat_config.chat_id})")
             try:
-                # first we check if this is user's private chat with the agent
-                is_private_admin = is_own_chat(chat_config, user)
-                if is_private_admin:
-                    log.t(f"    Chat {chat_config.chat_id} is private and matches invoker's external chat ID")
+                if self.__di.platform_bot_sdk().resolve_member_is_admin(chat_config, user):
+                    log.t(f"    User {user.id.hex} is admin for chat {chat_config.chat_id}")
                     administered_chats.append(chat_config)
-                    continue
                 else:
-                    log.t(f"    Chat {chat_config.chat_id} does not match invoker's external chat ID")
-
-                # it's not the user's private admin chat at this point.
-                # now, if it's a private chat, we can continue without checking platform admin status
-                if chat_config.is_private:
-                    continue
-
-                # it's not a private chat at this point. we can check if the user is admin on the platform
-                platform_admin_chats = lookup_all_admin_chats(chat_config, user, self.__di)
-                if platform_admin_chats:
-                    log.t(f"    User {user.id.hex} is platform admin for chat {chat_config.chat_id}")
-                    administered_chats.extend(platform_admin_chats)
-                    continue
-                else:
-                    log.t(f"    User {user.id.hex} is not platform admin for chat {chat_config.chat_id}")
+                    log.t(f"    User {user.id.hex} is not admin for chat {chat_config.chat_id}")
             except Exception as e:
-                log.t(f"    Error checking administrators for '{chat_config.chat_id}'", e)
+                log.t(f"    Error checking admin status for '{chat_config.chat_id}'", e)
 
         log.t("  Sorting administered chats now")
         administered_chats.sort(
@@ -109,16 +92,49 @@ class AuthorizationService:
         log.i(f"  Found {len(administered_chats)} administered chats")
         return administered_chats
 
-    def authorize_for_chat(self, invoker_user: str | UUID | User, target_chat: str | UUID | ChatConfig) -> ChatConfig:
+    def validate_chat_admin(
+        self,
+        invoker_user: str | UUID | User,
+        target_chat: str | UUID | ChatConfig,
+    ) -> ChatConfig:
         invoker_user = self.validate_user(invoker_user)
-        chat_display = target_chat if isinstance(target_chat, (str, UUID)) else target_chat.chat_id
-        log.d(f"Validating admin rights for invoker in chat '{chat_display}'")
         chat_config = self.validate_chat(target_chat)
-        admin_chat_configs = self.get_authorized_chats(invoker_user)
-        for admin_chat_config in admin_chat_configs:
-            if admin_chat_config.chat_id == chat_config.chat_id:
-                return chat_config
-        raise AuthorizationError(f"User '{invoker_user.id.hex}' is not admin in '{chat_config.title}'", NOT_CHAT_ADMIN)
+        log.d(f"Validating admin rights for user '{invoker_user.id.hex}' in chat '{chat_config.chat_id.hex}'")
+        membership = self.__di.chat_membership_service.get_or_create(invoker_user, chat_config)
+        if not membership.is_admin:
+            raise AuthorizationError(
+                f"User '{invoker_user.id.hex}' is not admin in '{chat_config.title}'",
+                NOT_CHAT_ADMIN,
+            )
+        return chat_config
+
+    def update_chat_authorization(
+        self,
+        user: str | UUID | User,
+        chat: str | UUID | ChatConfig,
+    ) -> ChatMembership:
+        user = self.validate_user(user)
+        chat_config = self.validate_chat(chat)
+        log.d(f"Updating chat authorization for user '{user.id.hex}' in chat '{chat_config.chat_id.hex}'")
+        is_admin_now = self.__di.platform_bot_sdk().resolve_member_is_admin(chat_config, user)
+        existing = self.__di.chat_membership_service.get(user.id, chat_config.chat_id)
+        if existing is None or existing.is_admin != is_admin_now:
+            return self.__di.chat_membership_service.save(
+                ChatMembership(
+                    user_id = user.id,
+                    chat_id = chat_config.chat_id,
+                    is_admin = is_admin_now,
+                    use_about_me = existing.use_about_me if existing else True,
+                    use_custom_prompt = existing.use_custom_prompt if existing else True,
+                ),
+            )
+        return existing
+
+    def update_all_chat_authorizations(self, user: str | UUID | User) -> list[ChatMembership]:
+        user = self.validate_user(user)
+        log.d(f"Updating all chat authorizations for user '{user.id.hex}'")
+        current_admin_chats = self.get_authorized_chats(user)
+        return self.__di.chat_membership_service.refresh_chat_memberships(user, current_admin_chats)
 
     def authorize_for_user(self, invoker_user: str | UUID | User, target_user: str | UUID | User) -> User:
         invoker_user = self.validate_user(invoker_user)

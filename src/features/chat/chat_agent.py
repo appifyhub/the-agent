@@ -53,7 +53,14 @@ class ChatAgent:
         configured_tool: ConfiguredTool | None,
         di: DI,
     ):
-        system_prompt = prompt_resolvers.chat(di.invoker, di.require_invoker_chat(), str(di.llm_tool_library.tool_names))
+        target_chat = di.require_invoker_chat()
+        invoker_membership = di.chat_membership_service.get(di.invoker.id, target_chat.chat_id)
+        system_prompt = prompt_resolvers.chat(
+            invoker = di.invoker,
+            target_chat = target_chat,
+            invoker_membership = invoker_membership,
+            tools_list = str(di.llm_tool_library.tool_names),
+        )
         self.__messages = []
         self.__messages.append(SystemMessage(system_prompt))
         self.__messages.extend(messages)

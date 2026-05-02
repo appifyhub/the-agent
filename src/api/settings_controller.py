@@ -1,20 +1,25 @@
-from dataclasses import asdict, replace
+from dataclasses import replace
 from datetime import datetime, timedelta
-from typing import Annotated, Any, Literal, TypeAlias, get_args
+from typing import Annotated, Literal, TypeAlias, get_args
 from uuid import UUID
 
 from api import auth
-from api.mapper.chat_mapper import domain_to_api as chat_to_api
+from api.mapper.chat_settings_mapper import domain_to_api as chat_to_api
 from api.mapper.user_mapper import api_to_domain, domain_to_api
+from api.model.chat_config_payload import ChatConfigPayload
 from api.model.chat_settings_payload import ChatSettingsPayload
+from api.model.chat_settings_response import ChatSettingsResponse
 from api.model.external_tools_response import ExternalToolProviderResponse, ExternalToolResponse, ExternalToolsResponse
 from api.model.products_response import ProductsResponse
 from api.model.settings_link_response import SettingsLinkResponse
+from api.model.user_chat_config_payload import UserChatConfigPayload
 from api.model.user_settings_payload import UserSettingsPayload
+from api.model.user_settings_response import UserSettingsResponse
 from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig, ChatConfigSave
 from db.schema.user import User
 from di.di import DI
+from features.chat.membership.chat_membership import ChatMembership
 from features.external_tools.external_tool_library import ALL_EXTERNAL_TOOLS
 from features.external_tools.external_tool_provider_library import ALL_PROVIDERS
 from features.external_tools.intelligence_presets import get_all_presets
@@ -22,14 +27,13 @@ from features.integrations.integrations import is_own_chat, resolve_agent_user, 
 from util import log
 from util.config import config
 from util.error_codes import (
+    EMPTY_CHAT_SETTINGS_PAYLOAD,
     INVALID_LANGUAGE_SETTINGS,
     INVALID_MEDIA_MODE,
     INVALID_RELEASE_NOTIFICATIONS,
     INVALID_REPLY_CHANCE,
     INVALID_SETTINGS_TYPE,
     INVALID_TOOL_CHOICE,
-    INVALID_USE_ABOUT_ME,
-    INVALID_USE_CUSTOM_PROMPT,
     MISSING_CHAT_CONTEXT,
     NO_PRIVATE_CHAT,
     POLICY_ACCEPTANCE_REVOCATION_FORBIDDEN,
@@ -74,7 +78,10 @@ class SettingsController:
         if self.__di.invoker_chat:
             # chat context has additional chat-specific properties we can use
             settings_type = self.__validate_settings_type(raw_settings_type) if raw_settings_type else DEF_SETTINGS_TYPE
-            chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, self.__di.invoker_chat)
+            chat_config = self.__di.invoker_chat
+            if settings_type == "chat":
+                # any member can access their per-chat settings where admin rights are not required
+                self.__di.chat_membership_service.get_or_create(self.__di.invoker, chat_config)
             resource_id = self.__di.invoker.id.hex if settings_type == "user" else chat_config.chat_id.hex
             lang_iso_code = chat_config.language_iso_code or "en"
         else:
@@ -103,7 +110,7 @@ class SettingsController:
 
         lang_iso_code: str
         if self.__di.invoker_chat:
-            chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, self.__di.invoker_chat)
+            chat_config = self.__di.invoker_chat
             lang_iso_code = chat_config.language_iso_code or config.main_language_iso_code
         else:
             lang_iso_code = config.main_language_iso_code
@@ -116,7 +123,7 @@ class SettingsController:
         shortener = self.__di.url_shortener(long_url, valid_until = valid_until)
         return shortener.execute()
 
-    def fetch_external_tools(self, user_id_hex: str) -> dict[str, Any]:
+    def fetch_external_tools(self, user_id_hex: str) -> ExternalToolsResponse:
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
         scoped_di = self.__di.clone(invoker_id = user.id.hex)
 
@@ -139,27 +146,101 @@ class SettingsController:
         # and finally, we sort the tools by [1] provider order and [2] tool name
         tools_response.sort(key = lambda t: (provider_sort_order[t.definition.provider.id], t.definition.name))
 
-        return asdict(ExternalToolsResponse(tools_response, providers_response, get_all_presets()))
+        return ExternalToolsResponse(tools_response, providers_response, get_all_presets())
 
-    def fetch_products(self, user_id_hex: str) -> dict[str, Any]:
+    def fetch_products(self, user_id_hex: str) -> ProductsResponse:
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
         products = [
             replace(product, url = f"{product.url}?user_id={user.id.hex}")
             for product in config.products.values()
         ]
-        return asdict(ProductsResponse(products))
+        return ProductsResponse(products)
 
-    def fetch_chat_settings(self, chat_id: str) -> dict[str, Any]:
-        chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, chat_id)
-        return chat_to_api(chat = chat_config, is_own = is_own_chat(chat_config, self.__di.invoker)).model_dump()
-
-    def fetch_user_settings(self, user_id_hex: str) -> dict[str, Any]:
+    def fetch_user_settings(self, user_id_hex: str) -> UserSettingsResponse:
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
-        return domain_to_api(user, self.__is_sponsored(user.id)).model_dump()
+        return domain_to_api(user, self.__is_sponsored(user.id))
 
-    def save_chat_settings(self, chat_id: str, payload: ChatSettingsPayload):
+    def fetch_all_chat_settings(self) -> list[ChatSettingsResponse]:
+        log.d("Fetching all chats for invoker")
+
+        memberships = self.__di.authorization_service.update_all_chat_authorizations(self.__di.invoker)
+        if not memberships:
+            log.d("  No memberships found")
+            return []
+
+        results: list[tuple[ChatConfig, ChatMembership]] = []
+        for membership in memberships:
+            chat_config_db = self.__di.chat_config_crud.get(membership.chat_id)
+            if not chat_config_db:
+                log.t(f"  Skipping orphan membership for chat '{membership.chat_id}' (chat config missing)")
+                continue
+            chat_config = ChatConfig.model_validate(chat_config_db)
+            results.append((chat_config, membership))
+
+        # sort: private/own first, then by chat type, then by title
+        results.sort(
+            key = lambda pair: (
+                not pair[0].is_private,
+                not pair[1].is_admin,
+                pair[0].chat_type.value,
+                pair[0].title.lower() if pair[0].title else "",
+                pair[0].external_id or "",
+                pair[0].chat_id.hex,
+            ),
+        )
+
+        log.i(f"  Returning {len(results)} chats")
+        return [
+            chat_to_api(chat = chat_config, membership = membership, is_own = is_own_chat(chat_config, self.__di.invoker))
+            for chat_config, membership in results
+        ]
+
+    def fetch_chat_settings(self, chat_id: str) -> ChatSettingsResponse:
+        log.d(f"Fetching chat settings for chat '{chat_id}'")
+        chat_config = self.__di.authorization_service.validate_chat(chat_id)
+
+        membership = self.__di.authorization_service.update_chat_authorization(self.__di.invoker, chat_config)
+        return chat_to_api(chat = chat_config, membership = membership, is_own = is_own_chat(chat_config, self.__di.invoker))
+
+    def save_chat_settings(self, chat_id: str, payload: ChatSettingsPayload) -> None:
         log.d(f"Saving chat settings for chat '{chat_id}'")
-        chat_config = self.__di.authorization_service.authorize_for_chat(self.__di.invoker, chat_id)
+        if payload.chat_config is None and payload.user_chat_config is None:
+            raise ValidationError(
+                "Payload must contain at least one of 'chat_config' or 'user_chat_config'",
+                EMPTY_CHAT_SETTINGS_PAYLOAD,
+            )
+        chat_config = self.__di.authorization_service.validate_chat(chat_id)
+
+        # chat_config write requires admin rights
+        if payload.chat_config is not None:
+            self.__di.authorization_service.validate_chat_admin(self.__di.invoker, chat_config)
+            self.__apply_chat_config_changes(chat_config, payload.chat_config)
+
+        # user_chat_config write is allowed for any member (membership is created on demand)
+        if payload.user_chat_config is not None:
+            self.__apply_user_chat_config_changes(self.__di.invoker, chat_config, payload.user_chat_config)
+
+        log.i("Chat settings saved")
+
+    def __apply_user_chat_config_changes(
+        self, user: User, chat_config: ChatConfig, payload: UserChatConfigPayload,
+    ) -> None:
+        log.t(
+            f"  Updating user_chat_config: use_about_me={payload.use_about_me}, "
+            f"use_custom_prompt={payload.use_custom_prompt}",
+        )
+        membership = self.__di.chat_membership_service.get_or_create(user, chat_config)
+        self.__di.chat_membership_service.save(
+            ChatMembership(
+                user_id = membership.user_id,
+                chat_id = membership.chat_id,
+                is_admin = membership.is_admin,
+                use_about_me = payload.use_about_me,
+                use_custom_prompt = payload.use_custom_prompt,
+            ),
+        )
+
+    def __apply_chat_config_changes(self, chat_config: ChatConfig, payload: ChatConfigPayload) -> None:
         chat_config_save = ChatConfigSave(**chat_config.model_dump())
 
         # validate language changes
@@ -189,21 +270,7 @@ class SettingsController:
         log.t(f"  Updating media mode to '{media_mode.value}'")
         chat_config_save.media_mode = media_mode
 
-        # validate use_about_me changes (it should always be valid, but let's keep)
-        if not isinstance(payload.use_about_me, bool):
-            raise ValidationError(f"Invalid use_about_me value '{payload.use_about_me}'", INVALID_USE_ABOUT_ME)
-        log.t(f"  Updating use_about_me to '{payload.use_about_me}'")
-        chat_config_save.use_about_me = payload.use_about_me
-
-        # validate use_custom_prompt changes (it should always be valid, but let's keep)
-        if not isinstance(payload.use_custom_prompt, bool):
-            raise ValidationError(f"Invalid use_custom_prompt value '{payload.use_custom_prompt}'", INVALID_USE_CUSTOM_PROMPT)
-        log.t(f"  Updating use_custom_prompt to '{payload.use_custom_prompt}'")
-        chat_config_save.use_custom_prompt = payload.use_custom_prompt
-
-        # finally store the changes
         ChatConfig.model_validate(self.__di.chat_config_crud.save(chat_config_save))
-        log.i("Chat settings saved")
 
     def save_user_settings(self, user_id_hex: str, payload: UserSettingsPayload):
         log.d(f"Saving user settings for user '{user_id_hex}'")
@@ -233,24 +300,6 @@ class SettingsController:
             user_save.is_invited_to_start = False
         User.model_validate(self.__di.user_crud.save(user_save))
         log.i("User settings saved")
-
-    def fetch_admin_chats(self, user_id_hex: str) -> list[dict[str, Any]]:
-        log.d("Fetching administered chats")
-        user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
-        admin_chats = self.__di.authorization_service.get_authorized_chats(user)
-        result: list[dict[str, Any]] = []
-        if not admin_chats:
-            log.d("  No administered chats found")
-            return result
-        for chat_config in admin_chats:
-            record = {
-                "chat_id": chat_config.chat_id.hex,
-                "title": chat_config.title,
-                "platform": chat_config.chat_type.value,
-                "is_own": is_own_chat(chat_config, user),
-            }
-            result.append(record)
-        return result
 
     def __is_sponsored(self, user_id: UUID) -> bool:
         return bool(self.__di.sponsorship_crud.get_all_by_receiver(user_id))

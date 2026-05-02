@@ -24,8 +24,6 @@ class ChatProgressNotifierTest(unittest.TestCase):
             title = "Test Chat",
             is_private = True,
             reply_chance_percent = 100,
-            use_about_me = True,
-            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
         self.message_id = "test_message_id"

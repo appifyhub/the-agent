@@ -3,6 +3,7 @@ from datetime import datetime
 from db.model.chat_config import ChatConfigDB
 from db.schema.chat_config import ChatConfig, ChatConfigSave
 from db.schema.user import User, UserSave
+from features.chat.membership.chat_membership import ChatMembership
 from features.integrations.integrations import resolve_agent_user
 from features.prompting import prompt_composer, prompt_library
 from features.prompting.prompt_composer import PromptFragment, PromptVar
@@ -17,6 +18,7 @@ PLACEHOLDER_NO_DATA = "{undefined}"
 def chat(
     invoker: User | UserSave,
     target_chat: ChatConfig | ChatConfigSave,
+    invoker_membership: ChatMembership | None,
     tools_list: str | None,
 ) -> str:
     # add generic components to prepare the composer
@@ -45,7 +47,7 @@ def chat(
         (PromptVar.tools_list, tools_list or PLACEHOLDER_NO_DATA),
     )
     # add conditional generic components
-    if target_chat.use_about_me and invoker.about_me and (
+    if invoker_membership and invoker_membership.use_about_me and invoker.about_me and (
         about_me_text := invoker.about_me.get_secret_value()
     ):
         composer = (
@@ -53,7 +55,7 @@ def chat(
             .add_fragments(prompt_library.metas.author_info)
             .add_variables((PromptVar.author_info, about_me_text))
         )
-    if target_chat.use_custom_prompt and invoker.custom_prompt and (
+    if invoker_membership and invoker_membership.use_custom_prompt and invoker.custom_prompt and (
         custom_prompt_text := invoker.custom_prompt.get_secret_value().strip()
     ):
         composer = (

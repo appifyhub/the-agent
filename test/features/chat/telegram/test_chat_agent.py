@@ -55,8 +55,6 @@ class ChatAgentTest(unittest.TestCase):
             title = "Test Chat",
             is_private = False,
             reply_chance_percent = 50,
-            use_about_me = True,
-            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
 
@@ -77,6 +75,9 @@ class ChatAgentTest(unittest.TestCase):
         self.mock_di.authorization_service.require_user_is_chat_ready.return_value = self.user
         # noinspection PyPropertyAccess
         self.mock_di.llm_tool_library = Mock(spec = LLMToolLibrary)
+        # noinspection PyPropertyAccess
+        self.mock_di.chat_membership_service = Mock()
+        self.mock_di.chat_membership_service.get.return_value = None
         # noinspection PyPropertyAccess
         self.mock_di.chat_progress_notifier = Mock(return_value = Mock(spec = ChatProgressNotifier))
         # noinspection PyPropertyAccess
@@ -105,6 +106,12 @@ class ChatAgentTest(unittest.TestCase):
             attachment_ids = [],
             configured_tool = self.configured_tool,
             di = self.mock_di,
+        )
+
+    def test_init_fetches_invoker_membership(self):
+        self.mock_di.chat_membership_service.get.assert_called_once_with(
+            self.user.id,
+            self.chat_config.chat_id,
         )
 
     def test_process_commands_no_api_key(self):
