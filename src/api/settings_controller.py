@@ -81,7 +81,7 @@ class SettingsController:
             chat_config = self.__di.invoker_chat
             if settings_type == "chat":
                 # any member can access their per-chat settings where admin rights are not required
-                self.__di.chat_membership_service.get_or_create(self.__di.invoker, chat_config)
+                self.__di.chat_membership_service.sync(self.__di.invoker, chat_config)
             resource_id = self.__di.invoker.id.hex if settings_type == "user" else chat_config.chat_id.hex
             lang_iso_code = chat_config.language_iso_code or "en"
         else:
@@ -229,7 +229,7 @@ class SettingsController:
             f"  Updating user_chat_config: use_about_me={payload.use_about_me}, "
             f"use_custom_prompt={payload.use_custom_prompt}",
         )
-        membership = self.__di.chat_membership_service.get_or_create(user, chat_config)
+        membership = self.__di.chat_membership_service.sync(user, chat_config)
         self.__di.chat_membership_service.save(
             ChatMembership(
                 user_id = membership.user_id,

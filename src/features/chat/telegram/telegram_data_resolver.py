@@ -47,7 +47,7 @@ class TelegramDataResolver:
                 mapping_result.message.author_id = resolved_author.id
         # ensure a membership row exists for real users (skip the agent itself)
         if resolved_author and not is_author_the_agent:
-            self.__di.chat_membership_service.get_or_create(resolved_author, resolved_chat_config)
+            self.__di.chat_membership_service.sync(resolved_author, resolved_chat_config)
         # we need to set the resolved chat's UUID to the message and attachments
         mapping_result.message.chat_id = resolved_chat_config.chat_id
         for attachment in mapping_result.attachments:

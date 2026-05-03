@@ -4,7 +4,10 @@ from db.schema.chat_config import ChatConfig
 from db.schema.user import User
 from di.di import DI
 from features.chat.membership.chat_membership import ChatMembership
+from features.integrations.platform_bot_sdk import ChatAccess
 from util import log
+from util.error_codes import NOT_CHAT_MEMBER
+from util.errors import AuthorizationError
 
 
 class ChatMembershipService:
@@ -14,21 +17,37 @@ class ChatMembershipService:
     def __init__(self, di: DI):
         self.__di = di
 
-    def get_or_create(self, user: User, chat: ChatConfig) -> ChatMembership:
+    def sync(self, user: User, chat: ChatConfig) -> ChatMembership:
         existing = self.__di.chat_membership_repo.get(user.id, chat.chat_id)
-        if existing is not None:
-            return existing
-        log.t(f"  No membership row found for user '{user.id.hex}' in chat '{chat.chat_id.hex}', creating one")
-        is_admin = self.__di.platform_bot_sdk().resolve_member_is_admin(chat, user)
-        return self.__di.chat_membership_repo.save(
-            ChatMembership(
-                user_id = user.id,
-                chat_id = chat.chat_id,
-                is_admin = is_admin,
-                use_about_me = True,
-                use_custom_prompt = True,
-            ),
-        )
+        access = self.__di.platform_bot_sdk().resolve_chat_access(chat, user)
+        if existing is None and access is None:
+            raise AuthorizationError(
+                f"User '{user.id.hex}' is not a participant of chat '{chat.chat_id.hex}'",
+                NOT_CHAT_MEMBER,
+            )
+        is_admin = access in (ChatAccess.owner, ChatAccess.admin)
+        if existing is None:
+            log.t(f"  Creating membership for user '{user.id.hex}' in chat '{chat.chat_id.hex}'")
+            return self.__di.chat_membership_repo.save(
+                ChatMembership(
+                    user_id = user.id,
+                    chat_id = chat.chat_id,
+                    is_admin = is_admin,
+                    use_about_me = True,
+                    use_custom_prompt = True,
+                ),
+            )
+        if existing.is_admin != is_admin:
+            return self.__di.chat_membership_repo.save(
+                ChatMembership(
+                    user_id = user.id,
+                    chat_id = chat.chat_id,
+                    is_admin = is_admin,
+                    use_about_me = existing.use_about_me,
+                    use_custom_prompt = existing.use_custom_prompt,
+                ),
+            )
+        return existing
 
     def get(self, user_id: UUID, chat_id: UUID) -> ChatMembership | None:
         return self.__di.chat_membership_repo.get(user_id, chat_id)

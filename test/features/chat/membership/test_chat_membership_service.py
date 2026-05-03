@@ -12,6 +12,9 @@ from db.schema.user import User, UserSave
 from di.di import DI
 from features.chat.membership.chat_membership import ChatMembership
 from features.chat.membership.chat_membership_service import ChatMembershipService
+from features.integrations.platform_bot_sdk import ChatAccess
+from util.error_codes import NOT_CHAT_MEMBER
+from util.errors import AuthorizationError
 
 
 class ChatMembershipServiceTest(unittest.TestCase):
@@ -47,7 +50,7 @@ class ChatMembershipServiceTest(unittest.TestCase):
             ),
         )
         self.mock_sdk = Mock()
-        self.mock_sdk.resolve_member_is_admin.return_value = False
+        self.mock_sdk.resolve_chat_access.return_value = ChatAccess.member
         self.mock_di = Mock(spec = DI)
         # noinspection PyPropertyAccess
         self.mock_di.chat_membership_repo = self.sql.chat_membership_repo()
@@ -136,48 +139,102 @@ class ChatMembershipServiceTest(unittest.TestCase):
         fetched = self.service.get(self.user.id, self.chat.chat_id)
         self.assertTrue(fetched.is_admin)
 
-    # === get_or_create ===
+    # === sync ===
 
-    def test_get_or_create_returns_existing_without_platform_call(self):
+    def test_sync_returns_existing_unchanged_when_admin_matches(self):
         existing = self.sql.chat_membership_repo().save(
             ChatMembership(
                 user_id = self.user.id,
                 chat_id = self.chat.chat_id,
-                is_admin = True,
+                is_admin = False,
                 use_about_me = False,
                 use_custom_prompt = False,
             ),
         )
+        self.mock_sdk.resolve_chat_access.return_value = ChatAccess.member
 
-        result = self.service.get_or_create(self.user, self.chat)
+        result = self.service.sync(self.user, self.chat)
 
         self.assertEqual(result.user_id, existing.user_id)
+        self.assertFalse(result.is_admin)
+        self.assertFalse(result.use_about_me)
+
+    def test_sync_refreshes_admin_status_on_existing(self):
+        self.sql.chat_membership_repo().save(
+            ChatMembership(
+                user_id = self.user.id,
+                chat_id = self.chat.chat_id,
+                is_admin = False,
+                use_about_me = False,
+                use_custom_prompt = False,
+            ),
+        )
+        self.mock_sdk.resolve_chat_access.return_value = ChatAccess.admin
+
+        result = self.service.sync(self.user, self.chat)
+
         self.assertTrue(result.is_admin)
         self.assertFalse(result.use_about_me)
-        self.mock_sdk.resolve_member_is_admin.assert_not_called()
+        self.assertFalse(result.use_custom_prompt)
 
-    def test_get_or_create_creates_with_sdk_admin_true(self):
-        self.mock_sdk.resolve_member_is_admin.return_value = True
+    def test_sync_creates_with_admin_access(self):
+        self.mock_sdk.resolve_chat_access.return_value = ChatAccess.admin
 
-        result = self.service.get_or_create(self.user, self.chat)
+        result = self.service.sync(self.user, self.chat)
 
         self.assertEqual(result.user_id, self.user.id)
         self.assertEqual(result.chat_id, self.chat.chat_id)
         self.assertTrue(result.is_admin)
         self.assertTrue(result.use_about_me)
         self.assertTrue(result.use_custom_prompt)
-        self.mock_sdk.resolve_member_is_admin.assert_called_once_with(self.chat, self.user)
+        self.mock_sdk.resolve_chat_access.assert_called_once_with(self.chat, self.user)
 
-    def test_get_or_create_creates_with_sdk_admin_false(self):
-        self.mock_sdk.resolve_member_is_admin.return_value = False
+    def test_sync_creates_with_member_access(self):
+        self.mock_sdk.resolve_chat_access.return_value = ChatAccess.member
 
-        result = self.service.get_or_create(self.user, self.chat)
+        result = self.service.sync(self.user, self.chat)
 
         self.assertFalse(result.is_admin)
         self.assertTrue(result.use_about_me)
         self.assertTrue(result.use_custom_prompt)
         stored = self.service.get(self.user.id, self.chat.chat_id)
         self.assertIsNotNone(stored)
+
+    def test_sync_creates_with_owner_access(self):
+        self.mock_sdk.resolve_chat_access.return_value = ChatAccess.owner
+
+        result = self.service.sync(self.user, self.chat)
+
+        self.assertTrue(result.is_admin)
+        stored = self.service.get(self.user.id, self.chat.chat_id)
+        self.assertIsNotNone(stored)
+
+    def test_sync_rejects_non_participant(self):
+        self.mock_sdk.resolve_chat_access.return_value = None
+
+        with self.assertRaises(AuthorizationError) as context:
+            self.service.sync(self.user, self.chat)
+
+        self.assertEqual(context.exception.error_code, NOT_CHAT_MEMBER)
+        stored = self.service.get(self.user.id, self.chat.chat_id)
+        self.assertIsNone(stored)
+
+    def test_sync_allows_existing_row_when_access_is_none(self):
+        self.sql.chat_membership_repo().save(
+            ChatMembership(
+                user_id = self.user.id,
+                chat_id = self.chat.chat_id,
+                is_admin = True,
+                use_about_me = True,
+                use_custom_prompt = True,
+            ),
+        )
+        self.mock_sdk.resolve_chat_access.return_value = None
+
+        result = self.service.sync(self.user, self.chat)
+
+        self.assertFalse(result.is_admin)
+        self.assertTrue(result.use_about_me)
 
     # === refresh_chat_memberships ===
 

@@ -135,7 +135,7 @@ class SettingsControllerTest(unittest.TestCase):
         # noinspection PyPropertyAccess
         self.mock_di.chat_membership_repo = self.mock_membership_repo
         # noinspection PyPropertyAccess
-        self.mock_di.chat_membership_service.get_or_create.return_value = self.membership
+        self.mock_di.chat_membership_service.sync.return_value = self.membership
         # noinspection PyPropertyAccess
         self.mock_di.chat_membership_service.get_all_for_user.return_value = [self.membership]
         # noinspection PyPropertyAccess

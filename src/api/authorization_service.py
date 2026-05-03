@@ -4,6 +4,7 @@ from db.schema.chat_config import ChatConfig
 from db.schema.user import User
 from di.di import DI
 from features.chat.membership.chat_membership import ChatMembership
+from features.integrations.platform_bot_sdk import ChatAccess
 from util import log
 from util.config import config
 from util.error_codes import (
@@ -71,7 +72,8 @@ class AuthorizationService:
         for chat_config in all_chat_configs:
             log.t(f"    Checking {chat_config.chat_type.value} chat: {chat_config.title} ({chat_config.chat_id})")
             try:
-                if self.__di.platform_bot_sdk().resolve_member_is_admin(chat_config, user):
+                access = self.__di.platform_bot_sdk().resolve_chat_access(chat_config, user)
+                if access in (ChatAccess.owner, ChatAccess.admin):
                     log.t(f"    User {user.id.hex} is admin for chat {chat_config.chat_id}")
                     administered_chats.append(chat_config)
                 else:
@@ -100,7 +102,7 @@ class AuthorizationService:
         invoker_user = self.validate_user(invoker_user)
         chat_config = self.validate_chat(target_chat)
         log.d(f"Validating admin rights for user '{invoker_user.id.hex}' in chat '{chat_config.chat_id.hex}'")
-        membership = self.__di.chat_membership_service.get_or_create(invoker_user, chat_config)
+        membership = self.__di.chat_membership_service.sync(invoker_user, chat_config)
         if not membership.is_admin:
             raise AuthorizationError(
                 f"User '{invoker_user.id.hex}' is not admin in '{chat_config.title}'",
@@ -116,19 +118,7 @@ class AuthorizationService:
         user = self.validate_user(user)
         chat_config = self.validate_chat(chat)
         log.d(f"Updating chat authorization for user '{user.id.hex}' in chat '{chat_config.chat_id.hex}'")
-        is_admin_now = self.__di.platform_bot_sdk().resolve_member_is_admin(chat_config, user)
-        existing = self.__di.chat_membership_service.get(user.id, chat_config.chat_id)
-        if existing is None or existing.is_admin != is_admin_now:
-            return self.__di.chat_membership_service.save(
-                ChatMembership(
-                    user_id = user.id,
-                    chat_id = chat_config.chat_id,
-                    is_admin = is_admin_now,
-                    use_about_me = existing.use_about_me if existing else True,
-                    use_custom_prompt = existing.use_custom_prompt if existing else True,
-                ),
-            )
-        return existing
+        return self.__di.chat_membership_service.sync(user, chat_config)
 
     def update_all_chat_authorizations(self, user: str | UUID | User) -> list[ChatMembership]:
         user = self.validate_user(user)

@@ -14,7 +14,8 @@ from db.schema.chat_config import ChatConfig
 from db.schema.user import User
 from di.di import DI
 from features.chat.membership.chat_membership import ChatMembership
-from util.error_codes import NOT_CHAT_ADMIN, WAITLIST_ACCOUNT_NOT_ACTIVE, WAITLIST_INVITED_POLICIES_REQUIRED
+from features.integrations.platform_bot_sdk import ChatAccess
+from util.error_codes import NOT_CHAT_ADMIN, NOT_CHAT_MEMBER, WAITLIST_ACCOUNT_NOT_ACTIVE, WAITLIST_INVITED_POLICIES_REQUIRED
 from util.errors import AuthorizationError, NotFoundError, ValidationError
 
 
@@ -168,8 +169,8 @@ class AuthorizationServiceTest(unittest.TestCase):
             ChatConfigDB(**chat_config_3.model_dump()),
         ]
         admin_ids = {chat_config_1.chat_id, chat_config_3.chat_id}
-        self.mock_di.platform_bot_sdk.return_value.resolve_member_is_admin.side_effect = (
-            lambda chat, user: chat.chat_id in admin_ids
+        self.mock_di.platform_bot_sdk.return_value.resolve_chat_access.side_effect = (
+            lambda chat, user: ChatAccess.admin if chat.chat_id in admin_ids else None
         )
 
         service = AuthorizationService(self.mock_di)
@@ -205,8 +206,8 @@ class AuthorizationServiceTest(unittest.TestCase):
         )
         self.mock_chat_config_dao.get_all.return_value = [chat_config1, chat_config2, chat_config3]
         admin_ids = {chat_config1.chat_id, chat_config3.chat_id}
-        self.mock_di.platform_bot_sdk.return_value.resolve_member_is_admin.side_effect = (
-            lambda chat, user: chat.chat_id in admin_ids
+        self.mock_di.platform_bot_sdk.return_value.resolve_chat_access.side_effect = (
+            lambda chat, user: ChatAccess.admin if chat.chat_id in admin_ids else None
         )
 
         service = AuthorizationService(self.mock_di)
@@ -286,7 +287,7 @@ class AuthorizationServiceTest(unittest.TestCase):
         ]
         self.mock_chat_config_dao.get_all.return_value = all_chats_db
 
-        self.mock_di.platform_bot_sdk.return_value.resolve_member_is_admin.return_value = True
+        self.mock_di.platform_bot_sdk.return_value.resolve_chat_access.return_value = ChatAccess.admin
 
         service = AuthorizationService(self.mock_di)
         admin_chats = service.get_authorized_chats(self.invoker_user)
@@ -413,7 +414,7 @@ class AuthorizationServiceTest(unittest.TestCase):
     # === validate_chat_admin ===
 
     def test_validate_chat_admin_success_when_admin(self):
-        self.mock_di.chat_membership_service.get_or_create.return_value = ChatMembership(
+        self.mock_di.chat_membership_service.sync.return_value = ChatMembership(
             user_id = self.invoker_user.id,
             chat_id = self.chat_config.chat_id,
             is_admin = True,
@@ -435,7 +436,7 @@ class AuthorizationServiceTest(unittest.TestCase):
             use_about_me = False,
             use_custom_prompt = False,
         )
-        self.mock_di.chat_membership_service.get_or_create.return_value = existing_membership
+        self.mock_di.chat_membership_service.sync.return_value = existing_membership
 
         service = AuthorizationService(self.mock_di)
         with self.assertRaises(AuthorizationError) as context:
@@ -444,74 +445,39 @@ class AuthorizationServiceTest(unittest.TestCase):
 
     # === update_chat_authorization ===
 
-    def test_update_chat_authorization_creates_new_membership(self):
-        self.mock_di.platform_bot_sdk.return_value.resolve_member_is_admin.return_value = True
-        self.mock_di.chat_membership_service.get.return_value = None
-        new_membership = ChatMembership(
+    def test_update_chat_authorization_delegates_to_sync(self):
+        expected = ChatMembership(
             user_id = self.invoker_user.id,
             chat_id = self.chat_config.chat_id,
             is_admin = True,
             use_about_me = True,
             use_custom_prompt = True,
         )
-        self.mock_di.chat_membership_service.save.return_value = new_membership
+        self.mock_di.chat_membership_service.sync.return_value = expected
 
         service = AuthorizationService(self.mock_di)
         result = service.update_chat_authorization(self.invoker_user, self.chat_config)
 
-        self.assertTrue(result.is_admin)
-        self.mock_di.chat_membership_service.save.assert_called_once()
+        self.assertIs(result, expected)
+        self.mock_di.chat_membership_service.sync.assert_called_once_with(self.invoker_user, self.chat_config)
 
-    def test_update_chat_authorization_updates_stale_membership(self):
-        stale = ChatMembership(
-            user_id = self.invoker_user.id,
-            chat_id = self.chat_config.chat_id,
-            is_admin = False,
-            use_about_me = True,
-            use_custom_prompt = False,
+    def test_update_chat_authorization_propagates_authorization_error(self):
+        self.mock_di.chat_membership_service.sync.side_effect = AuthorizationError(
+            "not a participant", NOT_CHAT_MEMBER,
         )
-        self.mock_di.platform_bot_sdk.return_value.resolve_member_is_admin.return_value = True
-        self.mock_di.chat_membership_service.get.return_value = stale
-        updated = ChatMembership(
-            user_id = self.invoker_user.id,
-            chat_id = self.chat_config.chat_id,
-            is_admin = True,
-            use_about_me = True,
-            use_custom_prompt = False,
-        )
-        self.mock_di.chat_membership_service.save.return_value = updated
 
         service = AuthorizationService(self.mock_di)
-        result = service.update_chat_authorization(self.invoker_user, self.chat_config)
+        with self.assertRaises(AuthorizationError) as context:
+            service.update_chat_authorization(self.invoker_user, self.chat_config)
 
-        self.assertTrue(result.is_admin)
-        saved = self.mock_di.chat_membership_service.save.call_args[0][0]
-        self.assertTrue(saved.use_about_me)
-        self.assertFalse(saved.use_custom_prompt)
-
-    def test_update_chat_authorization_no_save_when_unchanged(self):
-        existing = ChatMembership(
-            user_id = self.invoker_user.id,
-            chat_id = self.chat_config.chat_id,
-            is_admin = True,
-            use_about_me = True,
-            use_custom_prompt = True,
-        )
-        self.mock_di.platform_bot_sdk.return_value.resolve_member_is_admin.return_value = True
-        self.mock_di.chat_membership_service.get.return_value = existing
-
-        service = AuthorizationService(self.mock_di)
-        result = service.update_chat_authorization(self.invoker_user, self.chat_config)
-
-        self.mock_di.chat_membership_service.save.assert_not_called()
-        self.assertIs(result, existing)
+        self.assertEqual(context.exception.error_code, NOT_CHAT_MEMBER)
 
     # === update_all_chat_authorizations ===
 
     def test_update_all_chat_authorizations_delegates_to_membership_service(self):
         chat_config_db = ChatConfigDB(**self.chat_config.model_dump())
         self.mock_chat_config_dao.get_all.return_value = [chat_config_db]
-        self.mock_di.platform_bot_sdk.return_value.resolve_member_is_admin.return_value = True
+        self.mock_di.platform_bot_sdk.return_value.resolve_chat_access.return_value = ChatAccess.admin
         updated_membership = ChatMembership(
             user_id = self.invoker_user.id,
             chat_id = self.chat_config.chat_id,
