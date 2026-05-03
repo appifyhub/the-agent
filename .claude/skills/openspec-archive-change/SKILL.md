@@ -50,20 +50,14 @@ Archive a completed change in the experimental workflow.
 
    **If no tasks file exists:** Proceed without task-related warning.
 
-4. **Assess delta spec sync state**
+4. **Summarize delta specs (informational)**
 
-   Check for delta specs at `openspec/changes/<name>/specs/`. If none exist, proceed without sync prompt.
+   Check for delta specs at `openspec/changes/<name>/specs/`. If none exist, note "No delta specs" in the summary.
 
    **If delta specs exist:**
-   - Compare each delta spec with its corresponding main spec at `openspec/specs/<capability>/spec.md`
-   - Determine what changes would be applied (adds, modifications, removals, renames)
-   - Show a combined summary before prompting
-
-   **Prompt options:**
-   - If changes needed: "Sync now (recommended)", "Archive without syncing"
-   - If already synced: "Archive now", "Sync anyway", "Cancel"
-
-   If user chooses sync, use Task tool (subagent_type: "general-purpose", prompt: "Use Skill tool to invoke openspec-sync-specs for change '<name>'. Delta spec analysis: <include the analyzed delta spec summary>"). Proceed to archive regardless of choice.
+   - Read each spec and summarize what capabilities are being archived (adds, modifications, removals)
+   - Display the summary to the user
+   - Do NOT copy or sync specs to `openspec/specs/` — specs are preserved inside the archive via the `mv` in the next step
 
 5. **Perform the archive**
 
@@ -88,7 +82,7 @@ Archive a completed change in the experimental workflow.
    - Change name
    - Schema that was used
    - Archive location
-   - Whether specs were synced (if applicable)
+   - Delta specs preserved in archive (list capability names, or "None")
    - Note about any warnings (incomplete artifacts/tasks)
 
 **Output On Success**
@@ -99,7 +93,7 @@ Archive a completed change in the experimental workflow.
 **Change:** <change-name>
 **Schema:** <schema-name>
 **Archived to:** openspec/changes/archive/YYYY-MM-DD-<name>/
-**Specs:** ✓ Synced to main specs (or "No delta specs" or "Sync skipped")
+**Specs:** ✓ Preserved in archive: <capability-names> (or "None")
 
 All artifacts complete. All tasks complete.
 ```
@@ -110,5 +104,4 @@ All artifacts complete. All tasks complete.
 - Don't block archive on warnings - just inform and confirm
 - Preserve .openspec.yaml when moving to archive (it moves with the directory)
 - Show clear summary of what happened
-- If sync is requested, use openspec-sync-specs approach (agent-driven)
-- If delta specs exist, always run the sync assessment and show the combined summary before prompting
+- Never write delta specs to `openspec/specs/` — the archive is the canonical location
