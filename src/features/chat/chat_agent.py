@@ -8,6 +8,7 @@ from langchain_core.language_models import LanguageModelInput
 from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import Runnable
 
+from db.schema.chat_message import ChatMessage
 from di.di import DI
 from features.chat.command_processor import is_known_command
 from features.external_tools.configured_tool import ConfiguredTool
@@ -83,10 +84,15 @@ class ChatAgent:
             return False
         time.sleep(config.chat_debounce_delay_s)
         chat_id = self.__di.require_invoker_chat().chat_id
-        latest_messages = self.__di.chat_message_crud.get_latest_chat_messages(chat_id, limit = 1)
-        if latest_messages and latest_messages[0].message_id != self.__last_message_id:
-            log.d(f"Message burst detected: skipping message '{self.__last_message_id}'")
-            return True
+        # iterate newest-to-oldest, skipping messages from other authors, to find the
+        # most recent message from this invoker - only the same author messages form a burst
+        recent_messages = self.__di.chat_message_crud.get_latest_chat_messages(chat_id, limit = 10)
+        for message in recent_messages:
+            if message.author_id == self.__di.invoker.id:
+                if message.message_id != self.__last_message_id:
+                    log.d(f"Message burst detected: skipping message '{self.__last_message_id}'")
+                    return True
+                return False
         return False
 
     def execute(self) -> AIMessage | None:
@@ -246,18 +252,29 @@ class ChatAgent:
             return True
         if config.chat_debounce_delay_s <= 0.0:
             return False
-        invoker_id = self.__di.invoker.id
-        chat_id = self.__di.require_invoker_chat().chat_id
-        recent_messages = self.__di.chat_message_crud.get_latest_chat_messages(chat_id, limit = config.chat_history_depth)
-        # walk back through consecutive invoker messages; a non-invoker entry (the bot's
-        # own reply or another user) means the prior interaction was already answered.
+        invoker_user = self.__di.invoker
+        invoker_chat = self.__di.require_invoker_chat()
+        chat_type = self.__di.require_invoker_chat_type()
+        agent_user = resolve_agent_user(chat_type)
+        agent_user_id = agent_user.id if agent_user else None
+        recent_messages_db = self.__di.chat_message_crud.get_latest_chat_messages(
+            chat_id = invoker_chat.chat_id,
+            limit = config.chat_history_depth,
+        )
+        recent_messages = [ChatMessage.model_validate(m) for m in recent_messages_db]
+        # walk back through recent messages from the same invoker looking for an
+        # unanswered @mention. a bot reply is the only true chain-break (it means
+        # the prior mention was already answered). messages from other users are
+        # simply skipped — they don't answer the mention and don't break the chain.
         # known commands are self-contained — their @-tag is syntax, not conversation —
         # so we skip them rather than treating their tag as a pending mention.
         for message in recent_messages:
             if message.message_id == self.__last_message_id:
                 continue
-            if message.author_id != invoker_id:
+            if message.author_id == agent_user_id:
                 return False
+            if message.author_id != invoker_user.id:
+                continue
             if is_known_command(message.text, agent_handle):
                 continue
             if mention_token in message.text:
