@@ -1,3 +1,4 @@
+from enum import Enum
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Literal
@@ -5,15 +6,24 @@ from typing import Literal
 import requests
 
 from db.model.chat_config import ChatConfigDB
+from db.schema.chat_config import ChatConfig
 from db.schema.chat_message import ChatMessage
 from db.schema.chat_message_attachment import ChatMessageAttachment
+from db.schema.user import User
 from di.di import DI
 from features.images.image_size_utils import resize_file
 from features.integrations.integration_config import TELEGRAM_MAX_PHOTO_SIZE_BYTES, WHATSAPP_MAX_PHOTO_SIZE_BYTES
+from features.integrations.integrations import is_own_chat
 from util import log
 from util.error_codes import UNSUPPORTED_CHAT_TYPE
 from util.errors import ConfigurationError
 from util.functions import delete_file_safe
+
+
+class ChatAccess(Enum):
+    owner = "owner"
+    admin = "admin"
+    member = "member"
 
 
 class PlatformBotSDK:
@@ -161,6 +171,28 @@ class PlatformBotSDK:
                 return self.__di.whatsapp_bot_sdk.refresh_attachment_instances(attachments)
             case _:
                 raise ConfigurationError(f"Unsupported chat type: {self.__di.require_invoker_chat_type()}", UNSUPPORTED_CHAT_TYPE)
+
+    def resolve_chat_access(self, chat: ChatConfig, user: User) -> ChatAccess | None:
+        if is_own_chat(chat, user):
+            return ChatAccess.owner
+        if chat.is_private:
+            return None
+        match chat.chat_type:
+            case ChatConfigDB.ChatType.telegram:
+                if not user.telegram_user_id:
+                    return None
+                member = self.__di.telegram_bot_sdk.get_chat_member(str(chat.external_id), user.telegram_user_id)
+                if member is None:
+                    return None
+                match member.status:
+                    case "creator" | "administrator":
+                        return ChatAccess.admin
+                    case "member" | "restricted":
+                        return ChatAccess.member
+                    case _:
+                        return None
+            case _:
+                return None
 
     def __resize_and_reupload(self, photo_url: str) -> str:
         chat_type = self.__di.require_invoker_chat_type()

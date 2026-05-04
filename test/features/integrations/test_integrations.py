@@ -639,8 +639,6 @@ class IntegrationsTest(TestCase):
             chat_id = UUID(int = 1),
             external_id = "15551234567",
             is_private = True,
-            use_about_me = True,
-            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.whatsapp,
         )
         result = is_own_chat(chat_config, user)
@@ -656,8 +654,6 @@ class IntegrationsTest(TestCase):
             chat_id = UUID(int = 1),
             external_id = "15559999999",
             is_private = True,
-            use_about_me = True,
-            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.whatsapp,
         )
         result = is_own_chat(chat_config, user)
@@ -673,8 +669,6 @@ class IntegrationsTest(TestCase):
             chat_id = UUID(int = 1),
             external_id = "15551234567",
             is_private = True,
-            use_about_me = True,
-            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.whatsapp,
         )
         result = is_own_chat(chat_config, user)
@@ -690,8 +684,6 @@ class IntegrationsTest(TestCase):
             chat_id = UUID(int = 1),
             external_id = None,
             is_private = True,
-            use_about_me = True,
-            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.whatsapp,
         )
         result = is_own_chat(chat_config, user)
@@ -707,8 +699,6 @@ class IntegrationsTest(TestCase):
             chat_id = UUID(int = 1),
             external_id = "15551234567",
             is_private = False,
-            use_about_me = True,
-            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.whatsapp,
         )
         result = is_own_chat(chat_config, user)
@@ -724,8 +714,6 @@ class IntegrationsTest(TestCase):
             chat_id = UUID(int = 1),
             external_id = "+1 (555) 123-4567",
             is_private = True,
-            use_about_me = True,
-            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.whatsapp,
         )
         result = is_own_chat(chat_config, user)
@@ -741,8 +729,6 @@ class IntegrationsTest(TestCase):
             chat_id = UUID(int = 1),
             external_id = "+1 (555) 999-9999",
             is_private = True,
-            use_about_me = True,
-            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.whatsapp,
         )
         result = is_own_chat(chat_config, user)
@@ -854,8 +840,6 @@ class NotificationChatResolutionTest(TestCase):
             language_name = "English",
             language_iso_code = "en",
             media_mode = ChatConfigDB.MediaMode.photo,
-            use_about_me = True,
-            use_custom_prompt = True,
             chat_type = chat_type,
         )
 

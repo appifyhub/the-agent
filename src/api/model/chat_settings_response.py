@@ -1,16 +1,9 @@
 from pydantic import BaseModel
 
+from api.model.chat_config_response import ChatConfigResponse
+from api.model.user_chat_config_response import UserChatConfigResponse
+
 
 class ChatSettingsResponse(BaseModel):
-    chat_id: str
-    title: str | None = None
-    platform: str
-    language_name: str | None = None
-    language_iso_code: str | None = None
-    reply_chance_percent: int
-    release_notifications: str
-    media_mode: str
-    use_about_me: bool
-    use_custom_prompt: bool
-    is_private: bool
-    is_own: bool
+    chat_config: ChatConfigResponse
+    user_chat_config: UserChatConfigResponse

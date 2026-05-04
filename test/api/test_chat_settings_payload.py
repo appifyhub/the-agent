@@ -2,131 +2,119 @@ import unittest
 
 from pydantic import ValidationError
 
+from api.model.chat_config_payload import ChatConfigPayload
 from api.model.chat_settings_payload import ChatSettingsPayload
+from api.model.user_chat_config_payload import UserChatConfigPayload
 
 
 class ChatSettingsPayloadTest(unittest.TestCase):
 
-    def test_basic_creation_with_all_fields(self):
-        """Test creating payload with all fields provided"""
+    def test_basic_creation_with_both_blocks(self):
         payload = ChatSettingsPayload(
-            language_name = "Spanish",
-            language_iso_code = "es",
-            reply_chance_percent = 75,
-            release_notifications = "all",
-            media_mode = "photo",
-            use_about_me = True,
-            use_custom_prompt = True,
+            chat_config = ChatConfigPayload(
+                language_name = "Spanish",
+                language_iso_code = "es",
+                reply_chance_percent = 75,
+                release_notifications = "all",
+                media_mode = "photo",
+            ),
+            user_chat_config = UserChatConfigPayload(
+                use_about_me = True,
+                use_custom_prompt = True,
+            ),
         )
 
-        self.assertEqual(payload.language_name, "Spanish")
-        self.assertEqual(payload.language_iso_code, "es")
-        self.assertEqual(payload.reply_chance_percent, 75)
-        self.assertEqual(payload.release_notifications, "all")
-        self.assertEqual(payload.media_mode, "photo")
-        self.assertEqual(payload.use_about_me, True)
+        self.assertIsNotNone(payload.chat_config)
+        self.assertEqual(payload.chat_config.language_name, "Spanish")
+        self.assertEqual(payload.chat_config.language_iso_code, "es")
+        self.assertEqual(payload.chat_config.reply_chance_percent, 75)
+        self.assertEqual(payload.chat_config.release_notifications, "all")
+        self.assertEqual(payload.chat_config.media_mode, "photo")
+        self.assertIsNotNone(payload.user_chat_config)
+        self.assertTrue(payload.user_chat_config.use_about_me)
+        self.assertTrue(payload.user_chat_config.use_custom_prompt)
 
-    def test_missing_required_fields_raises_error(self):
-        """Test that missing required fields raise ValidationError"""
-        # Test empty payload raises ValidationError
-        with self.assertRaises(ValidationError):
-            ChatSettingsPayload(**{})
+    def test_creation_with_only_user_chat_config(self):
+        payload = ChatSettingsPayload(
+            user_chat_config = UserChatConfigPayload(
+                use_about_me = False,
+                use_custom_prompt = True,
+            ),
+        )
+
+        self.assertIsNone(payload.chat_config)
+        self.assertIsNotNone(payload.user_chat_config)
+        self.assertFalse(payload.user_chat_config.use_about_me)
+        self.assertTrue(payload.user_chat_config.use_custom_prompt)
+
+    def test_creation_with_only_chat_config(self):
+        payload = ChatSettingsPayload(
+            chat_config = ChatConfigPayload(
+                language_name = "English",
+                language_iso_code = "en",
+                reply_chance_percent = 50,
+                release_notifications = "major",
+                media_mode = "all",
+            ),
+        )
+
+        self.assertIsNotNone(payload.chat_config)
+        self.assertIsNone(payload.user_chat_config)
+
+    def test_empty_payload_validates_at_pydantic_level(self):
+        # both fields are optional at the pydantic level — empty body parses fine
+        payload = ChatSettingsPayload()
+        self.assertIsNone(payload.chat_config)
+        self.assertIsNone(payload.user_chat_config)
+        # the controller is responsible for rejecting the empty case at runtime
 
     def test_string_trimming_validation(self):
-        """Test that string fields are properly trimmed"""
-        payload = ChatSettingsPayload(
+        config = ChatConfigPayload(
             language_name = "  English  ",
             language_iso_code = "\ten\n",
             reply_chance_percent = 50,
             release_notifications = "  none  ",
             media_mode = "  file  ",
-            use_about_me = False,
-            use_custom_prompt = False,
         )
 
-        self.assertEqual(payload.language_name, "English")
-        self.assertEqual(payload.language_iso_code, "en")
-        self.assertEqual(payload.reply_chance_percent, 50)
-        self.assertEqual(payload.release_notifications, "none")
-        self.assertEqual(payload.media_mode, "file")
+        self.assertEqual(config.language_name, "English")
+        self.assertEqual(config.language_iso_code, "en")
+        self.assertEqual(config.release_notifications, "none")
+        self.assertEqual(config.media_mode, "file")
 
     def test_empty_strings_after_trimming(self):
-        """Test that empty strings after trimming remain empty strings"""
-        payload = ChatSettingsPayload(
-            language_name = "   ",  # Spaces only
-            language_iso_code = "",  # Already empty
+        config = ChatConfigPayload(
+            language_name = "   ",
+            language_iso_code = "",
             reply_chance_percent = 25,
-            release_notifications = "\t\n",  # Tabs and newlines
-            media_mode = "\t\n",  # Tabs and newlines
-            use_about_me = True,
-            use_custom_prompt = True,
+            release_notifications = "\t\n",
+            media_mode = "\t\n",
         )
 
-        # After trimming, these should all be empty strings
-        self.assertEqual(payload.language_name, "")
-        self.assertEqual(payload.language_iso_code, "")
-        self.assertEqual(payload.reply_chance_percent, 25)
-        self.assertEqual(payload.release_notifications, "")
-        self.assertEqual(payload.media_mode, "")
+        self.assertEqual(config.language_name, "")
+        self.assertEqual(config.language_iso_code, "")
+        self.assertEqual(config.release_notifications, "")
+        self.assertEqual(config.media_mode, "")
 
     def test_reply_chance_validation_valid_values(self):
-        """Test that valid reply chance percentages are accepted"""
-        # Test boundary values
-        payload_0 = ChatSettingsPayload(
-            language_name = "English",
-            language_iso_code = "en",
-            reply_chance_percent = 0,
-            release_notifications = "all",
-            media_mode = "photo",
-            use_about_me = True,
-            use_custom_prompt = True,
-        )
-        payload_100 = ChatSettingsPayload(
-            language_name = "English",
-            language_iso_code = "en",
-            reply_chance_percent = 100,
-            release_notifications = "all",
-            media_mode = "file",
-            use_about_me = False,
-            use_custom_prompt = False,
-        )
-        payload_50 = ChatSettingsPayload(
-            language_name = "English",
-            language_iso_code = "en",
-            reply_chance_percent = 50,
-            release_notifications = "all",
-            media_mode = "all",
-            use_about_me = True,
-            use_custom_prompt = True,
-        )
-
-        self.assertEqual(payload_0.reply_chance_percent, 0)
-        self.assertEqual(payload_100.reply_chance_percent, 100)
-        self.assertEqual(payload_50.reply_chance_percent, 50)
+        for percent in (0, 50, 100):
+            config = ChatConfigPayload(
+                language_name = "English",
+                language_iso_code = "en",
+                reply_chance_percent = percent,
+                release_notifications = "all",
+                media_mode = "photo",
+            )
+            self.assertEqual(config.reply_chance_percent, percent)
 
     def test_reply_chance_validation_invalid_values(self):
-        """Test that invalid reply chance percentages are rejected"""
-        # Test values outside valid range
-        with self.assertRaises(ValidationError) as context:
-            ChatSettingsPayload(
-                language_name = "English",
-                language_iso_code = "en",
-                reply_chance_percent = -1,
-                release_notifications = "all",
-                media_mode = "photo",
-                use_about_me = True,
-                use_custom_prompt = True,
-            )
-        self.assertIn("Reply chance percent must be between 0 and 100", str(context.exception))
-
-        with self.assertRaises(ValidationError) as context:
-            ChatSettingsPayload(
-                language_name = "English",
-                language_iso_code = "en",
-                reply_chance_percent = 101,
-                release_notifications = "all",
-                media_mode = "photo",
-                use_about_me = True,
-                use_custom_prompt = True,
-            )
-        self.assertIn("Reply chance percent must be between 0 and 100", str(context.exception))
+        for percent in (-1, 101, 200):
+            with self.assertRaises(ValidationError) as context:
+                ChatConfigPayload(
+                    language_name = "English",
+                    language_iso_code = "en",
+                    reply_chance_percent = percent,
+                    release_notifications = "all",
+                    media_mode = "photo",
+                )
+            self.assertIn("Reply chance percent must be between 0 and 100", str(context.exception))

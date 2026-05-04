@@ -59,6 +59,8 @@ if TYPE_CHECKING:
     from features.chat.currency_alert_service import CurrencyAlertService
     from features.chat.dev_announcements_service import DevAnnouncementsService
     from features.chat.llm_tools.llm_tool_library import LLMToolLibrary
+    from features.chat.membership.chat_membership_repo import ChatMembershipRepository
+    from features.chat.membership.chat_membership_service import ChatMembershipService
     from features.chat.telegram.domain_langchain_mapper import DomainLangchainMapper
     from features.chat.telegram.sdk.telegram_bot_api import TelegramBotAPI
     from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
@@ -108,6 +110,8 @@ class DI:
     # Repositories
     _user_crud: "UserCRUD | None"
     _chat_config_crud: "ChatConfigCRUD | None"
+    _chat_membership_repo: "ChatMembershipRepository | None"
+    _chat_membership_service: "ChatMembershipService | None"
     _chat_message_crud: "ChatMessageCRUD | None"
     _chat_message_attachment_crud: "ChatMessageAttachmentCRUD | None"
     _sponsorship_crud: "SponsorshipCRUD | None"
@@ -165,6 +169,8 @@ class DI:
         # Repositories
         self._user_crud = None
         self._chat_config_crud = None
+        self._chat_membership_repo = None
+        self._chat_membership_service = None
         self._chat_message_crud = None
         self._chat_message_attachment_crud = None
         self._sponsorship_crud = None
@@ -345,6 +351,20 @@ class DI:
             from db.crud.chat_config import ChatConfigCRUD
             self._chat_config_crud = ChatConfigCRUD(self.db)
         return self._chat_config_crud
+
+    @property
+    def chat_membership_repo(self) -> "ChatMembershipRepository":
+        if self._chat_membership_repo is None:
+            from features.chat.membership.chat_membership_repo import ChatMembershipRepository
+            self._chat_membership_repo = ChatMembershipRepository(self.db)
+        return self._chat_membership_repo
+
+    @property
+    def chat_membership_service(self) -> "ChatMembershipService":
+        if self._chat_membership_service is None:
+            from features.chat.membership.chat_membership_service import ChatMembershipService
+            self._chat_membership_service = ChatMembershipService(self)
+        return self._chat_membership_service
 
     @property
     def chat_message_crud(self) -> "ChatMessageCRUD":

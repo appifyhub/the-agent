@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 from uuid import UUID
 
 from pydantic import SecretStr
@@ -427,42 +427,29 @@ class SponsorshipsControllerTest(unittest.TestCase):
         # noinspection PyUnresolvedReferences
         self.mock_di.authorization_service.authorize_for_user.assert_called_once_with(self.invoker_user, self.sponsor_user.id.hex)
 
-    # noinspection PyUnusedLocal
-    @patch.object(SponsorshipService, "unsponsor_self", return_value = (SponsorshipService.Result.success, "Success"))
-    def test_unsponsor_self_success(self, mock_unsponsor_self):
+    def test_unsponsor_self_success(self):
         self.mock_di.authorization_service.authorize_for_user.return_value = self.invoker_user
-        # Mock get_authorized_chats to return a list of chats
-        mock_chat = MagicMock()
-        mock_chat.chat_type = ChatConfigDB.ChatType.telegram
-        self.mock_di.authorization_service.get_authorized_chats.return_value = [mock_chat]
+        self.mock_di.sponsorship_service.unsponsor_self.return_value = (SponsorshipService.Result.success, "Success")
 
         controller = SponsorshipsController(self.mock_di)
-        # Should not raise an exception
         controller.unsponsor_self(self.invoker_user.id.hex)
 
         # noinspection PyUnresolvedReferences
         self.mock_di.authorization_service.authorize_for_user.assert_called_once_with(self.invoker_user, self.invoker_user.id.hex)
-        # noinspection PyUnresolvedReferences
-        self.mock_di.sponsorship_service.unsponsor_self.assert_called_once_with(
-            self.invoker_user.id.hex, ChatConfigDB.ChatType.telegram,
-        )
+        self.mock_di.sponsorship_service.unsponsor_self.assert_called_once_with(self.invoker_user.id.hex)
 
     def test_unsponsor_self_failure_no_sponsorships(self):
         self.mock_di.authorization_service.authorize_for_user.return_value = self.invoker_user
         self.mock_di.sponsorship_service.unsponsor_self.return_value = (
             SponsorshipService.Result.failure, "No sponsorships to remove",
         )
-        # Mock get_authorized_chats to return a list of chats
-        mock_chat = MagicMock()
-        mock_chat.chat_type = ChatConfigDB.ChatType.telegram
-        self.mock_di.authorization_service.get_authorized_chats.return_value = [mock_chat]
 
         controller = SponsorshipsController(self.mock_di)
 
         with self.assertRaises(InternalError) as context:
             controller.unsponsor_self(self.invoker_user.id.hex)
 
-        self.assertIn("Failed to unsponsor self in all chats", str(context.exception))
+        self.assertIn("No sponsorships to remove", str(context.exception))
         # noinspection PyUnresolvedReferences
         self.mock_di.authorization_service.authorize_for_user.assert_called_once_with(self.invoker_user, self.invoker_user.id.hex)
 

@@ -10,8 +10,8 @@ from features.integrations.integrations import lookup_user_by_handle, resolve_an
 from features.sponsorships.sponsorship_service import SponsorshipService
 from util import log
 from util.config import config
-from util.error_codes import INVALID_PLATFORM, NO_AUTHORIZED_CHATS, SPONSORSHIP_OPERATION_FAILED, UNSPONSOR_SELF_FAILED
-from util.errors import InternalError, NotFoundError, ValidationError
+from util.error_codes import INVALID_PLATFORM, SPONSORSHIP_OPERATION_FAILED, UNSPONSOR_SELF_FAILED
+from util.errors import InternalError, ValidationError
 
 
 class SponsorshipsController:
@@ -123,19 +123,7 @@ class SponsorshipsController:
     def unsponsor_self(self, user_id_hex: str):
         user = self.__di.authorization_service.authorize_for_user(self.__di.invoker, user_id_hex)
         log.d(f"User '{user.id.hex}' is unsponsoring themselves")
-        all_chats = self.__di.authorization_service.get_authorized_chats(user)
-        if not all_chats:
-            raise NotFoundError("No authorized chats found", NO_AUTHORIZED_CHATS)
-        failure_messages: list[str] = []
-        successes = 0
-        for chat in all_chats:
-            result, message = self.__di.sponsorship_service.unsponsor_self(user.id.hex, chat.chat_type)
-            if result == SponsorshipService.Result.failure:
-                failure_messages.append(message)
-                continue
-            successes += 1
-        if failure_messages:
-            log.w(f"Failed to unsponsor self in {len(failure_messages)} chats:\n{'\n  '.join(failure_messages)}")
-            if not successes:
-                raise InternalError("Failed to unsponsor self in all chats", UNSPONSOR_SELF_FAILED)
-        log.i(f"  Successfully unsponsored self in {successes} chats, failed in {len(failure_messages)} chats")
+        result, message = self.__di.sponsorship_service.unsponsor_self(user.id.hex)
+        if result == SponsorshipService.Result.failure:
+            raise InternalError(message, UNSPONSOR_SELF_FAILED)
+        log.i("  Successfully unsponsored self")

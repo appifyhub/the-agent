@@ -29,14 +29,17 @@ from api.auth import (
 )
 from api.model.bind_license_key_payload import BindLicenseKeyPayload
 from api.model.chat_settings_payload import ChatSettingsPayload
+from api.model.chat_settings_response import ChatSettingsResponse
 from api.model.connect_key_response import ConnectKeyResponse
 from api.model.credit_transfer_payload import CreditTransferPayload
+from api.model.external_tools_response import ExternalToolsResponse
 from api.model.gumroad_ping_payload import GumroadPingPayload
+from api.model.products_response import ProductsResponse
 from api.model.release_output_payload import ReleaseOutputPayload
 from api.model.settings_link_response import SettingsLinkResponse
 from api.model.sponsorship_payload import SponsorshipPayload
 from api.model.user_settings_payload import UserSettingsPayload
-from api.settings_controller import SettingsType
+from api.model.user_settings_response import UserSettingsResponse
 from db.model.chat_config import ChatConfigDB
 from db.sql import get_session, initialize_db
 from di.di import DI
@@ -197,21 +200,17 @@ def cleanup(
     return result_map
 
 
-@app.get("/settings/{settings_type}/{resource_id}")
-def get_settings(
-    settings_type: SettingsType,
-    resource_id: str,
+@app.get("/settings/user/{user_id}")
+def get_user_settings(
+    user_id: str,
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
-) -> dict:
-    log.d(f"Fetching '{settings_type}' settings for resource '{resource_id}'")
+) -> UserSettingsResponse:
+    log.d(f"Fetching user settings for '{user_id}'")
     invoker_id_hex = get_user_id_from_jwt(token)
     log.d(f"  Invoker ID: {invoker_id_hex}")
     di = DI(db, invoker_id_hex)
-    if settings_type == "user":
-        return di.settings_controller.fetch_user_settings(resource_id)
-    else:
-        return di.settings_controller.fetch_chat_settings(resource_id)
+    return di.settings_controller.fetch_user_settings(user_id)
 
 
 @app.patch("/settings/user/{user_id_hex}")
@@ -229,7 +228,31 @@ def save_user_settings(
     return {"status": "OK"}
 
 
-@app.patch("/settings/chat/{chat_id}")
+@app.get("/settings/chats")
+def get_chats(
+    db = Depends(get_session),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
+) -> list[ChatSettingsResponse]:
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    di = DI(db, invoker_id_hex)
+    return di.settings_controller.fetch_all_chat_settings()
+
+
+@app.get("/settings/chats/{chat_id}")
+def get_chat_settings(
+    chat_id: str,
+    db = Depends(get_session),
+    token: dict[str, Any] = Depends(verify_jwt_credentials),
+) -> ChatSettingsResponse:
+    log.d(f"Fetching chat settings for chat '{chat_id}'")
+    invoker_id_hex = get_user_id_from_jwt(token)
+    log.d(f"  Invoker ID: {invoker_id_hex}")
+    di = DI(db, invoker_id_hex)
+    return di.settings_controller.fetch_chat_settings(chat_id)
+
+
+@app.patch("/settings/chats/{chat_id}")
 def save_chat_settings(
     chat_id: str,
     payload: ChatSettingsPayload,
@@ -244,120 +267,107 @@ def save_chat_settings(
     return {"status": "OK"}
 
 
-@app.get("/user/{resource_id}/chats")
-def get_chats(
-    resource_id: str,
-    db = Depends(get_session),
-    token: dict[str, Any] = Depends(verify_jwt_credentials),
-) -> list[dict]:
-    log.d(f"Fetching all chats for {resource_id}")
-    invoker_id_hex = get_user_id_from_jwt(token)
-    log.d(f"  Invoker ID: {invoker_id_hex}")
-    di = DI(db, invoker_id_hex)
-    return di.settings_controller.fetch_admin_chats(resource_id)
-
-
-@app.get("/settings/user/{resource_id}/tools")
+@app.get("/settings/user/{user_id}/tools")
 def get_tools(
-    resource_id: str,
+    user_id: str,
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
-) -> dict:
-    log.d(f"Fetching tools for {resource_id}")
+) -> ExternalToolsResponse:
+    log.d(f"Fetching tools for {user_id}")
     invoker_id_hex = get_user_id_from_jwt(token)
     log.d(f"  Invoker ID: {invoker_id_hex}")
     di = DI(db, invoker_id_hex)
-    return di.settings_controller.fetch_external_tools(resource_id)
+    return di.settings_controller.fetch_external_tools(user_id)
 
 
-@app.get("/settings/user/{resource_id}/products")
+@app.get("/settings/user/{user_id}/products")
 def get_products(
-    resource_id: str,
+    user_id: str,
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
-) -> dict:
-    log.d(f"Fetching products for {resource_id}")
+) -> ProductsResponse:
+    log.d(f"Fetching products for {user_id}")
     invoker_id_hex = get_user_id_from_jwt(token)
     log.d(f"  Invoker ID: {invoker_id_hex}")
     di = DI(db, invoker_id_hex)
-    return di.settings_controller.fetch_products(resource_id)
+    return di.settings_controller.fetch_products(user_id)
 
 
-@app.get("/user/{resource_id}/sponsorships")
+@app.get("/user/{user_id}/sponsorships")
 def get_sponsorships(
-    resource_id: str,
+    user_id: str,
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
-    log.d(f"Fetching sponsorships for {resource_id}")
+    log.d(f"Fetching sponsorships for {user_id}")
     invoker_id_hex = get_user_id_from_jwt(token)
     log.d(f"  Invoker ID: {invoker_id_hex}")
     di = DI(db, invoker_id_hex)
-    return di.sponsorships_controller.fetch_sponsorships(resource_id)
+    return di.sponsorships_controller.fetch_sponsorships(user_id)
 
 
-@app.post("/user/{resource_id}/sponsorships")
+@app.post("/user/{user_id}/sponsorships")
 def sponsor_user(
-    resource_id: str,
+    user_id: str,
     payload: SponsorshipPayload,
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
-    log.d(f"Sponsoring user from {resource_id}")
+    log.d(f"Sponsoring user from {user_id}")
     invoker_id_hex = get_user_id_from_jwt(token)
     log.d(f"  Invoker ID: {invoker_id_hex}")
     di = DI(db, invoker_id_hex)
-    return di.sponsorships_controller.sponsor_user(resource_id, payload)
+    return di.sponsorships_controller.sponsor_user(user_id, payload)
 
 
-@app.delete("/user/{resource_id}/sponsorships/{platform}/{platform_handle}")
+@app.delete("/user/{user_id}/sponsorships/{platform}/{platform_handle}")
 def unsponsor_user(
-    resource_id: str,
+    user_id: str,
     platform: str,
     platform_handle: str,
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
-    log.d(f"Unsponsoring user from {resource_id}")
+    log.d(f"Unsponsoring user from {user_id}")
     invoker_id_hex = get_user_id_from_jwt(token)
     log.d(f"  Invoker ID: {invoker_id_hex}")
     di = DI(db, invoker_id_hex)
-    di.sponsorships_controller.unsponsor_user(resource_id, platform, platform_handle)
+    di.sponsorships_controller.unsponsor_user(user_id, platform, platform_handle)
     return {"status": "OK"}
 
 
-@app.delete("/user/{resource_id}/sponsored")
+@app.delete("/user/{user_id}/sponsored")
 def unsponsor_self(
-    resource_id: str,
+    user_id: str,
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
-    log.d(f"User {resource_id} is unsponsoring themselves")
+    log.d(f"User {user_id} is unsponsoring themselves")
     invoker_id_hex = get_user_id_from_jwt(token)
     log.d(f"  Invoker ID: {invoker_id_hex}")
     di = DI(db, invoker_id_hex)
-    di.sponsorships_controller.unsponsor_self(resource_id)
+    di.sponsorships_controller.unsponsor_self(user_id)
     return {"status": "OK"}
 
 
-@app.post("/user/{resource_id}/transfers")
+@app.post("/user/{user_id}/transfers")
 def transfer_credits(
-    resource_id: str,
+    user_id: str,
     payload: CreditTransferPayload,
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
 ) -> dict:
-    log.d(f"Transferring credits from {resource_id}")
+    log.d(f"Transferring credits from {user_id}")
     invoker_id_hex = get_user_id_from_jwt(token)
     log.d(f"  Invoker ID: {invoker_id_hex}")
     di = DI(db, invoker_id_hex)
-    di.transfers_controller.transfer_credits(resource_id, payload)
+    di.transfers_controller.transfer_credits(user_id, payload)
     return {"status": "OK"}
 
 
-@app.get("/user/{resource_id}/usage")
+@app.get("/user/{user_id}/usage")
 def get_usage_records(
-    resource_id: str,
+    user_id: str,
     skip: int = 0,
     limit: int = 50,
     start_date: str | None = None,
@@ -378,7 +388,7 @@ def get_usage_records(
     end_date_obj = datetime.fromisoformat(end_date) if end_date else None
     di = DI(db, invoker_id_hex)
     return di.usage_controller.fetch_usage_records(
-        user_id_hex = resource_id,
+        user_id_hex = user_id,
         skip = skip,
         limit = limit,
         start_date = start_date_obj,
@@ -393,9 +403,9 @@ def get_usage_records(
     )
 
 
-@app.get("/user/{resource_id}/usage/stats")
+@app.get("/user/{user_id}/usage/stats")
 def get_usage_stats(
-    resource_id: str,
+    user_id: str,
     start_date: str | None = None,
     end_date: str | None = None,
     exclude_self: bool = False,
@@ -414,7 +424,7 @@ def get_usage_stats(
     end_date_obj = datetime.fromisoformat(end_date) if end_date else None
     di = DI(db, invoker_id_hex)
     return di.usage_controller.fetch_usage_aggregates(
-        user_id_hex = resource_id,
+        user_id_hex = user_id,
         start_date = start_date_obj,
         end_date = end_date_obj,
         exclude_self = exclude_self,
@@ -427,9 +437,9 @@ def get_usage_stats(
     )
 
 
-@app.get("/user/{resource_id}/purchases")
+@app.get("/user/{user_id}/purchases")
 def get_purchase_records(
-    resource_id: str,
+    user_id: str,
     skip: int = 0,
     limit: int = 50,
     start_date: str | None = None,
@@ -444,7 +454,7 @@ def get_purchase_records(
     end_date_obj = datetime.fromisoformat(end_date) if end_date else None
     di = DI(db, invoker_id_hex)
     return di.purchases_controller.fetch_purchase_records(
-        user_id_hex = resource_id,
+        user_id_hex = user_id,
         skip = skip,
         limit = limit,
         start_date = start_date_obj,
@@ -453,9 +463,9 @@ def get_purchase_records(
     )
 
 
-@app.get("/user/{resource_id}/purchases/stats")
+@app.get("/user/{user_id}/purchases/stats")
 def get_purchase_stats(
-    resource_id: str,
+    user_id: str,
     start_date: str | None = None,
     end_date: str | None = None,
     product_id: str | None = None,
@@ -468,16 +478,16 @@ def get_purchase_stats(
     end_date_obj = datetime.fromisoformat(end_date) if end_date else None
     di = DI(db, invoker_id_hex)
     return di.purchases_controller.fetch_purchase_aggregates(
-        user_id_hex = resource_id,
+        user_id_hex = user_id,
         start_date = start_date_obj,
         end_date = end_date_obj,
         product_id = product_id,
     )
 
 
-@app.post("/user/{resource_id}/purchases")
+@app.post("/user/{user_id}/purchases")
 def bind_purchase_license_key(
-    resource_id: str,
+    user_id: str,
     payload: BindLicenseKeyPayload,
     db = Depends(get_session),
     token: dict[str, Any] = Depends(verify_jwt_credentials),
@@ -486,7 +496,7 @@ def bind_purchase_license_key(
     log.d(f"  Invoker ID: {invoker_id_hex}")
     di = DI(db, invoker_id_hex)
     return di.purchases_controller.bind_license_key(
-        user_id_hex = resource_id,
+        user_id_hex = user_id,
         license_key = payload.license_key,
     )
 

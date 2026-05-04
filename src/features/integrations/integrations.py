@@ -253,23 +253,3 @@ def _get_last_user_message_time(chat: ChatConfig, user: User, di: DI) -> datetim
         if message.author_id == user.id:
             return message.sent_at
     return None
-
-
-def lookup_all_admin_chats(chat_config: ChatConfig, user: User, di: DI) -> list[ChatConfig]:
-    match chat_config.chat_type:
-        case ChatConfigDB.ChatType.telegram:
-            administrators = di.telegram_bot_sdk.get_chat_administrators(str(chat_config.external_id))
-            if not administrators:
-                return []
-            result: list[ChatConfig] = []
-            for admin_member in administrators:
-                if admin_member.user and admin_member.user.id == user.telegram_user_id:
-                    result.append(chat_config)
-                    break
-            return result
-        case ChatConfigDB.ChatType.whatsapp:
-            return []
-        case ChatConfigDB.ChatType.background:
-            return []
-        case ChatConfigDB.ChatType.github:
-            return []
