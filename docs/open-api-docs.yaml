@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: The Agent's user-facing API
   description: The user-facing parts of The Agent's API service (excluding system-level endpoints, chat completion, maintenance endpoints, etc.)
-  version: 5.10.0
+  version: 5.11.2
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -15,35 +15,26 @@ security:
   - bearerAuth: []
 
 paths:
-  /settings/{settings_type}/{resource_id}:
+  /settings/user/{user_id}:
     get:
-      summary: Get user or chat settings
-      description: Retrieve settings for a specific user or chat configuration
-      operationId: getSettings
+      summary: Get user settings
+      description: Retrieve settings for a specific user
+      operationId: getUserSettings
       tags: [Settings]
       parameters:
-        - name: settings_type
+        - name: user_id
           in: path
           required: true
           schema:
             type: string
-            enum: [user, chat]
-          description: Type of settings to retrieve
-        - name: resource_id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: User ID (hex) or Chat ID (hex, UUID without hyphens) depending on settings_type
+          description: User ID in hexadecimal format (UUID without hyphens)
       responses:
         "200":
           description: Settings retrieved successfully
           content:
             application/json:
               schema:
-                oneOf:
-                  - $ref: "#/components/schemas/UserSettingsResponse"
-                  - $ref: "#/components/schemas/ChatSettingsResponse"
+                $ref: "#/components/schemas/UserSettingsResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "403":
@@ -56,82 +47,11 @@ paths:
           $ref: "#/components/responses/ServerError"
       security:
         - bearerAuth: []
-
-  /settings/user/{resource_id}/tools:
-    get:
-      summary: Get user's external tools configuration
-      description: Retrieve external tools and providers configuration status
-      operationId: getTools
-      tags: [Settings]
-      parameters:
-        - name: resource_id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: User ID in hexadecimal format (UUID without hyphens)
-      responses:
-        "200":
-          description: Tools configuration retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ExternalToolsResponse"
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        "403":
-          $ref: "#/components/responses/ForbiddenError"
-        "404":
-          $ref: "#/components/responses/NotFoundError"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      security:
-        - bearerAuth: []
-
-  /settings/user/{resource_id}/products:
-    get:
-      summary: Get available products
-      description: Retrieve the list of purchasable products
-      operationId: getProducts
-      tags: [Settings]
-      parameters:
-        - name: resource_id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: User ID in hexadecimal format (UUID without hyphens)
-      responses:
-        "200":
-          description: Products retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ProductsResponse"
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        "403":
-          $ref: "#/components/responses/ForbiddenError"
-        "404":
-          $ref: "#/components/responses/NotFoundError"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      security:
-        - bearerAuth: []
-
-  /settings/user/{user_id_hex}:
     patch:
       summary: Update user settings
       description: Save user settings including API keys and tool choices
       operationId: saveUserSettings
       tags: [Settings]
-      parameters:
-        - name: user_id_hex
-          in: path
-          required: true
-          schema:
-            type: string
-          description: User ID in hexadecimal format (UUID without hyphens)
       requestBody:
         required: true
         content:
@@ -158,12 +78,127 @@ paths:
       security:
         - bearerAuth: []
 
-  /settings/chat/{chat_id}:
+  /settings/user/{user_id}/tools:
+    get:
+      summary: Get user's external tools configuration
+      description: Retrieve external tools and providers configuration status
+      operationId: getTools
+      tags: [Settings]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+      responses:
+        "200":
+          description: Tools configuration retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExternalToolsResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /settings/user/{user_id}/products:
+    get:
+      summary: Get available products
+      description: Retrieve the list of purchasable products
+      operationId: getProducts
+      tags: [Settings]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID in hexadecimal format (UUID without hyphens)
+      responses:
+        "200":
+          description: Products retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductsResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /settings/chats:
+    get:
+      summary: Get all chats for the invoker
+      description: Retrieve all private and group chats where the invoker has a membership record; admin chats are discovered and their membership is refreshed
+      operationId: getChats
+      tags: [Chats]
+      responses:
+        "200":
+          description: Chats retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatSettingsResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
+
+  /settings/chats/{chat_id}:
+    get:
+      summary: Get chat settings
+      description: Retrieve settings for a specific chat; creates a membership row with false defaults if the invoker has no existing row
+      operationId: getChatSettings
+      tags: [Chats]
+      parameters:
+        - name: chat_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Chat ID in hexadecimal format (UUID without hyphens)
+      responses:
+        "200":
+          description: Chat settings retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatSettingsResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+      security:
+        - bearerAuth: []
     patch:
       summary: Update chat settings
-      description: Save chat configuration including language and reply settings
+      description: Save chat and/or per-user chat configuration; admin-only fields require admin membership; at least one of chat_config or user_chat_config must be present
       operationId: saveChatSettings
-      tags: [Settings]
+      tags: [Chats]
       parameters:
         - name: chat_id
           in: path
@@ -197,47 +232,14 @@ paths:
       security:
         - bearerAuth: []
 
-  /user/{resource_id}/chats:
-    get:
-      summary: Get user-administered chats
-      description: Retrieve all private and group chats where the user is an administrator
-      operationId: getChats
-      tags: [Chats]
-      parameters:
-        - name: resource_id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: User ID in hexadecimal format (UUID without hyphens)
-      responses:
-        "200":
-          description: Chats retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/ChatInfo"
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        "403":
-          $ref: "#/components/responses/ForbiddenError"
-        "404":
-          $ref: "#/components/responses/NotFoundError"
-        "500":
-          $ref: "#/components/responses/ServerError"
-      security:
-        - bearerAuth: []
-
-  /user/{resource_id}/sponsorships:
+  /user/{user_id}/sponsorships:
     get:
       summary: Get user's sponsorships
       description: Retrieve all sponsorships created by the user
       operationId: getSponsorships
       tags: [Sponsorships]
       parameters:
-        - name: resource_id
+        - name: user_id
           in: path
           required: true
           schema:
@@ -267,7 +269,7 @@ paths:
       operationId: sponsorUser
       tags: [Sponsorships]
       parameters:
-        - name: resource_id
+        - name: user_id
           in: path
           required: true
           schema:
@@ -299,14 +301,14 @@ paths:
       security:
         - bearerAuth: []
 
-  /user/{resource_id}/sponsorships/{platform}/{platform_handle}:
+  /user/{user_id}/sponsorships/{platform}/{platform_handle}:
     delete:
       summary: Remove a sponsorship
       description: Remove sponsorship for a specific user
       operationId: unsponsorUser
       tags: [Sponsorships]
       parameters:
-        - name: resource_id
+        - name: user_id
           in: path
           required: true
           schema:
@@ -345,14 +347,14 @@ paths:
       security:
         - bearerAuth: []
 
-  /user/{resource_id}/sponsored:
+  /user/{user_id}/sponsored:
     delete:
       summary: Remove self-sponsorship
       description: User removes their own sponsorship status
       operationId: unsponsorSelf
       tags: [Sponsorships]
       parameters:
-        - name: resource_id
+        - name: user_id
           in: path
           required: true
           schema:
@@ -376,14 +378,14 @@ paths:
       security:
         - bearerAuth: []
 
-  /user/{resource_id}/transfers:
+  /user/{user_id}/transfers:
     post:
       summary: Transfer credits to another user
       description: Transfers credits from the authenticated user to another user identified by platform handle
       operationId: transferCredits
       tags: [CreditTransfers]
       parameters:
-        - name: resource_id
+        - name: user_id
           in: path
           required: true
           schema:
@@ -620,14 +622,14 @@ paths:
       security:
         - bearerAuth: []
 
-  /user/{resource_id}/purchases:
+  /user/{user_id}/purchases:
     get:
       summary: Get user's purchase records
       description: Retrieve paginated purchase records for a user with optional date range and product filtering
       operationId: getPurchaseRecords
       tags: [Purchases]
       parameters:
-        - name: resource_id
+        - name: user_id
           in: path
           required: true
           schema:
@@ -696,7 +698,7 @@ paths:
       operationId: bindLicenseKey
       tags: [Purchases]
       parameters:
-        - name: resource_id
+        - name: user_id
           in: path
           required: true
           schema:
@@ -728,14 +730,14 @@ paths:
       security:
         - bearerAuth: []
 
-  /user/{resource_id}/purchases/stats:
+  /user/{user_id}/purchases/stats:
     get:
       summary: Get user's purchase aggregates
       description: Retrieve aggregated purchase statistics including total revenue, net revenue, and breakdown by product
       operationId: getPurchaseStats
       tags: [Purchases]
       parameters:
-        - name: resource_id
+        - name: user_id
           in: path
           required: true
           schema:
@@ -1191,6 +1193,19 @@ components:
 
     ChatSettingsPayload:
       type: object
+      description: At least one of chat_config or user_chat_config must be present; an empty body is rejected
+      properties:
+        chat_config:
+          $ref: "#/components/schemas/ChatConfigPayload"
+          nullable: true
+          description: Admin-editable chat configuration (requires admin membership)
+        user_chat_config:
+          $ref: "#/components/schemas/UserChatConfigPayload"
+          nullable: true
+          description: Per-user chat preferences (any member may update)
+
+    ChatConfigPayload:
+      type: object
       properties:
         language_name:
           type: string
@@ -1216,24 +1231,40 @@ components:
           nullable: false
           enum: [photo, file, all]
           description: Media sending mode - photo (send as photo), file (send as file), all (send both photo and file)
-        use_about_me:
-          type: boolean
-          nullable: false
-          description: Whether to include the participants' "about me" information in agent interactions for this chat
-        use_custom_prompt:
-          type: boolean
-          nullable: false
-          description: Whether to apply the participants' custom prompt instructions in agent interactions for this chat
       required:
         - language_name
         - language_iso_code
         - reply_chance_percent
         - release_notifications
         - media_mode
+
+    UserChatConfigPayload:
+      type: object
+      properties:
+        use_about_me:
+          type: boolean
+          nullable: false
+          description: Whether to include this user's "about me" in agent interactions for this chat
+        use_custom_prompt:
+          type: boolean
+          nullable: false
+          description: Whether to apply this user's custom prompt instructions in agent interactions for this chat
+      required:
         - use_about_me
         - use_custom_prompt
 
     ChatSettingsResponse:
+      type: object
+      properties:
+        chat_config:
+          $ref: "#/components/schemas/ChatConfigResponse"
+        user_chat_config:
+          $ref: "#/components/schemas/UserChatConfigResponse"
+      required:
+        - chat_config
+        - user_chat_config
+
+    ChatConfigResponse:
       type: object
       properties:
         chat_id:
@@ -1273,14 +1304,6 @@ components:
           nullable: false
           enum: [photo, file, all]
           description: Media sending mode - photo (send as photo), file (send as file), all (send both photo and file)
-        use_about_me:
-          type: boolean
-          nullable: false
-          description: Whether to include the participants' "about me" information in agent interactions for this chat
-        use_custom_prompt:
-          type: boolean
-          nullable: false
-          description: Whether to apply the participants' custom prompt instructions in agent interactions for this chat
         is_private:
           type: boolean
           nullable: false
@@ -1289,16 +1312,34 @@ components:
           type: boolean
           nullable: false
           description: Whether the chat belongs to the requesting user
+        is_admin:
+          type: boolean
+          nullable: false
+          description: Whether the requesting user is an admin of this chat
       required:
         - chat_id
         - platform
         - reply_chance_percent
         - release_notifications
         - media_mode
-        - use_about_me
-        - use_custom_prompt
         - is_private
         - is_own
+        - is_admin
+
+    UserChatConfigResponse:
+      type: object
+      properties:
+        use_about_me:
+          type: boolean
+          nullable: false
+          description: Whether this user's "about me" is included in agent interactions for this chat
+        use_custom_prompt:
+          type: boolean
+          nullable: false
+          description: Whether this user's custom prompt instructions are applied in agent interactions for this chat
+      required:
+        - use_about_me
+        - use_custom_prompt
 
     SponsorshipPayload:
       type: object
@@ -1341,31 +1382,6 @@ components:
         - platform
         - platform_handle
         - amount
-
-    ChatInfo:
-      type: object
-      properties:
-        chat_id:
-          type: string
-          nullable: false
-          description: Chat ID in hexadecimal format (UUID without hyphens)
-        title:
-          type: string
-          nullable: true
-          description: Chat title
-        platform:
-          type: string
-          nullable: false
-          enum: [telegram, whatsapp]
-          description: Platform type of this chat
-        is_own:
-          type: boolean
-          nullable: false
-          description: Whether the chat belongs to the requesting user (e.g., private chat)
-      required:
-        - chat_id
-        - platform
-        - is_own
 
     ExternalToolsResponse:
       type: object

@@ -1,12 +1,17 @@
 import os
 import tempfile
 import unittest
+from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, patch
+from uuid import UUID
 
 from db.model.chat_config import ChatConfigDB
+from db.model.user import UserDB
+from db.schema.chat_config import ChatConfig
+from db.schema.user import User
 from di.di import DI
-from features.integrations.platform_bot_sdk import PlatformBotSDK
+from features.integrations.platform_bot_sdk import ChatAccess, PlatformBotSDK
 
 
 def _make_di() -> DI:
@@ -114,6 +119,127 @@ class PlatformBotSDKTest(unittest.TestCase):
             result = sdk.send_photo(chat_id = 1, photo_url = "http://example.com/img.png")
         di.telegram_bot_sdk.send_photo.assert_called_once_with(1, "http://example.com/img.png", None)
         self.assertEqual(result, "sent")
+
+
+class ResolveChatAccessTest(unittest.TestCase):
+
+    def _make_chat(self, chat_type: ChatConfigDB.ChatType, is_private: bool, external_id: str = "chat1") -> ChatConfig:
+        return ChatConfig(
+            chat_id = UUID(int = 1),
+            external_id = external_id,
+            is_private = is_private,
+            chat_type = chat_type,
+        )
+
+    def _make_user(self, telegram_user_id: int | None = 1, telegram_chat_id: str | None = None) -> User:
+        return User(
+            id = UUID(int = 2),
+            telegram_user_id = telegram_user_id,
+            telegram_chat_id = telegram_chat_id,
+            group = UserDB.Group.standard,
+            created_at = datetime.now().date(),
+        )
+
+    def _make_member(self, status: str) -> SimpleNamespace:
+        return SimpleNamespace(status = status)
+
+    def test_own_private_chat_returns_owner(self):
+        di = _make_di()
+        sdk = PlatformBotSDK(di = di)
+        chat = self._make_chat(ChatConfigDB.ChatType.telegram, is_private = True, external_id = "chat1")
+        user = self._make_user(telegram_chat_id = "chat1")
+
+        self.assertEqual(sdk.resolve_chat_access(chat, user), ChatAccess.owner)
+        di.telegram_bot_sdk.get_chat_member.assert_not_called()
+
+    def test_private_chat_not_owned_returns_none(self):
+        di = _make_di()
+        sdk = PlatformBotSDK(di = di)
+        chat = self._make_chat(ChatConfigDB.ChatType.telegram, is_private = True, external_id = "other_chat")
+        user = self._make_user(telegram_chat_id = "chat1")
+
+        self.assertIsNone(sdk.resolve_chat_access(chat, user))
+        di.telegram_bot_sdk.get_chat_member.assert_not_called()
+
+    def test_telegram_group_creator_returns_admin(self):
+        di = _make_di()
+        di.telegram_bot_sdk.get_chat_member.return_value = self._make_member("creator")
+        sdk = PlatformBotSDK(di = di)
+        chat = self._make_chat(ChatConfigDB.ChatType.telegram, is_private = False)
+        user = self._make_user(telegram_user_id = 42)
+
+        self.assertEqual(sdk.resolve_chat_access(chat, user), ChatAccess.admin)
+
+    def test_telegram_group_administrator_returns_admin(self):
+        di = _make_di()
+        di.telegram_bot_sdk.get_chat_member.return_value = self._make_member("administrator")
+        sdk = PlatformBotSDK(di = di)
+        chat = self._make_chat(ChatConfigDB.ChatType.telegram, is_private = False)
+        user = self._make_user(telegram_user_id = 42)
+
+        self.assertEqual(sdk.resolve_chat_access(chat, user), ChatAccess.admin)
+
+    def test_telegram_group_member_returns_member(self):
+        di = _make_di()
+        di.telegram_bot_sdk.get_chat_member.return_value = self._make_member("member")
+        sdk = PlatformBotSDK(di = di)
+        chat = self._make_chat(ChatConfigDB.ChatType.telegram, is_private = False)
+        user = self._make_user(telegram_user_id = 42)
+
+        self.assertEqual(sdk.resolve_chat_access(chat, user), ChatAccess.member)
+
+    def test_telegram_group_restricted_returns_member(self):
+        di = _make_di()
+        di.telegram_bot_sdk.get_chat_member.return_value = self._make_member("restricted")
+        sdk = PlatformBotSDK(di = di)
+        chat = self._make_chat(ChatConfigDB.ChatType.telegram, is_private = False)
+        user = self._make_user(telegram_user_id = 42)
+
+        self.assertEqual(sdk.resolve_chat_access(chat, user), ChatAccess.member)
+
+    def test_telegram_group_left_returns_none(self):
+        di = _make_di()
+        di.telegram_bot_sdk.get_chat_member.return_value = self._make_member("left")
+        sdk = PlatformBotSDK(di = di)
+        chat = self._make_chat(ChatConfigDB.ChatType.telegram, is_private = False)
+        user = self._make_user(telegram_user_id = 42)
+
+        self.assertIsNone(sdk.resolve_chat_access(chat, user))
+
+    def test_telegram_group_kicked_returns_none(self):
+        di = _make_di()
+        di.telegram_bot_sdk.get_chat_member.return_value = self._make_member("kicked")
+        sdk = PlatformBotSDK(di = di)
+        chat = self._make_chat(ChatConfigDB.ChatType.telegram, is_private = False)
+        user = self._make_user(telegram_user_id = 42)
+
+        self.assertIsNone(sdk.resolve_chat_access(chat, user))
+
+    def test_telegram_group_api_returns_none_returns_none(self):
+        di = _make_di()
+        di.telegram_bot_sdk.get_chat_member.return_value = None
+        sdk = PlatformBotSDK(di = di)
+        chat = self._make_chat(ChatConfigDB.ChatType.telegram, is_private = False)
+        user = self._make_user(telegram_user_id = 42)
+
+        self.assertIsNone(sdk.resolve_chat_access(chat, user))
+
+    def test_telegram_group_no_telegram_user_id_returns_none(self):
+        di = _make_di()
+        sdk = PlatformBotSDK(di = di)
+        chat = self._make_chat(ChatConfigDB.ChatType.telegram, is_private = False)
+        user = self._make_user(telegram_user_id = None)
+
+        self.assertIsNone(sdk.resolve_chat_access(chat, user))
+        di.telegram_bot_sdk.get_chat_member.assert_not_called()
+
+    def test_whatsapp_group_returns_none(self):
+        di = _make_di()
+        sdk = PlatformBotSDK(di = di)
+        chat = self._make_chat(ChatConfigDB.ChatType.whatsapp, is_private = False)
+        user = self._make_user()
+
+        self.assertIsNone(sdk.resolve_chat_access(chat, user))
 
 
 class TempFileBehaviorTest(unittest.TestCase):

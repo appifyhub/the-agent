@@ -68,8 +68,6 @@ class WhatsAppBotSDKTest(unittest.TestCase):
             external_id = self.chat_id,
             title = "Test Chat",
             is_private = True,
-            use_about_me = True,
-            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.whatsapp,
         )
 

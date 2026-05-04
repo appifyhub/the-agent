@@ -46,8 +46,6 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
             language_name = "English",
             language_iso_code = "en",
             media_mode = ChatConfigDB.MediaMode.photo,
-            use_about_me = True,
-            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
 
@@ -81,8 +79,6 @@ class TelegramPriceAlertResponderTest(unittest.TestCase):
             language_name = "English",
             language_iso_code = "en",
             media_mode = ChatConfigDB.MediaMode.photo,
-            use_about_me = True,
-            use_custom_prompt = True,
             chat_type = ChatConfigDB.ChatType.telegram,
         )
 

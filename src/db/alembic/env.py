@@ -11,6 +11,9 @@ from db.model.base import BaseModel
 from db.model.chat_config import ChatConfigDB  # used by alembic  # noqa: F401
 
 # noinspection PyUnresolvedReferences
+from db.model.chat_membership import ChatMembershipDB  # used by alembic  # noqa: F401
+
+# noinspection PyUnresolvedReferences
 from db.model.chat_message import ChatMessageDB  # used by alembic  # noqa: F401
 
 # noinspection PyUnresolvedReferences
