@@ -86,7 +86,6 @@ class SmartImageGeneratorTest(unittest.TestCase):
             media_mode = ChatConfigDB.MediaMode.all,
             chat_id = 1,
             photo_url = "http://example.com/image.png",
-            caption = "📸",
             thumbnail = "http://example.com/image.png",
         )
 

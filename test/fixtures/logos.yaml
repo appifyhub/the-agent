@@ -1,0 +1,6 @@
+logos:
+  agent_logo_color: "https://example.com/logo-color.svg"
+  agent_logo_light: "https://example.com/logo-light.svg"
+  agent_logo_dark: "https://example.com/logo-dark.svg"
+  x_logo_light: "https://example.com/x-light.svg"
+  x_logo_dark: "https://example.com/x-dark.svg"

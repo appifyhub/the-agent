@@ -11,7 +11,7 @@ from requests_mock import Mocker
 from db.schema.tools_cache import ToolsCache
 from di.di import DI
 from features.external_tools.tool_choice_resolver import ConfiguredTool
-from features.web_browsing.twitter_status_fetcher import TwitterStatusFetcher
+from features.web_browsing.twitter_status_fetcher import TweetData, TweetMediaItem, TwitterStatusFetcher
 from util.config import config
 
 
@@ -283,3 +283,117 @@ class TwitterStatusFetcherTest(unittest.TestCase):
         self.assertIn("@testuser (<Anonymous>)", result)
         self.assertIn("@testuser's bio: \"<No user bio>\"", result)
         self.assertIn("<No text posted>", result)
+
+    @requests_mock.Mocker()
+    @patch("features.web_browsing.twitter_status_fetcher.sleep", return_value = None)
+    def test_as_structured_returns_typed_data(self, m: Mocker, _):
+        self.mock_di.tools_cache_crud.get.return_value = None
+        m.get(
+            self.api_url,
+            json = {
+                "data": {
+                    "text": "Structured tweet text",
+                    "lang": "en",
+                    "created_at": "2026-05-04T14:13:00.000Z",
+                    "author_id": "123",
+                },
+                "includes": {
+                    "users": [
+                        {
+                            "id": "123",
+                            "username": "structuser",
+                            "name": "Structured User",
+                            "description": "A bio",
+                            "profile_image_url": "https://pbs.twimg.com/profile_images/1/photo_normal.jpg",
+                        },
+                    ],
+                    "media": [
+                        {
+                            "type": "photo",
+                            "url": "https://pbs.twimg.com/media/photo.jpg",
+                            "preview_image_url": None,
+                        },
+                        {
+                            "type": "animated_gif",
+                            "url": None,
+                            "preview_image_url": "https://pbs.twimg.com/media/gif_preview.jpg",
+                        },
+                        {
+                            "type": "video",
+                            "url": None,
+                            "preview_image_url": "https://pbs.twimg.com/media/video_preview.jpg",
+                        },
+                    ],
+                },
+            },
+        )
+        fetcher = TwitterStatusFetcher(
+            tweet_id = "123456789",
+            x_api_tool = self.mock_x_api_tool,
+            vision_tool = self.mock_vision_tool,
+            di = self.mock_di,
+        )
+        result = fetcher.as_structured()
+
+        self.assertIsInstance(result, TweetData)
+        self.assertEqual(result.user.handle, "structuser")
+        self.assertEqual(result.user.name, "Structured User")
+        self.assertEqual(result.user.bio, "A bio")
+        self.assertIn("_normal", result.user.profile_image_url)
+        self.assertEqual(result.text, "Structured tweet text")
+        self.assertEqual(result.language, "en")
+        self.assertEqual(result.created_at, "2026-05-04T14:13:00.000Z")
+        self.assertEqual(len(result.media), 3)
+        self.assertIsInstance(result.media[0], TweetMediaItem)
+        self.assertEqual(result.media[0].media_type, "photo")
+        self.assertEqual(result.media[0].url, "https://pbs.twimg.com/media/photo.jpg")
+        self.assertEqual(result.media[1].media_type, "animated_gif")
+        self.assertEqual(result.media[1].preview_url, "https://pbs.twimg.com/media/gif_preview.jpg")
+        self.assertEqual(result.media[2].media_type, "video")
+        self.assertEqual(result.media[2].preview_url, "https://pbs.twimg.com/media/video_preview.jpg")
+
+    @requests_mock.Mocker()
+    @patch("features.web_browsing.twitter_status_fetcher.sleep", return_value = None)
+    def test_as_structured_uses_structured_cache_prefix(self, m: Mocker, _):
+        self.mock_di.tools_cache_crud.get.return_value = None
+        m.get(
+            self.api_url,
+            json = {"data": {"text": "Test", "lang": "en"}, "includes": {"users": [{"username": "u"}]}},
+        )
+        fetcher = TwitterStatusFetcher(
+            tweet_id = "123456789",
+            x_api_tool = self.mock_x_api_tool,
+            vision_tool = self.mock_vision_tool,
+            di = self.mock_di,
+        )
+        fetcher.as_structured()
+
+        create_key_calls = self.mock_di.tools_cache_crud.create_key.call_args_list
+        prefixes_used = [call.args[0] for call in create_key_calls]
+        self.assertIn("twitter-status-fetcher-json", prefixes_used)
+        self.assertNotIn("twitter-status-fetcher", prefixes_used)
+
+    @requests_mock.Mocker()
+    @patch("features.web_browsing.twitter_status_fetcher.sleep", return_value = None)
+    def test_as_structured_does_not_invoke_cv(self, m: Mocker, _):
+        self.mock_di.tools_cache_crud.get.return_value = None
+        m.get(
+            self.api_url,
+            json = {
+                "data": {"text": "Tweet", "lang": "en"},
+                "includes": {
+                    "users": [{"username": "u", "name": "U"}],
+                    "media": [{"type": "photo", "url": "https://pbs.twimg.com/media/photo.jpg"}],
+                },
+            },
+        )
+        fetcher = TwitterStatusFetcher(
+            tweet_id = "123456789",
+            x_api_tool = self.mock_x_api_tool,
+            vision_tool = self.mock_vision_tool,
+            di = self.mock_di,
+        )
+        fetcher.as_structured()
+
+        # noinspection PyUnresolvedReferences
+        self.mock_di.computer_vision_analyzer.assert_not_called()

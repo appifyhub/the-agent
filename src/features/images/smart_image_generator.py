@@ -95,7 +95,6 @@ class SmartImageGenerator:
                 media_mode = invoker_chat.media_mode,
                 chat_id = int(invoker_chat.external_id or "-1"),
                 photo_url = image_url,
-                caption = "📸",
                 thumbnail = image_url,
             )
         except Exception as e:
