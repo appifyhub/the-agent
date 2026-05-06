@@ -28,11 +28,12 @@ def pick_theme(
             gradient_end = BRAND_GRADIENT_END,
             text_color = "#ffffff",
         )
-    gradient_end = _derive_gradient_end(primary)
+    secondary = _derive_gradient_end(primary)
     text_color = _contrast_text(primary)
+    light, dark = (primary, secondary) if sum(primary) >= sum(secondary) else (secondary, primary)
     return ThemeColors(
-        gradient_start = _rgb_to_hex(primary),
-        gradient_end = _rgb_to_hex(gradient_end),
+        gradient_start = _rgb_to_hex(light),
+        gradient_end = _rgb_to_hex(dark),
         text_color = text_color,
     )
 
