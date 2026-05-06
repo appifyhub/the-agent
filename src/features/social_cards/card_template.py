@@ -1,0 +1,384 @@
+import base64
+import io
+import re
+import urllib.request
+from datetime import datetime, timezone
+from pathlib import Path
+
+from PIL import Image, ImageFont
+
+from features.social_cards.card_layout import (
+    AVATAR_GAP,
+    AVATAR_SIZE,
+    CARD_CORNER_RADIUS,
+    CARD_INNER_PAD,
+    CARD_OUTER_PAD,
+    CARD_SECTION_GAP,
+    DIVIDER_OPACITY,
+    DROP_SHADOW_BLUR,
+    DROP_SHADOW_DY,
+    DROP_SHADOW_OPACITY,
+    FONT_SIZE_BODY,
+    FONT_SIZE_DATE,
+    FONT_SIZE_FOOTER,
+    FONT_SIZE_NAME,
+    FOOTER_OPACITY,
+    LINE_HEIGHT_BODY,
+    LOGO_SIZE,
+    PHOTO_CORNER_RADIUS,
+    PHOTO_GAP,
+    X_ICON_SIZE,
+)
+from features.social_cards.theme import ThemeColors
+from features.web_browsing.twitter_status_fetcher import TweetData
+from util.config import config
+
+_FONT_PATH = Path(config.font_path)
+_FONT_NAME = "Heebo"
+
+_FONT_B64: str | None = None
+_LOGO_CACHE: dict[str, bytes] = {}
+
+_SPECIAL_TOKEN_RE = re.compile(r"(https?://\S+|www\.\S+|@\w+|#\w+|\$[A-Za-z]+)")
+
+
+def _font_b64() -> str:
+    global _FONT_B64
+    if _FONT_B64 is None:
+        _FONT_B64 = base64.b64encode(_FONT_PATH.read_bytes()).decode("ascii")
+    return _FONT_B64
+
+
+def _b64_image(data: bytes, mime: str = "image/jpeg") -> str:
+    return f"data:{mime};base64,{base64.b64encode(data).decode('ascii')}"
+
+
+def _fetch_logo(key: str) -> bytes:
+    if key not in _LOGO_CACHE:
+        url = config.logos[key]
+        with urllib.request.urlopen(url) as response:
+            _LOGO_CACHE[key] = response.read()
+    return _LOGO_CACHE[key]
+
+
+def _logo_svg_b64(key: str) -> str:
+    return f"data:image/svg+xml;base64,{base64.b64encode(_fetch_logo(key)).decode('ascii')}"
+
+
+def _agent_logo_key(theme: ThemeColors) -> str:
+    hex_color = theme.gradient_start.lstrip("#")
+    r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+    luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+    if luminance < 0.3:
+        return "agent_logo_light"
+    if luminance > 0.7:
+        return "agent_logo_dark"
+    return "agent_logo_color"
+
+
+def _x_logo_key(theme: ThemeColors) -> str:
+    return "x_logo_light" if theme.text_color == "#ffffff" else "x_logo_dark"
+
+
+def _accent_color(theme: ThemeColors) -> str:
+    h = theme.gradient_start.lstrip("#")
+    r, g, b = 255 - int(h[0:2], 16), 255 - int(h[2:4], 16), 255 - int(h[4:6], 16)
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
+def _image_mime(data: bytes) -> str:
+    try:
+        img = Image.open(io.BytesIO(data))
+        fmt = (img.format or "JPEG").upper()
+        return {"JPEG": "image/jpeg", "PNG": "image/png", "GIF": "image/gif", "WEBP": "image/webp"}.get(fmt, "image/jpeg")
+    except Exception:
+        return "image/jpeg"
+
+
+def _photo_natural_height(data: bytes, display_w: int) -> int:
+    try:
+        img = Image.open(io.BytesIO(data))
+        if img.width == 0:
+            return display_w
+        return round(display_w * img.height / img.width)
+    except Exception:
+        return display_w
+
+
+def _photo_sort_key(data: bytes) -> int:
+    try:
+        img = Image.open(io.BytesIO(data))
+        if img.height > img.width * 1.05:
+            return 0  # portrait first
+        if img.width > img.height * 1.05:
+            return 2  # landscape last
+        return 1  # square middle
+    except Exception:
+        return 1
+
+
+def _pillow_font(size: int) -> ImageFont.FreeTypeFont:
+    return ImageFont.truetype(str(_FONT_PATH), size)
+
+
+def _text_width(text: str, size: int) -> int:
+    font = _pillow_font(size)
+    bbox = font.getbbox(text)
+    return bbox[2] - bbox[0]
+
+
+def _word_wrap(text: str, max_width: int, font_size: int) -> list[str]:
+    lines: list[str] = []
+    for paragraph in text.splitlines():
+        if not paragraph.strip():
+            lines.append("")
+            continue
+        words = paragraph.split(" ")
+        current = ""
+        for word in words:
+            candidate = (current + " " + word).strip()
+            if _text_width(candidate, font_size) <= max_width:
+                current = candidate
+            else:
+                if current:
+                    lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+    return lines or [""]
+
+
+def _line_tspans(line: str, body_x: int, dy: int, normal_fill: str, accent: str) -> str:
+    parts = _SPECIAL_TOKEN_RE.split(line)
+    spans = []
+    is_first = True
+    for i, part in enumerate(parts):
+        if not part:
+            continue
+        is_special = i % 2 == 1
+        fill = accent if is_special else normal_fill
+        opacity = ' fill-opacity="0.8"' if is_special else ""
+        pos = f' x="{body_x}" dy="{dy}"' if is_first else ""
+        spans.append(f'<tspan{pos} fill="{fill}"{opacity}>{_escape(part)}</tspan>')
+        is_first = False
+    if not spans:
+        return f'<tspan x="{body_x}" dy="{dy}"> </tspan>'
+    return "".join(spans)
+
+
+def _format_datetime(created_at: str | None) -> str:
+    if not created_at:
+        return ""
+    try:
+        dt = datetime.fromisoformat(created_at.replace("Z", "+00:00")).astimezone(timezone.utc)
+        hour = dt.hour % 12 or 12
+        am_pm = "AM" if dt.hour < 12 else "PM"
+        return f"{dt.year}-{dt.month:02d}-{dt.day:02d} · UTC {hour}:{dt.minute:02d} {am_pm}"
+    except Exception:
+        return created_at
+
+
+def _rounded_rect_path(x: int, y: int, w: int, h: int, tl: int, tr: int, br: int, bl: int) -> str:
+    return (
+        f"M {x + tl},{y} "
+        f"H {x + w - tr} "
+        f"Q {x + w},{y} {x + w},{y + tr} "
+        f"V {y + h - br} "
+        f"Q {x + w},{y + h} {x + w - br},{y + h} "
+        f"H {x + bl} "
+        f"Q {x},{y + h} {x},{y + h - bl} "
+        f"V {y + tl} "
+        f"Q {x},{y} {x + tl},{y} Z"
+    )
+
+
+def _photo_cell_parts(
+    cell_id: str,
+    x: int,
+    y: int,
+    w: int,
+    h: int,
+    photo_b64: str,
+    tl: int,
+    tr: int,
+    br: int,
+    bl: int,
+) -> tuple[str, str]:
+    path = _rounded_rect_path(x, y, w, h, tl, tr, br, bl)
+    clip = f'<clipPath id="{cell_id}-clip"><path d="{path}"/></clipPath>'
+    img = (
+        f'<image clip-path="url(#{cell_id}-clip)" x="{x}" y="{y}" width="{w}" height="{h}" '
+        f'href="{photo_b64}" preserveAspectRatio="xMidYMid slice"/>'
+    )
+    return clip, img
+
+
+def build_svg(
+    tweet: TweetData,
+    theme: ThemeColors,
+    card_width: int,
+    profile_bytes: bytes | None,
+    media_bytes: list[bytes],
+    short_url: str | None,
+) -> str:
+    cx = CARD_OUTER_PAD  # card left edge
+    inner_w = card_width - 2 * CARD_INNER_PAD
+    body_x = cx + CARD_INNER_PAD
+    r = CARD_CORNER_RADIUS
+    accent = _accent_color(theme)
+
+    defs: list[str] = []
+    content: list[str] = []
+
+    # Font
+    defs.append(
+        f'<style type="text/css">'
+        f'@font-face {{font-family:"{_FONT_NAME}";font-style:normal;font-weight:100 900;'
+        f'src:url("data:font/truetype;base64,{_font_b64()}") format("truetype");}}'
+        f"</style>",
+    )
+
+    # Background gradient
+    defs.append(
+        f'<linearGradient id="bg" x1="0" y1="0" x2="0.6" y2="1" gradientUnits="objectBoundingBox">'
+        f'<stop offset="0%" stop-color="{theme.gradient_start}"/>'
+        f'<stop offset="100%" stop-color="{theme.gradient_end}"/>'
+        f"</linearGradient>",
+    )
+
+    # Drop shadow filter
+    defs.append(
+        f'<filter id="shadow" x="-8%" y="-8%" width="116%" height="116%">'
+        f'<feDropShadow dx="0" dy="{DROP_SHADOW_DY}" stdDeviation="{DROP_SHADOW_BLUR}" '
+        f'flood-color="#000000" flood-opacity="{DROP_SHADOW_OPACITY}"/>'
+        f"</filter>",
+    )
+
+    # Avatar clip
+    av_cx = cx + CARD_INNER_PAD + AVATAR_SIZE // 2
+    av_cy_center = CARD_OUTER_PAD + CARD_INNER_PAD + AVATAR_SIZE // 2
+    defs.append(f'<clipPath id="avatar-clip"><circle cx="{av_cx}" cy="{av_cy_center}" r="{AVATAR_SIZE // 2}"/></clipPath>')
+
+    # Current Y cursor (inside SVG coords, card top = CARD_OUTER_PAD)
+    y = CARD_OUTER_PAD + CARD_INNER_PAD
+
+    # Header
+    if profile_bytes:
+        avatar_b64 = _b64_image(profile_bytes, _image_mime(profile_bytes))
+        content.append(
+            f'<image clip-path="url(#avatar-clip)" x="{cx + CARD_INNER_PAD}" y="{y}" '
+            f'width="{AVATAR_SIZE}" height="{AVATAR_SIZE}" href="{avatar_b64}" preserveAspectRatio="xMidYMid slice"/>',
+        )
+    else:
+        initial = (tweet.user.handle or "?")[0].upper()
+        content.append(
+            f'<circle cx="{av_cx}" cy="{av_cy_center}" r="{AVATAR_SIZE // 2}" fill="{theme.text_color}" fill-opacity="0.2"/>'
+            f'<text x="{av_cx}" y="{av_cy_center + 8}" text-anchor="middle" font-family="{_FONT_NAME}" '
+            f'font-size="{AVATAR_SIZE // 2}" fill="{theme.text_color}">{initial}</text>',
+        )
+
+    name_x = cx + CARD_INNER_PAD + AVATAR_SIZE + AVATAR_GAP
+    _name_date_span = FONT_SIZE_DATE + 8
+    _visual_block_h = FONT_SIZE_NAME + _name_date_span
+    name_y = y + (AVATAR_SIZE + _visual_block_h) // 2 - _name_date_span
+    date_y = name_y + _name_date_span
+    if tweet.user.name:
+        name_spans = (
+            f'<tspan font-weight="700">{_escape(tweet.user.name)}</tspan>'
+            f'<tspan font-weight="400"> (@{_escape(tweet.user.handle)})</tspan>'
+        )
+    else:
+        name_spans = f'<tspan font-weight="700">@{_escape(tweet.user.handle)}</tspan>'
+    content.append(
+        f'<text x="{name_x}" y="{name_y}" font-family="{_FONT_NAME}" '
+        f'font-size="{FONT_SIZE_NAME}" fill="{theme.text_color}">{name_spans}</text>',
+    )
+    dt_str = _format_datetime(tweet.created_at)
+    if dt_str:
+        content.append(
+            f'<text x="{name_x}" y="{date_y}" font-family="{_FONT_NAME}" font-size="{FONT_SIZE_DATE}" '
+            f'fill="{theme.text_color}" fill-opacity="0.7">{dt_str}</text>',
+        )
+
+    # Agent logo (top-right)
+    logo_x = cx + card_width - CARD_INNER_PAD - LOGO_SIZE
+    logo_y = y + (AVATAR_SIZE - LOGO_SIZE) // 2
+    logo_key = _agent_logo_key(theme)
+    logo_b64 = _logo_svg_b64(logo_key)
+    logo_opacity = ' opacity="0.8"' if logo_key != "agent_logo_color" else ""
+    content.append(
+        f'<image x="{logo_x}" y="{logo_y}" width="{LOGO_SIZE}" height="{LOGO_SIZE}" href="{logo_b64}"{logo_opacity}/>',
+    )
+
+    y += AVATAR_SIZE + CARD_SECTION_GAP
+
+    # Divider
+    content.append(
+        f'<line x1="{body_x}" y1="{y}" x2="{body_x + inner_w}" y2="{y}" '
+        f'stroke="{theme.text_color}" stroke-opacity="{DIVIDER_OPACITY}" stroke-width="1"/>',
+    )
+    y += CARD_SECTION_GAP
+
+    # Tweet body with colored tokens
+    lines = _word_wrap(tweet.text, inner_w, FONT_SIZE_BODY)
+    if lines:
+        tspans = "".join(
+            _line_tspans(ln, body_x, 0 if i == 0 else LINE_HEIGHT_BODY, theme.text_color, accent) for i, ln in enumerate(lines)
+        )
+        content.append(
+            f'<text x="{body_x}" y="{y + FONT_SIZE_BODY}" font-family="{_FONT_NAME}" '
+            f'font-size="{FONT_SIZE_BODY}" xml:space="preserve">'
+            f"{tspans}</text>",
+        )
+        y += len(lines) * LINE_HEIGHT_BODY + CARD_SECTION_GAP
+
+    # Photos — sorted portrait → square → landscape, natural height, single column
+    if media_bytes:
+        sorted_media = sorted(media_bytes, key = _photo_sort_key)
+        total = len(sorted_media)
+        for idx, photo_data in enumerate(sorted_media):
+            is_first = idx == 0
+            is_last = idx == total - 1
+            ph = _photo_natural_height(photo_data, inner_w)
+            tl = tr = PHOTO_CORNER_RADIUS if is_first else 2
+            bl = br = PHOTO_CORNER_RADIUS if is_last else 2
+            cell_id = f"photo-{idx}"
+            b64 = _b64_image(photo_data, _image_mime(photo_data))
+            cell_clip, cell_img = _photo_cell_parts(cell_id, body_x, y, inner_w, ph, b64, tl, tr, br, bl)
+            defs.append(cell_clip)
+            content.append(cell_img)
+            y += ph + (PHOTO_GAP if not is_last else 0)
+        y += CARD_SECTION_GAP
+
+    # Footer — align icon center to text cap-height center
+    footer_y = y + FONT_SIZE_FOOTER
+    icon_y = round(footer_y - (FONT_SIZE_FOOTER * 0.65 + X_ICON_SIZE) / 2)
+    x_logo_b64 = _logo_svg_b64(_x_logo_key(theme))
+    content.append(
+        f'<image x="{body_x}" y="{icon_y}" width="{X_ICON_SIZE}" height="{X_ICON_SIZE}" '
+        f'href="{x_logo_b64}" opacity="{FOOTER_OPACITY}"/>',
+    )
+    if short_url:
+        display_url = short_url.removeprefix("https://").removeprefix("http://")
+        content.append(
+            f'<text x="{body_x + X_ICON_SIZE + 5}" y="{footer_y}" font-family="{_FONT_NAME}" font-size="{FONT_SIZE_FOOTER}" '
+            f'fill="{theme.text_color}" opacity="{FOOTER_OPACITY}">{_escape(display_url)}</text>',
+        )
+    y += FONT_SIZE_FOOTER + CARD_INNER_PAD
+
+    total_h = y + CARD_OUTER_PAD
+    card_h = total_h - 2 * CARD_OUTER_PAD
+    svg_w = card_width + 2 * CARD_OUTER_PAD
+
+    card_rect = (
+        f'<rect x="{CARD_OUTER_PAD}" y="{CARD_OUTER_PAD}" width="{card_width}" height="{card_h}" '
+        f'rx="{r}" ry="{r}" fill="url(#bg)" filter="url(#shadow)"/>'
+    )
+
+    defs_svg = "<defs>" + "".join(defs) + "</defs>"
+    content_svg = card_rect + "".join(content)
+    return f'<svg xmlns="http://www.w3.org/2000/svg" width="{svg_w}" height="{total_h}">{defs_svg}{content_svg}</svg>'
+
+
+def _escape(text: str) -> str:
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")

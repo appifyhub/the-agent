@@ -18,6 +18,7 @@ from features.chat.dev_announcements_service import DevAnnouncementsService
 from features.external_tools.intelligence_presets import default_tool_for
 from features.images.smart_image_generator import SmartImageGenerator
 from features.integrations.integrations import add_messaging_frequency_warning, resolve_private_chat_id
+from features.social_cards.social_card_orchestrator import SocialCardOrchestrator
 from features.support.user_support_service import UserSupportService
 from features.web_browsing.ai_web_search import AIWebSearch
 from util import log
@@ -467,6 +468,30 @@ def transfer_credits_to_user(
         return __error(e)
 
 
+def render_social_post(di: DI, url: str) -> str:
+    """
+    Used for extracting and persisting the agent's screenshot/render of a social post.
+    Renders a social network post into a styled, shareable card image.
+    Supports only X/Twitter links for now.
+
+    Args:
+        url: [mandatory] The URL of the social media post to render, starting with 'http://' or 'https://'
+    """
+    try:
+        x_api_tool = di.tool_choice_resolver.require_tool(SocialCardOrchestrator.TOOL_TYPE, default_tool_for(SocialCardOrchestrator.TOOL_TYPE))
+        image_url = di.social_card_orchestrator(x_api_tool).execute(url)
+        invoker_chat = di.require_invoker_chat()
+        di.platform_bot_sdk().smart_send_photo(
+            media_mode = invoker_chat.media_mode,
+            chat_id = int(invoker_chat.external_id or "-1"),
+            photo_url = image_url,
+            thumbnail = image_url,
+        )
+        return __success({"next_step": "Confirm to the user that the card has been rendered and sent"})
+    except Exception as e:
+        return __error(e)
+
+
 # === Helper functions ===
 
 
@@ -511,6 +536,7 @@ ALL_LLM_TOOLS: dict[str, Callable[..., str]] = {
     "connect_profiles": connect_profiles,
     "check_usage_and_balance": check_usage_and_balance,
     "transfer_credits_to_user": transfer_credits_to_user,
+    "render_social_post": render_social_post,
 }
 
 

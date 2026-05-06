@@ -1,0 +1,8 @@
+logos:
+
+  agent_logo_color: "https://raw.githubusercontent.com/appifyhub/agent-landing/refs/heads/main/graphics/svg/logo.svg"
+  agent_logo_light: "https://raw.githubusercontent.com/appifyhub/agent-landing/refs/heads/main/graphics/svg/monochrome/logo-white.svg"
+  agent_logo_dark: "https://raw.githubusercontent.com/appifyhub/agent-landing/refs/heads/main/graphics/svg/monochrome/logo-black.svg"
+
+  x_logo_light: "https://raw.githubusercontent.com/appifyhub/agent-landing/refs/heads/main/graphics/svg/monochrome/x-twitter-white.svg"
+  x_logo_dark: "https://raw.githubusercontent.com/appifyhub/agent-landing/refs/heads/main/graphics/svg/monochrome/x-twitter-black.svg"

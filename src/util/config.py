@@ -19,6 +19,7 @@ class ConfiguredProduct:
     url: str
 
 
+# don't forget to cover in test_config.py
 class Config(metaclass = Singleton):
 
     DEV_API_KEY = "0000-1234-5678-0000"  # needed for local dev mode
@@ -67,6 +68,9 @@ class Config(metaclass = Singleton):
     usage_maintenance_fee_credits: float
     products_config_path: str
     products: dict[str, ConfiguredProduct]
+    logos_config_path: str
+    logos: dict[str, str]
+    font_path: str
 
     platform_open_ai_key: SecretStr
     platform_anthropic_key: SecretStr
@@ -165,6 +169,8 @@ class Config(metaclass = Singleton):
         def_version: str = "dev",
         def_usage_maintenance_fee_credits: float = 0.0,
         def_products_config_path: str = "config/products.yaml",
+        def_logos_config_path: str = "config/logos.yaml",
+        def_font_path: str = "src/assets/fonts/Heebo-Variable.ttf",
         def_platform_open_ai_key: SecretStr = SecretStr("invalid"),
         def_platform_anthropic_key: SecretStr = SecretStr("invalid"),
         def_platform_google_ai_key: SecretStr = SecretStr("invalid"),
@@ -237,6 +243,9 @@ class Config(metaclass = Singleton):
         self.usage_maintenance_fee_credits = float(self.__env("USAGE_MAINTENANCE_FEE_CREDITS", lambda: str(def_usage_maintenance_fee_credits)))
         self.products_config_path = self.__env("PRODUCTS_CONFIG_PATH", lambda: def_products_config_path)
         self.products = self.__load_products()
+        self.logos_config_path = self.__env("LOGOS_CONFIG_PATH", lambda: def_logos_config_path)
+        self.logos = self.__load_logos()
+        self.font_path = self.__env("FONT_PATH", lambda: def_font_path)
 
         self.__set_up_db(def_db_user, def_db_pass, def_db_host, def_db_name)
         self.api_key = self.__senv("API_KEY", lambda: def_api_key)
@@ -291,6 +300,15 @@ class Config(metaclass = Singleton):
             }
         except Exception as e:
             logging.error(f"Failed to parse products config from '{self.products_config_path}': {e}")
+            return {}
+
+    def __load_logos(self) -> dict[str, str]:
+        with open(self.logos_config_path) as f:
+            data: dict[str, any] = yaml.safe_load(f)
+        try:
+            return {k: v for k, v in data["logos"].items()}
+        except Exception as e:
+            logging.error(f"Failed to parse logos config from '{self.logos_config_path}': {e}")
             return {}
 
 

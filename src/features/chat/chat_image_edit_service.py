@@ -104,7 +104,6 @@ class ChatImageEditService:
                 media_mode = invoker_chat.media_mode,
                 chat_id = external_id,
                 photo_url = image_url,
-                caption = "📸",
                 thumbnail = image_url,
             )
             log.t("Image edited and sent successfully")

@@ -84,10 +84,12 @@ if TYPE_CHECKING:
     from features.images.simple_image_generator import SimpleImageGenerator
     from features.images.smart_image_generator import SmartImageGenerator
     from features.integrations.platform_bot_sdk import PlatformBotSDK
+    from features.social_cards.social_card_orchestrator import SocialCardOrchestrator
     from features.sponsorships.sponsorship_service import SponsorshipService
     from features.support.user_support_service import UserSupportService
     from features.web_browsing.ai_web_search import AIWebSearch
     from features.web_browsing.html_content_cleaner import HTMLContentCleaner
+    from features.web_browsing.photo_downloader import PhotoDownloader
     from features.web_browsing.twitter_status_fetcher import TwitterStatusFetcher
     from features.web_browsing.url_shortener import UrlShortener
     from features.web_browsing.web_fetcher import WebFetcher
@@ -813,6 +815,16 @@ class DI:
     ) -> "TwitterStatusFetcher":
         from features.web_browsing.twitter_status_fetcher import TwitterStatusFetcher
         return TwitterStatusFetcher(tweet_id, x_api_tool, vision_tool, self)
+
+    # noinspection PyMethodMayBeStatic
+    def photo_downloader(self, bearer_token: str | None = None) -> "PhotoDownloader":
+        from features.web_browsing.photo_downloader import PhotoDownloader
+        return PhotoDownloader(bearer_token = bearer_token)
+
+    # noinspection PyMethodMayBeStatic
+    def social_card_orchestrator(self, x_api_tool: ConfiguredTool) -> "SocialCardOrchestrator":
+        from features.social_cards.social_card_orchestrator import SocialCardOrchestrator
+        return SocialCardOrchestrator(x_api_tool, self)
 
     def url_shortener(
         self,
