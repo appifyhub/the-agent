@@ -1,6 +1,8 @@
+import json
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from time import sleep
-from typing import Any, Dict
+from typing import Any
 
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from di.di import DI
@@ -14,8 +16,33 @@ from util.error_codes import EXTERNAL_EMPTY_RESPONSE
 from util.errors import ExternalServiceError
 
 CACHE_PREFIX = "twitter-status-fetcher"
-CACHE_TTL = timedelta(weeks = 52)
+CACHE_PREFIX_STRUCTURED = "twitter-status-fetcher-json"
+CACHE_TTL = timedelta(weeks = 1)
 RATE_LIMIT_DELAY_S = 2
+
+
+@dataclass
+class TweetMediaItem:
+    url: str | None
+    preview_url: str | None
+    media_type: str  # "photo", "animated_gif", "video"
+
+
+@dataclass
+class TweetUserData:
+    name: str | None
+    handle: str
+    bio: str | None
+    profile_image_url: str | None
+
+
+@dataclass
+class TweetData:
+    user: TweetUserData
+    text: str
+    language: str | None
+    created_at: str | None
+    media: list[TweetMediaItem] = field(default_factory = list)
 
 
 class TwitterStatusFetcher:
@@ -43,12 +70,36 @@ class TwitterStatusFetcher:
         self.__di = di
 
     def execute(self) -> str:
-        log.t(f"Fetching content for tweet ID: {self.__tweet_id}")
+        return self.as_text()
 
-        cache_key = self.__di.tools_cache_crud.create_key(CACHE_PREFIX, self.__tweet_id)
-        cached_content = self.__get_cached_content(cache_key)
-        if cached_content:
-            return cached_content
+    def as_text(self) -> str:
+        log.t(f"Fetching text content for tweet ID: {self.__tweet_id}")
+        text_cache_key = self.__di.tools_cache_crud.create_key(CACHE_PREFIX, self.__tweet_id)
+        cached = self.__get_cached_string(text_cache_key)
+        if cached:
+            return cached
+        raw = self.__fetch_raw()
+        resolved = self.__resolve_content(raw)
+        self.__di.tools_cache_crud.save(
+            ToolsCacheSave(
+                key = text_cache_key,
+                value = resolved,
+                expires_at = datetime.now() + CACHE_TTL,
+            ),
+        )
+        log.t(f"Text cache updated for key '{text_cache_key}'")
+        return resolved
+
+    def as_structured(self) -> TweetData:
+        log.t(f"Fetching structured data for tweet ID: {self.__tweet_id}")
+        raw = self.__fetch_raw()
+        return self.__parse_structured(raw)
+
+    def __fetch_raw(self) -> dict[str, Any]:
+        raw_cache_key = self.__di.tools_cache_crud.create_key(CACHE_PREFIX_STRUCTURED, self.__tweet_id)
+        cached_json = self.__get_cached_string(raw_cache_key)
+        if cached_json:
+            return json.loads(cached_json)
 
         api_url = f"https://api.x.com/2/tweets/{self.__tweet_id}"
         headers = {
@@ -56,9 +107,9 @@ class TwitterStatusFetcher:
         }
         params = {
             "expansions": "author_id,attachments.media_keys",
-            "user.fields": "name,username,description",
-            "tweet.fields": "lang,text",
-            "media.fields": "url,type",
+            "user.fields": "name,username,description,profile_image_url",
+            "tweet.fields": "lang,text,created_at,note_tweet",
+            "media.fields": "url,type,preview_image_url",
         }
 
         sleep(RATE_LIMIT_DELAY_S)
@@ -66,20 +117,18 @@ class TwitterStatusFetcher:
         response.raise_for_status()
         response_json = response.json() or {}
 
-        resolved_content = self.__resolve_content(response_json)
         self.__di.tools_cache_crud.save(
             ToolsCacheSave(
-                key = cache_key,
-                value = resolved_content,
+                key = raw_cache_key,
+                value = json.dumps(response_json),
                 expires_at = datetime.now() + CACHE_TTL,
             ),
         )
-        log.t(f"Cache updated for key '{cache_key}'")
+        log.t(f"Raw cache updated for key '{raw_cache_key}'")
+        return response_json
 
-        return resolved_content
-
-    def __get_cached_content(self, cache_key: str) -> str | None:
-        log.t(f"Fetching cached content for key: '{cache_key}'")
+    def __get_cached_string(self, cache_key: str) -> str | None:
+        log.t(f"Checking cache for key: '{cache_key}'")
         cache_entry_db = self.__di.tools_cache_crud.get(cache_key)
         if cache_entry_db:
             cache_entry = ToolsCache.model_validate(cache_entry_db)
@@ -90,13 +139,50 @@ class TwitterStatusFetcher:
         log.t(f"Cache miss for key '{cache_key}'")
         return None
 
-    def __resolve_content(self, response: Dict[str, Any]) -> str:
+    def __parse_structured(self, response: dict[str, Any]) -> TweetData:
+        post_data = response.get("data") or {}
+        includes = response.get("includes") or {}
+
+        users = includes.get("users") or []
+        user_raw = users[0] if users else {}
+
+        user = TweetUserData(
+            name = user_raw.get("name") or None,
+            handle = user_raw.get("username") or "unknown",
+            bio = user_raw.get("description") or None,
+            profile_image_url = user_raw.get("profile_image_url") or None,
+        )
+
+        media_items: list[TweetMediaItem] = []
+        for m in includes.get("media") or []:
+            media_type = m.get("type") or "photo"
+            media_items.append(
+                TweetMediaItem(
+                    url = m.get("url") or None,
+                    preview_url = m.get("preview_image_url") or None,
+                    media_type = media_type,
+                ),
+            )
+
+        note_tweet = post_data.get("note_tweet") or {}
+        text = note_tweet.get("text") or post_data.get("text") or "<No text posted>"
+
+        return TweetData(
+            user = user,
+            text = text,
+            language = post_data.get("lang") or None,
+            created_at = post_data.get("created_at") or None,
+            media = media_items,
+        )
+
+    def __resolve_content(self, response: dict[str, Any]) -> str:
         try:
             post_data = response.get("data") or {}
             includes = response.get("includes") or {}
 
             post_language = post_data.get("lang") or "<No language given>"
-            post_text = post_data.get("text") or "<No text posted>"
+            note_tweet = post_data.get("note_tweet") or {}
+            post_text = note_tweet.get("text") or post_data.get("text") or "<No text posted>"
 
             users = includes.get("users") or []
             user = users[0] if users else {}
@@ -121,7 +207,7 @@ class TwitterStatusFetcher:
         except Exception as e:
             raise ExternalServiceError("Error formatting tweet content", EXTERNAL_EMPTY_RESPONSE) from e
 
-    def __resolve_photo_contents(self, includes: Dict[str, Any], additional_context: str | None) -> list[str]:
+    def __resolve_photo_contents(self, includes: dict[str, Any], additional_context: str | None) -> list[str]:
         log.t(f"Resolving photo contents for tweet {self.__tweet_id}")
         media_list = includes.get("media") or []
         photo_descriptions: list[str] = []
@@ -131,9 +217,7 @@ class TwitterStatusFetcher:
                 media_type = media.get("type") or None
                 if url and media_type == "photo":
                     extension = url.lower().split(".")[-1]
-                    mime_type = (
-                        KNOWN_IMAGE_FORMATS.get(extension) if extension else KNOWN_IMAGE_FORMATS.get("png")
-                    )
+                    mime_type = KNOWN_IMAGE_FORMATS.get(extension) if extension else KNOWN_IMAGE_FORMATS.get("png")
                     analyzer = self.__di.computer_vision_analyzer(
                         job_id = f"tweet-{self.__tweet_id}",
                         image_mime_type = str(mime_type),

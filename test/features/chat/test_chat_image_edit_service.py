@@ -135,7 +135,6 @@ class ChatImageEditServiceTest(unittest.TestCase):
             media_mode = ChatConfigDB.MediaMode.all,
             chat_id = "test_chat_id",
             photo_url = "http://test.com/edited_image.png",
-            caption = "📸",
             thumbnail = "http://test.com/edited_image.png",
         )
 
