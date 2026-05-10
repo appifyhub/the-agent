@@ -70,7 +70,7 @@ class Config(metaclass = Singleton):
     products: dict[str, ConfiguredProduct]
     logos_config_path: str
     logos: dict[str, str]
-    font_path: str
+    fonts_dir: str
 
     platform_open_ai_key: SecretStr
     platform_anthropic_key: SecretStr
@@ -170,7 +170,7 @@ class Config(metaclass = Singleton):
         def_usage_maintenance_fee_credits: float = 0.0,
         def_products_config_path: str = "config/products.yaml",
         def_logos_config_path: str = "config/logos.yaml",
-        def_font_path: str = "src/assets/fonts/Heebo-Variable.ttf",
+        def_fonts_dir: str = "src/assets/fonts",
         def_platform_open_ai_key: SecretStr = SecretStr("invalid"),
         def_platform_anthropic_key: SecretStr = SecretStr("invalid"),
         def_platform_google_ai_key: SecretStr = SecretStr("invalid"),
@@ -245,7 +245,7 @@ class Config(metaclass = Singleton):
         self.products = self.__load_products()
         self.logos_config_path = self.__env("LOGOS_CONFIG_PATH", lambda: def_logos_config_path)
         self.logos = self.__load_logos()
-        self.font_path = self.__env("FONT_PATH", lambda: def_font_path)
+        self.fonts_dir = self.__env("FONTS_DIR", lambda: def_fonts_dir)
 
         self.__set_up_db(def_db_user, def_db_pass, def_db_host, def_db_name)
         self.api_key = self.__senv("API_KEY", lambda: def_api_key)

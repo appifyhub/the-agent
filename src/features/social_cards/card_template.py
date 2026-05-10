@@ -33,13 +33,49 @@ from features.social_cards.theme import ThemeColors
 from features.web_browsing.twitter_status_fetcher import TweetData
 from util.config import config
 
-_FONT_PATH = Path(config.font_path)
+_FONT_PATH = Path(config.fonts_dir) / "Heebo-Variable.ttf"
 _FONT_NAME = "Heebo"
+_EMOJI_FONT_NAME = "Noto Color Emoji"
 
 _FONT_B64: str | None = None
 _LOGO_CACHE: dict[str, bytes] = {}
 
 _SPECIAL_TOKEN_RE = re.compile(r"(https?://\S+|www\.\S+|@\w+|#\w+|\$[A-Za-z]+)")
+
+_EMOJI_RE = re.compile(
+    "(?:"
+    "[\U0001F1E6-\U0001F1FF]"      # regional indicators (flags)
+    "|[\U0001F300-\U0001F5FF]"      # misc symbols & pictographs
+    "|[\U0001F600-\U0001F64F]"      # emoticons
+    "|[\U0001F680-\U0001F6FF]"      # transport & map
+    "|[\U0001F700-\U0001F77F]"      # alchemical
+    "|[\U0001F780-\U0001F7FF]"      # geometric extended
+    "|[\U0001F800-\U0001F8FF]"      # supplemental arrows-C
+    "|[\U0001F900-\U0001F9FF]"      # supplemental symbols & pictographs
+    "|[\U0001FA00-\U0001FAFF]"      # symbols & pictographs ext-A
+    "|[☀-➿]"              # misc symbols & dingbats
+    "|[⌀-⏿]"              # misc technical
+    "|[⬀-⯿]"              # misc symbols & arrows
+    ")"
+    "[️‍\U0001F3FB-\U0001F3FF]*"  # variation selector, ZWJ, skin tones
+    "(?:"
+    "(?:"
+    "[\U0001F1E6-\U0001F1FF]"
+    "|[\U0001F300-\U0001F5FF]"
+    "|[\U0001F600-\U0001F64F]"
+    "|[\U0001F680-\U0001F6FF]"
+    "|[\U0001F700-\U0001F77F]"
+    "|[\U0001F780-\U0001F7FF]"
+    "|[\U0001F800-\U0001F8FF]"
+    "|[\U0001F900-\U0001F9FF]"
+    "|[\U0001FA00-\U0001FAFF]"
+    "|[☀-➿]"
+    "|[⌀-⏿]"
+    "|[⬀-⯿]"
+    ")"
+    "[️‍\U0001F3FB-\U0001F3FF]*"
+    ")*",
+)
 
 
 def _font_b64() -> str:
@@ -121,10 +157,23 @@ def _pillow_font(size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.truetype(str(_FONT_PATH), size)
 
 
+def _emoji_pillow_font(size: int) -> ImageFont.FreeTypeFont | None:
+    for p in Path(config.fonts_dir).glob("*.ttf"):
+        if "emoji" in p.name.lower() or "colr" in p.name.lower():
+            return ImageFont.truetype(str(p), size)
+    return None
+
+
 def _text_width(text: str, size: int) -> int:
     font = _pillow_font(size)
-    bbox = font.getbbox(text)
-    return bbox[2] - bbox[0]
+    return round(font.getlength(text))
+
+
+def _emoji_text_width(text: str, size: int) -> int:
+    emoji_font = _emoji_pillow_font(size)
+    if emoji_font is None:
+        return _text_width(text, size)
+    return round(emoji_font.getlength(text))
 
 
 def _word_wrap(text: str, max_width: int, font_size: int) -> list[str]:
@@ -148,22 +197,66 @@ def _word_wrap(text: str, max_width: int, font_size: int) -> list[str]:
     return lines or [""]
 
 
-def _line_tspans(line: str, body_x: int, dy: int, normal_fill: str, accent: str) -> str:
+def _emoji_split(text: str) -> list[tuple[str, bool]]:
+    out: list[tuple[str, bool]] = []
+    pos = 0
+    for match in _EMOJI_RE.finditer(text):
+        s, e = match.span()
+        if s > pos:
+            out.append((text[pos:s], False))
+        out.append((text[s:e], True))
+        pos = e
+    if pos < len(text):
+        out.append((text[pos:], False))
+    return out or [(text, False)]
+
+
+def _segment_width(text: str, font_size: int, is_emoji: bool) -> int:
+    if is_emoji:
+        return _emoji_text_width(text, font_size)
+    return _text_width(text, font_size)
+
+
+def _render_text_segments(
+    segments: list[tuple[str, str, str, bool]],
+    x: int,
+    y: int,
+    font_size: int,
+    fill_default: str,
+    weight: int = 400,
+) -> tuple[list[str], int]:
+    """Render (text, fill, decoration, is_emoji) tuples as separate <text> elements at computed x.
+    Avoids the usvg panic caused by font-family switches inside a single <text> with flag emoji.
+    Bold is achieved via stroke since resvg's variable-font wght axis is inert below size 24."""
+    out = []
+    cur_x = x
+    for text, fill, decoration, is_emoji in segments:
+        family = _EMOJI_FONT_NAME if is_emoji else _FONT_NAME
+        applied_fill = fill or fill_default
+        bold_attrs = ""
+        if weight == 700 and not is_emoji:
+            bold_attrs = f' stroke="{applied_fill}" stroke-width="0.7" paint-order="stroke"'
+        out.append(
+            f'<text x="{cur_x}" y="{y}" font-family="{family}" font-size="{font_size}" '
+            f'fill="{applied_fill}"{decoration}{bold_attrs} xml:space="preserve">{_escape(text)}</text>',
+        )
+        cur_x += _segment_width(text, font_size, is_emoji)
+    return out, cur_x
+
+
+def _line_to_segments(line: str, normal_fill: str, accent: str) -> list[tuple[str, str, str, bool]]:
+    segments: list[tuple[str, str, str, bool]] = []
     parts = _SPECIAL_TOKEN_RE.split(line)
-    spans = []
-    is_first = True
     for i, part in enumerate(parts):
         if not part:
             continue
         is_special = i % 2 == 1
         fill = accent if is_special else normal_fill
-        opacity = ' fill-opacity="0.8"' if is_special else ""
-        pos = f' x="{body_x}" dy="{dy}"' if is_first else ""
-        spans.append(f'<tspan{pos} fill="{fill}"{opacity}>{_escape(part)}</tspan>')
-        is_first = False
-    if not spans:
-        return f'<tspan x="{body_x}" dy="{dy}"> </tspan>'
-    return "".join(spans)
+        decoration = ' text-decoration="underline"' if is_special else ""
+        for sub_text, is_emoji in _emoji_split(part):
+            if sub_text:
+                segments.append((sub_text, fill, decoration, is_emoji))
+    return segments
 
 
 def _format_datetime(created_at: str | None) -> str:
@@ -282,17 +375,24 @@ def build_svg(
     _visual_block_h = FONT_SIZE_NAME + _name_date_span
     name_y = y + (AVATAR_SIZE + _visual_block_h) // 2 - _name_date_span
     date_y = name_y + _name_date_span
+
+    def _name_segments(text: str) -> list[tuple[str, str, str, bool]]:
+        return [(sub, theme.text_color, "", is_emoji) for sub, is_emoji in _emoji_split(text) if sub]
+
     if tweet.user.name:
-        name_spans = (
-            f'<tspan font-weight="700">{_escape(tweet.user.name)}</tspan>'
-            f'<tspan font-weight="400"> (@{_escape(tweet.user.handle)})</tspan>'
+        name_elems, name_end_x = _render_text_segments(
+            _name_segments(tweet.user.name), name_x, name_y, FONT_SIZE_NAME, theme.text_color, weight = 700,
         )
+        content.extend(name_elems)
+        handle_elems, _ = _render_text_segments(
+            _name_segments(f" (@{tweet.user.handle})"), name_end_x, name_y, FONT_SIZE_NAME, theme.text_color, weight = 400,
+        )
+        content.extend(handle_elems)
     else:
-        name_spans = f'<tspan font-weight="700">@{_escape(tweet.user.handle)}</tspan>'
-    content.append(
-        f'<text x="{name_x}" y="{name_y}" font-family="{_FONT_NAME}" '
-        f'font-size="{FONT_SIZE_NAME}" fill="{theme.text_color}">{name_spans}</text>',
-    )
+        handle_elems, _ = _render_text_segments(
+            _name_segments(f"@{tweet.user.handle}"), name_x, name_y, FONT_SIZE_NAME, theme.text_color, weight = 700,
+        )
+        content.extend(handle_elems)
     dt_str = _format_datetime(tweet.created_at)
     if dt_str:
         content.append(
@@ -322,32 +422,90 @@ def build_svg(
     # Tweet body with colored tokens
     lines = _word_wrap(tweet.text, inner_w, FONT_SIZE_BODY)
     if lines:
-        tspans = "".join(
-            _line_tspans(ln, body_x, 0 if i == 0 else LINE_HEIGHT_BODY, theme.text_color, accent) for i, ln in enumerate(lines)
-        )
-        content.append(
-            f'<text x="{body_x}" y="{y + FONT_SIZE_BODY}" font-family="{_FONT_NAME}" '
-            f'font-size="{FONT_SIZE_BODY}" xml:space="preserve">'
-            f"{tspans}</text>",
-        )
+        for i, ln in enumerate(lines):
+            line_y = y + FONT_SIZE_BODY + i * LINE_HEIGHT_BODY
+            segments = _line_to_segments(ln, theme.text_color, accent)
+            if not segments:
+                continue
+            line_elems, _ = _render_text_segments(segments, body_x, line_y, FONT_SIZE_BODY, theme.text_color)
+            content.extend(line_elems)
         y += len(lines) * LINE_HEIGHT_BODY + CARD_SECTION_GAP
 
-    # Photos — sorted portrait → square → landscape, natural height, single column
+    # Photos — sorted portrait → square → landscape
     if media_bytes:
         sorted_media = sorted(media_bytes, key = _photo_sort_key)
         total = len(sorted_media)
-        for idx, photo_data in enumerate(sorted_media):
-            is_first = idx == 0
-            is_last = idx == total - 1
-            ph = _photo_natural_height(photo_data, inner_w)
-            tl = tr = PHOTO_CORNER_RADIUS if is_first else 2
-            bl = br = PHOTO_CORNER_RADIUS if is_last else 2
-            cell_id = f"photo-{idx}"
+        keys = [_photo_sort_key(d) for d in sorted_media]
+        n_portrait = keys.count(0)
+        cell = 0  # global cell index for unique clip-path IDs
+
+        def _add_cell(photo_data: bytes, cx: int, cy: int, w: int, h: int, tl: int, tr: int, br: int, bl: int) -> None:
+            nonlocal cell
             b64 = _b64_image(photo_data, _image_mime(photo_data))
-            cell_clip, cell_img = _photo_cell_parts(cell_id, body_x, y, inner_w, ph, b64, tl, tr, br, bl)
-            defs.append(cell_clip)
-            content.append(cell_img)
-            y += ph + (PHOTO_GAP if not is_last else 0)
+            clip, img = _photo_cell_parts(f"photo-{cell}", cx, cy, w, h, b64, tl, tr, br, bl)
+            defs.append(clip)
+            content.append(img)
+            cell += 1
+
+        R = PHOTO_CORNER_RADIUS
+
+        if total == 2 and all(k <= 1 for k in keys):
+            # 2 portrait/square → side by side
+            col_w = (inner_w - PHOTO_GAP) // 2
+            ph = max(_photo_natural_height(sorted_media[0], col_w), _photo_natural_height(sorted_media[1], col_w))
+            _add_cell(sorted_media[0], body_x, y, col_w, ph, R, 2, 2, R)
+            _add_cell(sorted_media[1], body_x + col_w + PHOTO_GAP, y, col_w, ph, 2, R, R, 2)
+            y += ph
+
+        elif total == 3 and n_portrait == 3:
+            # 3 portraits → 3 columns
+            col_w = (inner_w - 2 * PHOTO_GAP) // 3
+            ph = max(_photo_natural_height(d, col_w) for d in sorted_media)
+            for i, d in enumerate(sorted_media):
+                x_off = body_x + i * (col_w + PHOTO_GAP)
+                tl = R if i == 0 else 2
+                bl = R if i == 0 else 2
+                tr = R if i == 2 else 2
+                br = R if i == 2 else 2
+                _add_cell(d, x_off, y, col_w, ph, tl, tr, br, bl)
+            y += ph
+
+        elif total == 3 and n_portrait == 2 and keys.count(1) == 1:
+            # 2 portraits + 1 square → portraits side by side on top, square full-width below
+            portraits = [d for d, k in zip(sorted_media, keys) if k == 0]
+            square = next(d for d, k in zip(sorted_media, keys) if k == 1)
+            col_w = (inner_w - PHOTO_GAP) // 2
+            ph_top = max(_photo_natural_height(portraits[0], col_w), _photo_natural_height(portraits[1], col_w))
+            _add_cell(portraits[0], body_x, y, col_w, ph_top, R, 2, 2, R)
+            _add_cell(portraits[1], body_x + col_w + PHOTO_GAP, y, col_w, ph_top, 2, R, 2, 2)
+            y += ph_top + PHOTO_GAP
+            ph_bot = _photo_natural_height(square, inner_w)
+            _add_cell(square, body_x, y, inner_w, ph_bot, 2, 2, R, R)
+            y += ph_bot
+
+        elif total == 4 and n_portrait == 4:
+            # 4 portraits → 2×2 grid
+            col_w = (inner_w - PHOTO_GAP) // 2
+            ph_top = max(_photo_natural_height(sorted_media[0], col_w), _photo_natural_height(sorted_media[1], col_w))
+            _add_cell(sorted_media[0], body_x, y, col_w, ph_top, R, 2, 2, R)
+            _add_cell(sorted_media[1], body_x + col_w + PHOTO_GAP, y, col_w, ph_top, 2, R, 2, 2)
+            y += ph_top + PHOTO_GAP
+            ph_bot = max(_photo_natural_height(sorted_media[2], col_w), _photo_natural_height(sorted_media[3], col_w))
+            _add_cell(sorted_media[2], body_x, y, col_w, ph_bot, 2, 2, R, R)
+            _add_cell(sorted_media[3], body_x + col_w + PHOTO_GAP, y, col_w, ph_bot, 2, R, R, 2)
+            y += ph_bot
+
+        else:
+            # stacked vertically
+            for idx, photo_data in enumerate(sorted_media):
+                is_first = idx == 0
+                is_last = idx == total - 1
+                ph = _photo_natural_height(photo_data, inner_w)
+                tl = tr = R if is_first else 2
+                bl = br = R if is_last else 2
+                _add_cell(photo_data, body_x, y, inner_w, ph, tl, tr, br, bl)
+                y += ph + (PHOTO_GAP if not is_last else 0)
+
         y += CARD_SECTION_GAP
 
     # Footer — align icon center to text cap-height center
