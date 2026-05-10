@@ -487,12 +487,12 @@ def build_svg(
             # 4 portraits → 2×2 grid
             col_w = (inner_w - PHOTO_GAP) // 2
             ph_top = max(_photo_natural_height(sorted_media[0], col_w), _photo_natural_height(sorted_media[1], col_w))
-            _add_cell(sorted_media[0], body_x, y, col_w, ph_top, R, 2, 2, R)
+            _add_cell(sorted_media[0], body_x, y, col_w, ph_top, R, 2, 2, 2)
             _add_cell(sorted_media[1], body_x + col_w + PHOTO_GAP, y, col_w, ph_top, 2, R, 2, 2)
             y += ph_top + PHOTO_GAP
             ph_bot = max(_photo_natural_height(sorted_media[2], col_w), _photo_natural_height(sorted_media[3], col_w))
-            _add_cell(sorted_media[2], body_x, y, col_w, ph_bot, 2, 2, R, R)
-            _add_cell(sorted_media[3], body_x + col_w + PHOTO_GAP, y, col_w, ph_bot, 2, R, R, 2)
+            _add_cell(sorted_media[2], body_x, y, col_w, ph_bot, 2, 2, 2, R)
+            _add_cell(sorted_media[3], body_x + col_w + PHOTO_GAP, y, col_w, ph_bot, 2, 2, R, 2)
             y += ph_bot
 
         else:
