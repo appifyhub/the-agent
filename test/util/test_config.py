@@ -69,7 +69,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.usage_maintenance_fee_credits, 0.0)
         self.assertEqual(config.products_config_path, "config/products.yaml")
         self.assertEqual(config.logos_config_path, "config/logos.yaml")
-        self.assertEqual(config.font_path, "src/assets/fonts/Heebo-Variable.ttf")
+        self.assertEqual(config.fonts_dir, "src/assets/fonts")
 
         self.assertEqual(config.db_url.get_secret_value(), "postgresql://root:root@localhost:5432/agent")
         self.assertTrue(config.api_key.get_secret_value())  # Check if API key is generated
@@ -137,7 +137,7 @@ class ConfigTest(unittest.TestCase):
         os.environ["URL_SHORTENER_BASE_URL"] = "https://custom.to.appifyhub.com"
         os.environ["VERSION"] = "custom"
         os.environ["USAGE_MAINTENANCE_FEE_CREDITS"] = "0.5"
-        os.environ["FONT_PATH"] = "/custom/path/font.ttf"
+        os.environ["FONTS_DIR"] = "/custom/path/fonts"
 
         os.environ["POSTGRES_USER"] = "admin"
         os.environ["POSTGRES_PASS"] = "admin123"
@@ -210,7 +210,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.url_shortener_base_url, "https://custom.to.appifyhub.com")
         self.assertEqual(config.version, "custom")
         self.assertEqual(config.usage_maintenance_fee_credits, 0.5)
-        self.assertEqual(config.font_path, "/custom/path/font.ttf")
+        self.assertEqual(config.fonts_dir, "/custom/path/fonts")
 
         self.assertEqual(config.db_url.get_secret_value(), "postgresql://admin:admin123@db.example.com:5432/test_db")
         self.assertEqual(config.api_key.get_secret_value(), "1111-2222-3333-4444")
