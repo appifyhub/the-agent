@@ -28,6 +28,7 @@ def pick_theme(
             gradient_end = BRAND_GRADIENT_END,
             text_color = "#ffffff",
         )
+    primary = _darken_unless_white(primary)
     secondary = _derive_gradient_end(primary)
     text_color = _contrast_text(primary)
     light, dark = (primary, secondary) if sum(primary) >= sum(secondary) else (secondary, primary)
@@ -91,6 +92,16 @@ def _most_saturated_from_palette(palette: list[int], count: int) -> tuple[int, i
             best_sat = s
             best_rgb = (r, g, b)
     return best_rgb
+
+
+def _darken_unless_white(rgb: tuple[int, int, int]) -> tuple[int, int, int]:
+    r, g, b = rgb
+    if r == 255 and g == 255 and b == 255:
+        return rgb
+    h, s, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+    new_v = max(0.0, v - 0.10)
+    nr, ng, nb = colorsys.hsv_to_rgb(h, s, new_v)
+    return (round(nr * 255), round(ng * 255), round(nb * 255))
 
 
 def _derive_gradient_end(rgb: tuple[int, int, int]) -> tuple[int, int, int]:
