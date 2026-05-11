@@ -476,7 +476,7 @@ def build_svg(
             square = next(d for d, k in zip(sorted_media, keys) if k == 1)
             col_w = (inner_w - PHOTO_GAP) // 2
             ph_top = max(_photo_natural_height(portraits[0], col_w), _photo_natural_height(portraits[1], col_w))
-            _add_cell(portraits[0], body_x, y, col_w, ph_top, R, 2, 2, R)
+            _add_cell(portraits[0], body_x, y, col_w, ph_top, R, 2, 2, 2)
             _add_cell(portraits[1], body_x + col_w + PHOTO_GAP, y, col_w, ph_top, 2, R, 2, 2)
             y += ph_top + PHOTO_GAP
             ph_bot = _photo_natural_height(square, inner_w)
