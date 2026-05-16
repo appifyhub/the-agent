@@ -69,9 +69,44 @@ class HTMLContentCleanerTest(unittest.TestCase):
         self.assertIn("### Header3", result)
         self.assertIn("Link", result)  # Links get removed by the Readability lib
 
+    def test_clean_up_preserves_image_urls(self):
+        html = (
+            "<html><body><p>Text before</p>"
+            '<img src="https://example.com/photo.png" alt="A photo"/>'
+            '<img src="https://example.com/logo.png"/>'
+            "<p>Text after</p></body></html>"
+        )
+        self.mock_cache_crud.get.return_value = None
+        cleaner = HTMLContentCleaner(html, self.mock_di)
+        result = cleaner.clean_up()
+        self.assertIn("![A photo](https://example.com/photo.png)", result)
+        self.assertIn("![image](https://example.com/logo.png)", result)
+
+    def test_clean_up_filters_noise_images(self):
+        html = (
+            "<html><body><p>Content</p>"
+            '<img src="https://example.com/real.jpg" alt="Real photo"/>'
+            '<img src="https://example.com/pixel.gif" width="1" height="1"/>'
+            '<img src="https://example.com/spacer.png"/>'
+            '<img src="data:image/gif;base64,R0lGODlh" alt="inline"/>'
+            '<img src="https://example.com/decorative.png" role="presentation"/>'
+            '<img src="https://example.com/tracking-beacon.png"/>'
+            "<p>End</p></body></html>"
+        )
+        self.mock_cache_crud.get.return_value = None
+        cleaner = HTMLContentCleaner(html, self.mock_di)
+        result = cleaner.clean_up()
+        self.assertIn("![Real photo](https://example.com/real.jpg)", result)
+        self.assertNotIn("pixel.gif", result)
+        self.assertNotIn("spacer", result)
+        self.assertNotIn("data:image", result)
+        self.assertNotIn("decorative", result)
+        self.assertNotIn("beacon", result)
+
     def test_remove_navigational_elements(self):
         html = "<nav>Navigation</nav><header>Header</header><menu>Menu</menu><div class=\"menu\">Menu div</div>"
-        content = HTMLContentCleaner._remove_menus(html)
+        # noinspection PyUnresolvedReferences
+        content = HTMLContentCleaner._HTMLContentCleaner__remove_menus(html)
         self.assertNotIn("Navigation", content)
         self.assertNotIn("Header", content)
         self.assertNotIn("Menu", content)

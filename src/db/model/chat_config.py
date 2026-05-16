@@ -120,7 +120,7 @@ class ChatConfigDB(BaseModel):
     title = Column(String, nullable = True)
     is_private = Column(Boolean, nullable = False)
     reply_chance_percent = Column(Integer, nullable = False)
-    release_notifications = Column(EnumSQL(ReleaseNotifications), nullable = False, default = ReleaseNotifications.all)
+    release_notifications = Column(EnumSQL(ReleaseNotifications), nullable = False, default = ReleaseNotifications.major)
     media_mode = Column(EnumSQL(MediaMode), nullable = False, default = MediaMode.photo)
     chat_type = Column(EnumSQL(ChatType), nullable = False)
 

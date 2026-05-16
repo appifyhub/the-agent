@@ -2,11 +2,10 @@ from enum import Enum
 
 from db.schema.chat_message_attachment import ChatMessageAttachment
 from di.di import DI
+from features.chat.chat_attachment_utils import resolve_all_attachments
 from features.external_tools.intelligence_presets import default_tool_for
 from features.images.image_editor import ImageEditor
 from util import log
-from util.error_codes import MISSING_IMAGE_ATTACHMENT
-from util.errors import ValidationError
 
 URLList = list[str | None]
 ErrorList = list[str | None]
@@ -27,16 +26,15 @@ class ChatImageEditService:
 
     def __init__(
         self,
-        attachment_ids: list[str],
+        attachment_ids: list[str] | None,
+        urls: list[str] | None,
         operation_guidance: str | None,
         aspect_ratio: str | None,
         output_size: str | None,
         di: DI,
     ):
-        if not attachment_ids:
-            raise ValidationError("No attachment IDs provided", MISSING_IMAGE_ATTACHMENT)
         self.__di = di
-        self.__attachments = self.__di.platform_bot_sdk().refresh_attachments_by_ids(attachment_ids)
+        self.__attachments = resolve_all_attachments(attachment_ids, urls, self.__di)
         self.__operation_guidance = operation_guidance
         self.__aspect_ratio = aspect_ratio
         self.__output_size = output_size

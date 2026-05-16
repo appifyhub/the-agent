@@ -66,6 +66,7 @@ if TYPE_CHECKING:
     from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
     from features.chat.telegram.telegram_data_resolver import TelegramDataResolver
     from features.chat.telegram.telegram_domain_mapper import TelegramDomainMapper
+    from features.chat.url_attachment_resolver import UrlAttachmentResolver
     from features.chat.whatsapp.sdk.whatsapp_bot_api import WhatsAppBotAPI
     from features.chat.whatsapp.sdk.whatsapp_bot_sdk import WhatsAppBotSDK
     from features.chat.whatsapp.whatsapp_data_resolver import WhatsAppDataResolver
@@ -898,13 +899,14 @@ class DI:
 
     def chat_image_edit_service(
         self,
-        attachment_ids: list[str],
-        operation_guidance: str | None,
+        attachment_ids: list[str] | None,
+        urls: list[str] | None = None,
+        operation_guidance: str | None = None,
         aspect_ratio: str | None = None,
         output_size: str | None = None,
     ) -> "ChatImageEditService":
         from features.chat.chat_image_edit_service import ChatImageEditService
-        return ChatImageEditService(attachment_ids, operation_guidance, aspect_ratio, output_size, self)
+        return ChatImageEditService(attachment_ids, urls, operation_guidance, aspect_ratio, output_size, self)
 
     def image_editor(
         self,
@@ -957,13 +959,18 @@ class DI:
             def_extension, audio_content,
         )
 
+    def url_attachment_resolver(self, url: str) -> "UrlAttachmentResolver":
+        from features.chat.url_attachment_resolver import UrlAttachmentResolver
+        return UrlAttachmentResolver(url, self)
+
     def chat_attachment_processor(
         self,
         additional_context: str | None,
-        attachment_ids: list[str],
+        attachment_ids: list[str] | None,
+        urls: list[str] | None,
     ) -> "ChatAttachmentProcessor":
         from features.chat.chat_attachment_processor import ChatAttachmentProcessor
-        return ChatAttachmentProcessor(additional_context, attachment_ids, self)
+        return ChatAttachmentProcessor(additional_context, attachment_ids, urls, self)
 
     def dev_announcements_service(
         self,

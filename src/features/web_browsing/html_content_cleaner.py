@@ -41,6 +41,9 @@ class HTMLContentCleaner:
             log.t(f"Cache expired for '{cache_key}'")
         log.t(f"Cache miss for '{cache_key}'")
 
+        # extract image URLs from raw HTML before readabilipy strips them
+        image_markdowns = self.__extract_images(self.raw_html)
+
         content_json = simple_json_from_html_string(self.raw_html)
         log.t(f"Processed HTML, received {len(content_json)} content items")
         # replace HTML markers with Markdown markers
@@ -52,13 +55,17 @@ class HTMLContentCleaner:
         self.plain_text = re.sub(r"<h6>(.*?)</h6>", r"\n###### \1\n", self.plain_text)
         self.plain_text = re.sub(r"<a\s+(?:[^>]*?\s+)?href=\"([^\"]*)\"[^>]*>(.*?)</a>", r"[\2](\1)", self.plain_text)
         # clean other tags
-        self.plain_text = self._remove_menus(self.plain_text)  # navigation components
+        self.plain_text = self.__remove_menus(self.plain_text)  # navigation components
         self.plain_text = re.sub(r"<li>(.*?)</li>", r"\n- \1\n", self.plain_text)  # list items
         self.plain_text = re.sub(r"<[ou]l>\s*</[ou]l>", "", self.plain_text)  # empty lists
         self.plain_text = re.sub(r"<[^>]+>", " ", self.plain_text)  # remove remaining tags
         # remove extra whitespace
         self.plain_text = re.sub(r"\n\s*\n+", "\n", self.plain_text)  # empty newlines
         self.plain_text = re.sub(r"[ \t]+", " ", self.plain_text).strip()  # horizontal spaces
+        # append image links extracted from raw HTML
+        if image_markdowns:
+            self.plain_text += "\n" + "\n".join(image_markdowns)
+        # finally cache the cleaned content for future use
         self.__di.tools_cache_crud.save(
             ToolsCacheSave(
                 key = cache_key,
@@ -70,7 +77,53 @@ class HTMLContentCleaner:
         return self.plain_text
 
     @staticmethod
-    def _remove_menus(html):
+    def __extract_images(html: str) -> list[str]:
+        results: list[str] = []
+        seen_base_urls: set[str] = set()
+        for match in re.finditer(r"<img\s+[^>]*?src=[\"']([^\"']+)[\"'][^>]*?>", html, re.IGNORECASE):
+            tag = match.group(0)
+            src = match.group(1)
+            if HTMLContentCleaner.__is_noise_image(tag, src):
+                continue
+            base_url = src.split("?")[0]
+            if base_url in seen_base_urls:
+                continue
+            seen_base_urls.add(base_url)
+            alt_match = re.search(r"alt=[\"']([^\"']*)[\"']", tag, re.IGNORECASE)
+            alt = alt_match.group(1) if alt_match and alt_match.group(1) else "image"
+            results.append(f"![{alt}]({src})")
+        return results
+
+    @staticmethod
+    def __is_noise_image(tag: str, src: str) -> bool:
+        # tracking pixels and tiny icons
+        width_match = re.search(r"width=[\"']?(\d+)", tag, re.IGNORECASE)
+        height_match = re.search(r"height=[\"']?(\d+)", tag, re.IGNORECASE)
+        if width_match and height_match:
+            w, h = int(width_match.group(1)), int(height_match.group(1))
+            if w <= 3 or h <= 3:
+                return True
+        # decorative images
+        if re.search(r"role=[\"']presentation[\"']", tag, re.IGNORECASE):
+            return True
+        # data URIs (inline base64 blobs)
+        if src.startswith("data:"):
+            return True
+        # analytics and tracking domains
+        noise_domains = [
+            "google-analytics.com", "googletagmanager.com", "facebook.com/tr",
+            "doubleclick.net", "adservice.google", "analytics.", "pixel.",
+            "bat.bing.com", "tr.snapchat.com", "ads.linkedin.com",
+        ]
+        src_lower = src.lower()
+        if any(d in src_lower for d in noise_domains):
+            return True
+        # common noise filename patterns
+        noise_patterns = ["spacer", "pixel", "tracking", "beacon", "blank.gif", "1x1"]
+        return any(p in src_lower for p in noise_patterns)
+
+    @staticmethod
+    def __remove_menus(html):
         patterns = [
             r"<nav\b[^>]*>.*?</nav>",
             r"<header\b[^>]*>.*?</header>",
