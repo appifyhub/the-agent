@@ -8,13 +8,13 @@ from db.schema.chat_message_attachment import ChatMessageAttachment
 from db.schema.tools_cache import ToolsCache, ToolsCacheSave
 from di.di import DI
 from features.audio.audio_transcriber import AudioTranscriber
+from features.chat.chat_attachment_utils import resolve_all_attachments
 from features.chat.supported_files import KNOWN_AUDIO_FORMATS, KNOWN_DOCS_FORMATS, KNOWN_IMAGE_FORMATS
 from features.documents.document_search import DocumentSearch
 from features.external_tools.intelligence_presets import default_tool_for
 from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
+from features.web_browsing.web_fetcher import DEFAULT_HEADERS
 from util import log
-from util.error_codes import ATTACHMENT_NOT_FOUND, MALFORMED_ATTACHMENT_ID, MISSING_ATTACHMENT_IDS
-from util.errors import NotFoundError, ValidationError
 from util.functions import digest_md5
 
 CACHE_PREFIX = "attachments-analyzer"
@@ -39,7 +39,8 @@ class ChatAttachmentProcessor:
     def __init__(
         self,
         additional_context: str | None,
-        attachment_ids: list[str],
+        attachment_ids: list[str] | None,
+        urls: list[str] | None,
         di: DI,
     ):
         self.__attachments = []
@@ -47,21 +48,11 @@ class ChatAttachmentProcessor:
         self.__errors = []
         self.__additional_context = additional_context
         self.__di = di
-        self.__validate(attachment_ids)
-
-    def __validate(self, attachment_ids: list[str]) -> None:
-        log.d(f"Validating {len(attachment_ids)} attachments in chat '{self.__di.invoker_chat_id}'")
-        if not attachment_ids:
-            raise ValidationError("Malformed LLM Input Error: No attachment IDs provided. You may retry only once!", MISSING_ATTACHMENT_IDS)  # noqa: E501
-        attachments: list[ChatMessageAttachment] = []
-        for attachment_id in attachment_ids:
-            if not attachment_id:
-                raise ValidationError("Malformed LLM Input Error: Attachment ID cannot be empty. You may retry only once!", MALFORMED_ATTACHMENT_ID)  # noqa: E501
-            attachment_db = self.__di.chat_message_attachment_crud.get(attachment_id)
-            if not attachment_db:
-                raise NotFoundError(f"Malformed LLM Input Error: Attachment '{attachment_id}' not found in DB. You may retry only once!", ATTACHMENT_NOT_FOUND)  # noqa: E501
-            attachments.append(ChatMessageAttachment.model_validate(attachment_db))
-        self.__attachments = self.__di.platform_bot_sdk().refresh_attachment_instances(attachments)
+        log.d(
+            f"Validating {len(attachment_ids or [])} attachment IDs "
+            f"and {len(urls or [])} URLs in chat '{self.__di.invoker_chat_id}'",
+        )
+        self.__attachments = resolve_all_attachments(attachment_ids, urls, self.__di)
 
     @property
     def __resolution_status(self) -> Result:
@@ -135,7 +126,7 @@ class ChatAttachmentProcessor:
             image_b64s: list[str] = []
             image_mime_types: list[str] = []
             for attachment in image_attachments:
-                contents = requests.get(str(attachment.last_url)).content
+                contents = requests.get(str(attachment.last_url), headers = DEFAULT_HEADERS).content
                 image_b64s.append(base64.b64encode(contents).decode("utf-8"))
                 image_mime_types.append(str(attachment.mime_type))
             configured_tool = self.__di.tool_choice_resolver.require_tool(
@@ -197,7 +188,7 @@ class ChatAttachmentProcessor:
         log.t(f"Resolving text content for attachment '{attachment.id}'")
 
         # fetching binary contents will also validate the URL
-        contents = requests.get(str(attachment.last_url)).content
+        contents = requests.get(str(attachment.last_url), headers = DEFAULT_HEADERS).content
 
         # handle audio
         if attachment.mime_type in KNOWN_AUDIO_FORMATS.values() or attachment.extension in KNOWN_AUDIO_FORMATS.keys():

@@ -3,6 +3,7 @@
 import functools
 import inspect
 import json
+import re
 from typing import Any, Callable
 
 from langchain_core.language_models import BaseChatModel, LanguageModelInput
@@ -39,40 +40,47 @@ KEYWORD_ATTACHMENT_IMAGE_EDIT = "image-edit"
 ATTACHMENT_OPERATIONS = [KEYWORD_ATTACHMENT_ANALYZE, KEYWORD_ATTACHMENT_IMAGE_EDIT]
 
 
-def process_attachments(
+def process_media(
     di: DI,
-    attachment_ids: str,
     operation: str = KEYWORD_ATTACHMENT_ANALYZE,
+    attachment_ids: str | None = None,
+    urls: str | None = None,
     context: str | None = None,
     aspect_ratio: str | None = None,
     size: str | None = None,
 ) -> str:
     """
-    Processes the contents of the given attachments. Allowed operations are:
+    Processes the contents of the given media sources (chat attachments and/or external URLs). Allowed operations are:
         - 'analyze' (default): Analyzes attachments and returns descriptions — images are analyzed using vision (multiple images can be provided and all will be described), audio is transcribed, documents are searched
         - 'image-edit': Generates a new image using the provided attachments as visual reference or inspiration — use this whenever the partner's images should influence the output (e.g. "use this logo", "generate a variant of this", "apply this style"). Multiple images can be provided for multi-reference generation. To process images individually (one output per image), call this function multiple times with a single image each time.
 
     Args:
-        attachment_ids: [mandatory] A comma-separated list of verbatim, unique 📎 attachment IDs that need to be processed (located in each message); include any dashes, underscores or other symbols; these IDs are not to be cleaned or truncated
         operation: [mandatory] The action to perform on the attachments
+        attachment_ids: [optional] A comma-separated list of verbatim, unique 📎 attachment IDs that need to be processed (located in each message); include any dashes, underscores or other symbols; these IDs are not to be cleaned or truncated
+        urls: [optional] A comma-separated list of external media URLs (starting with http:// or https://) to process; at least one of attachment_ids or urls must be provided
         context: [optional] Additional task context or guidance, e.g. the user's message/question/caption, if available
         aspect_ratio: [optional] The desired image's aspect ratio for image editing. Valid options: 1:1, 2:3, 3:2, 3:4, 4:3, 16:9, 9:16, match_input_image. If not explicitly requested, don't send
         size: [optional] The desired image size/resolution for image editing. Valid options: 1K, 2K, 4K. If not explicitly requested, don't send
     """
     try:
         operation = operation.lower().strip()
-        attachment_ids_list = attachment_ids.split(",")
+        attachment_ids_list = [id.strip() for id in attachment_ids.split(",") if id.strip()] if attachment_ids else []
+        raw_urls_list = [url.strip() for url in urls.split(",") if url.strip()] if urls else []
+
         if operation == KEYWORD_ATTACHMENT_ANALYZE:
             # Analyze the attachments and convert contents to text descriptions
-            analyzer = di.chat_attachment_processor(context, attachment_ids_list)
+            analyzer = di.chat_attachment_processor(context, attachment_ids_list, raw_urls_list or None)
             result = analyzer.execute()
             if result == ChatAttachmentProcessor.Result.failed:
                 raise ExternalServiceError("Failed to resolve attachments", EXTERNAL_EMPTY_RESPONSE)
             return json.dumps({"result": result.value, "attachments": analyzer.result})
         elif operation == KEYWORD_ATTACHMENT_IMAGE_EDIT:
-            log.d(f"LLM requested to process {len(attachment_ids_list)} images in aspect ratio {aspect_ratio}, size {size}")
+            log.d(
+                f"LLM requested to process {len(attachment_ids_list)} attachments "
+                f"and {len(raw_urls_list)} URLs in aspect ratio {aspect_ratio}, size {size}",
+            )
             # Generate images based on the provided context and attachments
-            result, details = di.chat_image_edit_service(attachment_ids_list, context, aspect_ratio, size).execute()
+            result, details = di.chat_image_edit_service(attachment_ids_list, raw_urls_list, context, aspect_ratio, size).execute()
             if result == ChatImageEditService.Result.failed:
                 raise ExternalServiceError("Failed to edit the images! Details: " + str(details), IMAGE_EDIT_FAILED)
             return __success(
@@ -80,7 +88,7 @@ def process_attachments(
                     "status": result.value,
                     "details": details,
                     "description": "Results were already delivered to the partner!",
-                    "next_step": "You may deliver any errors to the partner (but no links or attachments)",
+                    "next_step": "You may deliver any errors to the partner (but no links or 📎 attachment IDs)",
                 },
             )
         else:
@@ -96,7 +104,7 @@ def generate_image(
     size: str | None = None,
 ) -> str:
     """
-    Generates (draws) a new image from text only, with no reference images. Use this when creating something entirely new from a description. If the partner has provided image attachments that should influence the output (e.g. "use this logo", "based on this photo"), use process_attachments with 'image-edit' instead.
+    Generates (draws) a new image from text only, with no reference images. Use this when creating something entirely new from a description. If the partner has provided image attachments that should influence the output (e.g. "use this logo", "based on this photo"), use process_media with 'image-edit' instead.
 
     Args:
         prompt: [mandatory] The user's description or prompt for the generated image
@@ -122,19 +130,29 @@ def generate_image(
         return __error(e)
 
 
-def fetch_web_content(di: DI, url: str) -> str:
+def fetch_web_content(di: DI, url: str, offset: str | None = None) -> str:
     """
     Fetches the text content from the given web page URL, including Twitter / X posts.
+    For long pages, use the 'offset' parameter to paginate through the content.
 
     Args:
         url: [mandatory] A valid URL of the web page, starting with 'http://' or 'https://' provided in the text
+        offset: [optional] Character offset to start reading from (for paginating long content); returned in previous responses as 'next_offset'
     """
     try:
         fetcher = di.web_fetcher(url, auto_fetch_html = True)
         html = str(fetcher.html)
         text = di.html_content_cleaner(html).clean_up()
-        result = text[:TOOL_TRUNCATE_LENGTH] + "..." if len(text) > TOOL_TRUNCATE_LENGTH else text
-        return __success({"content": result})
+        start = int(offset) if offset else 0
+        chunk = text[start:start + TOOL_TRUNCATE_LENGTH]
+        has_more = start + TOOL_TRUNCATE_LENGTH < len(text)
+        response: dict[str, Any] = {"content": chunk}
+        if has_more:
+            response["next_offset"] = str(start + TOOL_TRUNCATE_LENGTH)
+            response["total_length"] = len(text)
+        if re.search(r"!\[.*?]\(https?://", text):
+            response["next_step"] = "Media URLs found on this page can be passed to other tools that accept URLs for further processing"
+        return __success(response)
     except Exception as e:
         return __error(e)
 
@@ -520,7 +538,7 @@ def __error(message: str | Exception) -> str:
 
 ALL_LLM_TOOLS: dict[str, Callable[..., str]] = {
     "fetch_web_content": fetch_web_content,
-    "process_attachments": process_attachments,
+    "process_media": process_media,
     "get_exchange_rate": get_exchange_rate,
     "set_up_currency_price_alert": set_up_currency_price_alert,
     "remove_currency_price_alerts": remove_currency_price_alerts,

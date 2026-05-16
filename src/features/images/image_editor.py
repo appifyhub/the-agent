@@ -15,6 +15,7 @@ from features.external_tools.external_tool import ToolType
 from features.external_tools.external_tool_provider_library import GOOGLE_AI, REPLICATE, XAI
 from features.images.image_api_utils import filter_replicate_params, map_to_model_parameters
 from features.images.image_size_utils import calculate_image_size_category
+from features.web_browsing.web_fetcher import DEFAULT_HEADERS
 from util import log
 from util.config import config
 from util.error_codes import EXTERNAL_EMPTY_RESPONSE, TOO_MANY_INPUT_IMAGES, UNEXPECTED_ERROR, UNSUPPORTED_PROVIDER
@@ -79,7 +80,7 @@ class ImageEditor:
             for url, mime_type in zip(self.__image_urls, self.__input_mime_types):
                 suffix = self.__get_suffix(url, mime_type)
                 temp_file = tempfile.NamedTemporaryFile(delete = False, suffix = suffix)
-                response = requests.get(url)
+                response = requests.get(url, headers = DEFAULT_HEADERS)
                 temp_file.write(response.content)
                 temp_file.flush()
                 temp_file.close()

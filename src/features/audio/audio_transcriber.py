@@ -17,6 +17,7 @@ from features.chat.supported_files import (
 from features.external_tools.configured_tool import ConfiguredTool
 from features.external_tools.external_tool import ToolType
 from features.integrations import prompt_resolvers
+from features.web_browsing.web_fetcher import DEFAULT_HEADERS
 from util import log
 from util.error_codes import LLM_UNEXPECTED_RESPONSE
 from util.errors import ExternalServiceError
@@ -57,7 +58,7 @@ class AudioTranscriber:
 
     def __validate_content(self, audio_url: str, audio_content: bytes | None):
         log.t(f"Fetching and validating audio from URL '{audio_url}'")
-        self.__audio_content = audio_content or requests.get(audio_url).content
+        self.__audio_content = audio_content or requests.get(audio_url, headers = DEFAULT_HEADERS).content
 
         if self.__extension not in SUPPORTED_AUDIO_FORMATS.keys():
             log.t(f"  Unsupported audio format: '.{self.__extension}'")

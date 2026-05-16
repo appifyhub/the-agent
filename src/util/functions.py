@@ -66,7 +66,10 @@ def digest_md5(content: str) -> str:
 def normalize_phone_number(phone: str | None) -> str | None:
     if phone is None:
         return None
-    return "".join(c for c in phone if c.isdigit())
+    digits = "".join(c for c in phone if c.isdigit())
+    if digits.startswith("00"):
+        digits = digits[2:]
+    return digits
 
 
 def normalize_username(username: str | None) -> str | None:
