@@ -14,6 +14,7 @@ from db.schema.tools_cache import ToolsCache
 from db.schema.user import User
 from features.chat.chat_attachment_processor import CACHE_TTL, ChatAttachmentProcessor
 from features.chat.telegram.sdk.telegram_bot_sdk import TelegramBotSDK
+from features.chat.url_attachment_resolver import UrlAttachmentResolver
 from features.integrations.platform_bot_sdk import PlatformBotSDK
 from util.config import config
 from util.errors import NotFoundError, ValidationError
@@ -93,9 +94,10 @@ class ChatAttachmentProcessorTest(unittest.TestCase):
         self.mock_cache_crud.create_key.return_value = "test_cache_key"
         self.mock_di.require_invoker_chat_type = MagicMock(return_value = ChatConfigDB.ChatType.telegram)
 
-        # Use a real SDK instance so the resolver under test returns real models
+        # Use real SDK/resolver instances so the code under test returns real models
         self.mock_di.telegram_bot_sdk = TelegramBotSDK(self.mock_di)
         self.mock_di.platform_bot_sdk = MagicMock(return_value = PlatformBotSDK(self.mock_di))
+        self.mock_di.url_attachment_resolver.side_effect = lambda url: UrlAttachmentResolver(url, self.mock_di)
 
     @requests_mock.Mocker()
     def test_execute_with_cache_hit(self, m: requests_mock.Mocker):
@@ -109,6 +111,7 @@ class ChatAttachmentProcessorTest(unittest.TestCase):
         resolver = ChatAttachmentProcessor(
             additional_context = "context",
             attachment_ids = ["1"],
+            urls = None,
             di = self.mock_di,
         )
         result = resolver.execute()
@@ -134,6 +137,7 @@ class ChatAttachmentProcessorTest(unittest.TestCase):
         resolver = ChatAttachmentProcessor(
             additional_context = "context",
             attachment_ids = ["1"],
+            urls = None,
             di = self.mock_di,
         )
         result = resolver.execute()
@@ -149,6 +153,7 @@ class ChatAttachmentProcessorTest(unittest.TestCase):
             ChatAttachmentProcessor(
                 additional_context = "context",
                 attachment_ids = [],
+                urls = None,
                 di = self.mock_di,
             )
         self.assertIn("No attachment IDs provided", str(context.exception))
@@ -158,6 +163,7 @@ class ChatAttachmentProcessorTest(unittest.TestCase):
             ChatAttachmentProcessor(
                 additional_context = "context",
                 attachment_ids = [""],
+                urls = None,
                 di = self.mock_di,
             )
         self.assertIn("Attachment ID cannot be empty", str(context.exception))
@@ -169,6 +175,7 @@ class ChatAttachmentProcessorTest(unittest.TestCase):
             ChatAttachmentProcessor(
                 additional_context = "context",
                 attachment_ids = ["nonexistent"],
+                urls = None,
                 di = self.mock_di,
             )
         self.assertIn("not found in DB", str(context.exception))
@@ -193,6 +200,7 @@ class ChatAttachmentProcessorTest(unittest.TestCase):
         resolver = ChatAttachmentProcessor(
             additional_context = "context",
             attachment_ids = ["2"],
+            urls = None,
             di = self.mock_di,
         )
         content = resolver.fetch_text_content(audio_attachment)
@@ -220,6 +228,7 @@ class ChatAttachmentProcessorTest(unittest.TestCase):
         resolver = ChatAttachmentProcessor(
             additional_context = "context",
             attachment_ids = ["4"],
+            urls = None,
             di = self.mock_di,
         )
         content = resolver.fetch_text_content(pdf_attachment)
@@ -243,7 +252,69 @@ class ChatAttachmentProcessorTest(unittest.TestCase):
         resolver = ChatAttachmentProcessor(
             additional_context = "context",
             attachment_ids = ["3"],
+            urls = None,
             di = self.mock_di,
         )
         content = resolver.fetch_text_content(unsupported_attachment)
         self.assertIsNone(content)
+
+    @requests_mock.Mocker()
+    def test_url_resolved_attachment_skips_db_lookup(self, m: requests_mock.Mocker):
+        virtual_url = "https://example.com/image.png"
+        m.head(virtual_url, exc = ConnectionError("timeout"))
+        m.get(virtual_url, content = b"image data", status_code = 200)
+        self.mock_cache_crud.get.return_value = self.cache_entry.model_dump()
+
+        mock_cv_instance = MagicMock()
+        mock_cv_instance.execute.return_value = self.cached_content
+        self.mock_di.computer_vision_analyzer.return_value = mock_cv_instance
+
+        resolver = ChatAttachmentProcessor(
+            additional_context = "context",
+            attachment_ids = [],
+            di = self.mock_di,
+            urls = [virtual_url],
+        )
+        result = resolver.execute()
+
+        self.assertEqual(result, ChatAttachmentProcessor.Result.success)
+        self.assertEqual(len(resolver.result), 1)
+        self.assertTrue(resolver.result[0]["id"].startswith("url-"))
+        # DB lookup must not be called for URL-resolved attachments
+        self.mock_chat_message_attachment_crud.get.assert_not_called()
+
+    @requests_mock.Mocker()
+    def test_url_resolved_merged_with_db_attachments(self, m: requests_mock.Mocker):
+        virtual_url = "https://example.com/image.png"
+        m.head(virtual_url, exc = ConnectionError("timeout"))
+        m.get(virtual_url, content = b"image data", status_code = 200)
+        m.get(str(self.attachment.last_url), content = b"image data", status_code = 200)
+        self.mock_cache_crud.get.return_value = self.cache_entry.model_dump()
+
+        mock_cv_instance = MagicMock()
+        mock_cv_instance.execute.return_value = self.cached_content
+        self.mock_di.computer_vision_analyzer.return_value = mock_cv_instance
+
+        resolver = ChatAttachmentProcessor(
+            additional_context = "context",
+            attachment_ids = ["1"],
+            di = self.mock_di,
+            urls = [virtual_url],
+        )
+        result = resolver.execute()
+
+        self.assertEqual(result, ChatAttachmentProcessor.Result.success)
+        self.assertEqual(len(resolver.result), 2)
+        result_ids = {r["id"] for r in resolver.result}
+        self.assertTrue(any(rid.startswith("url-") for rid in result_ids))
+        self.assertIn("1", result_ids)
+
+    def test_empty_ids_and_no_urls_raises_error(self):
+        with self.assertRaises(ValidationError) as context:
+            ChatAttachmentProcessor(
+                additional_context = "context",
+                attachment_ids = [],
+                urls = None,
+                di = self.mock_di,
+            )
+        self.assertIn("No attachment IDs provided", str(context.exception))
