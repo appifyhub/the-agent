@@ -265,6 +265,10 @@ class FunctionsTest(unittest.TestCase):
         from util.functions import normalize_phone_number
         self.assertEqual(normalize_phone_number("wa:+38 044-123-45-67 ext.89"), "38044123456789")
 
+    def test_normalize_phone_number_strips_leading_double_zero(self):
+        from util.functions import normalize_phone_number
+        self.assertEqual(normalize_phone_number("0049123456789"), "49123456789")
+
     def test_normalize_username_none(self):
         from util.functions import normalize_username
         self.assertIsNone(normalize_username(None))

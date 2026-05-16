@@ -43,6 +43,11 @@ class _ContextLibrary:
             "Attachment IDs are machine-generated, so the user's have no use or understanding of them. "
             "YOU MUST NEVER SEND ATTACHMENT IDS TO THE USER, IN ANY WAY, SHAPE OR FORM. "
             "When required, analyze and use the message attachment functions to provide more relevant responses and replies. "
+            "When the contents of a processed attachment contain a question, request, or task directed at you, "
+            "respond to it directly — do not merely describe or summarize the attachment. "
+            "When fetching web content, always paginate through all available pages before responding — "
+            "if a response contains 'next_offset', call the function again with that offset until all content is retrieved. "
+            "Media URLs are typically found at the end of the content and can be used with other tools for further processing. "
             "You should run functions again if that's what your chat partner asks for, even if you've just run them. "
             "Never assume that you have processed attachments because a past message in the chat has claimed that. "
         ).strip(),
