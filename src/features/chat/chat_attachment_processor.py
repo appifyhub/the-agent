@@ -13,6 +13,7 @@ from features.chat.supported_files import KNOWN_AUDIO_FORMATS, KNOWN_DOCS_FORMAT
 from features.documents.document_search import DocumentSearch
 from features.external_tools.intelligence_presets import default_tool_for
 from features.images.computer_vision_analyzer import ComputerVisionAnalyzer
+from features.web_browsing.web_fetcher import DEFAULT_HEADERS
 from util import log
 from util.functions import digest_md5
 
@@ -125,7 +126,7 @@ class ChatAttachmentProcessor:
             image_b64s: list[str] = []
             image_mime_types: list[str] = []
             for attachment in image_attachments:
-                contents = requests.get(str(attachment.last_url)).content
+                contents = requests.get(str(attachment.last_url), headers = DEFAULT_HEADERS).content
                 image_b64s.append(base64.b64encode(contents).decode("utf-8"))
                 image_mime_types.append(str(attachment.mime_type))
             configured_tool = self.__di.tool_choice_resolver.require_tool(
@@ -187,7 +188,7 @@ class ChatAttachmentProcessor:
         log.t(f"Resolving text content for attachment '{attachment.id}'")
 
         # fetching binary contents will also validate the URL
-        contents = requests.get(str(attachment.last_url)).content
+        contents = requests.get(str(attachment.last_url), headers = DEFAULT_HEADERS).content
 
         # handle audio
         if attachment.mime_type in KNOWN_AUDIO_FORMATS.values() or attachment.extension in KNOWN_AUDIO_FORMATS.keys():
